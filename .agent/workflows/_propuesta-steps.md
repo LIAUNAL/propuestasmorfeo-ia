@@ -48,8 +48,9 @@ Every run that uses analizar / continuar / auto MUST maintain:
 | `fase5_5` | §10 metodología + spec del diagrama (`figura.py`) + revisor | G5.5 | `fase6` |
 | `fase6` | §11 resultados + §12 ética (no own gate) | — | `fase6_4` |
 | `fase6_4` | §13 presupuesto + revisor | G budget | `fase6_45` |
-| `fase6_45` | §14 cronograma + §15 productos + §16 bib (no own gate) | — | `fase6_5` |
-| `fase6_5` | Front-matter + revisor | G front | `fase7` |
+| `fase6_45` | §14 cronograma + §15 productos + §16 bib (no own gate) | — | `fase6_46` |
+| `fase6_46` | §17 articulación con comunidades + §18 apropiación social + revisor | G comunidades | `fase6_5` |
+| `fase6_5` | §1 título e identificación + front-matter + revisor | G front | `fase7` |
 | `fase7` | Final audit + assemble `main.tex` | G final | `done` |
 | `done` | Pipeline complete | — | print `cd proposal && ./build.sh` |
 

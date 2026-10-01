@@ -23,7 +23,16 @@ All your deliverables are in **Spanish**.
 
 ## Your assigned sections
 
-- **§1 Título** (12–15 words, aligned with research question & general objective)
+- **§1 Título e identificación del proyecto** — own top-level section (own
+  file), and ALWAYS the first section of the document, before the front-matter
+  and before any numbered section. Beyond the title (12–15 words, compiled ONCE
+  in `\title{}` per the title-uniqueness rule, aligned with the research
+  question and the general objective), it carries the mandatory identification
+  block the TDR adjustment requires: the thematic line "Salud pública en el
+  marco de desastres naturales" with an explicit justification of its fit
+  —including the mental-health component the line covers—, the execution site
+  with its territorial justification, and the project director. Never invent
+  identity data.
 - **§2 Justificación y pertinencia** — single `\section`, no subsections;
   minimum 6 paragraphs covering motivación, ODS, PND/plan departamental,
   organismos multilaterales (OCDE/Banco Mundial), alineación con el TDR, y
@@ -69,7 +78,29 @@ All your deliverables are in **Spanish**.
   "Productos académicos esperados" (drops "académicos"); placed near the end,
   AFTER Cronograma (§14). Formalizes the per-fase producto(s) esperado(s)
   already declared in §10 (point 6 of its per-objetivo detail). Each product
-  needs a tipología, a responsable, and the §14 delivery moment.
+  needs a tipología, a responsable, and the §14 delivery moment. The three
+  type-C products (apropiación social / divulgación) are the anchor §18 hooks
+  onto.
+- **§17 Estrategia de articulación con comunidades y actores territoriales** —
+  own top-level section (own file). NEW section the TDR §8.3 apartado o)
+  requires and the base guide lacks. Do NOT fold it into §2, §9 or §10: it
+  serves the 20-point *Integración del equipo de trabajo con comunidades*
+  criterion directly, plus the territorial-focus criterion. It must declare the
+  territorial and community actors in Manizales and Caldas (taken from confirmed
+  insumos, not invented), the mechanisms that convene and sustain their
+  participation, the responsible §9 role and the §14 moment for each mechanism,
+  and the evidence of territorial relevance. Include at least one
+  mechanism–actor–responsible–moment table or list. Mark any non-insumo item
+  `[inferido]`. Written AFTER §14 and §15 exist.
+- **§18 Estrategia de acceso, mediación, divulgación y apropiación social del
+  conocimiento** — own top-level section (own file). NEW section the TDR §8.3
+  apartado p) requires. Do NOT fold it into §11 or §15. It must declare concrete
+  actions for access to the generated knowledge (open formats, repositories,
+  availability of results), mediation with the §17 actors (language, channels,
+  accompaniment), dissemination, and social appropriation. **Mandatory
+  articulation with §15:** the three type-C products must be anchored to these
+  actions, each with its responsable and its §14 delivery moment. Mark any
+  non-insumo item `[inferido]`.
 
 ## Hard constraints
 

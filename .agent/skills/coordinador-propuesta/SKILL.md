@@ -63,7 +63,7 @@ truth.
 Post-intake order (see `_propuesta-steps.md` for control block fields):
 
 `fase1a` → `fase1b` → `fase1` → `fase2` → `fase3` → `fase4` → `fase5` →
-`fase5_5` → `fase6` → `fase6_4` → `fase6_45` → `fase6_5` → `fase7` → `done`
+`fase5_5` → `fase6` → `fase6_4` → `fase6_45` → `fase6_46` → `fase6_5` → `fase7` → `done`
 
 - **auto** (`/propuesta`): loop all units in one session; stop at gates.
 - **stepped** (`/propuesta-analizar` then `/propuesta-continuar`): one unit per

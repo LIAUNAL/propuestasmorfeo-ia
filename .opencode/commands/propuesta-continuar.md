@@ -44,6 +44,7 @@ Mapeo id → bloque en `propuesta.md`:
 | `fase6` | Fase 6 |
 | `fase6_4` | Fase 6.4 |
 | `fase6_45` | Fase 6.45 |
+| `fase6_46` | Fase 6.46 |
 | `fase6_5` | Fase 6.5 |
 | `fase7` | Fase 7 |
 

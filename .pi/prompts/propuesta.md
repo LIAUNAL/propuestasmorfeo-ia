@@ -1216,24 +1216,59 @@ Fase 6.45 Task → redactor → §14 cronograma de actividades (Gantt) (sin gate
         `index_repository(repo_path="<RUN_ROOT>/artefactos/scoping/papers",
         name="<run-id>-papers", mode="full")` (incremental, mismo `name`) y
         reescribe `grafos/papers-graph-report.md`.
-Fase 6.5 Task → redactor → secciones preliminares (front-matter), como
-        síntesis del documento completo (§1–§16 ya aprobadas): Resumen
+Fase 6.46 Task → redactor → §17 Estrategia de articulación con comunidades y
+        actores territoriales (redaccion/sections/17_articulacion_comunidades.tex)
+        y §18 Estrategia de acceso, mediación, divulgación y apropiación social
+        del conocimiento (redaccion/sections/18_apropiacion_social.tex). Son las
+        dos secciones NUEVAS que el apartado o) y p) del TDR §8.3 exigen y que
+        la guía base no contempla: sirven directamente al criterio de 20 pts de
+        integración del equipo con comunidades y al de enfoque territorial, y §18
+        ancla los 3 productos de tipo C de §15 con responsable y momento de
+        entrega en §14. Por eso esta unidad va DESPUÉS de la Fase 6.45 —§14 y
+        §15 tienen que existir— y ANTES de la Fase 6.5, porque el front-matter
+        sintetiza el documento completo, §17 y §18 incluidos. Mismo mirror de
+        vault que el resto de secciones del redactor.
+        Antes de despachar cada Task, el dispatcher arma el bloque
+        `## FRAGMENTO DE GUÍA` con Directrices Generales + §17 (o §18) +
+        Convenciones técnicas de LaTeX y lo inyecta inline al inicio del prompt.
+        ──→ [NUEVO] DISPATCHER: vault-graph refresh: guardia — ejecuta este
+        bloque solo si en esta fase se crearon o editaron secciones del vault.
+        Mecánica: `index_repository(repo_path="<RUN_ROOT>/artefactos/vault",
+        name="<run-id>-vault", mode="fast")` (incremental, mismo `name`) y
+        reescribe `grafos/vault-graph.{md,json,html}`.
+        ──→ GATE Task → revisor (valida §17 y §18 contra la guía; verifica que
+        §18 ancle los 3 productos de tipo C de §15 y que §17 declare actores,
+        mecanismos, responsables y momentos) ──→ usuario. NO avances sin aprobación.
+Fase 6.5 Task → redactor → §1 Título e identificación del proyecto
+        (redaccion/sections/01_titulo_identificacion.tex), con el bloque
+        obligatorio de identificación que el ajuste TDR (apartado a) exige:
+        título de 12 a 15 palabras compilado UNA SOLA VEZ en `\title{}` (regla
+        de unicidad: ninguna otra sección lo repite), línea temática "Salud
+        pública en el marco de desastres naturales" con justificación explícita
+        de su pertinencia —incluida la mención del componente de salud
+        mental—, lugar de ejecución (Manizales, Caldas) con justificación
+        territorial, y director/a del proyecto. §1 va SIEMPRE antes del
+        front-matter y antes de cualquier sección numerada.
+        Task → redactor → secciones preliminares (front-matter), como
+        síntesis del documento completo (§1 y §2–§18 ya aprobadas): Resumen
         (redaccion/sections/00_resumen.tex, máx. 400 palabras), Resumen
         ejecutivo (redaccion/sections/00_resumen_ejecutivo.tex, exactamente 5
         párrafos), Palabras clave (redaccion/sections/00_palabras_clave.tex,
         5 palabras). Mismo mirror de vault que el resto de secciones del
         redactor. Antes de despachar esta Task, el dispatcher arma el
-        bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §Resumen +
+        bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §1 (Título e
+        identificación del proyecto) + §Resumen +
         §Resumen ejecutivo + §Palabras clave + Convenciones técnicas de
         LaTeX y lo inyecta inline al inicio del prompt.
         Antes de despachar la Task de este gate, el dispatcher arma el
-        bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §Resumen +
+        bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §1 + §Resumen +
         §Resumen ejecutivo + §Palabras clave y lo inyecta inline al inicio
         del prompt.
-        ──→ GATE Task → revisor (valida las 3 preliminares contra la guía) ──→ usuario. NO avances sin aprobación.
+        ──→ GATE Task → revisor (valida §1 y las 3 preliminares contra la guía) ──→ usuario. NO avances sin aprobación.
         ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
-        `artefactos/pipeline/70-fase6.md` (cubre Fase 6 + Fase 6.45 + Fase 6.5,
-        evento de esta compuerta) y actualiza `artefactos/pipeline/_estado.md`,
+        `artefactos/pipeline/70-fase6.md` (cubre Fase 6 + Fase 6.45 + Fase 6.46
+        + Fase 6.5, evento de esta compuerta) y actualiza
+        `artefactos/pipeline/_estado.md`,
         incluye además los campos de uso acumulados de la fase (ver
         "Telemetría de uso por fase").
 Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del índice
