@@ -348,9 +348,13 @@ teórico/metodológico de un objetivo (punto 1, Métodos, del desarrollo por
 objetivo) requiera respaldo técnico — al nombrar un enfoque, algoritmo o
 técnica concreta y describir su funcionamiento — cita literatura Q1/Q2 que lo
 sustente; el detalle puramente operativo de una actividad (recursos,
-cronología) no necesita cita. Acumula, en conjunto para toda la sección,
-**entre 8 y 15 referencias Q1/Q2 distintas**. Compatible con el tope de reúso
-de §16.
+cronología) no necesita cita. Acumula, en conjunto para toda la sección, **al
+menos 15 referencias Q1/Q2 distintas, sin techo**. La regla es un piso, no un
+rango: §10 desarrolla varios objetivos y nombra varias técnicas por objetivo, de
+modo que **cada técnica nombrada lleva su respaldo**, y el total lo fija el
+número de técnicas que la sección realmente describe, no una cuota. Es la misma
+lógica de §2 (≥10), §4 (≥30) y §8 (densidad por párrafo). Compatible con el
+tope de reúso de §16.
 
 **Ubicación del diagrama (regla permanente).** El contenido del diagrama
 esquemático metodológico se especifica como bloque comentado al final de
