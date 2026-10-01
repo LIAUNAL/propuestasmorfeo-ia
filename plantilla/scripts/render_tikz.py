@@ -122,6 +122,8 @@ FONT = {
     "novedad": (7.5, 9),
     "nivel": (7.5, 9),
     "closing": (12, 14),
+    "etiqueta": (8, 9.6),
+    "benef": (8, 9.6),
 }
 
 
@@ -170,6 +172,17 @@ def longest_word_cm(text: str, font_pt: float) -> float:
         return 0.0
     longest = max(words, key=len)
     return len(longest) * _GLYPH_EM * font_pt * 0.03528  # pt -> cm
+
+
+def line_width_cm(text: str, font_pt: float, bold: bool = False) -> float:
+    r"""Rendered width of `text` on a single unwrapped line, in cm.
+
+    `longest_word_cm` answers whether a fixed-width node can avoid an `Overfull
+    \hbox`; this answers how wide a label that must not wrap actually prints.
+    Used to decide whether the two TRL markers fit on the bar side by side.
+    """
+    factor = _GLYPH_EM * (1.08 if bold else 1.0)
+    return len(_strip_tex(text)) * factor * font_pt * 0.03528  # pt -> cm
 
 
 def fit_width(texts: list[str], role: str, fonts: dict | None = None) -> float:
@@ -332,7 +345,7 @@ PREAMBLE_STYLES = {
                    -{Stealth[length=3mm]}, draw=verdeGCPDS},
   etiqueta/.style={text=grisLabIA, font=\fontsize{{FP_ETIQUETA}}{{FS_ETIQUETA}}\selectfont\bfseries},
   benef/.style={draw=grisLabIA!70, rounded corners=4pt, fill=grisLabIA!6,
-                align=center, inner sep=6pt,
+                text width={W_BENEF}cm, align=center, inner sep=6pt,
                 font=\fontsize{{FP_BENEF}}{{FS_BENEF}}\selectfont},""",
 }
 
@@ -353,6 +366,18 @@ def _styles(kind: str, widths: dict[str, float]) -> str:
     text = PREAMBLE_STYLES[kind]
     for key, value in widths.items():
         text = text.replace("{" + key.upper() + "}", _f(value))
+    # Un placeholder sin resolver llega al `.tex` como llave literal y TeX lo lee
+    # como argumento numérico de `\fontsize`, que falla con un «Missing number,
+    # treated as zero» a decenas de líneas de distancia. Ocurrió: el estilo
+    # `etiqueta` del tipo `metodologico` referenciaba `FP_ETIQUETA`, un rol que
+    # `FONT` no declaraba, y el camino de `metodologico` no se había ejercitado
+    # nunca. Mejor fallar acá, señalando el rol que falta.
+    for m in re.finditer(r"\{{2,}([A-Z_]+)\}{2,}", text):
+        role = m.group(1).removeprefix("FP_").removeprefix("FS_").removeprefix("W_")
+        raise SystemExit(
+            f"estilo sin resolver en {kind}: {{{m.group(1)}}} — el rol '{role}' "
+            f"no está declarado (revisá FONT y los overrides del spec)"
+        )
     depth = 0
     for line in text.splitlines():
         depth += line.count("{") - line.count("}")
@@ -880,10 +905,18 @@ def build_metodologico(spec: dict, over: dict) -> tuple[str, list[int], dict[int
     w_novedad = over.get("novedad") or fit_width(
         [p.get("novelty", "") for p in phases], "novedad", fonts
     )
-    widths = {"W_FASE": w_fase, "W_NOVEDAD": w_novedad, **font_vars(fonts)}
-
     step = round(w_fase + 1.0, 2)
     n = len(phases)
+    # El bloque de beneficiarios abarca la cadena completa. Sin un `text width`
+    # propio crecía hasta el ancho de su propio texto y estiraba el diagrama a
+    # 22,14 cm, por encima del área de texto de la página (16,26 cm).
+    w_benef = round((n - 1) * step + w_fase, 2)
+    widths = {
+        "W_FASE": w_fase,
+        "W_NOVEDAD": w_novedad,
+        "W_BENEF": w_benef,
+        **font_vars(fonts),
+    }
     lines: list[str] = []
     line_map: dict[int, str] = {}
 
@@ -943,9 +976,25 @@ def build_metodologico(spec: dict, over: dict) -> tuple[str, list[int], dict[int
         )
         start = tex(trl.get("start", ""))
         end = tex(trl.get("end", ""))
-        emit(rf"\node[etiqueta, anchor=south] at ($(fAll.south west)+(0,-1.35)$) {{{start}}};")
-        emit(rf"\node[etiqueta, anchor=south] at ($(fAll.south east)+(0,-1.35)$) {{{end}}};")
-        emit(r"\node[etiqueta, anchor=north] at ($(fAll.south)+(0,-2.0)$) {Trayectoria TRL};")
+        # Los dos marcadores TRL se reparten en los extremos de la barra. Con
+        # textos largos la suma supera el ancho de la cadena y se pisaban en el
+        # centro, así que se apilan: el inicial arriba y el final abajo, con el
+        # rótulo de la barra al lado del final. Se miden en la fuente `etiqueta`,
+        # que va en negrita.
+        et_pt = fonts["etiqueta"][0]
+        side_by_side = (
+            line_width_cm(start, et_pt, bold=True)
+            + line_width_cm(end, et_pt, bold=True)
+            + 0.6
+        ) <= w_benef
+        if side_by_side:
+            emit(rf"\node[etiqueta, anchor=south west] at ($(fAll.south west)+(0,-1.35)$) {{{start}}};")
+            emit(rf"\node[etiqueta, anchor=south east] at ($(fAll.south east)+(0,-1.35)$) {{{end}}};")
+            emit(r"\node[etiqueta, anchor=north] at ($(fAll.south)+(0,-2.0)$) {Trayectoria TRL};")
+        else:
+            emit(rf"\node[etiqueta, anchor=south west] at ($(fAll.south west)+(0,-1.35)$) {{{start}}};")
+            emit(r"\node[etiqueta, anchor=north west] at ($(fAll.south west)+(0,-1.85)$) {Trayectoria TRL};")
+            emit(rf"\node[etiqueta, anchor=north east] at ($(fAll.south east)+(0,-1.85)$) {{{end}}};")
         emit("")
 
     if beneficiaries:

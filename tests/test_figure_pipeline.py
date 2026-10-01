@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -237,6 +238,31 @@ class TestStyleTemplatesAreBalanced(unittest.TestCase):
                 for line in template.splitlines():
                     depth += line.count("{") - line.count("}")
                 self.assertEqual(depth, 0, f"estilos desbalanceados en {kind}")
+
+    def test_every_style_role_is_declared_in_font(self):
+        """A style that names an undeclared role ships a literal brace to TeX.
+
+        `_styles` fills templates by textual replacement, so a placeholder whose
+        role is absent from `FONT` is never substituted. It reaches the `.tex` as
+        `\fontsize{{FP_ETIQUETA}}`, TeX reads `{FP_ETIQUETA}` as the numeric
+        argument and dies with `Missing number, treated as zero` tens of lines
+        from the cause. That is what happened to the `etiqueta` and `benef`
+        styles of the `metodologico` template: the kind had never been rendered,
+        so nothing caught it until the first real diagram of that kind.
+        """
+        module = load_render_module()
+        declared = set(module.FONT)
+        for kind, template in module.PREAMBLE_STYLES.items():
+            used = {
+                m.group(1).lower()
+                for m in re.finditer(r"\{\{(?:FP|FS)_([A-Z_]+)\}\}", template)
+            }
+            with self.subTest(kind=kind):
+                self.assertTrue(
+                    used <= declared,
+                    f"los estilos de {kind} referencian roles ausentes de FONT: "
+                    f"{sorted(used - declared)}",
+                )
 
     def test_node_role_mapping(self):
         module = load_render_module()
