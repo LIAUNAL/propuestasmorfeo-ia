@@ -457,3 +457,52 @@ la Universidad Nacional.
 aparece dos veces, con código 8415 sin tilde y 4369 con tilde. Se eligió 4369 por
 la grafía correcta y por ser el registro más antiguo. Si la oficina usa el otro,
 basta eliminar la fila y repetir con 8415.
+
+### Los $100M faltaban como fuente de financiación
+
+El operador detectó el hueco: el total mostraba $149.093.184, que es la suma de
+las contrapartidas y nada más. La causa estaba a la vista en el bloque de costos,
+«No se han agregado fuentes de financiación»: el dinero solicitado al fondo nunca
+se había registrado.
+
+Se agregó **Vicerrectoría de Investigación** como fuente interna pública —el TDR
+nombra a la VRI como convocante— y se distribuyeron los $100.000.000 en la
+columna *Efectivo* del catálogo presupuestal, con este desglose indicado por el
+operador:
+
+| Rubro del catálogo | Ruta en el árbol | Valor |
+|---|---|---:|
+| Servicios De Investigación Y Desarrollo | Gastos de comercialización › Adquisición de servicios | $50.000.000 |
+| Maquinaria De Oficina, Contabilidad E Informática | Adquisición de bienes › Activos fijos | $30.000.000 |
+| Otros Servicios De Fabricación; Edición, Impresión Y Reproducción | Gastos de comercialización › Adquisición de servicios | $10.000.000 |
+| Servicios De Telecomunicaciones, Transmisión Y Suministro De Información | Gastos de comercialización › Adquisición de servicios | $10.000.000 |
+
+Total del proyecto tras el ajuste, verificado después de recargar:
+
+| Concepto | Valor |
+|---|---:|
+| Valor en efectivo (VRI) | $100.000.000 |
+| Valor personal docente | $134.697.216 |
+| Aporte entidades participantes (UTP, especie) | $14.395.968 |
+| **Valor total del proyecto** | **$249.093.184** |
+
+**Dos cosas del formulario que cuestan tiempo si no se saben.** Los servicios no
+cuelgan de «Adquisición de bienes y servicios» sino de «Gastos de comercialización
+y producción», contra lo que sugiere el nombre. Y cada valor que se escribe
+dispara un AJAX que repliega el árbol entero, así que la ruta de expansión hay que
+rehacerla rubro por rubro.
+
+### El desglose ya no coincide con §13
+
+| Rubro | §13 del documento | Hermes |
+|---|---:|---:|
+| Servicios de investigación | $50.000.000 | $50.000.000 |
+| Servicios técnicos | $15.000.000 | — |
+| Artículos científicos / impresión | $15.000.000 | $10.000.000 |
+| Equipos | $20.000.000 | $30.000.000 |
+| Licencias de IA | — | $10.000.000 |
+
+Ambos suman $100.000.000, pero son distribuciones distintas. §13 justifica cada
+rubro contra una actividad de la metodología, de modo que el cambio arrastra la
+prosa de §13 y la coherencia con §10 y §14. Queda pendiente de decisión del
+operador.
