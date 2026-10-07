@@ -391,3 +391,37 @@ tampoco se pudo hacer.
 El enlace «Agregar Proy. Convocatoria» inscribe el proyecto en la Invitación
 Nacional Focalizada y lleva al «Aceptar» de los términos de referencia. No se
 pulsó.
+
+### Las cédulas llegaron y el bloque cerró a medias
+
+El operador aportó los dos documentos que faltaban: César Germán Castellanos
+Domínguez, c.c. 79.439.458, y Jorge Iván Montes Monsalve, c.c. 16.074.725. Ambos
+entraron sin fricción como «Profesor carrera docente UN», con 2 h/s y 12 meses, y
+el guardado parcial devolvió «Su proyecto ha sido registrado correctamente con el
+código: 69609». Una recarga confirmó que persisten.
+
+| Participante | UAB según Hermes | h/s | m | Valor dedicación |
+|---|---|---:|---:|---:|
+| CESAR CASTELLANOS C-79439458 | Ing. Eléctrica, Electrónica y Computación | 2.0 | 12.0 | $72.138.336 |
+| JORGE MONTES C-16074725 | **Informática y Computación** | 2.0 | 12.0 | $10.991.136 |
+
+Con eso el diagnóstico de David queda confirmado por comparación controlada: la
+receta idéntica agrega a dos personas y no a la tercera, de modo que la variable
+es la persona y no el método. David Augusto Cárdenas Peña pertenece a la UTP y no
+está en el padrón de la Universidad Nacional.
+
+### Dos cosas que el formulario corrigió del trabajo previo
+
+**Jorge no es del mismo departamento.** El aval 04 lo daba por adscrito a
+Ingeniería Eléctrica, Electrónica y Computación y lo hacía firmar por Dahiana
+López García, por analogía con el aval de referencia. Hermes lo reporta en el
+**Departamento de Informática y Computación**. El anexo se corrigió: membrete,
+firmante y pie, y el nombre del director de esa UAB vuelve a quedar por
+completar, porque no se infiere.
+
+**La convención de 48 semanas era la correcta.** Hermes valoriza la dedicación de
+Castellanos en $72.138.336 por 2 h/s durante 12 meses. Su valor hora certificado
+es $751.441, y 751.441 × 96 = 72.138.336 exacto. Es decir, el propio sistema
+liquida 96 horas, las mismas que se adoptaron para el aporte de la UTP en §13 y
+en los anexos 05, 07 y 08. La alternativa de 104 horas queda descartada por
+evidencia, no por preferencia.
