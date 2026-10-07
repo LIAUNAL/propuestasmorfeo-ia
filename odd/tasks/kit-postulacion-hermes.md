@@ -562,3 +562,56 @@ Los ocho productos del catálogo, y los entregables de cuatro resultados, que
 citaban la numeración y el subtipo anteriores. El editor de fila de la tabla de
 resultados funciona con el icono de lápiz y confirma con el de chequeo; no hay
 botón visible, así que parece de solo lectura hasta que se inspecciona el DOM.
+
+### Los rubros de Hermes quedan en cinco, con equipos en $20M
+
+El operador fijó dos valores: equipos en $20.000.000 y servicios técnicos en
+$10.000.000. En Hermes la instrucción se balancea sola, porque los $10M que
+salen de equipos financian exactamente la línea nueva.
+
+| Rubro del catálogo UNAL | Valor |
+|---|---:|
+| Servicios de Investigación y Desarrollo | $50.000.000 |
+| Maquinaria de Oficina, Contabilidad e Informática | $20.000.000 |
+| Servicios Profesionales, Científicos y Técnicos | $10.000.000 |
+| Otros Servicios de Fabricación; Edición, Impresión | $10.000.000 |
+| Servicios de Telecomunicaciones, Transmisión y Suministro de Información | $10.000.000 |
+
+El nodo elegido para servicios técnicos excluye en su propio rótulo los
+servicios de investigación, que son el primer rubro, así que no hay solapamiento
+entre los dos.
+
+**Un error que conviene no repetir.** El primer intento localizó las filas del
+árbol por el texto de la primera celda y escribió $10.000.000 en «Viviendas», un
+rubro que nada tiene que ver. La causa es que el árbol se re-renderiza tras cada
+escritura y la correspondencia entre fila y etiqueta deja de ser estable. Salió a
+la luz al verificar: el total marcaba $110.000.000 y equipos seguía en $30M.
+
+La forma que sí funciona apunta por el id exacto del input
+(`listaFuentesFinan2:0:treetable:<nodo>:j_id_1gc`), afirma el valor previo antes
+de escribir y aborta si no coincide. Con esa guarda, las tres escrituras
+—limpiar «Viviendas», bajar equipos, crear servicios técnicos— pasaron a la
+primera. Ids de esta corrida: `0_0_0` Viviendas, `0_0_7` equipos, `1_1_12`
+investigación, `1_1_14` servicios técnicos, `1_1_15` telecomunicaciones,
+`1_1_20` edición e impresión.
+
+### Pendiente: el quinto rubro del documento
+
+§13 tiene cuatro rubros y suma $100.000.000. Para cuadrar con Hermes necesita
+cinco, y el quinto es la línea de $10M que en Hermes quedó bajo
+telecomunicaciones.
+
+Ahí hay un conflicto que no se resuelve con aritmética. Esa línea venía
+etiquetada como licencias de IA, decisión tomada sin verificar, y §10 declara
+cuatro veces que el proyecto no requiere ninguna licencia: descriptores abiertos,
+modelos preentrenados de distribuciones abiertas y entornos de ejecución móvil de
+código abierto (líneas 166, 289, 408 y 509). Escribir un rubro de licencias
+contradiría la metodología en cuatro puntos y le quitaría el argumento de código
+abierto.
+
+La salida que la metodología sí respalda es **servicios de cómputo**: §10 pide el
+servicio académico de la Sede en los tres objetivos, para las corridas largas y
+la búsqueda de hiperparámetros, para los experimentos de compresión y calibración
+y para las corridas de la prueba inversa. Queda a decisión del operador; el
+documento no se tocó mientras tanto, porque cambiar un solo rubro dejaría la
+tabla sumando $95.000.000.
