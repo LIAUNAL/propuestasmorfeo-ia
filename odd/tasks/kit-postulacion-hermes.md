@@ -425,3 +425,35 @@ es $751.441, y 751.441 × 96 = 72.138.336 exacto. Es decir, el propio sistema
 liquida 96 horas, las mismas que se adoptaron para el aporte de la UTP en §13 y
 en los anexos 05, 07 y 08. La alternativa de 104 horas queda descartada por
 evidencia, no por preferencia.
+
+### La UTP entra como entidad participante, no por el equipo
+
+Decisión del operador: David no se vincula al equipo de trabajo. La contrapartida
+de la UTP se declara en el bloque **Entidades participantes** de la información
+financiera, con el valor en especie que generan sus horas.
+
+El bloque está detrás de una casilla, «¿El proyecto tiene entidades
+participantes?», que al marcarse habilita el catálogo de entidades —4766
+opciones— y los campos de monto en efectivo y en especie. Se registró:
+
+| Entidad | Monto efectivo | Monto especie |
+|---|---:|---:|
+| UNIVERSIDAD TECNOLÓGICA DE PEREIRA | $0 | $14.395.968 |
+
+Guardado con «Su proyecto ha sido registrado correctamente con el código: 69609»
+y verificado tras recargar. El costo total quedó así:
+
+| Concepto | Valor |
+|---|---:|
+| Aporte entidades participantes | $14.395.968 |
+| Valor personal docente | $134.697.216 |
+| **Valor total del proyecto** | **$149.093.184** |
+
+La solución resuelve de raíz el fallo del alta de David: el aporte queda
+declarado y cuantificado sin depender de que exista en el padrón de personas de
+la Universidad Nacional.
+
+**Un duplicado del catálogo, anotado:** la Universidad Tecnológica de Pereira
+aparece dos veces, con código 8415 sin tilde y 4369 con tilde. Se eligió 4369 por
+la grafía correcta y por ser el registro más antiguo. Si la oficina usa el otro,
+basta eliminar la fila y repetir con 8415.
