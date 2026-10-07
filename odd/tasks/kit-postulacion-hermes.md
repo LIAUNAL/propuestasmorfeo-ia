@@ -615,3 +615,48 @@ la búsqueda de hiperparámetros, para los experimentos de compresión y calibra
 y para las corridas de la prueba inversa. Queda a decisión del operador; el
 documento no se tocó mientras tanto, porque cambiar un solo rubro dejaría la
 tabla sumando $95.000.000.
+
+### El presupuesto queda en cinco rubros, con la frontera de las licencias explícita
+
+El operador resolvió el conflicto que bloqueaba el documento: las licencias de IA
+por $10.000.000 **se necesitan para el desarrollo**, y el despliegue **debe
+funcionar con modelos gratuitos**. Eso permitió cerrar §13 sin contradecir la
+metodología.
+
+| # | Rubro | Valor |
+|---|---|---:|
+| 1 | Contratación de servicios de investigación | $50.000.000 |
+| 2 | Servicios técnicos | $10.000.000 |
+| 3 | Artículos científicos | $10.000.000 |
+| 4 | Equipos | $20.000.000 |
+| 5 | Licencias de IA | $10.000.000 |
+
+La distinción no es cosmética. Un evaluador que lea «licencias» puede concluir que
+el producto entregado depende de un pago recurrente, y de ahí se sigue que la
+capacidad no permanece en el territorio tras el cierre. Por eso la descripción del
+rubro 5 dice que el sistema entregado corre sobre modelos y entornos abiertos, y
+los tres bloques de «Recursos necesarios» de §10 repiten la frontera con una
+formulación distinta cada uno, según el eslabón del que hablan.
+
+Las dos frases de §10 que sí dicen que no se requiere licencia quedaron intactas,
+porque hablan de otra cosa: el acceso a las tres bases de datos y el carácter
+abierto de los descriptores eGeMAPS y de los modelos preentrenados. El argumento
+de código abierto, que sostiene el TRL comprometido, no se debilitó.
+
+Verificación: `presupuestador` reestructuró §13 y encontró dos menciones de
+«cuatro rubros» que el encargo no listaba; `redactor` ajustó las tres frases de
+§10; `revisor` cerró en PASS sobre nueve controles, sin correcciones bloqueantes.
+El PDF compila en 60 páginas, sin errores ni desbordes.
+
+### Hermes: el registro 69609 quedó en la sección equivocada
+
+El operador detectó que el proyecto se venía diligenciando en una sección que no
+corresponde, y va a crear la versión en la zona correcta. Todo trabajo sobre 69609
+quedó detenido en ese punto.
+
+Lo cargado en 69609 sirve de inventario para migrar, no de trabajo perdido: los
+cinco rubros de arriba, los ocho productos, el equipo docente con sus cédulas y
+dedicaciones, la UTP como entidad participante en especie por $14.395.968, la
+Vicerrectoría de Investigación como fuente interna de los $100.000.000, y los seis
+resultados con sus entregables y fechas. Nada de eso se inscribió ni se envió: el
+operador saca el reporte PDF y hace la inscripción a mano.
