@@ -506,3 +506,59 @@ Ambos suman $100.000.000, pero son distribuciones distintas. §13 justifica cada
 rubro contra una actividad de la metodología, de modo que el cambio arrastra la
 prosa de §13 y la coherencia con §10 y §14. Queda pendiente de decisión del
 operador.
+
+### Los productos pasan de seis a ocho
+
+El cotejo contra el Anexo 1 mostró que la composición cumplía el mínimo del TDR
+—un producto de tipo A o D, dos de B y tres de C— pero justo en el borde, y con
+dos incoherencias que costaban puntos. No había producto de tipo A aunque el
+presupuesto financiaba la publicación de tres manuscritos, y el doctorando
+figuraba en el equipo y en el presupuesto sin aparecer entre los productos de
+formación.
+
+Composición nueva, en el documento y en Hermes:
+
+| # | Producto | Subtipo | Entrega |
+|---|---|---|---|
+| 1 | Aplicativo móvil con inteligencia artificial | D.1 prototipo fabricable por el sector empresarial | M10, cierre documental M11 |
+| 2 | Artículo sometido a revista indexada, en acceso abierto | A.1 | M12 |
+| 3 | Tesis de maestría | B.1 | M11 |
+| 4 | Vinculación de dos estudiantes de pregrado | B.2 | M2 |
+| 5 | Vinculación de un estudiante de doctorado | B.3 | M2 |
+| 6 | Ponencia en evento científico | C.2 | M9 |
+| 7 | Participación de la comunidad universitaria | C.3 | M12 |
+| 8 | Taller de apropiación | C.7 | M12 |
+
+**El doctorado se compromete por la vinculación, nunca por la culminación.** Una
+tesis doctoral no se termina en doce meses, de modo que prometerla habría sido
+comprometer lo que el calendario no sostiene. §10 y §11 se ajustaron en el mismo
+sentido.
+
+**El rubro de publicación se acotó.** Antes costeaba acceso abierto, traducción y
+corrección de estilo; ahora paga únicamente los cargos de procesamiento del
+artículo, porque esas otras labores las asume el equipo.
+
+En Hermes se eligió el subtipo 1232, «artículo científico o de investigación
+sometido, aceptado o aprobado para publicación en revista indexada»: es el único
+que nombra revista indexada y admite el artículo sometido, que es lo realista en
+la ventana de ejecución.
+
+### Una regresión que el revisor atrapó
+
+El primer pase actualizó la tabla de §15 y olvidó la prosa, que seguía citando la
+numeración vieja: el producto 3 anclado en M2, la ponencia como producto 4, la
+tesis de maestría como producto 2. El `revisor` devolvió FAIL con cinco
+correcciones bloqueantes, todas reales. Se aplicaron y la reverificación cerró en
+PASS, con las dieciséis menciones de «producto N» apuntando al producto correcto.
+
+La causa de fondo estaba en el comentario de cabecera del archivo, que documentaba
+el mapeo viejo de seis productos y servía de referencia al editar. Se actualizó a
+la composición de ocho y se le agregó una advertencia explícita: cualquier cambio
+en la lista obliga a recorrer el archivo completo.
+
+### Qué se actualizó en Hermes
+
+Los ocho productos del catálogo, y los entregables de cuatro resultados, que
+citaban la numeración y el subtipo anteriores. El editor de fila de la tabla de
+resultados funciona con el icono de lápiz y confirma con el de chequeo; no hay
+botón visible, así que parece de solo lectura hasta que se inspecciona el DOM.
