@@ -858,3 +858,95 @@ cuatro meses para cada pregrado. La conversión a horas semanales es un dato nue
 con efecto presupuestal, porque horas y meses tienen que cerrar contra los
 $50.000.000 del rubro de contratación de estudiantes. Por eso la decide el
 operador.
+
+### El equipo queda completo y el paso 1 valida
+
+Los cuatro estudiantes entraron con 10 horas semanales, los pregrados por cuatro
+meses y los de posgrado por doce, según decidió el operador.
+
+| Integrante | Documento | Vinculación | h/s | meses | Valor |
+|---|---|---|---:|---:|---:|
+| César Germán Castellanos | 79439458 | Profesor carrera docente UN | 2 | 12 | $72.138.336 |
+| Jorge Iván Montes | 16074725 | Profesor carrera docente UN | 2 | 12 | $10.991.136 |
+| Carlos Andrés Pérez | 1036660212 | Estudiante posgrado UN | 10 | 12 | $0 |
+| Alejandro Patiño Bedoya | 1002566760 | Estudiante posgrado UN | 10 | 12 | $0 |
+| Sergio Alejandro Gil Ríos | 1055753057 | Estudiante pregrado UN | 10 | 4 | $0 |
+| Jerónimo Novoa Giraldo | 1054858413 | Estudiante pregrado UN | 10 | 4 | $0 |
+
+Los estudiantes valen $0 porque la contrapartida solo valoriza a docentes y
+administrativos, tal como advierte la propia nota del formulario. Con el equipo
+completo, «Guardar y Avanzar» pasó la validación que antes exigía un estudiante y
+el asistente abrió el paso de Información Específica.
+
+### Información Específica: diez campos, y una trampa en los ids
+
+Los ids de los campos **no corresponden a sus etiquetas**, y escribir por nombre
+habría desordenado la propuesta entera. El mapeo real, resuelto comparando la
+posición vertical de cada etiqueta con la de su campo, es este:
+
+| Campo | Sección real | Caracteres |
+|---|---|---:|
+| `proyectoActualTitulo1` | Línea temática de investigación | 1.123 |
+| `proyectoActualJustificacion` | **Lugar de ejecución** | 1.313 |
+| `proyectoActualMetodologia` | **Preguntas de investigación** | 2.581 |
+| `proyectoActualTitulo4` | Justificación | 2.945 |
+| `proyectoActualTitulo5` | Marco conceptual | 2.867 |
+| `proyectoActualTitulo6` | Estado del conocimiento | 3.225 |
+| `proyectoActualTitulo7a` | Metodología | 31.596 |
+| `proyectoActualTitulo8` | Participantes | 5.996 |
+| `proyectoActualTitulo9` | Articulación con comunidades | 8.823 |
+| `proyectoActualTitulo10` | Apropiación social | 8.302 |
+
+El contenido salió de `kit_formulario.py`, que convierte las secciones LaTeX a
+texto pegable. La línea temática y el lugar de ejecución se recortaron del campo
+de identificación, que los trae juntos.
+
+**Cuatro campos tienen un tope de ~4.000 caracteres y no lo declaran.** El primer
+intento escribió los textos completos y el servidor los cortó a 3.949, a mitad de
+palabra: «los modelos vigente», «su operació», «es una me». Los cuatro afectados
+son preguntas de investigación, justificación, marco conceptual y estado del
+conocimiento. Se reemplazaron por los condensados que el kit ya traía, todos
+bajo el tope y cerrando en frase completa. Conviene verificar que el contenido
+quedó distinto en cada campo: el corte a 3.949 en los cuatro hacía sospechar
+contaminación cruzada, y no la hubo.
+
+Curiosamente el tope no es general: metodología guarda 31.596 caracteres sin
+recorte, y participantes, articulación y apropiación guardan entre 6.000 y 8.800.
+
+### «Guardar y avanzar» falla y bloquea los pasos siguientes
+
+El guardado parcial funciona y los 68.771 caracteres persisten tras recargar.
+Avanzar, en cambio, devuelve siempre «Error en el Sistema. Ha ocurrido un error,
+puede ignorarlo e intentar de nuevo o reportarlo», con un panel que ofrece
+«Intentar de nuevo» y remite al soporte de Hermes en la extensión 11111.
+
+Se descartó el tamaño como causa: con la metodología reducida a su condensado de
+5.065 caracteres el error se repite igual. El botón «Intentar de nuevo» despeja
+el panel pero no habilita el paso. Actividades y Bibliografía siguen cerradas, y
+el diagnóstico está del lado del servidor.
+
+### Defecto del entregable: 36 marcadores internos en el PDF
+
+Los campos de Hermes arrastran marcadores que el proceso de redacción usa para
+señalar lo que nadie verificó, y que un evaluador no debería leer:
+
+| Sección | `[inferido]` |
+|---|---:|
+| §9 Equipo de trabajo | 13 |
+| §12 Consideraciones éticas | 12 |
+| §17 Articulación con comunidades | 7 |
+| §18 Apropiación social | 6 |
+| §11 Resultados esperados | 3 |
+| §1 Título e identificación | 1 |
+
+El PDF compilado los imprime **36 veces**, así que el problema no es de Hermes
+sino del documento. A ellos se suman cuatro marcadores `⟨completar: …⟩` dentro
+del campo de participantes, que piden la unidad académica básica de cada docente
+con su director, el nombre oficial del grupo de Automática de la UTP, la unidad a
+la que está adscrito David Augusto Cárdenas y el nombre del representante de la
+UTP que firma las cartas.
+
+No se borraron por decisión deliberada. Cada marca señala un dato que nadie
+confirmó, y quitarlas en silencio destruiría justo la señal que el operador
+necesita antes de radicar. Lo correcto es verificar esos datos y entonces retirar
+las marcas.
