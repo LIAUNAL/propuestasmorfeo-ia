@@ -144,3 +144,48 @@ César Germán Castellanos Domínguez en \$751.441, para el trimestre julio–se
 de 2026. No se usó: §13 monetiza el aporte **externo**, que es el único que cuenta
 para el criterio de fuentes adicionales, y las horas de los docentes UNAL son
 aporte institucional propio. Queda anotado por si la intención es valorizarlas.
+
+### Anexo 09: carta de intención de la Dirección de Pregrados
+
+El operador pidió una carta de intención de apoyo que firme la Dirección de
+Pregrados, concreta y breve, sobre apoyo logístico y divulgativo con la comunidad
+estudiantil afectada por el sismo en la Sede Manizales.
+
+La carta compromete dos frentes y nada más. En lo **logístico**, la coordinación
+con las direcciones de los programas curriculares para disponer espacios,
+horarios y canales de contacto sin interferir con la actividad académica. En lo
+**divulgativo**, la difusión de la convocatoria de participación por los medios
+institucionales de la Sede, con atención particular a los estudiantes afectados.
+
+Tres acotaciones deliberadas, porque una carta que promete de más se vuelve un
+problema cuando alguien la firma. La vinculación de cada estudiante queda
+voluntaria y sujeta al aval del comité de ética, coherente con §12, que fija ese
+aval como condición previa a toda captura. El respaldo se declara de naturaleza
+logística y divulgativa, sin recursos financieros a cargo de la Dirección. Y se
+excluye explícitamente la prestación de servicios de atención clínica, que el
+proyecto no ofrece: su unidad de intervención es el tamizaje, no el tratamiento.
+
+Quedan dos marcadores por completar: el nombre del director o directora y la
+**denominación oficial exacta de la dependencia**. Lo segundo no es un detalle de
+forma. El TDR no nombra esa oficina y el catálogo de dependencias de Hermes
+tampoco la expone en la lista de la Sede Manizales, de modo que el rótulo que va
+en una carta firmada conviene tomarlo de la propia dependencia.
+
+El `.docx` quedó verificado con el mismo estándar que los demás: ZIP válido, una
+página, A4 de 595,3 × 841,9 pt, abre en LibreOffice, el guion bajo de la firma no
+se degrada a regla horizontal y los `⟨…⟩` salen como guillemets.
+
+### Los nueve anexos anteriores llevan el título viejo
+
+Al redactar el anexo 09 salió a la luz algo que afecta a todos los demás. El
+título vigente del proyecto es **«Aplicativo móvil basado en inteligencia
+artificial para apoyar el tamizaje de depresión posdesastre en estudiantes
+universitarios»**, que es el que está en Hermes y en el documento técnico. Los
+nueve anexos del 00 al 08 siguen nombrando el título anterior, «Sistema de
+inteligencia artificial portable para la identificación de patrones de depresión
+asociados a estrés postraumático en estudiantes universitarios».
+
+El anexo 09 se escribió con el título vigente. Los otros nueve no se tocaron:
+corregirlos obliga a regenerar sus `.docx` y a reemplazar los de Drive, y es una
+decisión del operador. Mientras no se haga, hay nueve documentos firmables que
+nombran un proyecto distinto del que se radica.
