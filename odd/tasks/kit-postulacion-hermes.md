@@ -660,3 +660,75 @@ dedicaciones, la UTP como entidad participante en especie por $14.395.968, la
 Vicerrectoría de Investigación como fuente interna de los $100.000.000, y los seis
 resultados con sus entregables y fechas. Nada de eso se inscribió ni se envió: el
 operador saca el reporte PDF y hace la inscripción a mano.
+
+### El registro correcto es el 69693, en la convocatoria focalizada
+
+La diferencia entre los dos registros estaba en la convocatoria, no en el
+contenido. El 69609 colgaba de «Registro único de proyectos», modalidad
+«Proyecto o programa de investigación»; el 69693 cuelga de la **Invitación
+Nacional Focalizada – Respuesta a Emergencias y Desastres**, modalidad única.
+Esa es la zona correcta.
+
+Antes de escribir nada se volcó el contenido del 69609 a
+`artefactos/kit/hermes_69609_inventario.json`: título, resumen, descripción del
+problema, objeto, los tres objetivos con sus medios de verificación, los seis
+resultados con entregables y fechas, clasificación, palabras clave, productos,
+rubros, fuente, entidad y equipo. La sesión de Hermes ya se había caído una vez,
+y rederivar esos textos desde el LaTeX habría producido una versión distinta sin
+ninguna ganancia.
+
+**Lo cargado y verificado en el 69693**
+
+| Sección | Estado |
+|---|---|
+| Tipología, título, duración | ya venían del registro |
+| Dependencias responsables | Manizales › Ingeniería y Arquitectura › Depto. de Ing. Eléctrica, Electrónica y Computación |
+| Resumen y objetivo general | 2 434 y 372 caracteres |
+| Objetivos específicos | 3, con sus medios de verificación |
+| Resultados esperados | 6, con entregable y fecha |
+| Productos académicos | 8: 1 A + 3 B + 3 C + 1 D |
+| Región que impacta | Caldas/Manizales y Risaralda/Pereira |
+| Clasificación | ODS salud, sector salud, ingeniería y tecnología, eléctrica/electrónica/informática, segundo desafío, integración académica, línea 2.2 |
+| Palabras clave | las 6 |
+| Lugar de ejecución financiera | 4- Dirección de Investigación y Extensión |
+| Fuente de financiación | la que trae la convocatoria, en $100.000.000 |
+| Rubros | los cinco, suma exacta |
+| Entidad participante | UTP, $0 efectivo y $14.395.968 en especie |
+
+Se guardó parcialmente con «Guardar y continuar después» ocho veces, y cada
+tramo quedó verificado tras recargar.
+
+**Dos diferencias de forma frente al 69609.** Esta convocatoria no pide la
+descripción del problema en la ficha mínima —la pediría en «Información
+Específica»— y trae la fuente de financiación ya creada en $0, de modo que los
+rubros se asignan sobre esa fila en lugar de agregar una nueva. Agregar otra
+habría duplicado el aporte.
+
+**El catálogo de productos no es el mismo.** La primera elección del artículo
+cayó en «Artículo (se aceptan artículos que se encuentren sometidos y/o
+aprobados para publicación)», que no es el del 69609. Se eliminó y se puso
+«Artículo científico o de investigación sometido o, aceptado o aprobado para
+publicación en revista indexada», que es el que nombra la revista indexada. La
+lección es que en este formulario hay diez variantes de «Artículo» y un regex
+laxo escoge la equivocada.
+
+### Dos topes que no me corresponden
+
+**El aviso de privacidad.** La sección de equipo de trabajo no expone sus campos
+hasta aceptar una cláusula donde el docente declara que ha recibido autorización
+expresa de todas las personas vinculadas a la propuesta. Es una declaración legal
+sobre autorizaciones que el operador posee y yo no: la acepta él.
+
+**Falta un estudiante.** Al intentar «Guardar y Avanzar», la validación responde
+«Debe incluir al menos un estudiante de pregrado o posgrado». La convocatoria lo
+exige, y el paso siguiente del asistente no se abre sin eso. El formulario ofrece
+la opción «¿Conoce los datos personales de los integrantes?» en NO, que permite
+vincular sin datos personales; así no hay que inventar ninguna identidad.
+
+Ese intento fallido no perdió nada: devolvió «Su proyecto NO ha sido registrado»
+pero los guardados parciales anteriores sostienen todo, y se confirmó tras
+recargar.
+
+Quedan sin abrir, porque dependen de ese paso: Información Específica,
+Actividades y Bibliografía. «Adjuntar archivos y enviar» no se toca: el operador
+saca el reporte PDF, revisa y envía a mano.
