@@ -808,3 +808,53 @@ Por eso la conversión la decide el operador y no se infiere aquí.
 
 Lo que sí queda fijo desde §9 es la duración de cada vinculación: 12 meses para
 el doctorado y la maestría, 4 meses para cada pregrado.
+
+### El equipo se abre y entran los dos coinvestigadores
+
+El operador aceptó el aviso de privacidad —queda registrado «aceptado por ANDRES
+MARINO ALVAREZ MEZA el 08/10/2026 10:46»— y con eso la sección expuso sus
+campos: `conoceDatos_input`, `j_id_we_input` (vinculación), `tipodoecv2_input`
+(tipo de documento), `documentov2`, `horasCoinv2` (horas por semana),
+`horasCoinv3` (meses), `funcionInvestigador` y el botón `buscarPer2`.
+
+| Integrante | Documento | Vinculación | h/s | meses | Valor |
+|---|---|---|---:|---:|---:|
+| César Germán Castellanos | 79439458 | Profesor carrera docente UN | 2 | 12 | $72.138.336 |
+| Jorge Iván Montes | 16074725 | Profesor carrera docente UN | 2 | 12 | $10.991.136 |
+
+Las valoraciones coinciden con las del registro anterior, y la unidad de Jorge
+aparece correcta: Departamento de Informática y Computación.
+
+Las funciones se tomaron de §9, no se redactaron de nuevo: Germán responde por el
+componente de señal de OE1 y Jorge por el instrumental de OE2.
+
+**Un descuido propio, corregido.** La primera carga de Germán escribió la función
+sin tildes («componente de senal», «disena y valida»). Las tildes sí funcionan al
+asignar el valor por JavaScript, de modo que el problema fue mío y no del
+formulario. La tabla de participantes no tiene editor de fila, así que corregirlo
+obligó a eliminarlo y volverlo a cargar; quedó con el mismo valor y el texto ya
+acentuado. Conviene revisar la acentuación antes de pulsar «Agregar», porque ese
+texto viaja al formulario que lee el evaluador.
+
+### La vinculación de estudiantes no distingue nivel
+
+El catálogo de `j_id_we_input` ofrece cuatro opciones: profesor de la UN fuera de
+la carrera docente, profesor de carrera docente, **estudiante pregrado UN** y
+**estudiante posgrado UN**. No hay una entrada aparte para doctorado, así que
+Alejandro y Carlos Andrés entran como posgrado y el nivel queda declarado en los
+productos —que ya distinguen «Estudiante en formación Doctorado» de la tesis de
+maestría— y en el campo de función.
+
+### Sigue faltando la dedicación semanal de los estudiantes
+
+Hermes exige horas mayores a cero para dar de alta a cualquier integrante, y ni
+§9 ni el TDR las fijan para estudiantes. El TDR habla de horas solo para la
+jornada docente (líneas 535 y 548) y sobre estudiantes se limita a exigir «al
+menos 1 estudiante de pregrado o posgrado de la Universidad» (línea 395) y a
+declarar el apoyo incompatible con monitorías o becas (líneas 353-354).
+
+§9 aporta las duraciones y nada más: doce meses para el doctorado y la maestría,
+cuatro meses para cada pregrado. La conversión a horas semanales es un dato nuevo
+con efecto presupuestal, porque horas y meses tienen que cerrar contra los
+$50.000.000 del rubro de contratación de estudiantes. Por eso la decide el
+operador.
