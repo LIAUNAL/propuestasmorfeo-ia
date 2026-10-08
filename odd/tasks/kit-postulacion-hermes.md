@@ -732,3 +732,44 @@ recargar.
 Quedan sin abrir, porque dependen de ese paso: Información Específica,
 Actividades y Bibliografía. «Adjuntar archivos y enviar» no se toca: el operador
 saca el reporte PDF, revisa y envía a mano.
+
+### Estudiantes para vincular (datos aportados por el operador)
+
+| Nombre | Documento | Correo | Nivel |
+|---|---|---|---|
+| Sergio Alejandro Gil Ríos | 1.055.753.057 | segilr@unal.edu.co | pregrado |
+| Jerónimo Novoa Giraldo | 1.054.858.413 | jenovoag@unal.edu.co | pregrado |
+| Alejandro Patiño Bedoya | 1.002.566.760 | alpatinob@unal.edu.co | maestría |
+| Carlos Andrés Pérez | **pendiente** | **pendiente** | doctorado |
+
+Este cuadro satisface la validación que hoy bloquea el avance: la convocatoria
+exige «al menos un estudiante de pregrado o posgrado».
+
+### La búsqueda de Carlos Andrés Pérez en Drive no dio resultado
+
+Se buscó, de forma acotada, en:
+
+- **My Drive por nombre**: `*siun*` (solo aparece la carpeta
+  `Anexos_SIUN_Emergencias_2026` que creamos), `*perez*`, `*carlos*`, `*andres*`.
+- **My Drive por contenido**: 330 archivos `.xlsx` y `.docx` de hasta 3 MB,
+  descomprimiendo y buscando `carlos andr*` y `andres p[eé]rez`. Cero
+  coincidencias.
+- **My Drive por fecha**: los 25 archivos modificados en las últimas dos
+  semanas. Son los anexos de esta corrida y documentos de renta, nada de la
+  convocatoria.
+- **Unidades compartidas** (`Shared drives`) por nombre: `*siun*`,
+  `*focalizada*`, `*emergenc*`, `*convocatoria*`. Solo aparecen convocatorias de
+  otros proyectos (neonatos, redes de monitoreo, CHEC).
+- **Other computers**, `~/Downloads`, `~/Desktop`, `~/Documents`.
+- El anexo `Anexo-2-Carta-Compromiso-Estudiantes.docx` de los insumos es una
+  **plantilla en blanco**: tiene los seis espacios de firma y ningún nombre.
+
+Tampoco se pudo usar el MCP de Google Drive: responde «MCP server google-drive
+requires sign-in», igual que el de Gmail. La búsqueda quedó limitada al montaje
+local de Drive, que no expone el contenido de los archivos nativos de Google
+(`.gdoc`, `.gsheet`), que viven solo en la nube.
+
+**Vía mejor.** Cuando el aviso de privacidad esté aceptado, la sección de equipo
+trae un buscador de personas de Hermes (`buscarPer2`). Buscar ahí a Carlos
+Andrés Pérez es más confiable que buscarlo en Drive: el registro de personas de
+la Universidad tiene el documento, y es justamente lo que el formulario necesita.
