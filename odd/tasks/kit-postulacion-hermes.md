@@ -1011,3 +1011,44 @@ Los cinco pasos quedaron habilitados y recorridos con «Guardar y avanzar» hast
 `SubirArchivo.xhtml`. **No se pulsó «Enviar proyecto para revisión»**, conforme a
 la instrucción: el operador revisa y envía a mano. Queda pendiente adjuntar los
 anexos en ese último paso.
+
+### El título vuelve al anterior, y Hermes se alinea con los anexos
+
+El operador decidió conservar el título con el que ya están redactados los nueve
+anexos, en lugar de corregirlos uno por uno:
+
+> Sistema de inteligencia artificial portable para la identificación de patrones
+> de depresión asociados a estrés postraumático en estudiantes universitarios
+> afectados por el sismo
+
+Una precisión sobre esa cadena. El operador la citó sin la cola «afectados por el
+sismo», pero los nueve anexos sí la traen, y el propósito del cambio era
+justamente que todo coincidiera con ellos. Se usó la versión completa de los
+anexos, y la diferencia quedó señalada para que la corrija en una palabra si
+prefiere la otra.
+
+El anexo 09, que se había escrito con el título vigente, se devolvió al anterior
+y se regeneró su `.docx`. Los diez anexos nombran ahora el mismo proyecto. En
+Hermes se reemplazó el campo de título del 69693 y quedó verificado tras
+recargar; la lista de proyectos también lo muestra actualizado.
+
+**Queda una inconsistencia, y es deliberada.** El documento técnico en LaTeX
+conserva el título nuevo en `main.tex:82`, una sola línea de la portada. No se
+tocó porque la instrucción fue actualizar Hermes, y cambiar la portada del
+documento es una decisión aparte. Mientras no se haga, el PDF que se adjunta
+nombra un proyecto distinto del que Hermes registra.
+
+### El reporte de la propuesta
+
+Se generó desde «Reporte proyecto» en la lista de proyectos: `formato-proyecto.pdf`,
+**30 páginas**, con el código 69693, la convocatoria focalizada, modalidad única,
+tipología 2020100-Investigación aplicada, estado «Ingresando Proyecto», duración
+de doce meses y el título ya corregido.
+
+El PDF se sirve como respuesta de un solo uso a un envío de formulario: un GET
+posterior a la misma dirección devuelve el HTML de la lista, no el documento. Por
+eso no hay enlace estable que compartir ni forma de recuperarlo por URL. Queda
+abierto en una pestaña del navegador controlado, y el botón de descarga del visor
+abre un diálogo nativo del sistema que esta sesión no puede operar: ese clic lo
+da el operador. Una captura de la primera página quedó en
+`artefactos/kit/reporte_69693.png` como constancia de lo que el reporte contiene.
