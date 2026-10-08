@@ -950,3 +950,64 @@ No se borraron por decisión deliberada. Cada marca señala un dato que nadie
 confirmó, y quitarlas en silencio destruiría justo la señal que el operador
 necesita antes de radicar. Lo correcto es verificar esos datos y entonces retirar
 las marcas.
+
+### La causa del «Error en el Sistema»: el tope de 4.000 caracteres
+
+El operador habilitó el avance, pero la pestaña de Información Específica llegó
+con los diez campos en «NA»: el contenido anterior se había perdido. Al
+recargarlos y volver a intentar, el error reapareció, y la bisección lo explicó.
+
+**Los diez campos tienen un tope de 4.000 caracteres, y ninguno lo declara.** El
+guardado parcial no valida: acepta el exceso y recorta en silencio, que es lo que
+produjo los cortes a mitad de palabra. Avanzar sí valida, y ante un campo
+excedido devuelve un error genérico del sistema que no nombra el campo ni el
+motivo. Esa asimetría es la que hacía parecer que el problema era del servidor.
+
+Longitudes finales, todas bajo el tope:
+
+| Campo | Sección | Caracteres |
+|---|---|---:|
+| `Titulo1` | Línea temática | 1.123 |
+| `Justificacion` | Lugar de ejecución | 1.313 |
+| `Metodologia` | Preguntas de investigación | 2.581 |
+| `Titulo4` | Justificación | 2.945 |
+| `Titulo5` | Marco conceptual | 2.867 |
+| `Titulo6` | Estado del conocimiento | 3.225 |
+| `Titulo7a` | Metodología | 3.653 |
+| `Titulo8` | Participantes | 3.882 |
+| `Titulo9` | Articulación con comunidades | 3.899 |
+| `Titulo10` | Apropiación social | 3.573 |
+
+La metodología pasó de 31.596 caracteres a 3.653: se tomó el condensado del kit y
+se recortó en una frontera de oración real, no en el carácter 4.000. Los textos
+completos quedan en `artefactos/kit/infoesp/`, que es la fuente para el documento
+técnico; Hermes recibe la versión que su tope admite.
+
+### Actividades y Bibliografía
+
+Las **15 actividades** son las cinco por objetivo que declara §10, con el mes
+inicial y la duración derivados de §14. Hermes las reordena por mes de inicio, no
+por objetivo, de modo que el orden visible no coincide con el de la propuesta;
+cada descripción empieza por «OE1 ·», «OE2 ·» u «OE3 ·» para que la asociación
+quede explícita, como pide el TDR. Las dos filas de prueba que traía el registro
+se sobrescribieron.
+
+Dos detalles del formulario que cuestan tiempo si no se saben. El id del textarea
+de descripción **está duplicado**: lo comparte con el div de error de validación,
+así que `getElementById` devuelve el div y la escritura no registra; hay que
+seleccionar por etiqueta `textarea`. Y el botón de alta solo agrega una fila
+cuando la última está llena, de modo que el ciclo es llenar y luego agregar.
+
+La **bibliografía** quedó con **106 referencias**, una por fila, extraídas del PDF
+ya formateadas en APA. Hubo tres correcciones de parsing: los guiones de corte de
+línea («representa- tion»), un bloque que fusionaba doce entradas institucionales,
+y la deduplicación. La más larga mide 528 caracteres, muy por debajo del tope.
+El botón de alta vive en `j_id_j:j_id_1c`, **sin prefijo `form:`**, y su rótulo
+lleva un doble espacio: «Agregar  nueva referencia bibliográfica».
+
+### Estado: el formulario está completo y sin enviar
+
+Los cinco pasos quedaron habilitados y recorridos con «Guardar y avanzar» hasta
+`SubirArchivo.xhtml`. **No se pulsó «Enviar proyecto para revisión»**, conforme a
+la instrucción: el operador revisa y envía a mano. Queda pendiente adjuntar los
+anexos en ese último paso.
