@@ -740,7 +740,7 @@ saca el reporte PDF, revisa y envía a mano.
 | Sergio Alejandro Gil Ríos | 1.055.753.057 | segilr@unal.edu.co | pregrado |
 | Jerónimo Novoa Giraldo | 1.054.858.413 | jenovoag@unal.edu.co | pregrado |
 | Alejandro Patiño Bedoya | 1.002.566.760 | alpatinob@unal.edu.co | maestría |
-| Carlos Andrés Pérez | **pendiente** | **pendiente** | doctorado |
+| Carlos Andrés Pérez | 1.036.660.212 | — | doctorado |
 
 Este cuadro satisface la validación que hoy bloquea el avance: la convocatoria
 exige «al menos un estudiante de pregrado o posgrado».
@@ -773,3 +773,38 @@ local de Drive, que no expone el contenido de los archivos nativos de Google
 trae un buscador de personas de Hermes (`buscarPer2`). Buscar ahí a Carlos
 Andrés Pérez es más confiable que buscarlo en Drive: el registro de personas de
 la Universidad tiene el documento, y es justamente lo que el formulario necesita.
+
+### La composición de estudiantes queda cerrada en cuatro
+
+El operador entregó la cédula que faltaba, **1.036.660.212** para Carlos Andrés
+Pérez, y con ella la lista de estudiantes queda completa:
+
+| Nombre | Documento | Nivel |
+|---|---|---|
+| Sergio Alejandro Gil Ríos | 1.055.753.057 | pregrado |
+| Jerónimo Novoa Giraldo | 1.054.858.413 | pregrado |
+| Alejandro Patiño Bedoya | 1.002.566.760 | maestría |
+| Carlos Andrés Pérez | 1.036.660.212 | doctorado |
+
+Eso resuelve la discrepancia que una nota anterior dejó abierta. Entonces el
+operador había nombrado cinco estudiantes, con **dos** doctorados —Carlos Andrés
+Pérez y Diego Armando Pérez—, mientras §9, §11 y §15 declaraban cuatro con uno
+solo. La instrucción de hoy nombra cuatro y un único doctorado, de modo que
+coincide con el documento y no hay nada que corregir en §9, ni en la fila B.2 de
+Hermes, ni en el rubro de contratación de estudiantes.
+
+### Falta un dato que §9 no tiene: las horas semanales
+
+Hermes rechaza el alta de un integrante sin horas de dedicación mayores a cero.
+Ya lo hizo antes con la cédula 1002566760: «Por favor verifique la información de
+las Horas semanales de dedicación (mayor a 0)».
+
+El problema es que §9 expresa la dedicación en **períodos**, no en horas por
+semana: dedicación completa durante los doce meses para el doctorado, un año para
+la maestría y cuatro meses para cada pregrado. Convertir eso a horas semanales
+agrega un dato nuevo, y no es inocuo: el rubro de contratación de estudiantes son
+$50.000.000, así que las horas y los meses tienen que cerrar contra ese monto.
+Por eso la conversión la decide el operador y no se infiere aquí.
+
+Lo que sí queda fijo desde §9 es la duración de cada vinculación: 12 meses para
+el doctorado y la maestría, 4 meses para cada pregrado.
