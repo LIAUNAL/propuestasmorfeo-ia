@@ -42,6 +42,8 @@
     "plantilla/scripts/prep_docx.py",
     "plantilla/scripts/render_tikz.py",
     "plantilla/scripts/split_latex_section.py",
+    "plantilla/scripts/latex_a_texto.py",
+    "plantilla/scripts/kit_formulario.py",
     "plantilla/templates/README.md",
     "plantilla/templates/reference.docx",
     "prompt_plantilla.md",
