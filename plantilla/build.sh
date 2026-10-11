@@ -79,8 +79,8 @@ repair_bib() {
       printf "${C_YLW}[WARN]${C_RST} ¿Continuar compilando SIN reparar refs.bib? [y/N] "
       local answer=""
       read -r answer
-      case "${answer,,}" in
-        y|yes|s|si) warn "Continuando SIN reparación DOI." ; return 0 ;;
+      case "${answer}" in
+        [yY]|[yY][eE][sS]|[sS]|[sS][iI]) warn "Continuando SIN reparación DOI." ; return 0 ;;
         *) err "Abortando por decisión del operador. Instalá doi2bib3 y re-ejecutá." ; exit 1 ;;
       esac
     else
