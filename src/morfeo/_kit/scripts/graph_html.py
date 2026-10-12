@@ -253,13 +253,18 @@ TEMPLATE = """<!DOCTYPE html>
     flex: 1;
     position: relative;
     overflow: hidden;
+    width: 100%;
+    height: 100%;
   }
   #stage3d {
-    flex: 1;
+    flex: 1 1 0%;
+    min-width: 0;
     position: relative;
     cursor: grab;
+    overflow: hidden;
   }
   #stage3d.dragging { cursor: grabbing; }
+  #stage3d canvas { display: block; }
 
   /* 3D HUD overlay */
   .hud-overlay {
@@ -424,6 +429,9 @@ TEMPLATE = """<!DOCTYPE html>
   /* Right Drawer / Sidebar */
   .sidebar-drawer {
     width: 360px;
+    min-width: 360px;
+    max-width: 360px;
+    flex: 0 0 360px;
     background: var(--panel-bg);
     backdrop-filter: blur(12px);
     border-left: 1px solid var(--panel-border);
@@ -433,13 +441,12 @@ TEMPLATE = """<!DOCTYPE html>
     flex-direction: column;
     gap: 16px;
     z-index: 10;
-    transition: transform 0.25s ease-out;
+    transition: margin-right 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
   }
   .sidebar-drawer.collapsed {
-    transform: translateX(100%);
-    position: absolute;
-    right: 0;
-    height: 100%;
+    margin-right: -360px;
+    opacity: 0;
+    pointer-events: none;
   }
   .sidebar-drawer h3 {
     font-size: 12px;
@@ -512,7 +519,7 @@ TEMPLATE = """<!DOCTYPE html>
     </div>
     <button class="btn-hud" id="btnAutoRotate" onclick="toggleAutoRotate()">⟳ Auto-Giro</button>
     <button class="btn-hud" onclick="resetCamera()">🎯 Centrar</button>
-    <button class="btn-hud" id="btnToggleSide" onclick="toggleSidebar()">Panel Datos</button>
+    <button class="btn-hud active" id="btnToggleSide" onclick="toggleSidebar()" title="Mostrar/ocultar panel de métricas">▤ Panel Datos</button>
   </div>
 </header>
 
@@ -552,6 +559,10 @@ TEMPLATE = """<!DOCTYPE html>
   </div>
 
   <div class="sidebar-drawer" id="sideDrawer">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); padding-bottom:8px;">
+      <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--cyan);">Panel de Datos y Métricas</span>
+      <button class="inspector-close" onclick="toggleSidebar()" title="Ocultar panel" style="cursor:pointer; font-size:18px; color:var(--muted); line-height:1;">&times;</button>
+    </div>
     __CENTRAL__
     __COMMUNITIES__
     __QUESTIONS__
@@ -1118,15 +1129,19 @@ TEMPLATE = """<!DOCTYPE html>
 
   window.toggleSidebar = function() {
     var drawer = document.getElementById("sideDrawer");
+    var btn = document.getElementById("btnToggleSide");
     var isCollapsed = drawer.classList.toggle("collapsed");
-    document.getElementById("btnToggleSide").classList.toggle("active", !isCollapsed);
-    setTimeout(onWindowResize, 260);
+    if (btn) btn.classList.toggle("active", !isCollapsed);
+    setTimeout(onWindowResize, 60);
+    setTimeout(onWindowResize, 160);
+    setTimeout(onWindowResize, 300);
   };
 
   function onWindowResize() {
-    if (!camera || !renderer) return;
+    if (!camera || !renderer || !stageEl) return;
     var width = stageEl.clientWidth;
     var height = stageEl.clientHeight;
+    if (width <= 0 || height <= 0) return;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
