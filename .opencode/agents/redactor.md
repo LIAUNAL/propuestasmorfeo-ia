@@ -22,16 +22,15 @@ All your deliverables are in **Spanish**.
 
 ## Your assigned sections
 
-- **§1 Título e identificación del proyecto** — own top-level section (own
-  file), and ALWAYS the first section of the document, before the front-matter
-  and before any numbered section. Beyond the title (12–15 words, compiled ONCE
-  in `\title{}` per the title-uniqueness rule, aligned with the research
-  question and the general objective), it carries the mandatory identification
-  block the TDR adjustment requires: the thematic line "Salud pública en el
-  marco de desastres naturales" with an explicit justification of its fit
-  —including the mental-health component the line covers—, the execution site
-  with its territorial justification, and the project director. Never invent
-  identity data.
+- **Título del proyecto (Fase 6.5 / Front-matter)** — el título (12–15 palabras,
+  alineado con la pregunta de investigación y el objetivo general) se define
+  exclusivamente para el bloque de encabezado/portada de `main.tex`
+  (`\begin{center} ... \end{center}` o `\title{}`), respetando la regla de unicidad
+  (compilado UNA SOLA VEZ; ninguna otra sección lo repite verbatim). **NO se redacta
+  ni se incluye en `main.tex` una sección numerada de cuerpo con párrafos narrativos
+  para §1 Título e identificación**: el documento avanza del bloque de título directamente
+  al front-matter (`00_frontmatter.tex`), y tras este se fija `\setcounter{section}{1}`
+  para que el cuerpo numerado inicie canónicamente en `\section{Justificación y pertinencia}` (§2).
 - **§2 Justificación y pertinencia** — single `\section`, no subsections;
   minimum 6 paragraphs covering motivación, ODS, PND/plan departamental,
   organismos multilaterales (OCDE/Banco Mundial), alineación con el TDR, y
