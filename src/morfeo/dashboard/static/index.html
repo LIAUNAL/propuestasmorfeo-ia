@@ -1,408 +1,1052 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Morfeo IA — Tablero de Seguimiento</title>
+  <title>Morfeo IA — Command Center</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --card-border: #334155;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --unal-blue: #0284c7;
-      --unal-dark: #0369a1;
-      --accent-green: #10b981;
-      --accent-amber: #f59e0b;
-      --accent-red: #ef4444;
-      --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --bg: #0b0f19;
+      --surface: #111827;
+      --surface-2: #1f2937;
+      --surface-hover: #283548;
+      --border: #374151;
+      --border-subtle: #242f3d;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --accent: #38bdf8;
+      --accent-dim: rgba(56, 189, 248, 0.15);
+      --ok: #10b981;
+      --ok-dim: rgba(16, 185, 129, 0.15);
+      --warn: #f59e0b;
+      --warn-dim: rgba(245, 158, 11, 0.15);
+      --bad: #ef4444;
+      --bad-dim: rgba(239, 68, 68, 0.15);
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-2: #f1f5f9;
+      --surface-hover: #e2e8f0;
+      --border: #cbd5e1;
+      --border-subtle: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --accent: #0284c7;
+      --accent-dim: rgba(2, 132, 199, 0.12);
+      --ok: #059669;
+      --ok-dim: rgba(5, 150, 105, 0.12);
+      --warn: #d97706;
+      --warn-dim: rgba(217, 119, 6, 0.12);
+      --bad: #dc2626;
+      --bad-dim: rgba(220, 38, 38, 0.12);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--font);
+      font-family: var(--font-sans);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      line-height: 1.5;
     }
 
-    header {
-      background: rgba(30, 41, 59, 0.8);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--card-border);
-      padding: 1rem 2rem;
+    /* Top bar */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.75rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: sticky;
       top: 0;
-      z-index: 50;
+      z-index: 100;
     }
-
-    .brand {
+    .topbar__brand {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.85rem;
     }
-    .brand-logo {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, var(--unal-blue), #38bdf8);
-      border-radius: 8px;
+    .topbar__logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      border-radius: var(--radius);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
-      font-size: 1.1rem;
+      font-size: 1.25rem;
       color: white;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
     }
-    .brand-title h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; }
-    .brand-title p { font-size: 0.8rem; color: var(--text-muted); }
-
-    .header-actions {
+    .topbar__title h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .topbar__title p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .topbar__actions {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.75rem;
     }
+
+    /* Status badges */
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      padding: 0.25rem 0.75rem;
+      padding: 0.25rem 0.65rem;
       border-radius: 9999px;
       font-size: 0.75rem;
       font-weight: 600;
-      background: var(--card-border);
+      letter-spacing: 0.02em;
+      border: 1px solid transparent;
+      text-transform: uppercase;
     }
-    .badge-active { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .btn-refresh {
-      background: var(--unal-blue);
-      color: white;
-      border: none;
-      padding: 0.4rem 0.9rem;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: background 0.2s;
+    .badge--ok { background: var(--ok-dim); color: var(--ok); border-color: var(--ok); }
+    .badge--warn { background: var(--warn-dim); color: var(--warn); border-color: var(--warn); }
+    .badge--bad { background: var(--bad-dim); color: var(--bad); border-color: var(--bad); }
+    .badge--info { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+    .badge--live {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--ok);
+      border: 1px solid rgba(16, 185, 129, 0.3);
     }
-    .btn-refresh:hover { background: var(--unal-dark); }
+    .badge--live::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 6px var(--ok);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
 
-    /* Tabs */
-    .tabs-bar {
+    /* Buttons */
+    .btn {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.8rem;
+      border-radius: var(--radius);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+    .btn--primary {
+      background: var(--accent);
+      color: #0b0f19;
+      border-color: var(--accent);
+    }
+    .btn--primary:hover {
+      filter: brightness(1.1);
+    }
+
+    /* Header info strip */
+    .meta-strip {
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      padding: 0.65rem 1.75rem;
       display: flex;
-      background: var(--card-bg);
-      border-bottom: 1px solid var(--card-border);
-      padding: 0 2rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.82rem;
+    }
+    .meta-strip__left {
+      display: flex;
+      align-items: center;
       gap: 1.5rem;
     }
-    .tab-btn {
+    .meta-strip__item strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .meta-strip__item span {
+      color: var(--text-muted);
+      margin-left: 0.35rem;
+    }
+
+    /* Totals Chips */
+    .totals-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .totals__chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.2rem 0.6rem;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .totals__chip strong {
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+
+    /* Tab navigation */
+    .tabs-nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.75rem;
+      display: flex;
+      gap: 0.25rem;
+      overflow-x: auto;
+    }
+    .tab-nav__btn {
       background: none;
       border: none;
       color: var(--text-muted);
-      padding: 0.85rem 0.25rem;
-      font-size: 0.9rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
       position: relative;
-      transition: color 0.2s;
+      white-space: nowrap;
+      transition: color 0.15s;
     }
-    .tab-btn:hover { color: var(--text); }
-    .tab-btn.active { color: #38bdf8; }
-    .tab-btn.active::after {
+    .tab-nav__btn:hover { color: var(--text); }
+    .tab-nav__btn.active {
+      color: var(--accent);
+    }
+    .tab-nav__btn.active::after {
       content: '';
       position: absolute;
       bottom: -1px;
       left: 0;
       right: 0;
       height: 2px;
-      background: #38bdf8;
+      background: var(--accent);
     }
 
-    /* Container */
+    /* Layout content */
     main {
       flex: 1;
-      padding: 2rem;
-      max-width: 1400px;
+      padding: 1.75rem;
+      max-width: 1500px;
       width: 100%;
       margin: 0 auto;
     }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
 
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    /* Cards Grid */
-    .grid-metrics {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1rem;
+    /* Section Panels */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
       margin-bottom: 1.5rem;
     }
-    .metric-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 1.25rem;
+    .panel__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.65rem;
+      border-bottom: 1px solid var(--border-subtle);
     }
-    .metric-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem; }
-    .metric-val { font-size: 1.6rem; font-weight: 700; color: var(--text); }
-    .metric-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .panel__title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .panel__meta {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
 
-    /* Pipeline Sequence */
-    .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    /* Pipeline Cards Grid */
     .pipeline-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
       gap: 1rem;
-      margin-bottom: 2rem;
     }
     .phase-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       padding: 1rem;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
     }
-    .phase-card-header {
+    .phase-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .phase-card__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .phase-card__name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .phase-card__desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+    .phase-card__foot {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: auto;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border-subtle);
     }
-    .phase-name { font-weight: 700; font-size: 0.95rem; }
-    .phase-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
 
-    /* Tables */
-    .data-table {
+    /* Detail Modal / Drawer */
+    .drawer-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .drawer-overlay.active { display: flex; }
+    .drawer {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      max-width: 640px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 1.5rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+    .drawer__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .drawer__close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.25rem;
+      cursor: pointer;
+    }
+
+    /* Data Tables */
+    .table-responsive {
+      overflow-x: auto;
+    }
+    .table {
       width: 100%;
       border-collapse: collapse;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      overflow: hidden;
       font-size: 0.85rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
     }
-    .data-table th, .data-table td {
+    .table th, .table td {
       padding: 0.75rem 1rem;
       text-align: left;
-      border-bottom: 1px solid var(--card-border);
+      border-bottom: 1px solid var(--border-subtle);
     }
-    .data-table th { background: rgba(0,0,0,0.2); font-weight: 600; color: var(--text-muted); }
-    .data-table tr:last-child td { border-bottom: none; }
+    .table th {
+      background: rgba(0,0,0,0.25);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+    }
+    .table tr:last-child td { border-bottom: none; }
+    .table tr:hover td { background: var(--surface-hover); }
 
-    /* Iframe Viewer */
-    .viewer-frame {
+    /* Iframes */
+    .iframe-viewer {
       width: 100%;
-      height: 75vh;
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
+      height: 76vh;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       background: white;
     }
 
-    footer {
-      border-top: 1px solid var(--card-border);
-      padding: 1rem 2rem;
-      font-size: 0.8rem;
+    /* Split layout */
+    .split-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 1.25rem;
+    }
+    .sidebar-list {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.5rem;
+      height: 76vh;
+      overflow-y: auto;
+    }
+    .sidebar-item {
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius);
+      font-size: 0.82rem;
       color: var(--text-muted);
-      text-align: center;
+      cursor: pointer;
+      margin-bottom: 0.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .sidebar-item:hover, .sidebar-item.active {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+    .sidebar-item.active {
+      border-left: 3px solid var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .artifact-viewer {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      height: 76vh;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      color: var(--text);
+    }
+
+    /* Metric cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .metric-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.15rem;
+    }
+    .metric-card__label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .metric-card__val {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--text);
+      font-family: var(--font-mono);
+      margin: 0.25rem 0;
+    }
+    .metric-card__sub {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 0.85rem 1.75rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="brand">
-      <div class="brand-logo">M</div>
-      <div class="brand-title">
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo">M</div>
+      <div class="topbar__title">
         <h1>Morfeo IA — Command Center</h1>
-        <p>Laboratorio de Inteligencia Artificial UNAL · Manizales</p>
+        <p>Laboratorio de Inteligencia Artificial · Universidad Nacional de Colombia Manizales</p>
       </div>
     </div>
-    <div class="header-actions">
-      <span id="activeRunBadge" class="badge badge-active">Cargando...</span>
-      <button class="btn-refresh" onclick="loadStatus()">Actualizar</button>
+    <div class="topbar__actions">
+      <span class="badge badge--live">LIVE</span>
+      <select id="runSelector" class="btn" onchange="changeActiveRun(this.value)">
+        <option value="">Cargando corridas...</option>
+      </select>
+      <button class="btn" onclick="toggleTheme()" id="themeBtn" title="Cambiar tema">☀️ Claro</button>
+      <button class="btn btn--primary" onclick="loadStatus()" title="Actualizar datos">⟳ Actualizar</button>
     </div>
   </header>
 
-  <nav class="tabs-bar">
-    <button class="tab-btn active" onclick="switchTab('tab-pipeline')">Pipeline y Compuertas</button>
-    <button class="tab-btn" onclick="switchTab('tab-telemetria')">Telemetría y Costos</button>
-    <button class="tab-btn" onclick="switchTab('tab-grafos')">Grafos de Conocimiento</button>
-    <button class="tab-btn" onclick="switchTab('tab-documentos')">Propuesta y Compilación</button>
+  <!-- Meta-strip with totals chips -->
+  <div class="meta-strip">
+    <div class="meta-strip__left">
+      <div class="meta-strip__item">
+        <strong>Propuesta:</strong>
+        <span id="metaProposalTitle">Cargando...</span>
+      </div>
+    </div>
+    <div class="totals-bar" id="totalsContainer">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+
+  <!-- Navigation tabs -->
+  <nav class="tabs-nav" aria-label="Navegación del tablero">
+    <button class="tab-nav__btn active" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
+    <button class="tab-nav__btn" onclick="navigateTab('flow')">Flujo Archify</button>
+    <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones (§0–§18)</button>
+    <button class="tab-nav__btn" onclick="navigateTab('gates')">Compuertas (Gates)</button>
+    <button class="tab-nav__btn" onclick="navigateTab('telemetria')">Telemetría y Costos</button>
+    <button class="tab-nav__btn" onclick="navigateTab('atlas')">Atlas de Grafos</button>
+    <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
+    <button class="tab-nav__btn" onclick="navigateTab('artifacts')">Artefactos</button>
   </nav>
 
+  <!-- Main content area -->
   <main>
     <!-- TAB 1: PIPELINE -->
-    <div id="tab-pipeline" class="tab-content active">
-      <div class="grid-metrics">
+    <div id="pane-pipeline" class="tab-pane active">
+      <div class="metrics-grid">
         <div class="metric-card">
-          <div class="metric-title">Corrida Activa</div>
-          <div id="metricActiveRun" class="metric-val">—</div>
-          <div id="metricRunDir" class="metric-sub">—</div>
+          <div class="metric-card__label">Corrida Activa</div>
+          <div id="statRunId" class="metric-card__val">—</div>
+          <div id="statRunDir" class="metric-card__sub">—</div>
         </div>
         <div class="metric-card">
-          <div class="metric-title">Documento PDF</div>
-          <div id="metricPdfStatus" class="metric-val">—</div>
-          <div id="metricPdfSize" class="metric-sub">—</div>
+          <div class="metric-card__label">Compuertas Aprobadas</div>
+          <div id="statGatesPassed" class="metric-card__val">—</div>
+          <div id="statGatesSub" class="metric-card__sub">Control de ejecución verificado</div>
         </div>
         <div class="metric-card">
-          <div class="metric-title">Exportación Word</div>
-          <div id="metricDocxStatus" class="metric-val">—</div>
-          <div id="metricDocxSize" class="metric-sub">—</div>
+          <div class="metric-card__label">Documento PDF</div>
+          <div id="statPdfStatus" class="metric-card__val">—</div>
+          <div id="statPdfSub" class="metric-card__sub">—</div>
         </div>
         <div class="metric-card">
-          <div class="metric-title">Índices de Grafo</div>
-          <div id="metricGraphsStatus" class="metric-val">—</div>
-          <div class="metric-sub">codebase-memory activo</div>
+          <div class="metric-card__label">Exportación Word</div>
+          <div id="statDocxStatus" class="metric-card__val">—</div>
+          <div id="statDocxSub" class="metric-card__sub">—</div>
         </div>
       </div>
 
-      <div class="section-title">Fases del Pipeline de Redacción y Compuertas (Gates)</div>
-      <div class="pipeline-grid" id="pipelineCardsContainer">
-        <!-- Rendered by JS -->
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Fases del Pipeline Metodológico de Redacción</div>
+          <span class="panel__meta">Haz clic en cualquier fase para inspeccionar detalles y dependencias</span>
+        </div>
+        <div class="pipeline-grid" id="pipelineGrid">
+          <!-- Rendered by JS -->
+        </div>
       </div>
     </div>
 
-    <!-- TAB 2: TELEMETRIA -->
-    <div id="tab-telemetria" class="tab-content">
-      <div class="section-title">Uso de Tokens y Duración por Fase</div>
-      <table class="data-table" id="telemetriaTable">
-        <thead>
-          <tr>
-            <th>Fase</th>
-            <th>Tokens</th>
-            <th>Tool-Uses</th>
-            <th>Duración</th>
-          </tr>
-        </thead>
-        <tbody id="telemetriaBody">
-          <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin telemetría registrada todavía.</td></tr>
-        </tbody>
-      </table>
+    <!-- TAB 2: ARCHIFY FLOW -->
+    <div id="pane-flow" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Diagrama Interactivo de Arquitectura y Flujo (Archify)</div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span class="badge badge--ok">SHOWCASE · PASSED</span>
+            <a href="/api/flow" target="_blank" class="btn btn--primary">Abrir en pestaña nueva ↗</a>
+          </div>
+        </div>
+        <iframe id="flowIframe" class="iframe-viewer" src="/api/flow"></iframe>
+      </div>
     </div>
 
-    <!-- TAB 3: GRAFOS -->
-    <div id="tab-grafos" class="tab-content">
-      <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-        <button class="btn-refresh" onclick="showGraph('papers')">Grafo de Papers (Scoping)</button>
-        <button class="btn-refresh" onclick="showGraph('vault')">Grafo de Propuesta (Vault)</button>
+    <!-- TAB 3: SECTIONS -->
+    <div id="pane-sections" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Estructura Canónica de 16 Secciones (§0 a §18)</div>
+          <span class="panel__meta" id="sectionsMetaCount">—</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Sección y Título Oficial</th>
+                <th>Archivo LaTeX</th>
+                <th>Palabras</th>
+                <th>Citas APA</th>
+                <th>Figuras</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="sectionsTableBody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
       </div>
-      <iframe id="graphFrame" class="viewer-frame" src="/api/graph/vault"></iframe>
     </div>
 
-    <!-- TAB 4: DOCUMENTOS -->
-    <div id="tab-documentos" class="tab-content">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <div class="section-title" style="margin-bottom: 0;">Vista previa de la propuesta (PDF compilado)</div>
-        <a id="downloadPdfBtn" href="/api/pdf" target="_blank" class="btn-refresh" style="text-decoration: none;">Abrir en pestaña nueva</a>
+    <!-- TAB 4: GATES -->
+    <div id="pane-gates" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Compuertas de Revisión y Validación Formal (Gates)</div>
+          <span class="panel__meta">Revisión de calidad, consistencia y dependencias cruzadas</span>
+        </div>
+        <div class="pipeline-grid" id="gatesGrid">
+          <!-- Rendered by JS -->
+        </div>
       </div>
-      <iframe id="pdfFrame" class="viewer-frame" src="/api/pdf"></iframe>
+    </div>
+
+    <!-- TAB 5: TELEMETRÍA -->
+    <div id="pane-telemetria" class="tab-pane">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-card__label">Tokens Acumulados</div>
+          <div id="teleTotalTokens" class="metric-card__val">—</div>
+          <div class="metric-card__sub">Prompt + Completion medidos</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card__label">Tool-Uses Totales</div>
+          <div id="teleTotalTools" class="metric-card__val">—</div>
+          <div class="metric-card__sub">Llamadas a herramientas registradas</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card__label">Fases Medidas</div>
+          <div id="telePhasesMeasured" class="metric-card__val">—</div>
+          <div class="metric-card__sub">Registro auditado en artefactos/pipeline</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Desglose de Costo y Duración por Fase</div>
+          <span class="panel__meta">Persistido en artefactos/pipeline/_estado.md</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Fase</th>
+                <th>Gate</th>
+                <th>Veredicto</th>
+                <th>Fecha</th>
+                <th>Tokens</th>
+                <th>Tool-Uses</th>
+                <th>Duración</th>
+              </tr>
+            </thead>
+            <tbody id="telemetryTableBody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: ATLAS & GRAFOS -->
+    <div id="pane-atlas" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Atlas de Conocimiento y Mapeo Conceptual (Codebase-Memory MCP)</div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button id="btnGraphPapers" class="btn btn--primary" onclick="switchGraph('papers')">Grafo de Literatura SOTA</button>
+            <button id="btnGraphVault" class="btn" onclick="switchGraph('vault')">Grafo del Vault Obsidian</button>
+            <a id="linkOpenGraph" href="/api/graph/papers" target="_blank" class="btn">Abrir en pestaña nueva ↗</a>
+          </div>
+        </div>
+        <iframe id="graphIframe" class="iframe-viewer" src="/api/graph/papers"></iframe>
+      </div>
+    </div>
+
+    <!-- TAB 7: VISOR PDF -->
+    <div id="pane-preview" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Previsualización del Documento LaTeX Compilado (main.pdf)</div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span id="pdfInfoBadge" class="badge badge--ok">— páginas</span>
+            <a href="/api/pdf" download class="btn">Descargar PDF</a>
+            <a href="/api/pdf" target="_blank" class="btn btn--primary">Pantalla Completa ↗</a>
+          </div>
+        </div>
+        <iframe id="pdfIframe" class="iframe-viewer" src="/api/pdf"></iframe>
+      </div>
+    </div>
+
+    <!-- TAB 8: ARTEFACTOS -->
+    <div id="pane-artifacts" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Explorador de Artefactos de la Propuesta</div>
+          <span class="panel__meta">Documentos Markdown generados durante el ciclo de formulación</span>
+        </div>
+        <div class="split-layout">
+          <div class="sidebar-list" id="artifactsList">
+            <!-- Rendered by JS -->
+          </div>
+          <div class="artifact-viewer" id="artifactContent">
+            Selecciona un artefacto de la lista para inspeccionar su contenido.
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
+  <!-- Detail Drawer Modal -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer(event)">
+    <div class="drawer" onclick="event.stopPropagation()">
+      <div class="drawer__header">
+        <h3 id="drawerTitle" style="font-size: 1.15rem;">Detalle de Fase</h3>
+        <button class="drawer__close" onclick="closeDrawer()">&times;</button>
+      </div>
+      <div id="drawerBody">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
   <footer>
-    Morfeo IA v0.5.0 · Marco multi-agente de redacción de propuestas de investigación en IA · LIA UNAL
+    <div>Morfeo IA v0.5.0 · Orquestador de Formulación Científica en IA</div>
+    <div>Universidad Nacional de Colombia · Laboratorio de Inteligencia Artificial (LIA)</div>
   </footer>
 
   <script>
-    const PHASES = [
-      { id: "Fase 0", name: "Fase 0: Ingesta de Insumos", desc: "Descubrimiento de TDR, papers de referencia y notas de ideas.", gate: "G0.5" },
-      { id: "Fase 1", name: "Fase 1: Descripción del Problema", desc: "Subproblemas, pregunta de investigación y árbol de problemas TikZ.", gate: "G1" },
-      { id: "Fase 2", name: "Fase 2: Estado del Arte e Hipótesis", desc: "Revisión Q1/Q2, mapa temático TikZ e hipótesis falsable.", gate: "G2" },
-      { id: "Fase 3", name: "Fase 3: Justificación y Pertinencia", desc: "Alineación ODS, PND, organismos multilaterales y TRL 6/7.", gate: "G3" },
-      { id: "Fase 4", name: "Fase 4: Objetivos", desc: "Objetivo general y objetivos específicos mapeados 1:1.", gate: "G4" },
-      { id: "Fase 5", name: "Fase 5: Marco Conceptual y Equipo", desc: "Teoría de base y roles derivados estrictamente de objetivos.", gate: "G5" },
-      { id: "Fase 5.5", name: "Fase 5.5: Metodología", desc: "Cadena de valor por fase y diagrama metodológico TikZ.", gate: "G5.5" },
-      { id: "Fase 6", name: "Fase 6: Resultados y Ética", desc: "Resultados esperados, consentimientos y aval institucional.", gate: "G6" },
-      { id: "Fase 6.4", name: "Fase 6.4: Presupuesto", desc: "Tabla de rubros, cofinanciación y justificación metodológica.", gate: "G-Presupuesto" },
-      { id: "Fase 6.45", name: "Fase 6.45: Cronograma y Productos", desc: "Gantt de actividades a 12 meses y productos comprometidos.", gate: "G-Cronograma" },
-      { id: "Fase 6.46", name: "Fase 6.46: Comunidades y Apropiación", desc: "Articulación territorial y transferencia tecnológica.", gate: "G-Comunidades" },
-      { id: "Fase 6.5", name: "Fase 6.5: Front-matter", desc: "Resumen ejecutivo (5 párrafos), Resumen y Palabras clave.", gate: "G-Front" },
-      { id: "Fase 7", name: "Fase 7: Auditoría Final y Ensamble", desc: "Auditoría integral cruzada y ensamble final de main.tex.", gate: "G-Final" }
+    const PHASES_INFO = [
+      { id: "Fase 0", name: "Fase 0: Ingesta de Insumos", agent: "insumos-observador", gate: "G0.5", desc: "Clasificación de TDR, papers y background; extracción estructurada en insumos.md.", tools: ["read", "bash", "mcp"], outputs: ["artefactos/insumos.md", "artefactos/analisis_TDR.md"] },
+      { id: "Fase 1", name: "Fase 1: Descripción del Problema", agent: "investigador & disenador-tikz", gate: "G1", desc: "Formulación de los 3 subproblemas, pregunta rectora y bucle determinista del árbol de problemas TikZ.", tools: ["read", "write", "bash"], outputs: ["sections/03_descripcion_problema.tex", "sections/diag_arbol_problemas.tex"] },
+      { id: "Fase 2", name: "Fase 2: Estado del Arte e Hipótesis", agent: "bibliografo-propuesta & investigador", gate: "G2", desc: "Construcción del SOTA (≥30 refs Q1/Q2 recientes, ≤3 años), mapa temático TikZ e hipótesis falsable.", tools: ["read", "write", "mcp"], outputs: ["sections/04_estado_arte.tex", "sections/05_hipotesis.tex", "refs.bib"] },
+      { id: "Fase 3", name: "Fase 3: Justificación y Pertinencia", agent: "redactor & grant-flow-auditor", gate: "G3", desc: "Alineación ODS 3.4, PND y metas multilaterales con nivel de madurez tecnológica TRL 6/7 explícito.", tools: ["read", "write", "bash"], outputs: ["sections/02_justificacion.tex"] },
+      { id: "Fase 4", name: "Fase 4: Objetivos", agent: "investigador", gate: "G4", desc: "Objetivo general e hipótesis articulados; mapeo biyectivo 1:1 de los 3 objetivos específicos con los subproblemas.", tools: ["read", "write"], outputs: ["sections/06_objetivo_general.tex", "sections/07_objetivos_especificos.tex"] },
+      { id: "Fase 5", name: "Fase 5: Marco Conceptual y Equipo", agent: "investigador & redactor", gate: "G5", desc: "Teoría formal de soporte en IA y roles del equipo derivados estrictamente de los objetivos específicos.", tools: ["read", "write"], outputs: ["sections/08_marco_conceptual.tex", "sections/09_equipo_trabajo.tex"] },
+      { id: "Fase 5.5", name: "Fase 5.5: Metodología y Esquema TikZ", agent: "redactor & disenador-tikz", gate: "G5.5", desc: "Cadena de valor por fase, causalidad algorítmica y diagrama metodológico generado con figura.py.", tools: ["read", "write", "bash"], outputs: ["sections/10_metodologia.tex", "sections/diag_metodologico.tex"] },
+      { id: "Fase 6", name: "Fase 6: Resultados y Consideraciones Éticas", agent: "redactor", gate: "G6", desc: "Resultados esperados tangibles, comités de bioética, tratamiento de datos y consentimientos informados.", tools: ["read", "write"], outputs: ["sections/11_resultados_esperados.tex", "sections/12_consideraciones_eticas.tex"] },
+      { id: "Fase 6.4", name: "Fase 6.4: Presupuesto y Cofinanciación", agent: "presupuestador", gate: "G6.4", desc: "Desglose por rubros, contrapartidas y verificación aritmética exacta alineada a la metodología.", tools: ["read", "write", "bash"], outputs: ["sections/13_presupuesto.tex"] },
+      { id: "Fase 6.45", name: "Fase 6.45: Cronograma, Productos y BibTeX", agent: "redactor & bibliografo-propuesta", gate: "G6.45", desc: "Gantt a 12 meses exactos, productos entregables comprometidos y consolidación final de refs.bib.", tools: ["read", "write", "bash"], outputs: ["sections/14_cronograma_actividades.tex", "sections/15_productos_esperados.tex", "refs.bib"] },
+      { id: "Fase 6.5", name: "Fase 6.5: Front-Matter y Resumen", agent: "redactor & grant-flow-auditor", gate: "G6.5", desc: "Resumen ejecutivo en 5 párrafos, Resumen general y Palabras clave; garantía de unicidad del título.", tools: ["read", "write"], outputs: ["sections/00_frontmatter.tex", "sections/01_titulo_identificacion.tex"] },
+      { id: "Fase 7", name: "Fase 7: Auditoría Final y Ensamble", agent: "revisor & coordinador-propuesta", gate: "G7", desc: "Auditoría cruzada integral de las 16 secciones, verificación de dependencias y compilación de main.tex a PDF y DOCX.", tools: ["read", "bash", "write"], outputs: ["redaccion/main.tex", "redaccion/main.pdf", "redaccion/main.docx"] }
     ];
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      event.target.classList.add('active');
-      document.getElementById(tabId).classList.add('active');
+    let currentStatus = null;
+    let activeTab = 'pipeline';
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', nextTheme);
+      localStorage.setItem('morfeo-theme', nextTheme);
+      document.getElementById('themeBtn').textContent = nextTheme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
     }
 
-    function showGraph(kind) {
-      document.getElementById('graphFrame').src = `/api/graph/${kind}`;
+    // Init theme
+    const savedTheme = localStorage.getItem('morfeo-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.getElementById('themeBtn').textContent = savedTheme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
+
+    function navigateTab(tabId) {
+      activeTab = tabId;
+      window.location.hash = `#${tabId}`;
+      document.querySelectorAll('.tab-nav__btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      
+      const targetBtn = Array.from(document.querySelectorAll('.tab-nav__btn')).find(b => b.getAttribute('onclick')?.includes(tabId));
+      if (targetBtn) targetBtn.classList.add('active');
+      const targetPane = document.getElementById(`pane-${tabId}`);
+      if (targetPane) targetPane.classList.add('active');
+    }
+
+    function switchGraph(kind) {
+      document.getElementById('btnGraphPapers').className = kind === 'papers' ? 'btn btn--primary' : 'btn';
+      document.getElementById('btnGraphVault').className = kind === 'vault' ? 'btn btn--primary' : 'btn';
+      document.getElementById('graphIframe').src = `/api/graph/${kind}`;
+      document.getElementById('linkOpenGraph').href = `/api/graph/${kind}`;
+    }
+
+    function openDrawer(phaseIndex) {
+      const p = PHASES_INFO[phaseIndex];
+      if (!p) return;
+      document.getElementById('drawerTitle').textContent = p.name;
+      
+      const gateMatch = (currentStatus?.gates || []).find(g => g.id === p.gate);
+      const gateStatus = gateMatch ? gateMatch.status : 'PENDING';
+      const badgeTone = gateStatus === 'PASS' ? 'ok' : (gateStatus === 'BLOCKED' ? 'bad' : 'warn');
+
+      document.getElementById('drawerBody').innerHTML = `
+        <div style="margin-bottom: 1rem;">
+          <span class="badge badge--${badgeTone}">Gate ${p.gate}: ${gateStatus}</span>
+          <span class="badge badge--info" style="margin-left: 0.5rem;">Agente: ${p.agent}</span>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1.25rem;">${p.desc}</p>
+        
+        <div style="margin-bottom: 1rem;">
+          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.5rem;">Criterio Evaluado</h4>
+          <p style="font-size: 0.85rem; background: var(--surface-2); padding: 0.75rem; border-radius: var(--radius); border: 1px solid var(--border);">${gateMatch ? gateMatch.criteria : 'Evaluación de consistencia metodológica según guía.'}</p>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.5rem;">Herramientas Declaradas</h4>
+          <div style="display: flex; gap: 0.5rem;">
+            ${p.tools.map(t => `<span class="badge badge--info">${t}</span>`).join('')}
+          </div>
+        </div>
+
+        <div>
+          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.5rem;">Entregables Clave</h4>
+          <ul style="font-size: 0.82rem; color: var(--text-muted); padding-left: 1.25rem;">
+            ${p.outputs.map(o => `<li><code>${o}</code></li>`).join('')}
+          </ul>
+        </div>
+      `;
+      document.getElementById('drawerOverlay').classList.add('active');
+    }
+
+    function closeDrawer(e) {
+      document.getElementById('drawerOverlay').classList.remove('active');
+    }
+
+    async function loadArtifact(relPath) {
+      document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+      const activeItem = Array.from(document.querySelectorAll('.sidebar-item')).find(i => i.dataset.path === relPath);
+      if (activeItem) activeItem.classList.add('active');
+
+      const viewer = document.getElementById('artifactContent');
+      viewer.textContent = "Cargando artefacto...";
+      try {
+        const res = await fetch(`/api/artifact?file=${encodeURIComponent(relPath)}`);
+        if (!res.ok) throw new Error("No se pudo leer el archivo");
+        const text = await res.text();
+        viewer.textContent = text;
+      } catch (err) {
+        viewer.textContent = `Error: ${err.message}`;
+      }
     }
 
     async function loadStatus() {
       try {
         const res = await fetch('/api/status');
         const data = await res.json();
+        currentStatus = data;
 
-        // Header and metrics
-        const runId = data.active_run || 'Ninguna corrida activa';
-        document.getElementById('activeRunBadge').textContent = data.active_run ? `Corrida: ${data.active_run}` : 'Sin corrida';
-        document.getElementById('metricActiveRun').textContent = data.active_run || '—';
-        document.getElementById('metricRunDir').textContent = data.active_run ? `proposals/${data.active_run}` : 'Usa /propuesta-init';
-
-        const pdfReady = data.run_details && data.run_details.pdf_ready;
-        document.getElementById('metricPdfStatus').textContent = pdfReady ? 'Compilado' : 'Pendiente';
-        document.getElementById('metricPdfStatus').style.color = pdfReady ? '#34d399' : '#f59e0b';
-        document.getElementById('metricPdfSize').textContent = pdfReady ? `${Math.round(data.run_details.pdf_size / 1024)} KB` : 'build.sh';
-
-        const docxReady = data.run_details && data.run_details.docx_ready;
-        document.getElementById('metricDocxStatus').textContent = docxReady ? 'Exportado' : 'Pendiente';
-        document.getElementById('metricDocxStatus').style.color = docxReady ? '#34d399' : '#94a3b8';
-        document.getElementById('metricDocxSize').textContent = docxReady ? `${Math.round(data.run_details.docx_size / 1024)} KB` : 'build.sh --docx';
-
-        const graphsReady = data.run_details && (data.run_details.papers_graph || data.run_details.vault_graph);
-        document.getElementById('metricGraphsStatus').textContent = graphsReady ? 'Disponibles' : 'Pendientes';
-
-        // Render pipeline cards
-        const container = document.getElementById('pipelineCardsContainer');
-        container.innerHTML = '';
-        const gatesState = (data.pipeline_state && data.pipeline_state.raw_gates) || {};
-
-        PHASES.forEach(p => {
-          const card = document.createElement('div');
-          card.className = 'phase-card';
-          const gateStatus = gatesState[p.gate] || 'pending';
-          const isPass = gateStatus.includes('pass');
-          const badgeClass = isPass ? 'badge-active' : '';
-
-          card.innerHTML = `
-            <div class="phase-card-header">
-              <span class="phase-name">${p.name}</span>
-              <span class="badge ${badgeClass}">${p.gate}: ${gateStatus.toUpperCase()}</span>
-            </div>
-            <p class="phase-desc">${p.desc}</p>
-          `;
-          container.appendChild(card);
+        // Populate Runs Selector
+        const runSel = document.getElementById('runSelector');
+        runSel.innerHTML = '';
+        (data.all_runs || []).forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r;
+          opt.textContent = r;
+          if (r === data.active_run) opt.selected = true;
+          runSel.appendChild(opt);
         });
 
-        // Telemetry
-        const teleBody = document.getElementById('telemetriaBody');
-        if (data.telemetria && data.telemetria.length > 0) {
-          teleBody.innerHTML = '';
-          data.telemetria.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td><strong>${row.fase}</strong></td>
-              <td>${row.tokens}</td>
-              <td>${row.tool_uses}</td>
-              <td>${row.duracion}</td>
-            `;
-            teleBody.appendChild(tr);
-          });
+        // Header Title & Totals
+        const details = data.run_details || {};
+        const totals = data.totals || {};
+        document.getElementById('metaProposalTitle').textContent = details.title || details.idea || data.active_run || 'Sin propuesta activa';
+
+        // Render Totals Chips
+        const totContainer = document.getElementById('totalsContainer');
+        totContainer.innerHTML = `
+          <div class="totals__chip"><strong>${totals.sections_count || 0}</strong> secciones</div>
+          <div class="totals__chip"><strong>${totals.total_words?.toLocaleString() || 0}</strong> palabras</div>
+          <div class="totals__chip"><strong>${totals.bibtex_entries || 0}</strong> refs BibTeX</div>
+          <div class="totals__chip"><strong>${totals.gates_passed || 0}/${totals.gates_total || 10}</strong> gates</div>
+          <div class="totals__chip"><strong>${totals.total_tokens || '0'}</strong> tokens</div>
+          <div class="totals__chip"><strong>${totals.pdf_pages || 0}</strong> págs (PDF)</div>
+        `;
+
+        // Metric Cards
+        document.getElementById('statRunId').textContent = data.active_run ? data.active_run.split('-').slice(0, 3).join('-') : '—';
+        document.getElementById('statRunDir').textContent = data.active_run ? `proposals/${data.active_run}` : 'Usa /propuesta-init';
+        document.getElementById('statGatesPassed').textContent = `${totals.gates_passed || 0} / ${totals.gates_total || 10}`;
+        
+        const pdfOk = details.pdf_ready;
+        document.getElementById('statPdfStatus').textContent = pdfOk ? 'Listo' : 'Pendiente';
+        document.getElementById('statPdfStatus').style.color = pdfOk ? 'var(--ok)' : 'var(--warn)';
+        document.getElementById('statPdfSub').textContent = pdfOk ? `${Math.round(details.pdf_size / 1024)} KB · ${totals.pdf_pages || 0} págs` : 'Ejecuta build.sh';
+        document.getElementById('pdfInfoBadge').textContent = `${totals.pdf_pages || 0} páginas · ${Math.round((details.pdf_size || 0) / 1024)} KB`;
+
+        const docxOk = details.docx_ready;
+        document.getElementById('statDocxStatus').textContent = docxOk ? 'Listo' : 'Pendiente';
+        document.getElementById('statDocxStatus').style.color = docxOk ? 'var(--ok)' : 'var(--text-muted)';
+        document.getElementById('statDocxSub').textContent = docxOk ? `${Math.round(details.docx_size / 1024)} KB` : 'build.sh --docx';
+
+        // Render Pipeline Grid
+        const pipeGrid = document.getElementById('pipelineGrid');
+        pipeGrid.innerHTML = '';
+        PHASES_INFO.forEach((p, idx) => {
+          const gateMatch = (data.gates || []).find(g => g.id === p.gate);
+          const gateStatus = gateMatch ? gateMatch.status : 'PENDING';
+          const badgeTone = gateStatus === 'PASS' ? 'ok' : (gateStatus === 'BLOCKED' ? 'bad' : 'warn');
+
+          const card = document.createElement('div');
+          card.className = 'phase-card';
+          card.onclick = () => openDrawer(idx);
+          card.innerHTML = `
+            <div class="phase-card__head">
+              <span class="phase-card__name">${p.name}</span>
+              <span class="badge badge--${badgeTone}">${p.gate}: ${gateStatus}</span>
+            </div>
+            <p class="phase-card__desc">${p.desc}</p>
+            <div class="phase-card__foot">
+              <span>Agente: <strong>${p.agent.split('&')[0].trim()}</strong></span>
+              <span>${p.outputs.length} artefactos</span>
+            </div>
+          `;
+          pipeGrid.appendChild(card);
+        });
+
+        // Render Sections Table
+        const secTbody = document.getElementById('sectionsTableBody');
+        secTbody.innerHTML = '';
+        document.getElementById('sectionsMetaCount').textContent = `${(data.sections || []).length} secciones registradas · ${totals.total_words?.toLocaleString()} palabras totales`;
+        (data.sections || []).forEach(s => {
+          const tr = document.createElement('tr');
+          const statusTone = s.status === 'SEALED' ? 'ok' : (s.status === 'AUDITED' ? 'info' : 'warn');
+          tr.innerHTML = `
+            <td><code>${s.id.split('_')[0]}</code></td>
+            <td><strong>${s.title}</strong></td>
+            <td><code>sections/${s.filename}</code></td>
+            <td>${s.words.toLocaleString()}</td>
+            <td>${s.citations}</td>
+            <td>${s.has_figures ? '✓ Sí' : '—'}</td>
+            <td><span class="badge badge--${statusTone}">${s.status}</span></td>
+          `;
+          secTbody.appendChild(tr);
+        });
+
+        // Render Gates Grid
+        const gatesGrid = document.getElementById('gatesGrid');
+        gatesGrid.innerHTML = '';
+        (data.gates || []).forEach(g => {
+          const card = document.createElement('div');
+          card.className = 'phase-card';
+          const badgeTone = g.status === 'PASS' ? 'ok' : (g.status === 'BLOCKED' ? 'bad' : 'warn');
+          card.innerHTML = `
+            <div class="phase-card__head">
+              <span class="phase-card__name">${g.id} — ${g.name}</span>
+              <span class="badge badge--${badgeTone}">${g.status}</span>
+            </div>
+            <p class="phase-card__desc">${g.criteria}</p>
+            <div class="phase-card__foot">
+              <span>Revisor: <strong>${g.reviewer}</strong></span>
+              <span>${g.phase}</span>
+            </div>
+          `;
+          gatesGrid.appendChild(card);
+        });
+
+        // Render Telemetry
+        const teleTbody = document.getElementById('telemetryTableBody');
+        teleTbody.innerHTML = '';
+        document.getElementById('teleTotalTokens').textContent = totals.total_tokens || '0';
+        document.getElementById('teleTotalTools').textContent = totals.total_tool_uses?.toLocaleString() || '0';
+        document.getElementById('telePhasesMeasured').textContent = (data.telemetria || []).length;
+        
+        (data.telemetria || []).forEach(row => {
+          const tr = document.createElement('tr');
+          const tokVal = Number(row.tokens);
+          const tokDisplay = !isNaN(tokVal) ? tokVal.toLocaleString() : row.tokens;
+          tr.innerHTML = `
+            <td><strong>${row.fase}</strong></td>
+            <td><code>${row.gate}</code></td>
+            <td><span class="badge badge--ok">${row.veredicto}</span></td>
+            <td>${row.fecha}</td>
+            <td><strong>${tokDisplay}</strong></td>
+            <td>${row.tool_uses}</td>
+            <td>${row.duracion}</td>
+          `;
+          teleTbody.appendChild(tr);
+        });
+
+        // Render Artifacts List
+        const artList = document.getElementById('artifactsList');
+        artList.innerHTML = '';
+        (data.artifacts || []).forEach((art, i) => {
+          const div = document.createElement('div');
+          div.className = `sidebar-item ${i === 0 ? 'active' : ''}`;
+          div.dataset.path = art.rel_path;
+          div.onclick = () => loadArtifact(art.rel_path);
+          div.innerHTML = `
+            <span>📄 ${art.name}</span>
+            <small style="color: var(--text-dim);">${Math.round(art.size / 1024)} KB</small>
+          `;
+          artList.appendChild(div);
+        });
+
+        // Load first artifact by default
+        if (data.artifacts && data.artifacts.length > 0) {
+          loadArtifact(data.artifacts[0].rel_path);
         }
+
       } catch (err) {
-        console.error("Error al cargar estado:", err);
+        console.error("Error cargando estado:", err);
       }
     }
 
-    loadStatus();
+    // Hash routing on load
+    window.addEventListener('load', () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash && ['pipeline', 'flow', 'sections', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+        navigateTab(hash);
+      }
+      loadStatus();
+      // Polling every 5 seconds for live status
+      setInterval(loadStatus, 5000);
+    });
+
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) navigateTab(hash);
+    });
   </script>
 </body>
 </html>
