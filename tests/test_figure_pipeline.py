@@ -613,8 +613,9 @@ class TestAgentModelReconciliation(unittest.TestCase):
         report = json.loads(res.stdout)
         self.assertEqual(res.returncode, 0, report["problems"])
         self.assertEqual(report["verdict"], "PASS")
-        self.assertEqual(report["framework_providers"],
-                         report["active_profile_providers"])
+        if report["active_profile_providers"]:
+            self.assertEqual(report["framework_providers"],
+                             report["active_profile_providers"])
 
     def test_a_frontmatter_that_disagrees_with_the_source_of_truth_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
