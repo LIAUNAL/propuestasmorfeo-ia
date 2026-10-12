@@ -171,10 +171,21 @@ Fase 7    Auditoría cruzada final y ensamble de main.tex
   └── [GATE G7] Aprobación final y compilación PDF/DOCX
 ```
 
-### Diagramas de Arquitectura y Flujo
+### El flujo completo, en diagrama
 
-- **Diagrama Interactivo (Archify):** Consulta [`docs/diagrams/morfeo-pipeline-flow.html`](docs/diagrams/morfeo-pipeline-flow.html) para explorar los componentes, dependencias cruzadas y artefactos en un visor SVG/HTML offline.
-- **Diagrama de Flujo (Mermaid/SVG):** Visualiza la secuencia completa en [`docs/pipeline-flow.svg`](docs/pipeline-flow.svg) o revisa las notas de diseño en [`docs/pipeline-flow.md`](docs/pipeline-flow.md).
+El diagrama muestra cada etapa en este orden con su comando, sus agentes especializados, sus compuertas de revisión (*gates*) humanas y lo que deja en disco. La versión interactiva, con enlaces al código fuente de cada nodo y navegación visual offline, se encuentra en:
+
+👉 [`docs/diagrams/morfeo-pipeline-flow.html`](docs/diagrams/morfeo-pipeline-flow.html) *(abre en cualquier navegador web; generado con [Archify](https://github.com/tt-a1i/archify) y validado con `archify check`). Su fuente y especificación viven en [`docs/diagrams/`](docs/diagrams/README.md).*
+
+[![Morfeo IA: arquitectura, pipeline y compuertas de revisión](docs/diagrams/morfeo-pipeline-flow.png)](docs/diagrams/morfeo-pipeline-flow.html)
+
+**Tres certezas antes de la primera corrida.**
+
+1. **Nada de lo que redactas o investigas se sincroniza a GitHub.** La carpeta `proposals/` (con sus cuatro subcarpetas `insumos/`, `artefactos/`, `grafos/` y `redaccion/`) viaja a GitHub **completamente ignorada** en `.gitignore`; una propuesta es material de investigación confidencial y propiedad intelectual de sus autores, y publicarla por accidente es una fuga. Solo vive en tu máquina local.
+2. **Cada fase valida dependencias estrictas antes de ejecutarse.** Si falta un insumo o una compuerta previa, el sistema se detiene y reporta el prerrequisito faltante en lugar de inventar contenido.
+3. **Las compuertas humanas nunca son saltadas en automático.** Cada *gate* requiere el veredicto del usuario o del Revisor para avanzar formalmente.
+
+- **Diagrama de Flujo (Mermaid/SVG):** Visualiza también la secuencia BPMN en [`docs/pipeline-flow.svg`](docs/pipeline-flow.svg) o revisa las notas de diseño en [`docs/pipeline-flow.md`](docs/pipeline-flow.md).
 
 ---
 
