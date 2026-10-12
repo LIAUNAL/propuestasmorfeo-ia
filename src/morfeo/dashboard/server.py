@@ -75,12 +75,16 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_dashboard()
         elif path == "/api/status":
             self.serve_api_status()
+        elif path == "/api/flow":
+            self.serve_flow()
         elif path == "/api/pdf":
             self.serve_pdf()
         elif path == "/api/graph/papers":
             self.serve_graph("papers-graph.html")
         elif path == "/api/graph/vault":
             self.serve_graph("vault-graph.html")
+        elif path == "/api/artifact":
+            self.serve_artifact()
         else:
             self.send_error(404, "Not Found")
 
@@ -97,26 +101,58 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
-    def serve_api_status(self) -> None:
+    def serve_flow(self) -> None:
+        flow_path = self.workspace_dir / "docs" / "diagrams" / "morfeo-pipeline-flow.html"
+        if not flow_path.is_file():
+            self.send_error(404, "Diagrama Archify no encontrado. Genera con: node docs/diagrams/morfeo-flow.build.mjs")
+            return
+
+        content = flow_path.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
+    def serve_artifact(self) -> None:
+        import urllib.parse
+        parsed = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
+        rel_file = params.get("file", [""])[0]
+
+        if not rel_file:
+            self.send_error(400, "Missing 'file' parameter")
+            return
+
         data = get_project_status(self.workspace_dir)
         active_run = data.get("active_run")
+        if not active_run:
+            self.send_error(404, "No active run")
+            return
 
-        parsed_gates = {}
-        telemetria = []
-        if active_run:
-            run_dir = self.workspace_dir / "proposals" / active_run
-            estado_file = run_dir / "artefactos" / "estado_propuesta.md"
-            parsed_gates = parse_estado_propuesta(estado_file)
+        run_dir = self.workspace_dir / "proposals" / active_run
+        target = (run_dir / rel_file).resolve()
 
-            telemetria_file = run_dir / "artefactos" / "pipeline" / "_estado.md"
-            telemetria = parse_telemetria(telemetria_file)
+        # Security check: must be strictly within run_dir
+        try:
+            target.relative_to(run_dir.resolve())
+        except ValueError:
+            self.send_error(403, "Access denied")
+            return
 
-        response_data = {
-            **data,
-            "pipeline_state": parsed_gates,
-            "telemetria": telemetria,
-        }
+        if not target.is_file():
+            self.send_error(404, "File not found")
+            return
 
+        content = target.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
+    def serve_api_status(self) -> None:
+        response_data = get_project_status(self.workspace_dir)
         body = json.dumps(response_data, indent=2).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
