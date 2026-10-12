@@ -59,6 +59,9 @@ include = ["morfeo*"]
 [tool.setuptools.package-data]
 morfeo = [
   "_kit/**/*",
+  "_kit/.claude/**/*",
+  "_kit/.gitignore",
+  "_kit/.mcp.json",
   "dashboard/static/**/*",
 ]
 

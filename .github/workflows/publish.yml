@@ -1,0 +1,78 @@
+name: Publish
+
+# A published version cannot be replaced, only yanked, and its number is spent
+# forever. So this runs on a GitHub release rather than on a push: creating a
+# release is a deliberate act, and `workflow_dispatch` with a dry run exists for
+# rehearsing the whole path without touching the index.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and verify the artifacts, publish nothing"
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    name: Build and verify the artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Run unit tests
+        run: uv run python -m unittest discover tests -p "test_*.py"
+
+      - name: Build the kit
+        run: python3 scripts/build-kit.py
+
+      - name: Build wheel and sdist
+        run: uv build
+
+      - name: Verify artifacts carry the kit
+        run: uv run python -m unittest tests/test_pypi_publishing.py -v
+
+      - name: Smoke test wheel in clean virtualenv
+        run: |
+          uv venv /tmp/probe
+          uv pip install --python /tmp/probe/bin/python dist/*.whl
+          /tmp/probe/bin/morfeo --version
+          /tmp/probe/bin/marco --version
+          /tmp/probe/bin/morfeo init /tmp/probe-ws --preset claude
+          test -f /tmp/probe-ws/.morfeo/version
+          test -f /tmp/probe-ws/.marco/version
+          test -f /tmp/probe-ws/.claude/agents/bibliografo-propuesta.md
+          test -d /tmp/probe-ws/.agent
+          /tmp/probe/bin/morfeo status /tmp/probe-ws
+          /tmp/probe/bin/morfeo audit /tmp/probe-ws
+          echo "Wheel install cleanly created and validated a complete workspace"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || inputs.dry_run == false
+    environment:
+      name: pypi
+      url: https://pypi.org/p/propuestasmorfeo-ia
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
