@@ -1,7 +1,7 @@
 # Morfeo IA — Marco Multi-Agente de Formulación de Propuestas de Investigación
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/LIAUNAL/propuestasmorfeo-ia/main/logos/logo_labIA_readme.png" alt="Logo Laboratorio de IA - UNAL" width="300">
+  <img src="docs/assets/morfeo-anime.jpg" alt="Morfeo en estilo anime con propuesta holográfica y subagentes de IA orbitando" width="560">
   <br>
   <strong>Laboratorio de Inteligencia Artificial — Universidad Nacional de Colombia Sede Manizales</strong>
   <br>
