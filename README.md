@@ -1,296 +1,248 @@
-# Marco de Redacción de Propuestas de Investigación en IA - Laboratorio de IA - UNAL Manizales
+# Morfeo IA — Marco Multi-Agente de Formulación de Propuestas de Investigación
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/amalvarezme/marco-propuestas-ia/main/logos/logo_labIA_readme.png" alt="Logo Laboratorio de IA" width="280">
+  <img src="https://raw.githubusercontent.com/LIAUNAL/propuestasmorfeo-ia/main/logos/logo_labIA_readme.png" alt="Logo Laboratorio de IA - UNAL" width="300">
   <br>
-  <a href="https://amalvarezme.github.io/LaboratorioIA_UNAL/">amalvarezme.github.io/LaboratorioIA_UNAL</a>
+  <strong>Laboratorio de Inteligencia Artificial — Universidad Nacional de Colombia Sede Manizales</strong>
+  <br>
+  <em>Orquestación agéntica, formulación metodológica rigurosa y generación de propuestas científicas en LaTeX y Word</em>
 </p>
 
-Framework multi-agente que produce propuestas de investigación en IA en
-**español**, como LaTeX, en `redaccion/` (versión de referencia). En paralelo,
-los agentes mantienen un mirror Markdown/Obsidian navegable en
-`artefactos/vault/` (`secciones/`, `insumos/`) — capa visual para explorar la
-propuesta como grafo de ideas; **nunca** es fuente de verdad, ese rol lo
-conserva `redaccion/`.
+<p align="center">
+  <a href="https://pypi.org/project/propuestasmorfeo-ia/"><img src="https://img.shields.io/pypi/v/propuestasmorfeo-ia.svg?color=blue" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/propuestasmorfeo-ia/"><img src="https://img.shields.io/pypi/pyversions/propuestasmorfeo-ia.svg" alt="Python versions"></a>
+  <a href="https://github.com/LIAUNAL/propuestasmorfeo-ia/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-green.svg" alt="License: Apache 2.0"></a>
+  <a href="https://github.com/LIAUNAL/propuestasmorfeo-ia"><img src="https://img.shields.io/badge/LIA-UNAL_Manizales-black.svg" alt="LIA UNAL"></a>
+</p>
 
-**Una carpeta de proyecto por corrida.** `/propuesta-init <idea>` crea
-`proposals/<run-id>/` y la activa. Adentro hay exactamente cuatro subcarpetas,
-y nada queda suelto fuera de ellas salvo el manifiesto `_run.md`:
+---
 
-| Subcarpeta | Contenido | La llena |
+**Morfeo IA** (`propuestasmorfeo-ia`) es un entorno de trabajo agéntico diseñado para redactar, estructurar y auditar propuestas completas de investigación y desarrollo tecnológico en Inteligencia Artificial. Produce documentos formales en **español** bajo formato LaTeX nativo (con exportación determinista a Word/DOCX), estructurados en 16 secciones metodológicas con coherencia matemática, lógica y presupuestal.
+
+El sistema coordina un equipo de **11 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
+
+---
+
+## Índice
+
+1. [Instalación](#instalación)
+2. [Inicio Rápido](#inicio-rápido)
+3. [Comandos del CLI (`morfeo`)](#comandos-del-cli-morfeo)
+4. [Tablero de Control Web (`morfeo ui`)](#tablero-de-control-web-morfeo-ui)
+5. [Ecosistema de Agentes Especializados](#ecosistema-de-agentes-especializados)
+6. [Flujo del Pipeline y Compuertas de Revisión](#flujo-del-pipeline-y-compuertas-de-revisión)
+7. [Capa de Grafos de Conocimiento (Codebase-Memory)](#capa-de-grafos-de-conocimiento-codebase-memory)
+8. [Bucle Determinista de Diagramas TikZ](#bucle-determinista-de-diagramas-tikz)
+9. [Criterios de Estilo y Prosa Natural](#criterios-de-estilo-y-prosa-natural)
+10. [Runtimes Soportados](#runtimes-soportados)
+11. [Pruebas Automatizadas](#pruebas-automatizadas)
+
+---
+
+## Instalación
+
+Morfeo se distribuye como paquete de Python instalable vía `pip` o `pipx`. El CLI base no impone dependencias externas obligatorias para mantener una huella ligera (~2 MB).
+
+```bash
+# Instalación recomendada en entorno aislado
+pipx install propuestasmorfeo-ia
+
+# O instalación directa con pip
+pip install propuestasmorfeo-ia
+```
+
+Si deseas soporte extendido opcional para FastAPI y Uvicorn en el panel de control web:
+
+```bash
+pip install "propuestasmorfeo-ia[ui]"
+```
+
+*(El comando `morfeo ui` funciona de forma nativa con el servidor multihilo de la biblioteca estándar de Python sin requerir paquetes adicionales).*
+
+---
+
+## Inicio Rápido
+
+Para iniciar un nuevo proyecto de propuesta en una carpeta independiente:
+
+```bash
+# 1. Crear el espacio de trabajo de la propuesta
+morfeo init ~/propuestas/salud-mental-ia --title "Sistema de Alertas Tempranas en Salud Mental"
+
+# 2. Entrar al proyecto creado
+cd ~/propuestas/salud-mental-ia
+
+# 3. Lanzar el panel de seguimiento visual en el navegador
+morfeo ui
+
+# 4. Inspeccionar el estado del proyecto desde la terminal
+morfeo status
+```
+
+Dentro del directorio inicializado puedes ejecutar los comandos del asistente en Claude Code (`/propuesta-init`, `/propuesta-analizar`, `/propuesta-continuar`) o el pipeline de tu runtime preferido.
+
+---
+
+## Comandos del CLI (`morfeo`)
+
+| Comando | Descripción |
+|---|---|
+| `morfeo init <dir> [--title] [--preset] [--tools]` | Inicializa un workspace autocontenido con los 67 activos base del marco. |
+| `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF. |
+| `morfeo ui [dir] [--port 8765] [--no-open]` | Despliega el Command Center web interactivo en tiempo real. |
+| `morfeo compile [dir] [--docx] [--run <id>]` | Compila el proyecto LaTeX a PDF (`build.sh`) o exporta a Word (`--docx`). |
+| `morfeo upgrade [dir] [--force]` | Actualiza plantillas y scripts del marco preservando insumos y propuestas existentes. |
+| `morfeo audit [dir] [--json]` | Verifica la integridad criptográfica (SHA-256) de los archivos frente al manifiesto. |
+
+> **Nota de compatibilidad:** El comando `marco` se mantiene disponible como alias idéntico de `morfeo`.
+
+---
+
+## Tablero de Control Web (`morfeo ui`)
+
+El comando `morfeo ui` lanza un panel de control interactivo en el navegador (`http://localhost:8765`):
+
+- **Pipeline y Compuertas:** Monitoreo en vivo de las 13 fases y el estado de aprobación de los 8 *gates* (G0.5, G1, G2, G3, G4, G5, G5.5, G6.4, G6.5, G7).
+- **Telemetría de Uso:** Desglose del consumo acumulado de tokens, tool-uses y duración por fase a partir del registro del framework.
+- **Grafos de Conocimiento:** Visores embebidos interactivos para explorar el grafo de literatura científica (`papers-graph`) y el mapa de relaciones del vault Obsidian (`vault-graph`).
+- **Visor PDF Integrado:** Previsualización del documento LaTeX compilado con descarga directa.
+
+---
+
+## Ecosistema de Agentes Especializados
+
+El marco cuenta con **11 subagentes especializados** con roles no solapados:
+
+| Agente | Modelo sugerido | Responsabilidad |
 |---|---|---|
-| `insumos/` | Insumos: TDR, papers, propuestas base, documentos de referencia | el usuario |
-| `artefactos/` | Lo generado que no es LaTeX: `estado_propuesta.md`, `insumos.md`, `guia_ajustada_TDR.md`, `pipeline/`, `scoping/papers/`, `vault/` | el pipeline |
-| `grafos/` | Reportes de `codebase-memory`: `papers-graph-report.md`, `vault-graph-report.md` | el dispatcher |
-| `redaccion/` | El proyecto LaTeX: `main.tex`, `sections/`, `refs.bib`, `main.pdf`, `main.docx` + tooling de build | el pipeline |
+| `coordinador-propuesta` | Sonnet | Referencia canónica del pipeline y ensamble final de `main.tex`. |
+| `investigador` | Opus | Definición del árbol de problemas (§3), hipótesis (§5), objetivos (§6, §7) y marco conceptual (§8). |
+| `redactor` | Opus | Prosa narrativa (§2, §9, §10, §11, §14, §15, front-matter y consideraciones éticas). |
+| `grant-flow-auditor` | Sonnet | Auditoría micro-estilística de cadencia, voz activa y eliminación de fricción léxica. |
+| `insumos-observador` | Sonnet | Ingesta y estructuración de insumos del usuario (PDFs, papers, TDRs, convocatorias). |
+| `bibliografo-propuesta` | Sonnet | Construcción del estado del arte (§4) y bibliografía en BibTeX (§16, ≥50 refs APA). |
+| `revisor` | Sonnet | Validación formal en cada puerta de revisión (*gate* PASS/FAIL). |
+| `presupuestador` | Sonnet | Desglose financiero (§13): tabla de rubros, cofinanciación y aritmética exacta. |
+| `disenador-tikz` | Sonnet | Autoría de la especificación JSON de los diagramas (nunca escribe LaTeX directo). |
+| `revisor-figuras` | Sonnet | Juicio visual (escala, legibilidad, armonía) sobre el render PNG de las figuras. |
+| `tikz-optimizer` | Sonnet | Corrección asistida de especificaciones JSON cuando falla la compilación o la auditoría. |
 
-Toda ruta `insumos/...`, `artefactos/...`, `grafos/...` o `redaccion/...` del marco
-se resuelve contra esa raíz (`RUN_ROOT`). Dos corridas nunca se pisan, y
-archivar una es solo un cambio de estado: la carpeta ya **es** el archivo.
+---
 
-**Runtime canónico: Claude Code** (`.claude/agents/` + `.claude/commands/`, la
-única fuente editada a mano). **OpenCode**, **Pi** y **Google Antigravity** son runtimes
-secundarios soportados: `.opencode/agents/` + `.opencode/commands/` y `.pi/agents/` +
-`.pi/prompts/` se generan de forma determinista y zero-LLM desde las fuentes de
-Claude Code (`python3 scripts/gen-opencode.py`, `python3 scripts/gen-pi.py`,
-`python3 scripts/gen-antigravity.py`; los dos primeros aceptan `--check` — ver `AGENTS.md` y `.pi/README.md` para el detalle).
-El asistente primario despacha 9 subagentes de dominio — `investigador`,
-`redactor`, `revisor`, `bibliografo-propuesta`, `presupuestador`,
-`insumos-observador`, `disenador-tikz`, `tikz-optimizer`, `revisor-figuras` —
-usando los comandos `/propuesta` o `/propuesta-continuar` (`.claude/commands/`), siguiendo la
-referencia canónica del pipeline en `.claude/agents/coordinador-propuesta.md`
-(el 10º archivo de `.claude/agents/`, no se despacha como subagente sino que
-documenta el pipeline), avanzando por fases con puertas de revisión (gates).
+## Flujo del Pipeline y Compuertas de Revisión
 
-**Eficiencia de tokens.** El dispatcher lee `guiaProyectosIA_Agente.md` (o la
-guía ajustada al TDR generada en G0.5) **una sola vez por corrida** y le
-inyecta a cada subagente solo el fragmento de sección que necesita (bloque
-`## FRAGMENTO DE GUÍA`, ver "FORMATO EXACTO DE INYECCIÓN" en
-`.claude/commands/propuesta.md`), en vez de que cada Task relea el archivo
-completo — la única excepción es la auditoría final (Fase 7), que sí necesita
-la guía íntegra. `insumos-observador` además cachea en Engram, por hash de
-contenido, la extracción de cada archivo de `insumos/`: corridas repetidas
-contra el mismo insumo (p. ej. la misma convocatoria) no vuelven a procesarlo
-desde cero.
-
-**Telemetría de uso por fase.** El dispatcher lee el bloque `<usage>` que
-devuelve cada `Task` delegado (tokens, tool-uses, duración), lo acumula por
-fase y lo persiste en `artefactos/pipeline/_estado.md` (columnas `Tokens |
-Tool-uses | Duración`) y en el frontmatter de cada evento de fase
-(`artefactos/pipeline/<NN>-<fase>.md`: `tokens_total`, `tool_uses`,
-`duration_ms`). Cada cierre de gate agrega un 4º punto — "(d) Costo/tiempo" —
-a la tríada habitual (resumen, veredicto, aprobación), y la Fase 7 cierra con
-una tabla resumen de una fila por fase.
-
-**Bucle de figuras: precheck de overflow y tope de reintentos.** Antes de la
-revisión visual de `revisor-figuras`, `redaccion/scripts/compile_tikz.py`
-detecta determinísticamente `Overfull \hbox` en el log de `pdflatex` y lo
-mapea a la línea del `.tex` fuente (token `OVERFULL: <diagrama> <N>
-occurrence(s)`); si `N > 0`, el dispatcher reenvía directo a
-`tikz-optimizer` sin gastar el `Read` visual de `revisor-figuras` en esa
-iteración. Los 3 bucles de figura (árbol de problemas, estado del arte,
-diagrama metodológico) comparten un tope de 4 intentos entre fallos de
-overflow y fallos visuales, con escalamiento explícito al usuario si se
-agota — nunca reintentan sin límite.
-
-## Estructura
-
-```
-.
-├── AGENTS.md                        # Playbook / reglas globales
-├── guiaProyectosIA_Agente.md        # Guía autoritativa sección por sección
-├── .mcp.json                        # Config de MCP servers
-├── logos/                           # Logos institucionales (branding del repo/README)
-├── scripts/                         # Tooling del REPO (no de la propuesta):
-│                                     #   init-run.sh — scaffolding de proposals/<run-id>/ (RUN_ROOT)
-│                                     #   gen-opencode.py + .rules.json — puerto Claude Code → OpenCode
-│                                     #   gen-pi.py + .rules.json — puerto Claude Code → Pi
-│                                     #   gen-antigravity.py + .rules.json — puerto → .agent/
-│                                     #   marco_cli.py — CLI portable (marco init/upgrade/status)
-│                                     #   convert_to_word.py + apa.csl — export directo a Word
-├── .claude/                         # Runtime canónico — única fuente editada a mano
-│   ├── agents/                      # 10 archivos: 9 subagentes + coordinador-propuesta
-│   └── commands/                    # /propuesta-* + _propuesta-steps.md
-├── .opencode/                       # GENERADO (gen-opencode.py) — no editar a mano
-│   ├── agents/
-│   └── commands/
-│       ├── propuesta.md             # Comando /propuesta
-│       ├── propuesta-init.md        # Comando /propuesta-init (crea y activa la corrida)
-│       └── propuesta-limpiar.md     # Comando /propuesta-limpiar (archiva + resetea, standalone)
-├── .opencode/                       # Runtime secundario — GENERADO desde .claude/, no se edita a mano
-│   ├── agents/                      # 9 subagentes portados (1:1 con .claude/agents/, sin coordinador)
-│   └── commands/                    # los 3 comandos portados
-├── .pi/                             # Runtime secundario — GENERADO desde .claude/, no se edita a mano
-│   ├── agents/                      # 9 subagentes portados (dispatch con subagent_run)
-│   ├── prompts/                     # los 3 comandos portados (slash commands de Pi)
-│   └── README.md                    # Único archivo de .pi/ escrito a mano
-├── proposals/                       # Corridas — NADA de esto se versiona; init la crea
-│   ├── registry.md                  #   Registro local: tabla append-only de metadatos
-│   ├── .current-run                 #   Puntero a la corrida activa
-│   └── <run-id>/                    #   RUN_ROOT: _run.md + insumos/ + artefactos/
-│                                     #     + grafos/ + redaccion/
-└── plantilla/                       # Esqueleto LaTeX versionado; init lo copia a cada
-                                     #   RUN_ROOT como redaccion/. Único origen; la raíz
-                                     #   nunca recibe artefactos de una corrida.
-    ├── build.sh                     # Compilación PDF/DOCX
-    ├── scripts/                     # compile_tikz.py, prep_docx.py — específico del build LaTeX/DOCX
-    ├── logos/                       # Logos institucionales embebidos en el PDF (header/footer)
-    ├── templates/reference.docx     # Plantilla pandoc (export DOCX)
-    │   # Generados por cada corrida de /propuesta (gitignored, ver "Qué se versiona" abajo):
-    └── ...                         #   main.tex, refs.bib, sections/, estado_propuesta.md
-```
-
-### Qué se versiona en GitHub (y qué no)
-
-El repo remoto solo contiene lo necesario para **correr el pipeline en
-local**: agentes (`.claude/agents/`, `.opencode/agents/`, `.pi/agents/`),
-comandos (`.claude/commands/`, `.opencode/commands/`, `.pi/prompts/`),
-tooling (`scripts/`,
-`plantilla/scripts/`, `plantilla/build.sh`), plantillas/logos
-(`plantilla/templates/`, `plantilla/logos/`), la guía
-y la guía (`guiaProyectosIA_Agente.md`). **Nada bajo `proposals/` se versiona**,
-ni siquiera el registro local: `scripts/init-run.sh` lo recrea si falta, así que
-borrar `proposals/` es seguro.
-
-**Nunca** se sincroniza el contenido de una propuesta, ni de la corrida
-activa ni de las archivadas: `proposals/<run-id>/` completo está en
-`.gitignore`, con sus cuatro subcarpetas, igual que el puntero
-`proposals/.current-run`. Archivar no copia nada: `/propuesta-limpiar` (§Uso)
-marca la corrida como archivada en su `_run.md` y en el registro local, sin
-producir ningún cambio en git, y la siguiente arranca con `/propuesta-init` en
-su propia carpeta limpia.
-
-`scripts/` (raíz) y `plantilla/scripts/` son intencionalmente distintos: el
-primero es tooling del repo (scaffolding de corridas y portabilidad de agentes
-Claude Code → OpenCode/Pi, no depende de una corrida de `/propuesta`); el
-segundo es específico del
-build LaTeX/DOCX de una corrida (compilación de diagramas TikZ, export a
-Word) y solo tiene sentido una vez `redaccion/sections/` de la corrida existe.
-
-## Inicio rápido: proyecto portable
-
-El entrypoint recomendado para corridas reales es `marco init`, que crea
-una carpeta de proyecto autocontenida y copiable:
-
-```bash
-marco init ~/propuestas/mi-proyecto --title "Título del proyecto"
-```
-
-**Cheat-sheet de comandos:**
-
-```bash
-marco init <dir> --title "Título de la propuesta"
-marco guide <dir>
-marco status <dir>
-marco upgrade <dir>
-marco --help
-```
-
-Para el detalle completo de flags, entorno, manifest y flujo, ver
-[`docs/marco-cli.md`](docs/marco-cli.md).
-
-> El flujo de trabajar en la raíz del monorepo queda como **demo / dev kit
-> workspace**; para corridas reales usá `marco init`.
-
-## Uso
-
-1. `/propuesta-init <idea>` — crea y activa la carpeta de la corrida
-   (`proposals/<run-id>/`) con sus cuatro subcarpetas. Delega en
-   `scripts/init-run.sh`, determinista e idempotente, que también corre a mano:
-   `scripts/init-run.sh <run-id> "<idea breve>"`.
-2. `/propuesta-insumos [slug]` — prepara zonas de depósito dentro de
-   `insumos/` de la corrida (`tdr/`, `draft/`, `background/`, `doc-secciones/`,
-   `ideas/`). No asigna run-id ni despacha agentes: solo ordena dónde dejás los
-   archivos.
-3. Elegí un modo de ejecución:
-
-**Flujo por pasos (recomendado para operadores):**
+El ciclo de formulación se divide en unidades metodológicas estrictas:
 
 ```text
-/propuesta-analizar [idea]       # intake: clasificación, checklist, TDR/draft, G0.5
-/propuesta-continuar             # una unidad por vez; imprime el siguiente comando
+Fase 0    Ingesta de insumos y clasificación TDR / borrador
+  │
+  ├── [GATE G0.5] Aprobación de tabla de secciones ajustada al TDR
+  │
+Fase 1    Árbol de problemas (§3) y pregunta de investigación
+  ├── Bucle TikZ: figura arbol_problemas (render determinista)
+  └── [GATE G1] Veredicto Revisor
+  │
+Fase 2    Estado del arte (§4, ≥30 refs Q1/Q2) e hipótesis (§5)
+  ├── Bucle TikZ: figura estado_arte
+  └── [GATE G2] Veredicto Revisor
+  │
+Fase 3    Justificación y pertinencia (§2, TRL 6/7 explícito)
+  └── [GATE G3] Veredicto Revisor
+  │
+Fase 4    Objetivo general (§6) y 3 específicos (§7) — mapeo 1:1 con subproblemas
+  └── [GATE G4] Veredicto Revisor
+  │
+Fase 5    Marco conceptual (§8) y equipo de trabajo (§9, roles derivados de §7)
+  └── [GATE G5] Veredicto Revisor
+  │
+Fase 5.5  Metodología articulada (§10)
+  ├── Bucle TikZ: figura metodologico
+  └── [GATE G5.5] Veredicto Revisor
+  │
+Fase 6    Resultados esperados (§11) y consideraciones éticas (§12)
+Fase 6.4  Presupuesto financiero (§13)
+  └── [GATE G6.4] Veredicto Revisor
+  │
+Fase 6.45 Cronograma de actividades (§14, Gantt) y productos (§15)
+Fase 6.5  Front-matter (Resumen, Resumen ejecutivo, Palabras clave)
+  └── [GATE G6.5] Veredicto Revisor
+  │
+Fase 7    Auditoría cruzada final y ensamble de main.tex
+  └── [GATE G7] Aprobación final y compilación PDF/DOCX
 ```
 
-**Flujo completo (una sesión):** `/propuesta <idea>` — el asistente primario
-despacha la Fase 0 y avanza fase por fase, deteniéndose en cada gate.
+### Diagramas de Arquitectura y Flujo
 
-| Comando | Rol |
-|---------|-----|
-| `/propuesta-init` | Crea y activa `proposals/<run-id>/` (RUN_ROOT) |
-| `/propuesta-insumos` | Zonas `tdr/` `draft/` `background/` `doc-secciones/` `ideas/` |
-| `/propuesta-analizar` | Intake + clasificación (idea: args o `ideas/`) |
-| `/propuesta-continuar` | Siguiente unidad del pipeline |
-| `/propuesta` | Pipeline completo en una sesión |
-| `/propuesta-limpiar` | Cierra la corrida activa |
+- **Diagrama Interactivo (Archify):** Consulta [`docs/diagrams/morfeo-pipeline-flow.html`](docs/diagrams/morfeo-pipeline-flow.html) para explorar los componentes, dependencias cruzadas y artefactos en un visor SVG/HTML offline.
+- **Diagrama de Flujo (Mermaid/SVG):** Visualiza la secuencia completa en [`docs/pipeline-flow.svg`](docs/pipeline-flow.svg) o revisa las notas de diseño en [`docs/pipeline-flow.md`](docs/pipeline-flow.md).
 
-Los mismos comandos se generan para OpenCode (`.opencode/commands/`), Pi
-(`.pi/prompts/`) y Google Antigravity (`.agent/workflows/` + skills).
-Regenerar tras editar las fuentes de Claude:
+---
+
+## Capa de Grafos de Conocimiento (Codebase-Memory)
+
+Morfeo integra la capa de grafo mediante el servidor MCP `codegraph` (`@colbymchenry/codegraph`), gestionando dos corpus por corrida:
+
+1. **`<run-id>-papers`:** Indexa el repositorio de literatura científica recolectada en `artefactos/scoping/papers/`, extrayendo clusters conceptuales y relaciones temáticas en `grafos/papers-graph-report.md`.
+2. **`<run-id>-vault`:** Indexa el espejo Markdown compatible con Obsidian en `artefactos/vault/`, evaluando la conectividad de ideas entre secciones e insumos en `grafos/vault-graph-report.md`.
+
+El script `scripts/graph_html.py` genera un gemelo visual interactivo en HTML para cada grafo (`grafos/<corpus>-graph.html`), permitiendo inspeccionar la red conceptual tanto en local como desde el visor del panel de control web.
+
+---
+
+## Bucle Determinista de Diagramas TikZ
+
+Los diagramas (árbol de problemas, mapa del estado del arte y diagrama metodológico) no se codifican a mano en LaTeX. La geometría se genera mediante un compilador determinista:
 
 ```bash
-python3 scripts/gen-opencode.py && python3 scripts/gen-pi.py && python3 scripts/gen-antigravity.py
+python3 scripts/figura.py <name> --spec specs/<name>.spec.json
 ```
 
-Todos requieren sesión **interactiva**: las compuertas de aprobación no
-funcionan en modo headless (`opencode run`, `pi -p`). No hay ejecución
-desatendida sin gates.
+1. **Diseñador-TikZ** redacta únicamente la especificación en formato JSON (`specs/<name>.spec.json`).
+2. `render_tikz.py` calcula anchos óptimos, equiespaciado de columnas, anclas y aplica la paleta institucional (UNAL, LabIA, GCPDS).
+3. `compile_tikz.py` compila la figura y ejecuta el autofix determinista ante advertencias de `Overfull \hbox`.
+4. `audit_tikz.py` valida mecánicamente 17 criterios técnicos (incluyendo legibilidad y dimensiones físicas).
+5. **Revisor-Figuras** emite juicio visual exclusivamente sobre escala, armonía y centrado a partir del render PNG pregenerado.
 
-`/propuesta-limpiar` cierra la corrida activa sin tener que arrancar
-`/propuesta` primero: con una carpeta por corrida es un cambio de estado en
-`_run.md` + el registro local, y deja `proposals/<run-id>/` intacta en disco.
+---
 
-**Guía de operador:** [`docs/usage-modes.md`](docs/usage-modes.md) (modos TDR /
-borrador, por pasos vs. completo). "Continuar" un **borrador** (draft-base) es
-semilla + reescritura completa, no reanudar `redaccion/sections/` a medias;
-`/propuesta-continuar` avanza el **siguiente paso del pipeline**, no un resume
-arbitrario a mitad de unidad.
+## Criterios de Estilo y Prosa Natural
 
-## Flujo del pipeline
+Toda la prosa generada en español pasa obligatoriamente por las directrices de dos metodologías integradas:
 
-Diagrama tipo BPMN del pipeline completo (fases, compuertas de aprobación y las
-tres vistas de conocimiento transversales: los dos índices de
-`codebase-memory` y el registro del pipeline). Fuente editable y notas de
-lectura en [`docs/pipeline-flow.md`](docs/pipeline-flow.md).
+- **`estilo-natural-es`:** Garantiza cadencia variada, predominio de voz activa, transiciones fluidas y eliminación de fórmulas mecánicas habituales en modelos de lenguaje, manteniendo fidelidad estricta a datos, citas y cifras.
+- **`depuracion-redundancias-es`:** Audita que cada párrafo introduzca un avance conceptual genuino, eliminando reiteraciones léxicas o argumentativas dentro de una misma sección.
 
-![Flujo del pipeline /propuesta](docs/pipeline-flow.svg)
+---
 
-## Dependencias
+## Runtimes Soportados
 
-- **Claude Code** — runtime canónico del pipeline (`.claude/agents/`, `.claude/commands/propuesta.md`).
-- **OpenCode** (opcional) — runtime secundario soportado. `.opencode/agents/` +
-  `.opencode/commands/propuesta.md` se regeneran con
-  `python3 scripts/gen-opencode.py` (stdlib puro, sin dependencias nuevas);
-  requiere además allow-listar los 9 subagentes portados bajo
-  `permission.task` en tu `opencode.json` de usuario (setup manual, ver
-  docstring de `scripts/gen-opencode.py`). Los 9 agentes generados quedan por
-  defecto con `model: openai/gpt-5.4` (`model_map` en
-  `scripts/gen-opencode.rules.json`) — es solo el default elegido para este
-  repo, no un requisito del generador. Si tu `opencode.json`/`auth login` usa
-  otro proveedor (Anthropic, otro modelo OpenAI, etc.), editá `model_map` en
-  `gen-opencode.rules.json` y volvé a correr `python3 scripts/gen-opencode.py`
-  para regenerar los 9 archivos con el modelo que corresponda.
-- **Pi** (opcional) — runtime secundario soportado. `.pi/agents/` +
-  `.pi/prompts/` se regeneran con `python3 scripts/gen-pi.py` (stdlib puro);
-  los 9 subagentes quedan en `claude-bridge/claude-sonnet-5` /
-  `claude-bridge/claude-opus-5` (`model_map` en `scripts/gen-pi.rules.json`,
-  editá y regenerá si usás otro proveedor). Pi los descubre solo (son
-  directorios de proyecto estándar) tras conceder trust al proyecto; ver
-  `.pi/README.md`.
-- **codegraph** (`npm i -g @colbymchenry/codegraph`) — **codebase-memory**, la
-  capa de grafo del pipeline; requerido porque el servidor MCP `codegraph` de
-  `.mcp.json` invoca este binario (`codegraph serve --mcp`). Reemplaza al
-  `graphify` que usó este marco hasta ahora.
-- **Google Antigravity** (opcional) — `python3 scripts/gen-antigravity.py`
-  → `.agent/skills/` + `.agent/workflows/`.
-- **engram** (`brew install gentleman-programming/tap/engram`) — memoria persistente; requerido porque el servidor MCP `engram` de `.mcp.json` invoca este binario directamente.
-- **gentle-ai** (recomendado, `brew install gentleman-programming/tap/gentle-ai`) — orquestación del workflow SDD (`/sdd-*`), registro de skills y asignación de modelos por fase.
-- LaTeX (pdflatex + bibtex, estilo `natbib`/`apalike`) para compilar `redaccion/main.tex`.
-- MCP servers usados por el pipeline: codegraph (codebase-memory), OpenAlex,
-  Crossref, Semantic Scholar, PubMed, arXiv, Context7, Consensus. Ver `REQUIREMENTS.md` §1 para el
-  detalle de instalación y §3 para el detalle de paquetes; `.mcp.json` registra
-  los servidores activos de este proyecto.
+El marco admite ejecución multi-runtime:
 
-## Compilar la propuesta
+- **Claude Code (Canónico):** Definición principal en `.claude/agents/` y `.claude/commands/`.
+- **Google Antigravity:** Port generado en `.agent/workflows/` y `.agent/skills/`.
+- **OpenCode:** Port generado en `.opencode/agents/` y `.opencode/commands/`.
+- **Pi:** Port generado en `.pi/agents/` y `.pi/prompts/`.
 
-`main.tex` no está committeado: se genera en la Fase 7 (ensamble) de
-`/propuesta`, dentro de la carpeta de la corrida. Ejecuta el pipeline hasta
-completarla y luego:
+Para sincronizar y validar los puertos secundarios ante cualquier modificación de los archivos base:
 
 ```bash
-cd proposals/<run-id>/redaccion
-./build.sh           # o: ./build.sh --manual (pdflatex→bibtex→pdflatex×2)
-./build.sh --docx    # exporta a Word vía pandoc (acepta opcionalmente --csl <estilo.csl>)
+python3 scripts/gen-antigravity.py
+python3 scripts/gen-opencode.py --check
+python3 scripts/gen-pi.py --check
 ```
 
-`redaccion/build.sh` y `redaccion/scripts/compile_tikz.py` resuelven el proyecto LaTeX como el
-directorio que los contiene, sin ninguna ruta fija, así que funcionan en la
-carpeta de cualquier corrida sin configuración.
+---
 
-## Pruebas del framework (e2e)
+## Pruebas Automatizadas
 
-Para verificar la integridad del manifest, comandos del CLI `marco`, generadores de runtime y flags de compilación:
+El proyecto cuenta con una suite integral de pruebas unitarias y de integración que verifican la integridad del CLI, la compilación de diagramas y la coherencia del manifiesto:
 
 ```bash
 python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
+---
+
+## Licencia
+
+Distribuido bajo la licencia [Apache 2.0](LICENSE). Desarrollado por el **Laboratorio de Inteligencia Artificial de la Universidad Nacional de Colombia Sede Manizales**.

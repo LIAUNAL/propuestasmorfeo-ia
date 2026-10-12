@@ -1,0 +1,1406 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Morfeo IA — Architecture, Pipeline Stages and Review Gates",
+    "quality_profile": "showcase",
+    "output": "docs/diagrams/morfeo-pipeline-flow.html",
+    "repository": {
+      "url": "https://github.com/LIAUNAL/propuestasmorfeo-ia",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "19211715cbce21ab148fdfd02d91b82f974eaa25"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Comando CLI / UI"
+        },
+        "backend": {
+          "label": "Subagente Especializado"
+        },
+        "messagebus": {
+          "label": "Script Determinista"
+        },
+        "security": {
+          "label": "Gate de Revisión (Humano / Revisor)"
+        },
+        "database": {
+          "label": "Artefacto en Disco"
+        },
+        "external": {
+          "label": "Skill / Servicio MCP"
+        }
+      }
+    }
+  },
+  "layout": {
+    "mode": "grid",
+    "origin": [
+      40,
+      48
+    ],
+    "cols": 5,
+    "cellW": 186,
+    "cellH": 58,
+    "gapX": 24,
+    "gapY": 58
+  },
+  "components": [
+    {
+      "id": "cliInit",
+      "type": "frontend",
+      "label": "morfeo init",
+      "sublabel": "workspace por corrida",
+      "sources": [
+        {
+          "path": "src/morfeo/cli.py",
+          "line": 1,
+          "end_line": 40
+        }
+      ],
+      "row": 0,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "kitBundle",
+      "type": "database",
+      "label": "morfeo._kit",
+      "sublabel": "67 activos base",
+      "sources": [
+        {
+          "path": "src/morfeo/kit.py",
+          "line": 1,
+          "end_line": 35
+        }
+      ],
+      "row": 0,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "runRoot",
+      "type": "database",
+      "label": "proposals/<run-id>/",
+      "sublabel": "4 carpetas estructuradas",
+      "sources": [
+        {
+          "path": "AGENTS.md",
+          "line": 60,
+          "end_line": 95
+        }
+      ],
+      "row": 0,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "cliStat",
+      "type": "messagebus",
+      "label": "morfeo status",
+      "sublabel": "auditoria y estado",
+      "sources": [
+        {
+          "path": "src/morfeo/core/status.py",
+          "line": 1,
+          "end_line": 45
+        }
+      ],
+      "row": 0,
+      "col": 3,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "cliComp",
+      "type": "messagebus",
+      "label": "morfeo compile",
+      "sublabel": "compilador build.sh",
+      "sources": [
+        {
+          "path": "src/morfeo/core/compile.py",
+          "line": 1,
+          "end_line": 35
+        }
+      ],
+      "row": 0,
+      "col": 4,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "cmdAnalizar",
+      "type": "frontend",
+      "label": "/propuesta-analizar",
+      "sublabel": "intake y checklist",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 1,
+          "end_line": 40
+        }
+      ],
+      "row": 1,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "insumosObs",
+      "type": "backend",
+      "label": "insumos-observador",
+      "sublabel": "ingesta de documentos",
+      "sources": [
+        {
+          "path": ".claude/agents/insumos-observador.md",
+          "line": 1,
+          "end_line": 472
+        }
+      ],
+      "row": 1,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "insumosMd",
+      "type": "database",
+      "label": "insumos.md",
+      "sublabel": "corpus estructurado",
+      "sources": [
+        {
+          "path": "AGENTS.md",
+          "line": 35,
+          "end_line": 55
+        }
+      ],
+      "row": 1,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate05",
+      "type": "security",
+      "label": "GATE G0.5 (TDR)",
+      "sublabel": "tabla TDR aprobada",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 100,
+          "end_line": 130
+        }
+      ],
+      "row": 1,
+      "col": 3,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "invProb",
+      "type": "backend",
+      "label": "investigador (F1)",
+      "sublabel": "§3 problema y pregunta",
+      "sources": [
+        {
+          "path": ".claude/agents/investigador.md",
+          "line": 1,
+          "end_line": 366
+        }
+      ],
+      "row": 2,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "tikzTree",
+      "type": "backend",
+      "label": "disenador-tikz",
+      "sublabel": "spec arbol_problemas",
+      "sources": [
+        {
+          "path": ".claude/agents/disenador-tikz.md",
+          "line": 1,
+          "end_line": 135
+        }
+      ],
+      "row": 2,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "figEngine",
+      "type": "messagebus",
+      "label": "figura.py",
+      "sublabel": "render y auditoria",
+      "sources": [
+        {
+          "path": "plantilla/scripts/figura.py",
+          "line": 1,
+          "end_line": 50
+        }
+      ],
+      "row": 2,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "revFig",
+      "type": "backend",
+      "label": "revisor-figuras",
+      "sublabel": "criterios visuales PNG",
+      "sources": [
+        {
+          "path": ".claude/agents/revisor-figuras.md",
+          "line": 1,
+          "end_line": 113
+        }
+      ],
+      "row": 2,
+      "col": 3,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate1",
+      "type": "security",
+      "label": "GATE G1",
+      "sublabel": "aprobacion problema",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 140,
+          "end_line": 170
+        }
+      ],
+      "row": 2,
+      "col": 4,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "bibSota",
+      "type": "backend",
+      "label": "bibliografo-propuesta",
+      "sublabel": "§4 SOTA (≥30 refs Q1/Q2)",
+      "sources": [
+        {
+          "path": ".claude/agents/bibliografo-propuesta.md",
+          "line": 1,
+          "end_line": 528
+        }
+      ],
+      "row": 3,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "invHip",
+      "type": "backend",
+      "label": "investigador (F2)",
+      "sublabel": "§5 hipotesis",
+      "sources": [
+        {
+          "path": ".claude/agents/investigador.md",
+          "line": 1,
+          "end_line": 366
+        }
+      ],
+      "row": 3,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "tikzSota",
+      "type": "backend",
+      "label": "disenador-tikz (F2)",
+      "sublabel": "spec estado_arte",
+      "sources": [
+        {
+          "path": ".claude/agents/disenador-tikz.md",
+          "line": 1,
+          "end_line": 135
+        }
+      ],
+      "row": 3,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate2",
+      "type": "security",
+      "label": "GATE G2",
+      "sublabel": "aprobacion SOTA",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 180,
+          "end_line": 210
+        }
+      ],
+      "row": 3,
+      "col": 3,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "redJust",
+      "type": "backend",
+      "label": "redactor (F3)",
+      "sublabel": "§2 pertinencia TRL 6/7",
+      "sources": [
+        {
+          "path": ".claude/agents/redactor.md",
+          "line": 1,
+          "end_line": 246
+        }
+      ],
+      "row": 4,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "audJust",
+      "type": "backend",
+      "label": "grant-flow-auditor",
+      "sublabel": "cadencia y voz activa",
+      "sources": [
+        {
+          "path": ".claude/agents/grant-flow-auditor.md",
+          "line": 1,
+          "end_line": 84
+        }
+      ],
+      "row": 4,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate3",
+      "type": "security",
+      "label": "GATE G3",
+      "sublabel": "aprobacion justificacion",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 215,
+          "end_line": 235
+        }
+      ],
+      "row": 4,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "invObj",
+      "type": "backend",
+      "label": "investigador (F4)",
+      "sublabel": "§6 gral y §7 especificos",
+      "sources": [
+        {
+          "path": ".claude/agents/investigador.md",
+          "line": 1,
+          "end_line": 366
+        }
+      ],
+      "row": 4,
+      "col": 3,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate4",
+      "type": "security",
+      "label": "GATE G4",
+      "sublabel": "mapeo 1:1 subproblemas",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 240,
+          "end_line": 260
+        }
+      ],
+      "row": 4,
+      "col": 4,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "invMarco",
+      "type": "backend",
+      "label": "investigador (F5)",
+      "sublabel": "§8 marco conceptual",
+      "sources": [
+        {
+          "path": ".claude/agents/investigador.md",
+          "line": 1,
+          "end_line": 366
+        }
+      ],
+      "row": 5,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "redEquipo",
+      "type": "backend",
+      "label": "redactor (F5)",
+      "sublabel": "roles derivados de §7",
+      "sources": [
+        {
+          "path": ".claude/agents/redactor.md",
+          "line": 1,
+          "end_line": 246
+        }
+      ],
+      "row": 5,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate5",
+      "type": "security",
+      "label": "GATE G5",
+      "sublabel": "aprobacion marco y equipo",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 270,
+          "end_line": 290
+        }
+      ],
+      "row": 5,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "redMet",
+      "type": "backend",
+      "label": "redactor (F5.5)",
+      "sublabel": "§10 metodologia",
+      "sources": [
+        {
+          "path": ".claude/agents/redactor.md",
+          "line": 1,
+          "end_line": 246
+        }
+      ],
+      "row": 6,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "tikzMet",
+      "type": "backend",
+      "label": "disenador-tikz (F5.5)",
+      "sublabel": "spec metodologico",
+      "sources": [
+        {
+          "path": ".claude/agents/disenador-tikz.md",
+          "line": 1,
+          "end_line": 135
+        }
+      ],
+      "row": 6,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "audMet",
+      "type": "backend",
+      "label": "grant-flow-auditor (F5.5)",
+      "sublabel": "prosa natural",
+      "sources": [
+        {
+          "path": ".claude/agents/grant-flow-auditor.md",
+          "line": 1,
+          "end_line": 84
+        }
+      ],
+      "row": 6,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate55",
+      "type": "security",
+      "label": "GATE G5.5",
+      "sublabel": "aprobacion metodologia",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 300,
+          "end_line": 320
+        }
+      ],
+      "row": 6,
+      "col": 3,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "redRes",
+      "type": "backend",
+      "label": "redactor (F6)",
+      "sublabel": "§11 resultados y §12 etica",
+      "sources": [
+        {
+          "path": ".claude/agents/redactor.md",
+          "line": 1,
+          "end_line": 246
+        }
+      ],
+      "row": 7,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "presup",
+      "type": "backend",
+      "label": "presupuestador (F6.4)",
+      "sublabel": "§13 presupuesto",
+      "sources": [
+        {
+          "path": ".claude/agents/presupuestador.md",
+          "line": 1,
+          "end_line": 129
+        }
+      ],
+      "row": 7,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate64",
+      "type": "security",
+      "label": "GATE G6.4",
+      "sublabel": "aritmetica verificada",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 330,
+          "end_line": 350
+        }
+      ],
+      "row": 7,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "redGantt",
+      "type": "backend",
+      "label": "redactor (F6.45)",
+      "sublabel": "§14 cronograma y §15 entregables",
+      "sources": [
+        {
+          "path": ".claude/agents/redactor.md",
+          "line": 1,
+          "end_line": 246
+        }
+      ],
+      "row": 7,
+      "col": 3,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "bibBib",
+      "type": "backend",
+      "label": "bibliografo-propuesta (F6.45)",
+      "sublabel": "§16 bibliografia APA",
+      "sources": [
+        {
+          "path": ".claude/agents/bibliografo-propuesta.md",
+          "line": 1,
+          "end_line": 528
+        }
+      ],
+      "row": 7,
+      "col": 4,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "redFront",
+      "type": "backend",
+      "label": "redactor (F6.5)",
+      "sublabel": "resumen ejecutivo",
+      "sources": [
+        {
+          "path": ".claude/agents/redactor.md",
+          "line": 1,
+          "end_line": 246
+        }
+      ],
+      "row": 8,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate65",
+      "type": "security",
+      "label": "GATE G6.5",
+      "sublabel": "aprobacion front-matter",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 370,
+          "end_line": 390
+        }
+      ],
+      "row": 8,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "revFinal",
+      "type": "backend",
+      "label": "revisor (Fase 7)",
+      "sublabel": "auditoria integral",
+      "sources": [
+        {
+          "path": ".claude/agents/revisor.md",
+          "line": 1,
+          "end_line": 203
+        }
+      ],
+      "row": 8,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate7",
+      "type": "security",
+      "label": "GATE G7 Final",
+      "sublabel": "aprobacion formal",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 400,
+          "end_line": 420
+        }
+      ],
+      "row": 8,
+      "col": 3,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "coordEns",
+      "type": "backend",
+      "label": "coordinador-propuesta",
+      "sublabel": "ensambla y compila",
+      "sources": [
+        {
+          "path": ".claude/agents/coordinador-propuesta.md",
+          "line": 1,
+          "end_line": 187
+        }
+      ],
+      "row": 8,
+      "col": 4,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "uiServer",
+      "type": "frontend",
+      "label": "morfeo ui",
+      "sublabel": "tablero de seguimiento",
+      "sources": [
+        {
+          "path": "src/morfeo/core/ui.py",
+          "line": 1,
+          "end_line": 40
+        }
+      ],
+      "row": 9,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "cbmMcp",
+      "type": "external",
+      "label": "codebase-memory MCP",
+      "sublabel": "servidor MCP codegraph",
+      "sources": [
+        {
+          "path": "AGENTS.md",
+          "line": 100,
+          "end_line": 125
+        }
+      ],
+      "row": 9,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "graphPapers",
+      "type": "database",
+      "label": "papers-graph",
+      "sublabel": "grafo interactivo SOTA",
+      "sources": [
+        {
+          "path": "scripts/graph_html.py",
+          "line": 1,
+          "end_line": 40
+        }
+      ],
+      "row": 9,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "graphVault",
+      "type": "database",
+      "label": "vault-graph",
+      "sublabel": "grafo espejo obsidian",
+      "sources": [
+        {
+          "path": "scripts/graph_html.py",
+          "line": 1,
+          "end_line": 40
+        }
+      ],
+      "row": 9,
+      "col": 3,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "pdfViewer",
+      "type": "database",
+      "label": "PDF Previewer",
+      "sublabel": "visor PDF en tiempo real",
+      "sources": [
+        {
+          "path": "src/morfeo/dashboard/static/index.html",
+          "line": 1,
+          "end_line": 60
+        }
+      ],
+      "row": 9,
+      "col": 4,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "skEstilo",
+      "type": "external",
+      "label": "estilo-natural-es",
+      "sublabel": "cadencia y naturalidad",
+      "sources": [
+        {
+          "path": ".claude/skills/estilo-natural-es/SKILL.md",
+          "line": 1,
+          "end_line": 30
+        }
+      ],
+      "row": 10,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "skDepur",
+      "type": "external",
+      "label": "depuracion-redundancias",
+      "sublabel": "depuracion redundancias",
+      "sources": [
+        {
+          "path": ".claude/skills/depuracion-redundancias-es/SKILL.md",
+          "line": 1,
+          "end_line": 30
+        }
+      ],
+      "row": 10,
+      "col": 1,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "guiaDoc",
+      "type": "database",
+      "label": "guiaProyectosIA",
+      "sublabel": "norma 16 secciones",
+      "sources": [
+        {
+          "path": "guiaProyectosIA_Agente.md",
+          "line": 1,
+          "end_line": 50
+        }
+      ],
+      "row": 10,
+      "col": 2,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "telemetria",
+      "type": "database",
+      "label": "telemetria_tokens",
+      "sublabel": "costo y duracion por fase",
+      "sources": [
+        {
+          "path": "AGENTS.md",
+          "line": 170,
+          "end_line": 190
+        }
+      ],
+      "row": 10,
+      "col": 3,
+      "size": [
+        186,
+        58
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "0 · Morfeo CLI & Workspace",
+      "wraps": [
+        "cliInit",
+        "kitBundle",
+        "runRoot",
+        "cliStat",
+        "cliComp"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "1 · Ingesta & TDR (Fase 0)",
+      "wraps": [
+        "cmdAnalizar",
+        "insumosObs",
+        "insumosMd",
+        "gate05"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "2 · Problema & TikZ (Fase 1)",
+      "wraps": [
+        "invProb",
+        "tikzTree",
+        "figEngine",
+        "revFig",
+        "gate1"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "3 · SOTA & Hipótesis (Fase 2)",
+      "wraps": [
+        "bibSota",
+        "invHip",
+        "tikzSota",
+        "gate2"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "4 · Justificación & Objetivos (Fases 3 y 4)",
+      "wraps": [
+        "redJust",
+        "audJust",
+        "gate3",
+        "invObj",
+        "gate4"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "5 · Marco & Equipo (Fase 5)",
+      "wraps": [
+        "invMarco",
+        "redEquipo",
+        "gate5"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "6 · Metodología & Diagrama (Fase 5.5)",
+      "wraps": [
+        "redMet",
+        "tikzMet",
+        "audMet",
+        "gate55"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "7 · Resultados, Presupuesto & Gantt (Fase 6)",
+      "wraps": [
+        "redRes",
+        "presup",
+        "gate64",
+        "redGantt",
+        "bibBib"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "8 · Front-Matter & Ensamble (Fases 6.5 y 7)",
+      "wraps": [
+        "redFront",
+        "gate65",
+        "revFinal",
+        "gate7",
+        "coordEns"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "9 · Command Center & Grafos",
+      "wraps": [
+        "uiServer",
+        "cbmMcp",
+        "graphPapers",
+        "graphVault",
+        "pdfViewer"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Transversal · Calidad & Telemetría",
+      "wraps": [
+        "skEstilo",
+        "skDepur",
+        "guiaDoc",
+        "telemetria"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "cliInit-kitBundle",
+      "from": "cliInit",
+      "to": "kitBundle"
+    },
+    {
+      "id": "kitBundle-runRoot",
+      "from": "kitBundle",
+      "to": "runRoot"
+    },
+    {
+      "id": "runRoot-cliStat",
+      "from": "runRoot",
+      "to": "cliStat"
+    },
+    {
+      "id": "cliStat-cliComp",
+      "from": "cliStat",
+      "to": "cliComp"
+    },
+    {
+      "id": "runRoot-cmdAnalizar",
+      "from": "runRoot",
+      "to": "cmdAnalizar",
+      "label": "insumos/",
+      "variant": "emphasis"
+    },
+    {
+      "id": "cmdAnalizar-insumosObs",
+      "from": "cmdAnalizar",
+      "to": "insumosObs"
+    },
+    {
+      "id": "insumosObs-insumosMd",
+      "from": "insumosObs",
+      "to": "insumosMd"
+    },
+    {
+      "id": "insumosMd-gate05",
+      "from": "insumosMd",
+      "to": "gate05",
+      "variant": "security"
+    },
+    {
+      "id": "gate05-invProb",
+      "from": "gate05",
+      "to": "invProb",
+      "label": "Fase 1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "invProb-tikzTree",
+      "from": "invProb",
+      "to": "tikzTree"
+    },
+    {
+      "id": "tikzTree-figEngine",
+      "from": "tikzTree",
+      "to": "figEngine"
+    },
+    {
+      "id": "figEngine-revFig",
+      "from": "figEngine",
+      "to": "revFig"
+    },
+    {
+      "id": "revFig-gate1",
+      "from": "revFig",
+      "to": "gate1",
+      "variant": "security"
+    },
+    {
+      "id": "gate1-bibSota",
+      "from": "gate1",
+      "to": "bibSota",
+      "label": "Fase 2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "bibSota-invHip",
+      "from": "bibSota",
+      "to": "invHip"
+    },
+    {
+      "id": "invHip-tikzSota",
+      "from": "invHip",
+      "to": "tikzSota"
+    },
+    {
+      "id": "tikzSota-gate2",
+      "from": "tikzSota",
+      "to": "gate2",
+      "variant": "security"
+    },
+    {
+      "id": "gate2-redJust",
+      "from": "gate2",
+      "to": "redJust",
+      "label": "Fase 3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "redJust-audJust",
+      "from": "redJust",
+      "to": "audJust"
+    },
+    {
+      "id": "audJust-gate3",
+      "from": "audJust",
+      "to": "gate3",
+      "variant": "security"
+    },
+    {
+      "id": "gate3-invObj",
+      "from": "gate3",
+      "to": "invObj",
+      "variant": "emphasis"
+    },
+    {
+      "id": "invObj-gate4",
+      "from": "invObj",
+      "to": "gate4",
+      "variant": "security"
+    },
+    {
+      "id": "gate4-invMarco",
+      "from": "gate4",
+      "to": "invMarco",
+      "label": "Fase 5",
+      "variant": "emphasis"
+    },
+    {
+      "id": "invMarco-redEquipo",
+      "from": "invMarco",
+      "to": "redEquipo"
+    },
+    {
+      "id": "redEquipo-gate5",
+      "from": "redEquipo",
+      "to": "gate5",
+      "variant": "security"
+    },
+    {
+      "id": "gate5-redMet",
+      "from": "gate5",
+      "to": "redMet",
+      "label": "Fase 5.5",
+      "variant": "emphasis"
+    },
+    {
+      "id": "redMet-tikzMet",
+      "from": "redMet",
+      "to": "tikzMet"
+    },
+    {
+      "id": "tikzMet-audMet",
+      "from": "tikzMet",
+      "to": "audMet"
+    },
+    {
+      "id": "audMet-gate55",
+      "from": "audMet",
+      "to": "gate55",
+      "variant": "security"
+    },
+    {
+      "id": "gate55-redRes",
+      "from": "gate55",
+      "to": "redRes",
+      "label": "Fase 6",
+      "variant": "emphasis"
+    },
+    {
+      "id": "redRes-presup",
+      "from": "redRes",
+      "to": "presup"
+    },
+    {
+      "id": "presup-gate64",
+      "from": "presup",
+      "to": "gate64",
+      "variant": "security"
+    },
+    {
+      "id": "gate64-redGantt",
+      "from": "gate64",
+      "to": "redGantt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "redGantt-bibBib",
+      "from": "redGantt",
+      "to": "bibBib"
+    },
+    {
+      "id": "bibBib-redFront",
+      "from": "bibBib",
+      "to": "redFront",
+      "label": "Fase 6.5",
+      "variant": "emphasis"
+    },
+    {
+      "id": "redFront-gate65",
+      "from": "redFront",
+      "to": "gate65",
+      "variant": "security"
+    },
+    {
+      "id": "gate65-revFinal",
+      "from": "gate65",
+      "to": "revFinal",
+      "variant": "emphasis"
+    },
+    {
+      "id": "revFinal-gate7",
+      "from": "revFinal",
+      "to": "gate7",
+      "variant": "security"
+    },
+    {
+      "id": "gate7-coordEns",
+      "from": "gate7",
+      "to": "coordEns"
+    },
+    {
+      "id": "uiServer-cbmMcp",
+      "from": "uiServer",
+      "to": "cbmMcp"
+    },
+    {
+      "id": "cbmMcp-graphPapers",
+      "from": "cbmMcp",
+      "to": "graphPapers"
+    },
+    {
+      "id": "graphPapers-graphVault",
+      "from": "graphPapers",
+      "to": "graphVault"
+    },
+    {
+      "id": "graphVault-pdfViewer",
+      "from": "graphVault",
+      "to": "pdfViewer"
+    },
+    {
+      "id": "skEstilo-skDepur",
+      "from": "skEstilo",
+      "to": "skDepur"
+    },
+    {
+      "id": "skDepur-guiaDoc",
+      "from": "skDepur",
+      "to": "guiaDoc"
+    },
+    {
+      "id": "guiaDoc-telemetria",
+      "from": "guiaDoc",
+      "to": "telemetria"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Ecosistema de Agentes y Roles",
+      "items": [
+        "11 subagentes especializados orquestados sin invocar agentes anidados.",
+        "Investigador: estructura académica (§3, §5, §6, §7, §8).",
+        "Redactor: prosa narrativa rigurosa (§2, §9, §10, §11, §14, §15, front-matter).",
+        "Revisor: validación de coherencia en cada compuerta de aprobación (G0.5–G7).",
+        "Presupuestador: desglose de rubros y cofinanciación con aritmética exacta."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Comandos CLI Morfeo",
+      "items": [
+        "morfeo init <dir> — inicializa workspace reproducible con 67 activos base.",
+        "morfeo status — audita gates aprobados, archivos faltantes y telemetría.",
+        "morfeo compile — compila PDF con build.sh y logos institucionales vía fancyhdr.",
+        "morfeo ui — levanta Command Center web (tablero, telemetría, grafos y visor PDF).",
+        "morfeo audit — detecta deriva de archivos protegidos frente al manifiesto.",
+        "morfeo upgrade — actualiza plantillas preservando insumos y propuestas."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Bucle Determinista de Figuras",
+      "items": [
+        "Diseñador-TikZ genera únicamente la spec JSON (nunca código LaTeX manual).",
+        "python3 scripts/figura.py calcula geometría exacta y audita 17 criterios mecánicos.",
+        "Revisor-Figuras evalúa únicamente criterios visuales sobre el preview PNG.",
+        "Tikz-Optimizer corrige la spec ante cualquier fallo, con un máximo de 4 intentos."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Calidad de Prosa y Vistas de Grafo",
+      "items": [
+        "Skill estilo-natural-es: cadencia humana, voz activa y eliminación de fórmulas mecánicas.",
+        "Skill depuracion-redundancias-es: audita duplicidad conceptual y léxica dentro de cada sección.",
+        "Capa de grafo dual vía codebase-memory MCP: índice de papers y espejo vault en Obsidian.",
+        "Visualizador gemelo en HTML generado con scripts/graph_html.py para navegación visual."
+      ]
+    }
+  ]
+}

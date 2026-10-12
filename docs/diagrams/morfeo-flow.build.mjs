@@ -23,7 +23,7 @@ const S = (p, line, end_line) => {
 const agentMeta = (name) => {
   const p = `${REPO}/.claude/agents/${name}.md`;
   if (!fs.existsSync(p)) return { sub: 'agent', end: 10 };
-  const lines = fs.readFileSync(p, 'utf8').split('\n');
+  const lines = fs.readFileSync(p, 'utf8').trimEnd().split('\n');
   return { sub: 'subagente especializado', end: lines.length };
 };
 
@@ -43,75 +43,75 @@ const n = (id, lane, col, type, label, sublabel, extra = {}) => ({
 
 const nodes = [
   // Lane cli: 0 · CLI & Workspace
-  n('cliInit', 'cli', 0, 'frontend', 'morfeo init', 'workspace per proposal', { sources: S('src/morfeo/cli.py', 1, 40) }),
-  n('kitBundle', 'cli', 1, 'database', 'morfeo._kit', '67 bundled template assets', { sources: S('src/morfeo/kit.py', 1, 35) }),
-  n('runRoot', 'cli', 2, 'database', 'proposals/<run-id>/', 'insumos · artefactos · grafos · redaccion', { sources: S('AGENTS.md', 60, 95) }),
-  n('cliStat', 'cli', 3, 'messagebus', 'morfeo status', 'gate audit & run state', { sources: S('src/morfeo/core/status.py', 1, 45) }),
-  n('cliComp', 'cli', 4, 'messagebus', 'morfeo compile', 'build.sh PDF & DOCX', { sources: S('src/morfeo/core/compile.py', 1, 45) }),
+  n('cliInit', 'cli', 0, 'frontend', 'morfeo init', 'workspace por corrida', { sources: S('src/morfeo/cli.py', 1, 40) }),
+  n('kitBundle', 'cli', 1, 'database', 'morfeo._kit', '67 activos base', { sources: S('src/morfeo/kit.py', 1, 35) }),
+  n('runRoot', 'cli', 2, 'database', 'proposals/<run-id>/', '4 carpetas estructuradas', { sources: S('AGENTS.md', 60, 95) }),
+  n('cliStat', 'cli', 3, 'messagebus', 'morfeo status', 'auditoria y estado', { sources: S('src/morfeo/core/status.py', 1, 45) }),
+  n('cliComp', 'cli', 4, 'messagebus', 'morfeo compile', 'compilador build.sh', { sources: S('src/morfeo/core/compile.py', 1, 35) }),
 
   // Lane f0: 1 · Ingesta & TDR
-  n('cmdAnalizar', 'f0', 0, 'frontend', '/propuesta-analizar', 'Fase 0 intake & checklist', { sources: S('.claude/commands/propuesta.md', 1, 40) }),
-  n('insumosObs', 'f0', 1, 'backend', 'insumos-observador', 'ingests PDFs, papers, TDRs', { sources: A('insumos-observador') }),
-  n('insumosMd', 'f0', 2, 'database', 'insumos.md', 'structured corpus & idea-seed', { sources: S('AGENTS.md', 35, 55) }),
-  n('gate05', 'f0', 3, 'security', 'GATE G0.5 (TDR)', 'tabla secciones TDR aprobada', { sources: S('.claude/commands/propuesta.md', 100, 130) }),
+  n('cmdAnalizar', 'f0', 0, 'frontend', '/propuesta-analizar', 'intake y checklist', { sources: S('.claude/commands/propuesta.md', 1, 40) }),
+  n('insumosObs', 'f0', 1, 'backend', 'insumos-observador', 'ingesta de documentos', { sources: A('insumos-observador') }),
+  n('insumosMd', 'f0', 2, 'database', 'insumos.md', 'corpus estructurado', { sources: S('AGENTS.md', 35, 55) }),
+  n('gate05', 'f0', 3, 'security', 'GATE G0.5 (TDR)', 'tabla TDR aprobada', { sources: S('.claude/commands/propuesta.md', 100, 130) }),
 
   // Lane f1: 2 · Problema & TikZ
-  n('invProb', 'f1', 0, 'backend', 'investigador (F1)', '§3 problema & pregunta', { sources: A('investigador') }),
-  n('tikzTree', 'f1', 1, 'backend', 'disenador-tikz', 'spec JSON arbol_problemas', { sources: A('disenador-tikz') }),
-  n('figEngine', 'f1', 2, 'messagebus', 'figura.py', 'render · compile · autofix', { sources: S('scripts/figura.py', 1, 50) }),
-  n('revFig', 'f1', 3, 'backend', 'revisor-figuras', 'audits visual criteria on PNG', { sources: A('revisor-figuras') }),
-  n('gate1', 'f1', 4, 'security', 'GATE G1', 'aprobacion problema & arbol', { sources: S('.claude/commands/propuesta.md', 140, 170) }),
+  n('invProb', 'f1', 0, 'backend', 'investigador (F1)', '§3 problema y pregunta', { sources: A('investigador') }),
+  n('tikzTree', 'f1', 1, 'backend', 'disenador-tikz', 'spec arbol_problemas', { sources: A('disenador-tikz') }),
+  n('figEngine', 'f1', 2, 'messagebus', 'figura.py', 'render y auditoria', { sources: S('plantilla/scripts/figura.py', 1, 50) }),
+  n('revFig', 'f1', 3, 'backend', 'revisor-figuras', 'criterios visuales PNG', { sources: A('revisor-figuras') }),
+  n('gate1', 'f1', 4, 'security', 'GATE G1', 'aprobacion problema', { sources: S('.claude/commands/propuesta.md', 140, 170) }),
 
   // Lane f2: 3 · SOTA & Hipótesis
   n('bibSota', 'f2', 0, 'backend', 'bibliografo-propuesta', '§4 SOTA (≥30 refs Q1/Q2)', { sources: A('bibliografo-propuesta') }),
-  n('invHip', 'f2', 1, 'backend', 'investigador (F2)', '§5 hipotesis de investigacion', { sources: A('investigador') }),
-  n('tikzSota', 'f2', 2, 'backend', 'disenador-tikz (F2)', 'spec JSON estado_arte', { sources: A('disenador-tikz') }),
-  n('gate2', 'f2', 3, 'security', 'GATE G2', 'aprobacion SOTA e hipotesis', { sources: S('.claude/commands/propuesta.md', 180, 210) }),
+  n('invHip', 'f2', 1, 'backend', 'investigador (F2)', '§5 hipotesis', { sources: A('investigador') }),
+  n('tikzSota', 'f2', 2, 'backend', 'disenador-tikz (F2)', 'spec estado_arte', { sources: A('disenador-tikz') }),
+  n('gate2', 'f2', 3, 'security', 'GATE G2', 'aprobacion SOTA', { sources: S('.claude/commands/propuesta.md', 180, 210) }),
 
   // Lane f34: 4 · Justificación & Objetivos
-  n('redJust', 'f34', 0, 'backend', 'redactor (F3)', '§2 justificacion & pertinencia (TRL)', { sources: A('redactor') }),
-  n('audJust', 'f34', 1, 'backend', 'grant-flow-auditor', 'cadencia & voz activa', { sources: A('grant-flow-auditor') }),
-  n('gate3', 'f34', 2, 'security', 'GATE G3', 'aprobacion pertinencia TRL 6/7', { sources: S('.claude/commands/propuesta.md', 215, 235) }),
-  n('invObj', 'f34', 3, 'backend', 'investigador (F4)', '§6 gral & §7 3 especificos', { sources: A('investigador') }),
-  n('gate4', 'f34', 4, 'security', 'GATE G4', 'mapeo 1:1 subproblema↔objetivo', { sources: S('.claude/commands/propuesta.md', 240, 260) }),
+  n('redJust', 'f34', 0, 'backend', 'redactor (F3)', '§2 pertinencia TRL 6/7', { sources: A('redactor') }),
+  n('audJust', 'f34', 1, 'backend', 'grant-flow-auditor', 'cadencia y voz activa', { sources: A('grant-flow-auditor') }),
+  n('gate3', 'f34', 2, 'security', 'GATE G3', 'aprobacion justificacion', { sources: S('.claude/commands/propuesta.md', 215, 235) }),
+  n('invObj', 'f34', 3, 'backend', 'investigador (F4)', '§6 gral y §7 especificos', { sources: A('investigador') }),
+  n('gate4', 'f34', 4, 'security', 'GATE G4', 'mapeo 1:1 subproblemas', { sources: S('.claude/commands/propuesta.md', 240, 260) }),
 
   // Lane f5: 5 · Marco Conceptual & Equipo
   n('invMarco', 'f5', 0, 'backend', 'investigador (F5)', '§8 marco conceptual', { sources: A('investigador') }),
-  n('redEquipo', 'f5', 1, 'backend', 'redactor (F5)', '§9 equipo (roles derivados de §7)', { sources: A('redactor') }),
-  n('gate5', 'f5', 2, 'security', 'GATE G5', 'aprobacion marco & equipo', { sources: S('.claude/commands/propuesta.md', 270, 290) }),
+  n('redEquipo', 'f5', 1, 'backend', 'redactor (F5)', 'roles derivados de §7', { sources: A('redactor') }),
+  n('gate5', 'f5', 2, 'security', 'GATE G5', 'aprobacion marco y equipo', { sources: S('.claude/commands/propuesta.md', 270, 290) }),
 
   // Lane f55: 6 · Metodología & Diagrama
-  n('redMet', 'f55', 0, 'backend', 'redactor (F5.5)', '§10 metodologia articulada', { sources: A('redactor') }),
-  n('tikzMet', 'f55', 1, 'backend', 'disenador-tikz (F5.5)', 'spec JSON metodologico', { sources: A('disenador-tikz') }),
-  n('audMet', 'f55', 2, 'backend', 'grant-flow-auditor (F5.5)', 'pulido prosa natural', { sources: A('grant-flow-auditor') }),
-  n('gate55', 'f55', 3, 'security', 'GATE G5.5', 'aprobacion metodologia & diagrama', { sources: S('.claude/commands/propuesta.md', 300, 320) }),
+  n('redMet', 'f55', 0, 'backend', 'redactor (F5.5)', '§10 metodologia', { sources: A('redactor') }),
+  n('tikzMet', 'f55', 1, 'backend', 'disenador-tikz (F5.5)', 'spec metodologico', { sources: A('disenador-tikz') }),
+  n('audMet', 'f55', 2, 'backend', 'grant-flow-auditor (F5.5)', 'prosa natural', { sources: A('grant-flow-auditor') }),
+  n('gate55', 'f55', 3, 'security', 'GATE G5.5', 'aprobacion metodologia', { sources: S('.claude/commands/propuesta.md', 300, 320) }),
 
   // Lane f6: 7 · Presupuesto & Entregables
-  n('redRes', 'f6', 0, 'backend', 'redactor (F6)', '§11 resultados & §12 etica', { sources: A('redactor') }),
-  n('presup', 'f6', 1, 'backend', 'presupuestador (F6.4)', '§13 presupuesto & cofinanciacion', { sources: A('presupuestador') }),
-  n('gate64', 'f6', 2, 'security', 'GATE G6.4', 'aritmetica de rubros verificada', { sources: S('.claude/commands/propuesta.md', 330, 350) }),
-  n('redGantt', 'f6', 3, 'backend', 'redactor (F6.45)', '§14 cronograma & §15 productos', { sources: A('redactor') }),
-  n('bibBib', 'f6', 4, 'backend', 'bibliografo-propuesta (F6.45)', '§16 bibliografia (≥50 refs APA)', { sources: A('bibliografo-propuesta') }),
+  n('redRes', 'f6', 0, 'backend', 'redactor (F6)', '§11 resultados y §12 etica', { sources: A('redactor') }),
+  n('presup', 'f6', 1, 'backend', 'presupuestador (F6.4)', '§13 presupuesto', { sources: A('presupuestador') }),
+  n('gate64', 'f6', 2, 'security', 'GATE G6.4', 'aritmetica verificada', { sources: S('.claude/commands/propuesta.md', 330, 350) }),
+  n('redGantt', 'f6', 3, 'backend', 'redactor (F6.45)', '§14 cronograma y §15 entregables', { sources: A('redactor') }),
+  n('bibBib', 'f6', 4, 'backend', 'bibliografo-propuesta (F6.45)', '§16 bibliografia APA', { sources: A('bibliografo-propuesta') }),
 
   // Lane f657: 8 · Front-Matter & Compilación
-  n('redFront', 'f657', 0, 'backend', 'redactor (F6.5)', 'resumen ejecutivo & palabras clave', { sources: A('redactor') }),
-  n('gate65', 'f657', 1, 'security', 'GATE G6.5', 'aprobacion sintesis front-matter', { sources: S('.claude/commands/propuesta.md', 370, 390) }),
-  n('revFinal', 'f657', 2, 'backend', 'revisor (Fase 7)', 'auditoria integral cruzada', { sources: A('revisor') }),
-  n('gate7', 'f657', 3, 'security', 'GATE G7 Final', 'aprobacion formal para ensamble', { sources: S('.claude/commands/propuesta.md', 400, 420) }),
-  n('coordEns', 'f657', 4, 'backend', 'coordinador-propuesta', 'ensambla main.tex & genera PDF', { sources: A('coordinador-propuesta') }),
+  n('redFront', 'f657', 0, 'backend', 'redactor (F6.5)', 'resumen ejecutivo', { sources: A('redactor') }),
+  n('gate65', 'f657', 1, 'security', 'GATE G6.5', 'aprobacion front-matter', { sources: S('.claude/commands/propuesta.md', 370, 390) }),
+  n('revFinal', 'f657', 2, 'backend', 'revisor (Fase 7)', 'auditoria integral', { sources: A('revisor') }),
+  n('gate7', 'f657', 3, 'security', 'GATE G7 Final', 'aprobacion formal', { sources: S('.claude/commands/propuesta.md', 400, 420) }),
+  n('coordEns', 'f657', 4, 'backend', 'coordinador-propuesta', 'ensambla y compila', { sources: A('coordinador-propuesta') }),
 
   // Lane dash: 9 · Dashboard & Grafos
-  n('uiServer', 'dash', 0, 'frontend', 'morfeo ui', 'command center web dashboard', { sources: S('src/morfeo/core/ui.py', 1, 45) }),
-  n('cbmMcp', 'dash', 1, 'external', 'codebase-memory MCP', 'codegraph serve --mcp', { sources: S('AGENTS.md', 100, 125) }),
-  n('graphPapers', 'dash', 2, 'database', 'papers-graph', 'interactive SOTA citation graph', { sources: S('scripts/graph_html.py', 1, 40) }),
-  n('graphVault', 'dash', 3, 'database', 'vault-graph', 'obsidian-compatible vault graph', { sources: S('scripts/graph_html.py', 1, 40) }),
-  n('pdfViewer', 'dash', 4, 'database', 'PDF Previewer', 'real-time preview in iframe', { sources: S('src/morfeo/dashboard/static/index.html', 1, 60) }),
+  n('uiServer', 'dash', 0, 'frontend', 'morfeo ui', 'tablero de seguimiento', { sources: S('src/morfeo/core/ui.py', 1, 40) }),
+  n('cbmMcp', 'dash', 1, 'external', 'codebase-memory MCP', 'servidor MCP codegraph', { sources: S('AGENTS.md', 100, 125) }),
+  n('graphPapers', 'dash', 2, 'database', 'papers-graph', 'grafo interactivo SOTA', { sources: S('scripts/graph_html.py', 1, 40) }),
+  n('graphVault', 'dash', 3, 'database', 'vault-graph', 'grafo espejo obsidian', { sources: S('scripts/graph_html.py', 1, 40) }),
+  n('pdfViewer', 'dash', 4, 'database', 'PDF Previewer', 'visor PDF en tiempo real', { sources: S('src/morfeo/dashboard/static/index.html', 1, 60) }),
 
   // Lane quality: Transversal · Calidad & Prosa
-  n('skEstilo', 'quality', 0, 'external', 'estilo-natural-es', 'humanizacion y cadencia', { sources: K('estilo-natural-es') }),
-  n('skDepur', 'quality', 1, 'external', 'depuracion-redundancias', 'auditoria de redundancias', { sources: K('depuracion-redundancias-es') }),
-  n('guiaDoc', 'quality', 2, 'database', 'guiaProyectosIA', 'norma metodologica 16 secciones', { sources: S('guiaProyectosIA_Agente.md', 1, 50) }),
-  n('telemetria', 'quality', 3, 'database', 'telemetria_tokens', 'costo & duracion por fase', { sources: S('AGENTS.md', 170, 190) }),
+  n('skEstilo', 'quality', 0, 'external', 'estilo-natural-es', 'cadencia y naturalidad', { sources: K('estilo-natural-es') }),
+  n('skDepur', 'quality', 1, 'external', 'depuracion-redundancias', 'depuracion redundancias', { sources: K('depuracion-redundancias-es') }),
+  n('guiaDoc', 'quality', 2, 'database', 'guiaProyectosIA', 'norma 16 secciones', { sources: S('guiaProyectosIA_Agente.md', 1, 50) }),
+  n('telemetria', 'quality', 3, 'database', 'telemetria_tokens', 'costo y duracion por fase', { sources: S('AGENTS.md', 170, 190) }),
 ];
 
 const e = (from, to, label, extra = {}) => ({
@@ -125,66 +125,73 @@ const e = (from, to, label, extra = {}) => ({
 const main = { variant: 'emphasis', role: 'main' };
 
 const edges = [
-  // Primary flow
-  e('cliInit', 'kitBundle', 'despliega'),
-  e('kitBundle', 'runRoot', 'inicializa'),
-  e('runRoot', 'cmdAnalizar', 'insumos/'),
-  e('cmdAnalizar', 'insumosObs', 'procesa'),
-  e('insumosObs', 'insumosMd', 'extrae'),
-  e('insumosMd', 'gate05', 'TDR verificado', { variant: 'security' }),
+  // CLI & Setup
+  e('cliInit', 'kitBundle'),
+  e('kitBundle', 'runRoot'),
+  e('runRoot', 'cliStat'),
+  e('cliStat', 'cliComp'),
+  e('runRoot', 'cmdAnalizar', 'insumos/', main),
 
+  // Fase 0 Ingesta
+  e('cmdAnalizar', 'insumosObs'),
+  e('insumosObs', 'insumosMd'),
+  e('insumosMd', 'gate05', null, { variant: 'security' }),
   e('gate05', 'invProb', 'Fase 1', main),
-  e('invProb', 'tikzTree', '§3 aprobado'),
-  e('tikzTree', 'figEngine', 'spec JSON'),
-  e('figEngine', 'revFig', 'PNG preview'),
-  e('revFig', 'gate1', 'PASS visual', { variant: 'security' }),
 
+  // Fase 1 Problema
+  e('invProb', 'tikzTree'),
+  e('tikzTree', 'figEngine'),
+  e('figEngine', 'revFig'),
+  e('revFig', 'gate1', null, { variant: 'security' }),
   e('gate1', 'bibSota', 'Fase 2', main),
-  e('bibSota', 'invHip', '≥30 refs Q1/Q2'),
-  e('invHip', 'tikzSota', '§5 hipotesis'),
-  e('tikzSota', 'gate2', 'spec renderizada', { variant: 'security' }),
 
+  // Fase 2 SOTA
+  e('bibSota', 'invHip'),
+  e('invHip', 'tikzSota'),
+  e('tikzSota', 'gate2', null, { variant: 'security' }),
   e('gate2', 'redJust', 'Fase 3', main),
-  e('redJust', 'audJust', 'borrador §2'),
-  e('audJust', 'gate3', 'PASS prosa', { variant: 'security' }),
 
-  e('gate3', 'invObj', 'Fase 4', main),
-  e('invObj', 'gate4', '1:1 subproblemas', { variant: 'security' }),
-
+  // Fases 3 & 4 Justificación & Objetivos
+  e('redJust', 'audJust'),
+  e('audJust', 'gate3', null, { variant: 'security' }),
+  e('gate3', 'invObj', null, main),
+  e('invObj', 'gate4', null, { variant: 'security' }),
   e('gate4', 'invMarco', 'Fase 5', main),
-  e('invMarco', 'redEquipo', '§8 marco'),
-  e('redEquipo', 'gate5', 'roles desde §7', { variant: 'security' }),
 
+  // Fase 5 Marco & Equipo
+  e('invMarco', 'redEquipo'),
+  e('redEquipo', 'gate5', null, { variant: 'security' }),
   e('gate5', 'redMet', 'Fase 5.5', main),
-  e('redMet', 'tikzMet', '§10 metodo'),
-  e('tikzMet', 'audMet', 'spec diagrama'),
-  e('audMet', 'gate55', 'PASS metodologico', { variant: 'security' }),
 
+  // Fase 5.5 Metodología
+  e('redMet', 'tikzMet'),
+  e('tikzMet', 'audMet'),
+  e('audMet', 'gate55', null, { variant: 'security' }),
   e('gate55', 'redRes', 'Fase 6', main),
-  e('redRes', 'presup', '§11-§12'),
-  e('presup', 'gate64', 'aritmetica exacta', { variant: 'security' }),
-  e('gate64', 'redGantt', 'presupuesto aprobado'),
-  e('redGantt', 'bibBib', '§14 & §15'),
 
+  // Fase 6 Presupuesto & Entregables
+  e('redRes', 'presup'),
+  e('presup', 'gate64', null, { variant: 'security' }),
+  e('gate64', 'redGantt', null, main),
+  e('redGantt', 'bibBib'),
   e('bibBib', 'redFront', 'Fase 6.5', main),
-  e('redFront', 'gate65', 'sintesis final', { variant: 'security' }),
 
-  e('gate65', 'revFinal', 'Fase 7', main),
-  e('revFinal', 'gate7', 'PASS auditoria', { variant: 'security' }),
-  e('gate7', 'coordEns', 'ensambla'),
-  e('coordEns', 'cliComp', 'compila PDF/DOCX', main),
+  // Fases 6.5 & 7 Ensamble
+  e('redFront', 'gate65', null, { variant: 'security' }),
+  e('gate65', 'revFinal', null, main),
+  e('revFinal', 'gate7', null, { variant: 'security' }),
+  e('gate7', 'coordEns'),
 
-  // UI and Graphs
-  e('uiServer', 'runRoot', 'lee estado', { variant: 'dashed' }),
-  e('cbmMcp', 'graphPapers', 'indexa papers', { variant: 'dashed' }),
-  e('cbmMcp', 'graphVault', 'indexa vault', { variant: 'dashed' }),
-  e('uiServer', 'pdfViewer', 'sirve PDF', { variant: 'dashed' }),
+  // Command Center
+  e('uiServer', 'cbmMcp'),
+  e('cbmMcp', 'graphPapers'),
+  e('graphPapers', 'graphVault'),
+  e('graphVault', 'pdfViewer'),
 
-  // Quality connections
-  e('skEstilo', 'audJust', 'aplica', { variant: 'dashed' }),
-  e('skDepur', 'audMet', 'aplica', { variant: 'dashed' }),
-  e('guiaDoc', 'revFinal', 'valida', { variant: 'dashed' }),
-  e('telemetria', 'cliStat', 'reporta', { variant: 'dashed' }),
+  // Calidad Transversal
+  e('skEstilo', 'skDepur'),
+  e('skDepur', 'guiaDoc'),
+  e('guiaDoc', 'telemetria'),
 ];
 
 const lanes = [
@@ -227,7 +234,7 @@ const doc = {
       url: 'https://github.com/LIAUNAL/propuestasmorfeo-ia',
       provider: 'github',
       link_mode: 'web',
-      revision: '02216fdf83fe3f623b6997f7a627ddecc082b2d8',
+      revision: '19211715cbce21ab148fdfd02d91b82f974eaa25',
     },
     legend: {
       mode: 'auto',
