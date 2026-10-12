@@ -1,0 +1,21 @@
+# Python dependencies for the AI research-proposal writing framework
+# Install: pip install -r requirements.txt   (or: uv pip install -r requirements.txt)
+# Python >= 3.11 recommended.
+#
+# Scope note: the framework's own Python scripts are stdlib-only
+# (plantilla/scripts/compile_tikz.py, plantilla/scripts/prep_docx.py,
+# scripts/gen-opencode.py, scripts/gen-pi.py). The knowledge-graph layer is
+# NOT Python anymore: it is codebase-memory, the `codegraph` MCP server
+# (npm: @colbymchenry/codegraph), see REQUIREMENTS.md section 1.
+#
+# Everything below is OPTIONAL and only useful for local, manual conversion of
+# user inputs dropped into a run's insumos/ (PDF/DOCX) when the agent's own Read tool
+# plus `textutil` are not enough. Nothing in the pipeline imports them.
+
+# PDF parsing (convocatoria PDFs, papers)
+pymupdf4llm>=0.0.17
+markdownify>=0.13
+
+# Office document parsing (DOCX, PPTX, XLSX proposals)
+markitdown>=0.0.1a4
+python-docx>=1.1

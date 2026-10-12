@@ -1,26 +1,66 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "marco"
-version = "0.1.0"
-description = "Portable project CLI for the marco-propuestas-ia framework"
-requires-python = ">=3.9"
+name = "propuestasmorfeo-ia"
+dynamic = ["version"]
+description = "CLI workspace orchestrator for AI research grant proposals (Morfeo IA)"
+requires-python = ">=3.11"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Laboratorio de Inteligencia Artificial UNAL", email = "amalvarezme@unal.edu.co" },
+]
+keywords = ["research", "academic-writing", "grant-proposals", "latex", "literature-review", "agents", "llm", "morfeo"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Text Processing :: Markup :: LaTeX",
+]
+
+# El CLI base no impone dependencias externas para mantener la instalación en ~2 MB.
+# El comando UI funciona tanto con el servidor embebido estándar (http.server) como
+# opcionalmente con fastapi/uvicorn si están disponibles en el entorno.
+dependencies = []
+
+[project.optional-dependencies]
+ui = [
+  "fastapi>=0.100.0",
+  "uvicorn>=0.23.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/LIAUNAL/propuestasmorfeo-ia"
+Repository = "https://github.com/LIAUNAL/propuestasmorfeo-ia"
+Issues = "https://github.com/LIAUNAL/propuestasmorfeo-ia/issues"
 
 [project.scripts]
-marco = "marco_cli:main"
+morfeo = "morfeo.cli:main"
+marco = "morfeo.cli:main"
 
 [tool.setuptools]
-py-modules = ["marco_cli"]
-package-dir = {"" = "scripts"}
+package-dir = {"" = "src"}
+include-package-data = true
 
-# Note: marco_cli.py lives in scripts/ -- the console_script above resolves
-# from the installed package.  Operators can also run it directly:
-#
-#   pip install -e .            # from the repo root (marco-propuestas-ia/)
-#   python3 scripts/marco_cli.py init /tmp/p1
-#
-# When installing via pip, the `marco` command becomes available system-wide.
-# If you get "module not found", ensure CWD includes scripts/ in sys.path or
-# run: PYTHONPATH=scripts python3 -m marco_cli
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["morfeo*"]
+
+[tool.setuptools.package-data]
+morfeo = [
+  "_kit/**/*",
+  "dashboard/static/**/*",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "morfeo.__version__"}

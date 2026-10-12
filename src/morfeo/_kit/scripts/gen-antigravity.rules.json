@@ -1,0 +1,42 @@
+{
+  "paths": {
+    "source_agents_dir": ".claude/agents",
+    "source_commands_dir": ".claude/commands",
+    "source_skills_dir": ".claude/skills",
+    "target_skills_dir": ".agent/skills",
+    "target_workflows_dir": ".agent/workflows"
+  },
+  "substitutions_all": [
+    {
+      "find": "de Claude Code no pueden invocar a otros subagentes. Usa la herramienta `Task`",
+      "replace": "de Antigravity se orquestan vía plataforma (definiendo o invocando subagentes que cargan las skills de `.agent/skills/`)"
+    },
+    {
+      "find": ".claude/agents/coordinador-propuesta.md",
+      "replace": ".agent/skills/coordinador-propuesta/SKILL.md"
+    },
+    {
+      "find": ".claude/agents/",
+      "replace": ".agent/skills/"
+    },
+    {
+      "find": ".claude/commands/",
+      "replace": ".agent/workflows/"
+    },
+    {
+      "find": ".claude/skills/",
+      "replace": ".agent/skills/"
+    }
+  ],
+  "command_files": [
+    "propuesta.md",
+    "propuesta-init.md",
+    "propuesta-insumos.md",
+    "propuesta-analizar.md",
+    "propuesta-continuar.md",
+    "propuesta-limpiar.md",
+    "compilar-pdf.md",
+    "compilar-docx.md",
+    "_propuesta-steps.md"
+  ]
+}

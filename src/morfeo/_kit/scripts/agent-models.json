@@ -1,0 +1,50 @@
+{
+  "_meta": {
+    "purpose": "Single source of truth for which Pi model and thinking level each proposal-framework subagent runs on. Read by scripts/gen-pi.py to write BOTH the `model:`/`thinking:` frontmatter of .pi/agents/*.md and the runtime profile store .pi/subagents.json, so the declared fallback and the effective profile can never disagree. Reconciled and confirmed by /propuesta-init at session start.",
+    "schema_version": 1,
+    "why_tiers_and_not_models": "The canonical Claude source (.claude/agents/*.md) names a Claude tier (`sonnet`/`opus`) because Claude Code is its native runtime. The Pi port must not inherit that name: `claude-bridge/*` is a bridge to the Claude Agent SDK, i.e. an external Claude dependency. The port therefore maps each AGENT to a concrete Pi model from this file, and this file is reconciled against the operator's active gentle profile instead of guessing from the Claude tier.",
+    "vendor_policy": "No `claude-bridge/` model may be written into .pi/ unless `allow_claude_bridge` is set to true below, which requires a deliberate, reviewable edit. The default for this framework is Pi-native models only."
+  },
+  "allow_claude_bridge": false,
+  "reconciled_against": {
+    "gentle_profile": "andres_nan",
+    "profiles_store": "~/.pi/gentle-ai/profiles.json",
+    "verified_with": "pi --list-models",
+    "date": "2026-09-30",
+    "_note": "/propuesta-init re-runs this reconciliation at session start: it reads the ACTIVE gentle profile, checks every model id below against `pi --list-models`, shows the table to the operator and rewrites this block (and the tiers, if the operator changes them) only after confirmation."
+  },
+  "tiers": {
+    "reasoning": {
+      "model": "nan/deepseek-v4-flash",
+      "thinking": "high",
+      "why": "Long-form Spanish reasoning and argumentation: subproblem framing, narrative sections, budget arithmetic. Needs the strongest reasoning available in the active profile."
+    },
+    "analysis": {
+      "model": "nan/glm5.3-flash",
+      "thinking": "medium",
+      "why": "Reading-heavy work with bounded output: bibliographic synthesis, gate review, structured extraction. `medium` keeps the reasoning budget from consuming the provider's 32k output cap."
+    },
+    "mechanical": {
+      "model": "nan/glm5.3-flash",
+      "thinking": "low",
+      "why": "Short, well-specified output: write a JSON spec, judge four visual criteria, repair a spec, audit prose cadence. `low` is deliberate: at `high` these agents burned the whole 32k output budget on reasoning and returned no report at all (measured: three consecutive disenador-tikz failures of 6-9 minutes each in run 2026-09-tept-depresion-ia-portable)."
+    }
+  },
+  "agents": {
+    "investigador": "reasoning",
+    "redactor": "reasoning",
+    "presupuestador": "reasoning",
+    "bibliografo-propuesta": "analysis",
+    "insumos-observador": "analysis",
+    "revisor": "analysis",
+    "disenador-tikz": "mechanical",
+    "tikz-optimizer": "mechanical",
+    "revisor-figuras": "mechanical",
+    "grant-flow-auditor": "mechanical"
+  },
+  "runtime": {
+    "default_mode": "task",
+    "stall_timeout_ms": 600000,
+    "_note": "stall_timeout_ms is 10 min because a legitimately long delegated phase (bibliografo-propuesta scanning a 50-paper corpus) can be quiet for minutes without being stuck."
+  }
+}

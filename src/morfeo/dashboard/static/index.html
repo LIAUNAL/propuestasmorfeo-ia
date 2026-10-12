@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Morfeo IA — Tablero de Seguimiento</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --unal-blue: #0284c7;
+      --unal-dark: #0369a1;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--unal-blue), #38bdf8);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: white;
+    }
+    .brand-title h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; }
+    .brand-title p { font-size: 0.8rem; color: var(--text-muted); }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--card-border);
+    }
+    .badge-active { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .btn-refresh {
+      background: var(--unal-blue);
+      color: white;
+      border: none;
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-refresh:hover { background: var(--unal-dark); }
+
+    /* Tabs */
+    .tabs-bar {
+      display: flex;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--card-border);
+      padding: 0 2rem;
+      gap: 1.5rem;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.85rem 0.25rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: #38bdf8; }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #38bdf8;
+    }
+
+    /* Container */
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Cards Grid */
+    .grid-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+    .metric-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem; }
+    .metric-val { font-size: 1.6rem; font-weight: 700; color: var(--text); }
+    .metric-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    /* Pipeline Sequence */
+    .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .phase-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .phase-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .phase-name { font-weight: 700; font-size: 0.95rem; }
+    .phase-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+
+    /* Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 0.85rem;
+    }
+    .data-table th, .data-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .data-table th { background: rgba(0,0,0,0.2); font-weight: 600; color: var(--text-muted); }
+    .data-table tr:last-child td { border-bottom: none; }
+
+    /* Iframe Viewer */
+    .viewer-frame {
+      width: 100%;
+      height: 75vh;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      background: white;
+    }
+
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-logo">M</div>
+      <div class="brand-title">
+        <h1>Morfeo IA — Command Center</h1>
+        <p>Laboratorio de Inteligencia Artificial UNAL · Manizales</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span id="activeRunBadge" class="badge badge-active">Cargando...</span>
+      <button class="btn-refresh" onclick="loadStatus()">Actualizar</button>
+    </div>
+  </header>
+
+  <nav class="tabs-bar">
+    <button class="tab-btn active" onclick="switchTab('tab-pipeline')">Pipeline y Compuertas</button>
+    <button class="tab-btn" onclick="switchTab('tab-telemetria')">Telemetría y Costos</button>
+    <button class="tab-btn" onclick="switchTab('tab-grafos')">Grafos de Conocimiento</button>
+    <button class="tab-btn" onclick="switchTab('tab-documentos')">Propuesta y Compilación</button>
+  </nav>
+
+  <main>
+    <!-- TAB 1: PIPELINE -->
+    <div id="tab-pipeline" class="tab-content active">
+      <div class="grid-metrics">
+        <div class="metric-card">
+          <div class="metric-title">Corrida Activa</div>
+          <div id="metricActiveRun" class="metric-val">—</div>
+          <div id="metricRunDir" class="metric-sub">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Documento PDF</div>
+          <div id="metricPdfStatus" class="metric-val">—</div>
+          <div id="metricPdfSize" class="metric-sub">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Exportación Word</div>
+          <div id="metricDocxStatus" class="metric-val">—</div>
+          <div id="metricDocxSize" class="metric-sub">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Índices de Grafo</div>
+          <div id="metricGraphsStatus" class="metric-val">—</div>
+          <div class="metric-sub">codebase-memory activo</div>
+        </div>
+      </div>
+
+      <div class="section-title">Fases del Pipeline de Redacción y Compuertas (Gates)</div>
+      <div class="pipeline-grid" id="pipelineCardsContainer">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- TAB 2: TELEMETRIA -->
+    <div id="tab-telemetria" class="tab-content">
+      <div class="section-title">Uso de Tokens y Duración por Fase</div>
+      <table class="data-table" id="telemetriaTable">
+        <thead>
+          <tr>
+            <th>Fase</th>
+            <th>Tokens</th>
+            <th>Tool-Uses</th>
+            <th>Duración</th>
+          </tr>
+        </thead>
+        <tbody id="telemetriaBody">
+          <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin telemetría registrada todavía.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 3: GRAFOS -->
+    <div id="tab-grafos" class="tab-content">
+      <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+        <button class="btn-refresh" onclick="showGraph('papers')">Grafo de Papers (Scoping)</button>
+        <button class="btn-refresh" onclick="showGraph('vault')">Grafo de Propuesta (Vault)</button>
+      </div>
+      <iframe id="graphFrame" class="viewer-frame" src="/api/graph/vault"></iframe>
+    </div>
+
+    <!-- TAB 4: DOCUMENTOS -->
+    <div id="tab-documentos" class="tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div class="section-title" style="margin-bottom: 0;">Vista previa de la propuesta (PDF compilado)</div>
+        <a id="downloadPdfBtn" href="/api/pdf" target="_blank" class="btn-refresh" style="text-decoration: none;">Abrir en pestaña nueva</a>
+      </div>
+      <iframe id="pdfFrame" class="viewer-frame" src="/api/pdf"></iframe>
+    </div>
+  </main>
+
+  <footer>
+    Morfeo IA v0.5.0 · Marco multi-agente de redacción de propuestas de investigación en IA · LIA UNAL
+  </footer>
+
+  <script>
+    const PHASES = [
+      { id: "Fase 0", name: "Fase 0: Ingesta de Insumos", desc: "Descubrimiento de TDR, papers de referencia y notas de ideas.", gate: "G0.5" },
+      { id: "Fase 1", name: "Fase 1: Descripción del Problema", desc: "Subproblemas, pregunta de investigación y árbol de problemas TikZ.", gate: "G1" },
+      { id: "Fase 2", name: "Fase 2: Estado del Arte e Hipótesis", desc: "Revisión Q1/Q2, mapa temático TikZ e hipótesis falsable.", gate: "G2" },
+      { id: "Fase 3", name: "Fase 3: Justificación y Pertinencia", desc: "Alineación ODS, PND, organismos multilaterales y TRL 6/7.", gate: "G3" },
+      { id: "Fase 4", name: "Fase 4: Objetivos", desc: "Objetivo general y objetivos específicos mapeados 1:1.", gate: "G4" },
+      { id: "Fase 5", name: "Fase 5: Marco Conceptual y Equipo", desc: "Teoría de base y roles derivados estrictamente de objetivos.", gate: "G5" },
+      { id: "Fase 5.5", name: "Fase 5.5: Metodología", desc: "Cadena de valor por fase y diagrama metodológico TikZ.", gate: "G5.5" },
+      { id: "Fase 6", name: "Fase 6: Resultados y Ética", desc: "Resultados esperados, consentimientos y aval institucional.", gate: "G6" },
+      { id: "Fase 6.4", name: "Fase 6.4: Presupuesto", desc: "Tabla de rubros, cofinanciación y justificación metodológica.", gate: "G-Presupuesto" },
+      { id: "Fase 6.45", name: "Fase 6.45: Cronograma y Productos", desc: "Gantt de actividades a 12 meses y productos comprometidos.", gate: "G-Cronograma" },
+      { id: "Fase 6.46", name: "Fase 6.46: Comunidades y Apropiación", desc: "Articulación territorial y transferencia tecnológica.", gate: "G-Comunidades" },
+      { id: "Fase 6.5", name: "Fase 6.5: Front-matter", desc: "Resumen ejecutivo (5 párrafos), Resumen y Palabras clave.", gate: "G-Front" },
+      { id: "Fase 7", name: "Fase 7: Auditoría Final y Ensamble", desc: "Auditoría integral cruzada y ensamble final de main.tex.", gate: "G-Final" }
+    ];
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function showGraph(kind) {
+      document.getElementById('graphFrame').src = `/api/graph/${kind}`;
+    }
+
+    async function loadStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        // Header and metrics
+        const runId = data.active_run || 'Ninguna corrida activa';
+        document.getElementById('activeRunBadge').textContent = data.active_run ? `Corrida: ${data.active_run}` : 'Sin corrida';
+        document.getElementById('metricActiveRun').textContent = data.active_run || '—';
+        document.getElementById('metricRunDir').textContent = data.active_run ? `proposals/${data.active_run}` : 'Usa /propuesta-init';
+
+        const pdfReady = data.run_details && data.run_details.pdf_ready;
+        document.getElementById('metricPdfStatus').textContent = pdfReady ? 'Compilado' : 'Pendiente';
+        document.getElementById('metricPdfStatus').style.color = pdfReady ? '#34d399' : '#f59e0b';
+        document.getElementById('metricPdfSize').textContent = pdfReady ? `${Math.round(data.run_details.pdf_size / 1024)} KB` : 'build.sh';
+
+        const docxReady = data.run_details && data.run_details.docx_ready;
+        document.getElementById('metricDocxStatus').textContent = docxReady ? 'Exportado' : 'Pendiente';
+        document.getElementById('metricDocxStatus').style.color = docxReady ? '#34d399' : '#94a3b8';
+        document.getElementById('metricDocxSize').textContent = docxReady ? `${Math.round(data.run_details.docx_size / 1024)} KB` : 'build.sh --docx';
+
+        const graphsReady = data.run_details && (data.run_details.papers_graph || data.run_details.vault_graph);
+        document.getElementById('metricGraphsStatus').textContent = graphsReady ? 'Disponibles' : 'Pendientes';
+
+        // Render pipeline cards
+        const container = document.getElementById('pipelineCardsContainer');
+        container.innerHTML = '';
+        const gatesState = (data.pipeline_state && data.pipeline_state.raw_gates) || {};
+
+        PHASES.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'phase-card';
+          const gateStatus = gatesState[p.gate] || 'pending';
+          const isPass = gateStatus.includes('pass');
+          const badgeClass = isPass ? 'badge-active' : '';
+
+          card.innerHTML = `
+            <div class="phase-card-header">
+              <span class="phase-name">${p.name}</span>
+              <span class="badge ${badgeClass}">${p.gate}: ${gateStatus.toUpperCase()}</span>
+            </div>
+            <p class="phase-desc">${p.desc}</p>
+          `;
+          container.appendChild(card);
+        });
+
+        // Telemetry
+        const teleBody = document.getElementById('telemetriaBody');
+        if (data.telemetria && data.telemetria.length > 0) {
+          teleBody.innerHTML = '';
+          data.telemetria.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><strong>${row.fase}</strong></td>
+              <td>${row.tokens}</td>
+              <td>${row.tool_uses}</td>
+              <td>${row.duracion}</td>
+            `;
+            teleBody.appendChild(tr);
+          });
+        }
+      } catch (err) {
+        console.error("Error al cargar estado:", err);
+      }
+    }
+
+    loadStatus();
+  </script>
+</body>
+</html>

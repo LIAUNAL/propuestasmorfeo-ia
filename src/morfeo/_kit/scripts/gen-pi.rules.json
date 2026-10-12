@@ -1,0 +1,246 @@
+{
+  "_meta": {
+    "purpose": "Data-only rules consumed by gen-pi.py to port .claude/agents + .claude/commands/*.md + .claude/skills/**/SKILL.md into .pi/agents + .pi/prompts + .pi/skills. Never edit generated output directly -- edit this file or the .claude/ sources, then re-run the generator.",
+    "schema_version": 1
+  },
+  "paths": {
+    "source_agents_dir": ".claude/agents",
+    "source_commands_dir": ".claude/commands",
+    "output_agents_dir": ".pi/agents",
+    "output_commands_dir": ".pi/prompts",
+    "source_skills_dir": ".claude/skills",
+    "output_skills_dir": ".pi/skills",
+    "excluded_agents": [
+      "coordinador-propuesta.md"
+    ],
+    "agent_files": [
+      "bibliografo-propuesta.md",
+      "disenador-tikz.md",
+      "grant-flow-auditor.md",
+      "insumos-observador.md",
+      "investigador.md",
+      "presupuestador.md",
+      "redactor.md",
+      "revisor-figuras.md",
+      "revisor.md",
+      "tikz-optimizer.md"
+    ],
+    "command_files": [
+      "propuesta.md",
+      "propuesta-init.md",
+      "propuesta-insumos.md",
+      "propuesta-analizar.md",
+      "propuesta-continuar.md",
+      "propuesta-limpiar.md",
+      "compilar-pdf.md",
+      "compilar-docx.md",
+      "_propuesta-steps.md"
+    ],
+    "skill_files": [
+      "depuracion-redundancias-es/SKILL.md",
+      "estilo-natural-es/SKILL.md"
+    ]
+  },
+  "frontmatter": {
+    "agent_key_order": [
+      "name",
+      "description",
+      "model",
+      "thinking",
+      "tools"
+    ],
+    "command_key_order": [
+      "description",
+      "argument-hint"
+    ],
+    "skill_key_order": [
+      "name",
+      "description",
+      "license",
+      "compatibility",
+      "metadata",
+      "allowed-tools",
+      "disable-model-invocation"
+    ],
+    "_note_keys": "Pi keeps `name` (the subagent id used by `subagent_run`) and keeps `argument-hint` on prompt templates (Pi supports it natively, unlike OpenCode markdown commands). `$ARGUMENTS`/`$1` substitution works in Pi prompt templates as-is, so no rewrite is needed. `skill_key_order` is the Agent Skills frontmatter subset Pi understands; unknown keys are dropped rather than guessed. `model` and `thinking` values are resolved per agent from agent_models_source, never from the Claude tier."
+  },
+  "tools_map": {
+    "_note": "Keyed by the exact literal value of the source agent's `tools:` frontmatter field. `__no_tools_field__` is the sentinel for agents with no `tools:` key at all (full Claude default access); it maps to null, meaning the generated Pi agent also omits `tools` and therefore keeps the harness default set -- never narrowed beyond the Claude original.",
+    "__no_tools_field__": null,
+    "Read, Grep, Glob": "read, grep, find",
+    "Read, Grep, Glob, Write, Edit": "read, grep, find, write, edit"
+  },
+  "substitutions": [
+    {
+      "id": "propuesta-init-model-check-pi",
+      "applies_to": [
+        "propuesta-init.md"
+      ],
+      "find": "1. **Resolvé el run-id.** Esquema `<YYYY-MM>-<slug>` (p. ej.",
+      "replace": "**Mecanismo en Pi (paso 0).** El runtime es Pi y estos son los cuatro comandos/archivos exactos:\n\n```bash\n# Verificacion completa en un comando: cruza la fuente de verdad del marco\n# (scripts/agent-models.json), los dos artefactos generados (.pi/agents/*.md y\n# .pi/subagents.json), la alcanzabilidad real de cada modelo y el perfil activo.\npython3 scripts/check-agent-models.py\n```\n\nEl paso 3 se resuelve con `python3 scripts/check-agent-models.py --json`, que cruza las tres tablas de modelos (la fuente de verdad `scripts/agent-models.json`, el frontmatter de `.pi/agents/*.md` y `.pi/subagents.json`), la alcanzabilidad real vía `pi --list-models` y la política de proveedor del perfil activo de `~/.pi/gentle-ai/profiles.json`. Reporta PASS/FAIL con la lista de problemas y sale con código distinto de cero si algo no cuadra; si `pi --list-models` no está disponible deja la alcanzabilidad como **no verificada** en vez de asumirla. Si el perfil activo es Pi-nativo (p. ej. `andres_nan`, todos los agentes en un proveedor Pi-nativo), la tabla del marco debe quedarse en ese mismo proveedor: **nunca** escribas un modelo de puente a otro agente de código externo, porque eso reintroduce una dependencia de otro runtime dentro de una sesión de Pi. `scripts/gen-pi.py` **falla** si una tier apunta a un modelo de puente y `allow_claude_bridge` no está en `true`, así que un descuido no pasa silencioso.\n\nEl paso 5 se resuelve así: editá `scripts/agent-models.json` (tiers y/o el mapa `agents`), actualizá su bloque `reconciled_against` con el nombre del perfil activo y la fecha, y corré:\n\n```bash\npython3 scripts/gen-pi.py            # reescribe .pi/agents/*.md y .pi/subagents.json\npython3 scripts/gen-pi.py --check    # debe salir 0\n```\n\nLos dos artefactos que mandan en tiempo de ejecución son `.pi/subagents.json` (perfil de proyecto; tiene precedencia sobre el `model:` del frontmatter del agente) y `.pi/agents/*.md` (declaración declarativa). Ambos se generan del mismo archivo, así que no pueden divergir. `.pi/subagents.json` **debe quedar versionado**: sin él, un clon nuevo cae al frontmatter y, antes de este cambio, ese fallback era un puente a otro agente de código.\n\nCorré además la verificación de sincronía de los otros puertos (`python3 scripts/gen-opencode.py --check`, `python3 scripts/gen-antigravity.py --check`) y reportá si alguno quedó desfasado.\n\n1. **Resolvé el run-id.** Esquema `<YYYY-MM>-<slug>` (p. ej.",
+      "literal": true,
+      "_note": "The canonical step 0 states the runtime-agnostic requirement (verify the code agent, verify the models are reachable, contrast against the operator's active profile, confirm the table). Pi's concrete mechanism -- the two generated artifacts, the profiles store, the generator guard against bridge models -- is injected here so the canonical source stays runtime-generic."
+    },
+    {
+      "id": "propuesta-interactive-session-note",
+      "applies_to": [
+        "propuesta.md"
+      ],
+      "find": "El usuario quiere redactar una propuesta de investigación en IA siguiendo el",
+      "replace": "**Nota de ejecución (solo Pi):** los gates de aprobación de este pipeline (\"NO avances sin aprobación\") requieren una sesión interactiva de Pi que se mantenga viva entre fases -- el usuario responde en cada gate y el pipeline continúa en la misma sesión (`pi`, o `pi -c` para retomarla). El modo no interactivo (`pi -p`) NO sirve para este comando: no puede detenerse a esperar la aprobación humana en cada gate.\n\nEl usuario quiere redactar una propuesta de investigación en IA siguiendo el",
+      "literal": true,
+      "_note": "Same requirement the OpenCode port injects, restated for Pi's own headless flag (`-p`/`--print`) and its resumable-session flags (`-c`/`-r`). The source .claude/commands/propuesta.md prose is runtime-generic and never names either mode, so it must be injected, not inferred. find matches the body's first line (single occurrence) and the replacement prepends the note before it."
+    },
+    {
+      "id": "propuesta-framing-claude-to-pi",
+      "applies_to": [
+        "propuesta.md"
+      ],
+      "find": "de Claude Code no pueden invocar a otros subagentes. Usa la herramienta `Task`",
+      "replace": "de Pi no pueden invocar a otros subagentes. Usa la herramienta `subagent_run`",
+      "literal": true,
+      "_note": "Must run before propuesta-task-tool-name so the generic backtick-Task rule does not need to re-touch this occurrence."
+    },
+    {
+      "id": "propuesta-dispatch-path",
+      "applies_to": [
+        "propuesta.md"
+      ],
+      "find": "para despachar cada fase al subagente correspondiente en `.claude/agents/`.",
+      "replace": "para despachar cada fase al subagente correspondiente en `.pi/agents/`.",
+      "literal": true
+    },
+    {
+      "id": "propuesta-coordinador-ref",
+      "applies_to": [
+        "propuesta.md"
+      ],
+      "find": "`.claude/agents/coordinador-propuesta.md`",
+      "replace": "`coordinador-propuesta.md` (documento de referencia del pipeline, no incluido en este puerto)",
+      "literal": true,
+      "_note": "coordinador-propuesta.md is intentionally excluded from the port (see paths.excluded_agents); the reference stays a bare filename so it neither reintroduces a .claude/ path nor implies a .pi/agents/coordinador-propuesta.md that will never exist."
+    },
+    {
+      "id": "propuesta-roster-heading",
+      "applies_to": [
+        "propuesta.md"
+      ],
+      "find": "## Roster de subagentes (`.claude/agents/`)",
+      "replace": "## Roster de subagentes (`.pi/agents/`)",
+      "literal": true
+    },
+    {
+      "id": "run-root-framework-paths",
+      "applies_to": [
+        "propuesta.md"
+      ],
+      "find": "framework: `.claude/`, `scripts/`, `guiaProyectosIA_Agente.md`, `AGENTS.md`,",
+      "replace": "framework: `.pi/`, `scripts/`, `guiaProyectosIA_Agente.md`, `AGENTS.md`,",
+      "literal": true,
+      "_note": "The RUN_ROOT block lists the framework-relative paths; in this port the runtime directory is .pi/, not .claude/."
+    },
+    {
+      "id": "propuesta-task-tool-name",
+      "applies_to": [
+        "propuesta.md",
+        "propuesta-init.md",
+        "propuesta-insumos.md",
+        "propuesta-analizar.md",
+        "propuesta-continuar.md",
+        "propuesta-limpiar.md",
+        "_propuesta-steps.md"
+      ],
+      "find": "`Task`",
+      "replace": "`subagent_run`",
+      "literal": true,
+      "_note": "Catches the remaining literal backtick-quoted tool-name mentions after propuesta-framing-claude-to-pi consumed the framing one. Order in this array matters -- rules apply sequentially. The plain 'Task -> <agente>' flow arrows in the pipeline diagram stay unchanged: they are human-readable plan notation, not executable calls, and match no drift pattern."
+    },
+    {
+      "id": "task-prompt-wording",
+      "applies_to": [
+        "investigador.md",
+        "revisor.md",
+        "presupuestador.md"
+      ],
+      "find": "Task prompt",
+      "replace": "dispatch prompt",
+      "literal": true,
+      "_note": "Same tool-neutral rewording the OpenCode port applies; 'Task' is not a Pi tool name."
+    },
+    {
+      "id": "readonly-tool-names-slash",
+      "applies_to": [
+        "revisor.md",
+        "revisor-figuras.md",
+        "propuesta.md"
+      ],
+      "find": "Read/Grep/Glob",
+      "replace": "read/grep/find",
+      "literal": true,
+      "_note": "Prose mentions of the read-only tool triple must name Pi's actual tools; Pi has no `Glob` tool (its equivalent is `find`)."
+    },
+    {
+      "id": "readonly-tool-names-comma",
+      "applies_to": [
+        "revisor.md",
+        "revisor-figuras.md",
+        "presupuestador.md",
+        "propuesta.md"
+      ],
+      "find": "Read, Grep, Glob",
+      "replace": "read, grep, find",
+      "literal": true
+    },
+    {
+      "id": "read-tool-mention",
+      "applies_to": [
+        "insumos-observador.md"
+      ],
+      "find": "El Read tool de Claude Code no puede leer archivos `.docx` binarios",
+      "replace": "El tool `read` no puede leer archivos `.docx` binarios de forma nativa en todos los runtimes (comportamiento no verificado caso por caso)",
+      "literal": true,
+      "_note": "Pi's own .docx read behavior is UNVERIFIED here, so this takes the same tool-neutral rephrase the OpenCode port uses rather than asserting a specific corrected capability claim. The textutil/unzip conversion fallback prose that follows is already tool-neutral and is left unchanged."
+    },
+    {
+      "id": "steps-commands-path",
+      "applies_to": [
+        "_propuesta-steps.md",
+        "propuesta-analizar.md",
+        "propuesta-continuar.md",
+        "propuesta.md"
+      ],
+      "find": "`.claude/commands/",
+      "replace": "`.pi/prompts/",
+      "literal": true,
+      "_note": "The stepped commands cross-reference each other, and propuesta.md now points at the shared step table too; in this port they all live under .pi/prompts/."
+    },
+    {
+      "id": "steps-agents-path",
+      "applies_to": [
+        "_propuesta-steps.md",
+        "propuesta-analizar.md",
+        "propuesta-continuar.md"
+      ],
+      "find": "`.claude/agents/",
+      "replace": "`.pi/agents/",
+      "literal": true,
+      "_note": "Same for agent references inside the stepped commands."
+    }
+  ],
+  "drift_patterns": [
+    "Claude Code",
+    "Task tool",
+    ".claude/",
+    "`Task`",
+    "claude-bridge/"
+  ],
+  "_drift_patterns_note": "Baseline set plus `claude-bridge/`: any of these surviving into generated output means either a source edit introduced a Claude-specific mention with no matching rule, or the model SSOT was reconciled onto the Claude bridge without setting allow_claude_bridge deliberately.",
+  "open_items": [
+    "Pi's default tool set for an agent with no `tools:` frontmatter key is assumed (not verified here) to include MCP access, which bibliografo-propuesta needs for openalex/semanticscholar/crossref. If a ported agent reports no MCP tools, add an explicit `tools` value for it in tools_map instead of narrowing the others.",
+    "`.mcp.json` mentions inside agent prose are left untouched: Pi reads project MCP servers from its own configuration, and rewriting the filename is out of scope for this generator (same boundary the OpenCode port draws)."
+  ],
+  "agent_models_source": {
+    "_note": "Models and thinking levels are NOT mapped from the Claude tier here. They come from scripts/agent-models.json, keyed by AGENT, so the port can never inherit `claude-bridge/*` by accident. That file is the single source of truth for both the .pi/agents/*.md frontmatter and .pi/subagents.json, and /propuesta-init reconciles it against the operator's active gentle profile at session start.",
+    "path": "scripts/agent-models.json"
+  }
+}

@@ -1,0 +1,54 @@
+# macOS
+.DS_Store
+
+# Local agent indexes / caches
+.atl/
+.codegraph/
+
+# Obsidian local app state (workspace, plugin config)
+.obsidian/
+
+# Knowledge-graph scratch. The graph layer is codebase-memory (the codegraph
+# MCP server), whose index lives in .codegraph/ (ignored above). Per-run graph
+# reports live inside the run folder and are covered by the rules below.
+# graphify-out/ is legacy leftover from the retired graphify tooling.
+graphify-out/
+
+# Python bytecode cache / local virtualenv / build residue
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+
+# LaTeX build artifacts
+**/*.aux
+**/*.bbl
+**/*.bcf
+**/*.blg
+**/*.fdb_latexmk
+**/*.fls
+**/*.log
+**/*.out
+**/*.run.xml
+**/*.synctex.gz
+**/*.toc
+**/*.lof
+**/*.lot
+
+# --- Corridas de /propuesta (nada de esto se versiona) --------------------
+# El repo solo versiona el esqueleto del framework (`plantilla/`: build.sh,
+# scripts/, logos/, templates/) más agentes, comandos y guía. TODO lo que una
+# corrida produce vive dentro de `proposals/<run-id>/` (`insumos/`,
+# `artefactos/`, `grafos/`, `redaccion/`), y se descarta con una sola regla que
+# cubre la carpeta entera: las corridas, el registro local `registry.md` y el
+# puntero `.current-run`. `scripts/init-run.sh` recrea lo que necesite si falta,
+# así que borrar `proposals/` es seguro y repetible.
+proposals/
+
+# Configuración de editor local de cada máquina (no es framework).
+.vscode/
+
+# Los PDFs bajo docs/ son insumos (TDR, papers): viven en
+# proposals/<run-id>/insumos/ y el repo nunca versiona contenido de una
+# propuesta. Los .md de docs/ sí son framework.
+docs/*.pdf
