@@ -73,6 +73,15 @@ def apply_substitutions(text: str, rules: dict) -> str:
     return text
 
 
+def format_frontmatter_field(key: str, val: str) -> str:
+    """Format a YAML frontmatter field, quoting if it contains special characters."""
+    if ": " in val or "\n" in val or '"' in val or "'" in val or val.startswith(
+        ("-", "?", ":", ",", "[", "]", "{", "}", "#", "&", "*", "!", "|", ">", "'", '"', "%", "@", "`")
+    ):
+        return f"{key}: {json.dumps(val, ensure_ascii=False)}"
+    return f"{key}: {val}"
+
+
 def build_skill(agent_file: Path, rules: dict, config: dict | None) -> tuple[str, str]:
     """Compile agent file into SKILL.md content."""
     text = agent_file.read_text(encoding="utf-8")
@@ -85,7 +94,7 @@ def build_skill(agent_file: Path, rules: dict, config: dict | None) -> tuple[str
     if config and "agent_models" in config and agent_name in config["agent_models"]:
         fm["model"] = config["agent_models"][agent_name]
 
-    lines = ["---", f"name: {name}", f"description: {description}"]
+    lines = ["---", f"name: {name}", format_frontmatter_field("description", description)]
     if "model" in fm:
         lines.append(f"model: {fm['model']}")
     lines.append("---\n")
@@ -109,7 +118,7 @@ def build_project_skill(skill_file: Path, rules: dict) -> str:
     if not description:
         raise GeneratorError(f"{skill_file}: skill frontmatter missing 'description'")
 
-    lines = ["---", f"name: {name}", f"description: {description}"]
+    lines = ["---", f"name: {name}", format_frontmatter_field("description", description)]
     if "model" in fm:
         lines.append(f"model: {fm['model']}")
     lines.append("---\n")
@@ -133,6 +142,23 @@ def build_workflow(cmd_file: Path, rules: dict) -> tuple[str, str]:
     header = f"# Workflow: {cmd_file.stem}\n\n> {description}\n\n"
     content = header + body
     return cmd_name, content
+
+
+def build_command_skill(cmd_file: Path, rules: dict) -> tuple[str, str]:
+    """Compile command file into an Antigravity SKILL.md for first-class slash-command execution."""
+    text = cmd_file.read_text(encoding="utf-8")
+    name = cmd_file.stem
+    if not text.startswith("---\n"):
+        description = f"Comando {name}"
+        body = text
+    else:
+        fm, body = split_frontmatter(text, cmd_file)
+        description = fm.get("description", f"Comando {name}")
+
+    lines = ["---", f"name: {name}", format_frontmatter_field("description", description), "---\n"]
+    body = apply_substitutions(body, rules)
+    content = "\n".join(lines) + body
+    return name, content
 
 
 def main() -> int:
@@ -169,13 +195,18 @@ def main() -> int:
         skill_file = target_skills_dir / agent_name / "SKILL.md"
         skills_to_write.append((skill_file, content))
 
-    # Process commands
+    # Process commands (both as legacy workflows and modern Antigravity skills for slash-command support)
     for cmd_name in rules.get("command_files", []):
         cmd_file = source_commands_dir / cmd_name
         if cmd_file.is_file():
             out_name, content = build_workflow(cmd_file, rules)
             workflow_file = target_workflows_dir / out_name
             workflows_to_write.append((workflow_file, content))
+
+            if not cmd_name.startswith("_"):
+                cmd_skill_name, cmd_skill_content = build_command_skill(cmd_file, rules)
+                cmd_skill_file = target_skills_dir / cmd_skill_name / "SKILL.md"
+                skills_to_write.append((cmd_skill_file, cmd_skill_content))
 
     # Process canonical skills (.claude/skills/**/SKILL.md), mirroring the
     # nested layout under .agent/skills/<skill-dir>/SKILL.md.

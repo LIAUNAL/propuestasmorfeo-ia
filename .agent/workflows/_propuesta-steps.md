@@ -7,7 +7,7 @@ ported from the historical monolith). This file defines **unit ids**,
 **order**, and **what each unit covers** so stepped and auto modes cannot
 diverge.
 
-Also summarized in `.agent/skills/coordinador-propuesta.md`.
+Also summarized in `.agent/skills/coordinador-propuesta/SKILL.md`.
 
 ## Control de ejecución (`artefactos/estado_propuesta.md`)
 
@@ -50,7 +50,7 @@ Every run that uses analizar / continuar / auto MUST maintain:
 | `fase6_4` | §13 presupuesto + revisor | G budget | `fase6_45` |
 | `fase6_45` | §14 cronograma + §15 productos + §16 bib (no own gate) | — | `fase6_46` |
 | `fase6_46` | §17 articulación con comunidades + §18 apropiación social + revisor | G comunidades | `fase6_5` |
-| `fase6_5` | §1 título e identificación + front-matter + revisor | G front | `fase7` |
+| `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave) + revisor | G front | `fase7` |
 | `fase7` | Final audit + assemble `main.tex` | G final | `done` |
 | `done` | Pipeline complete | — | print `cd proposal && ./build.sh` |
 

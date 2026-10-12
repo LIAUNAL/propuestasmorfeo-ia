@@ -1019,7 +1019,7 @@ def _handle_agent_command_misuse(cmd_str: str) -> None:
     print("     • pi:          pi .")
     print("     • Claude Code: claude")
     print("     • OpenCode:    opencode .")
-    print("     • Antigravity: ag init / antigravity")
+    print("     • Antigravity: agy / antigravity")
     print("  3. Escribí el comando dentro de la ventana de chat del agente:")
     print(f"     👉 {clean_cmd}")
 
@@ -1030,6 +1030,7 @@ def _handle_agent_command_misuse(cmd_str: str) -> None:
     claude_c = target / ".claude" / "commands" / f"{cmd_basename}.md"
     opencode_c = target / ".opencode" / "commands" / f"{cmd_basename}.md"
     antigravity_w = target / ".agent" / "workflows" / f"{cmd_basename}.md"
+    antigravity_s = target / ".agent" / "skills" / cmd_basename / "SKILL.md"
 
     if pi_c.is_file():
         prompts_found.append(f"  • pi:          .pi/commands/{cmd_basename}.md")
@@ -1039,7 +1040,9 @@ def _handle_agent_command_misuse(cmd_str: str) -> None:
         prompts_found.append(f"  • Claude Code: .claude/commands/{cmd_basename}.md")
     if opencode_c.is_file():
         prompts_found.append(f"  • OpenCode:    .opencode/commands/{cmd_basename}.md")
-    if antigravity_w.is_file():
+    if antigravity_s.is_file():
+        prompts_found.append(f"  • Antigravity: .agent/skills/{cmd_basename}/SKILL.md")
+    elif antigravity_w.is_file():
         prompts_found.append(f"  • Antigravity: .agent/workflows/{cmd_basename}.md")
 
     if prompts_found:

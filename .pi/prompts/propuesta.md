@@ -1239,32 +1239,27 @@ Fase 6.46 Task → redactor → §17 Estrategia de articulación con comunidades
         ──→ GATE Task → revisor (valida §17 y §18 contra la guía; verifica que
         §18 ancle los 3 productos de tipo C de §15 y que §17 declare actores,
         mecanismos, responsables y momentos) ──→ usuario. NO avances sin aprobación.
-Fase 6.5 Task → redactor → §1 Título e identificación del proyecto
-        (redaccion/sections/01_titulo_identificacion.tex), con el bloque
-        obligatorio de identificación que el ajuste TDR (apartado a) exige:
-        título de 12 a 15 palabras compilado UNA SOLA VEZ en `\title{}` (regla
-        de unicidad: ninguna otra sección lo repite), línea temática "Salud
-        pública en el marco de desastres naturales" con justificación explícita
-        de su pertinencia —incluida la mención del componente de salud
-        mental—, lugar de ejecución (Manizales, Caldas) con justificación
-        territorial, y director/a del proyecto. §1 va SIEMPRE antes del
-        front-matter y antes de cualquier sección numerada.
-        Task → redactor → secciones preliminares (front-matter), como
-        síntesis del documento completo (§1 y §2–§18 ya aprobadas): Resumen
+Fase 6.5 Task → redactor → secciones preliminares (front-matter), como
+        síntesis del documento completo (§2–§18 ya aprobadas): Resumen
         (redaccion/sections/00_resumen.tex, máx. 400 palabras), Resumen
         ejecutivo (redaccion/sections/00_resumen_ejecutivo.tex, exactamente 5
         párrafos), Palabras clave (redaccion/sections/00_palabras_clave.tex,
-        5 palabras). Mismo mirror de vault que el resto de secciones del
-        redactor. Antes de despachar esta Task, el dispatcher arma el
-        bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §1 (Título e
-        identificación del proyecto) + §Resumen +
-        §Resumen ejecutivo + §Palabras clave + Convenciones técnicas de
+        5 palabras). El título (12 a 15 palabras) e identificación institucional
+        van exclusivamente en el bloque de encabezado/portada de `main.tex`
+        (regla de unicidad: ninguna otra sección lo repite). En `main.tex` NO se
+        incluye una sección numerada de cuerpo ni párrafos narrativos para §1 Título e
+        identificación: el documento avanza del encabezado al front-matter, y
+        tras este se aplica `\setcounter{section}{1}` para que el cuerpo inicie
+        directamente en `\input{sections/02_justificacion}` (§2). Mismo mirror de
+        vault que el resto de secciones del redactor. Antes de despachar esta Task,
+        el dispatcher arma el bloque `## FRAGMENTO DE GUÍA` con Directrices Generales
+        + §Resumen + §Resumen ejecutivo + §Palabras clave + Convenciones técnicas de
         LaTeX y lo inyecta inline al inicio del prompt.
         Antes de despachar la Task de este gate, el dispatcher arma el
-        bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §1 + §Resumen +
+        bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §Resumen +
         §Resumen ejecutivo + §Palabras clave y lo inyecta inline al inicio
         del prompt.
-        ──→ GATE Task → revisor (valida §1 y las 3 preliminares contra la guía) ──→ usuario. NO avances sin aprobación.
+        ──→ GATE Task → revisor (valida las 3 preliminares contra la guía) ──→ usuario. NO avances sin aprobación.
         ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
         `artefactos/pipeline/70-fase6.md` (cubre Fase 6 + Fase 6.45 + Fase 6.46
         + Fase 6.5, evento de esta compuerta) y actualiza
@@ -1298,8 +1293,13 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         Tú (el asistente primario) ensamblas `redaccion/main.tex` una vez aprobado.
         Los 3 archivos `00_*.tex` (Resumen → Resumen ejecutivo → Palabras
         clave, en ese orden) DEBEN incluirse antes del contenido de §2,
-        maquetados con `\section*{}`. Orden del cuerpo (`\input{sections/...}`,
-        16 secciones en este orden exacto): `02_justificacion`,
+        maquetados con `\section*{}`. Tras el front-matter se incluye
+        `\setcounter{section}{1}` para que el cuerpo inicie en el número 2.
+        En `main.tex` NUNCA se incluye una sección numerada de cuerpo ni párrafos
+        narrativos de §1 Título e identificación (el título y la identificación
+        se compilan exclusivamente en el bloque de encabezado de portada).
+        Orden del cuerpo (`\input{sections/...}`, 16 secciones en este orden exacto):
+        `02_justificacion`,
         `03_descripcion_problema` (con `diag_arbol_problemas`),
         `04_estado_arte` (con `diag_estado_arte`), `05_hipotesis`, `06_objetivo_general`,
         `07_objetivos_especificos`, `08_marco_conceptual`,
@@ -1556,10 +1556,12 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
   pipeline, no solo Fase 7), el dispatcher ensambla y compila un PDF ANTES
   de presentar el veredicto, para que la aprobación se dé sobre un documento
   real, no solo sobre fragmentos `.tex` o un resumen de texto. Mecánica:
-  genera/actualiza `redaccion/main.tex` incluyendo `\input{}` únicamente de
-  las secciones que YA existen en disco en `redaccion/sections/` en ese punto
-  de la corrida (mismo orden documentado en la Fase 7, "Orden del cuerpo" —
-  nunca stubs ni placeholders de secciones no escritas todavía), luego
+  genera/actualiza `redaccion/main.tex` incluyendo el bloque de título en la portada,
+  luego `\input{sections/00_frontmatter}`, luego `\setcounter{section}{1}`, y luego
+  `\input{}` únicamente de las secciones que YA existen en disco en `redaccion/sections/`
+  en ese punto de la corrida (mismo orden documentado en la Fase 7, "Orden del cuerpo" —
+  nunca stubs ni placeholders de secciones no escritas todavía; nunca incluir
+  `01_titulo_identificacion` ni párrafos de sección 1 en el cuerpo de `main.tex`), luego
   ejecuta `./build.sh` (nunca `./build.sh --docx` en estas compuertas
   intermedias) para producir `redaccion/main.pdf`. Comparte con el usuario la
   ruta del PDF junto con el veredicto del revisor (usa `pixelshot` si quieres

@@ -298,6 +298,9 @@ class TestGenerators(unittest.TestCase):
         skill = self.target_dir / ".agent" / "skills" / "estilo-natural-es" / "SKILL.md"
         self.assertTrue(skill.is_file(), "gen-antigravity.py did not port .claude/skills into .agent/skills/")
         self.assertIn("name: estilo-natural-es", skill.read_text(encoding="utf-8"))
+        cmd_skill = self.target_dir / ".agent" / "skills" / "propuesta-continuar" / "SKILL.md"
+        self.assertTrue(cmd_skill.is_file(), "gen-antigravity.py did not port slash commands into .agent/skills/")
+        self.assertIn("name: propuesta-continuar", cmd_skill.read_text(encoding="utf-8"))
 
 
 class TestGeneratorDrift(unittest.TestCase):

@@ -8,6 +8,14 @@
   },
   "substitutions_all": [
     {
+      "find": "de Claude Code no pueden invocar a otros subagentes. Usa la herramienta `Task`",
+      "replace": "de Antigravity se orquestan vía plataforma (definiendo o invocando subagentes que cargan las skills de `.agent/skills/`)"
+    },
+    {
+      "find": ".claude/agents/coordinador-propuesta.md",
+      "replace": ".agent/skills/coordinador-propuesta/SKILL.md"
+    },
+    {
       "find": ".claude/agents/",
       "replace": ".agent/skills/"
     },
@@ -27,6 +35,8 @@
     "propuesta-analizar.md",
     "propuesta-continuar.md",
     "propuesta-limpiar.md",
+    "compilar-pdf.md",
+    "compilar-docx.md",
     "_propuesta-steps.md"
   ]
 }

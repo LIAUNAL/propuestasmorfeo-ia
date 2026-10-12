@@ -17,6 +17,8 @@ cada fase al subagente correspondiente definido en `.claude/agents/`.
 | `/propuesta-continuar` | Una unidad del pipeline (`next_step`); imprime el siguiente comando |
 | `/propuesta` | Pipeline completo en una sesión (gates) |
 | `/propuesta-limpiar` | Cierra la corrida activa |
+| `/compilar-pdf` | Compila la corrida activa a PDF (`build.sh` en `redaccion/`) |
+| `/compilar-docx` | Exporta la corrida activa a Word (`build.sh --docx` en `redaccion/`) |
 
 Cuerpo del pipeline: `.claude/commands/propuesta.md`. Tabla de unidades y
 control de ejecución: `.claude/commands/_propuesta-steps.md`. El archivo
@@ -157,7 +159,7 @@ verdad):
 |--------|--------------------|-----|
 | `coordinador-propuesta` | sonnet | Referencia canónica del pipeline (no despachable como subagente activo) |
 | `investigador` | opus | Subproblemas, pregunta, objetivos, hipótesis, marco conceptual |
-| `redactor` | opus | Secciones narrativas (§1, §2, §9–§12, §14–§15) |
+| `redactor` | opus | Secciones narrativas (§2, §9–§12, §14–§15, §17–§18 y front-matter) |
 | `grant-flow-auditor` | sonnet | Auditoría micro-estilística de prosa: cadencia, voz activa, transiciones y fricción en secciones, subsecciones o secciones modificadas; aplica la skill `estilo-natural-es` |
 | `insumos-observador` | sonnet | Ingesta y estructuración de insumos del usuario |
 | `bibliografo-propuesta` | sonnet | Bibliografía (§4, §16) |
@@ -179,6 +181,7 @@ que un agente carga cuando la tarea lo pide), con la misma fuente de verdad
 | Skill | Para qué | La usa |
 |-------|----------|--------|
 | `estilo-natural-es` | Pulir prosa narrativa en español: desmecaniza enumeraciones y aperturas formulaicas, varía longitud de frase y conectores, aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas y citas. No es una herramienta de evasión de detectores de IA: no introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`) **y el asistente primario en toda prosa en español que redacte** |
+| `depuracion-redundancias-es` | Auditar y eliminar redundancias conceptuales, léxicas y estructurales dentro de una misma sección, asegurando que cada párrafo aporte avance argumentativo y articulando la aplicación integral de `estilo-natural-es` (humanización y ritmo). | `grant-flow-auditor`, `redactor`, `investigador` y el asistente primario en revisiones integrales de texto |
 
 La skill canónica vive en `.claude/skills/estilo-natural-es/SKILL.md` y de ahí
 se porta de forma determinista: `.pi/skills/` (Pi) y `.agent/skills/`
@@ -359,7 +362,7 @@ flujo stepped `/propuesta-analizar` + `/propuesta-continuar`.
 | `revisor-figuras` | Emitir juicio visual sobre una figura ya auditada (preview PNG) |
 | `tikz-optimizer` | Corregir la spec de un diagrama cuyo `figura.py` falla |
 | `investigador` | Definir/refinar subproblemas, pregunta, objetivos, hipótesis, marco conceptual |
-| `redactor` | Redactar o revisar secciones narrativas (§1, §2, §9–§12, §14–§15) |
+| `redactor` | Redactar o revisar secciones narrativas (§2, §9–§12, §14–§15, §17–§18 y front-matter) |
 | `revisor` | Validar coherencia y calidad de secciones ya redactadas |
 | `grant-flow-auditor` | Auditar micro-estilo de prosa ya redactada (cadencia, voz activa, transiciones) y aplicar el pulido `estilo-natural-es` antes del `revisor` |
 | `bibliografo-propuesta` | Construir o actualizar la bibliografía (§4, §16) |
@@ -420,9 +423,9 @@ por su cuenta, salvo la auditoría final de Fase 7. Resumen de asignación:
 > - OpenCode: `scripts/gen-opencode.py` → `.opencode/agents/` + commands
 > - Pi: `scripts/gen-pi.py` → `.pi/agents/` (subagentes despachables con
 >   `subagent_run`; verificado con `subagent_list_agents`) + `.pi/prompts/`
-> - Antigravity: `scripts/gen-antigravity.py` → `.agent/skills/` + workflows
+> - Antigravity: `scripts/gen-antigravity.py` → `.agent/skills/` (skills de agentes y slash commands nativos) + `.agent/workflows/`
 >
-> `gen-opencode.py` y `gen-pi.py` aceptan `--check` (dry-run, exit≠ 0 si el
-> puerto quedó desfasado o si hay drift de menciones específicas de Claude).
+> `gen-opencode.py`, `gen-pi.py` y `gen-antigravity.py` aceptan `--check` (dry-run,
+> exit≠ 0 si el puerto quedó desfasado o si hay drift).
 > Los archivos `.claude/` siguen siendo la única fuente editada a mano; tras
 > cambiar agentes o comandos, correr los generadores y su `--check`.

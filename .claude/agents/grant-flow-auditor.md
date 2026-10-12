@@ -25,12 +25,12 @@ To prevent architectural overlap with other agents in the proposal system:
 
 When invoked, execute the following five sequential audit passes on the input text (full section, subsection, or modified section draft). Pass 5 applies only to Spanish narrative prose, which is the language of every proposal section, so in practice it always runs:
 
-> **Before Pass 5, read the `estilo-natural-es` skill in full**: the dispatcher
-> passes its exact `SKILL.md` path in the delegation prompt.
-> That skill is the canonical method for natural Spanish academic prose in this
-> framework: it lists the mechanical patterns to detect, the eleven rewriting
+> **Before Pass 5, read the `estilo-natural-es` and `depuracion-redundancias-es` skills in full**: the dispatcher
+> passes their exact `SKILL.md` paths in the delegation prompt.
+> Those skills are the canonical methods for natural Spanish academic prose and intra-section redundancy elimination in this
+> framework: they list the mechanical patterns to detect, the depuration procedures, the rewriting
 > techniques, the hard fidelity/LaTeX invariants and the report format. Pass 5
-> below is the pass through which that skill is applied to the proposal.
+> below is the pass through which those skills are applied to the proposal.
 
 ### Pass 1: Sentence Cadence & Visual Density (Rhythm Audit)
 * **Sentence Length Variety:** Alternate short impact sentences (5–10 words) with medium explanatory sentences (15–22 words). Flag and split any sentence exceeding 35 words.

@@ -129,8 +129,8 @@ def stage_diagram_image(name: str, stage: pathlib.Path) -> str:
     return dest_name
 
 
-_FIGURE_ENV_RE = re.compile(r'\\begin\{figure\}.*?\\end\{figure\}', re.DOTALL)
-_FIGURE_HEAD_RE = re.compile(r'\\begin\{figure\}[^\n]*\n(\\centering\n)?')
+_FIGURE_ENV_RE = re.compile(r'\\begin\{(?:figure|table)\}.*?\\end\{(?:figure|table)\}', re.DOTALL)
+_FIGURE_HEAD_RE = re.compile(r'\\begin\{(?:figure|table)\}[^\n]*\n(\\centering\n)?')
 _CAPTION_START_RE = re.compile(r'\\caption\{')
 
 
