@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Morfeo IA — Command Center</title>
+  <link rel="stylesheet" href="/static/vendor/pdf_viewer.min.css">
+  <script src="/static/vendor/pdf.min.js"></script>
   <style>
     :root {
       --bg: #0b0f19;
@@ -506,6 +508,476 @@
       justify-content: space-between;
       align-items: center;
     }
+
+    /* =========================================================
+       FLUJO GENERAL: ETAPAS ILUMINADAS VS SIN LUZ
+       ========================================================= */
+    .flujo-general-card {
+      background: linear-gradient(180deg, var(--surface) 0%, rgba(17, 24, 39, 0.98) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+    .flujo-meta-summary {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .flujo-track-container {
+      overflow-x: auto;
+      padding: 1.25rem 0.5rem 1rem 0.5rem;
+      scrollbar-width: thin;
+    }
+    .flujo-track {
+      display: flex;
+      align-items: flex-start;
+      min-width: 1100px;
+      gap: 0;
+      position: relative;
+    }
+    .flujo-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      flex: 1;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      padding: 0 0.35rem;
+    }
+    .flujo-step:hover {
+      transform: translateY(-3px);
+    }
+
+    /* Beacon (círculo indicador) */
+    .flujo-beacon {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      font-weight: 800;
+      position: relative;
+      z-index: 3;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 0.65rem;
+    }
+
+    /* ETAPAS ILUMINADAS (SUPERADAS / APROBADAS) */
+    .flujo-step--lit .flujo-beacon {
+      background: radial-gradient(circle at 35% 35%, #38bdf8 0%, #059669 100%);
+      color: #ffffff;
+      border: 2px solid #34d399;
+      box-shadow:
+        0 0 16px rgba(16, 185, 129, 0.8),
+        0 0 32px rgba(56, 189, 248, 0.6),
+        inset 0 0 10px rgba(255, 255, 255, 0.7);
+      animation: neon-pulse 2.5s infinite alternate;
+    }
+    @keyframes neon-pulse {
+      0% {
+        box-shadow: 0 0 14px rgba(16, 185, 129, 0.7), 0 0 25px rgba(56, 189, 248, 0.5), inset 0 0 8px rgba(255, 255, 255, 0.6);
+      }
+      100% {
+        box-shadow: 0 0 22px rgba(16, 185, 129, 1), 0 0 42px rgba(56, 189, 248, 0.8), inset 0 0 14px rgba(255, 255, 255, 0.9);
+      }
+    }
+    .flujo-step--lit .flujo-beacon::after {
+      content: '';
+      position: absolute;
+      top: -5px; left: -5px; right: -5px; bottom: -5px;
+      border-radius: 50%;
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      animation: halo-pulse 2.5s infinite;
+    }
+    @keyframes halo-pulse {
+      0% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.18); opacity: 0.15; }
+      100% { transform: scale(1); opacity: 0.9; }
+    }
+    .flujo-step--lit .flujo-title {
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.82rem;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+      margin-bottom: 0.2rem;
+    }
+    .flujo-step--lit .flujo-badge {
+      background: rgba(16, 185, 129, 0.22);
+      color: #34d399;
+      border: 1px solid #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.45);
+      font-size: 0.68rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    /* ETAPAS SIN LUZ (FALTAN POR EJECUTAR O APROBAR) */
+    .flujo-step--unlit {
+      opacity: 0.38;
+      filter: grayscale(85%);
+    }
+    .flujo-step--unlit .flujo-beacon {
+      background: var(--surface-2);
+      color: var(--text-dim);
+      border: 2px dashed #4b5563;
+      box-shadow: none;
+    }
+    .flujo-step--unlit .flujo-title {
+      color: var(--text-dim);
+      font-weight: 500;
+      font-size: 0.8rem;
+      margin-bottom: 0.2rem;
+    }
+    .flujo-step--unlit .flujo-badge {
+      background: rgba(31, 41, 55, 0.5);
+      color: #6b7280;
+      border: 1px dashed #4b5563;
+      font-size: 0.68rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    /* Conectores luminosos vs apagados */
+    .flujo-connector {
+      position: absolute;
+      top: 23px;
+      left: 50%;
+      width: 100%;
+      height: 4px;
+      z-index: 1;
+      transform: translateY(-50%);
+    }
+    .flujo-connector--lit {
+      background: linear-gradient(90deg, #10b981, #38bdf8);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+    }
+    .flujo-connector--unlit {
+      background: #374151;
+      border-top: 1px dashed #4b5563;
+    }
+
+    /* Tarjetas de cuadrícula Iluminadas vs Sin Luz */
+    .phase-card--lit {
+      border: 1px solid rgba(56, 189, 248, 0.55) !important;
+      background: linear-gradient(135deg, rgba(31, 41, 55, 0.95), rgba(16, 185, 129, 0.08)) !important;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.18), inset 0 0 12px rgba(16, 185, 129, 0.06) !important;
+      border-top: 3px solid #10b981 !important;
+    }
+    .phase-card--lit .phase-card__name::before {
+      content: '💡 ';
+      filter: drop-shadow(0 0 6px #10b981);
+    }
+    .phase-card--unlit {
+      opacity: 0.45 !important;
+      border: 1px dashed var(--border) !important;
+      background: var(--surface) !important;
+      filter: grayscale(70%) !important;
+    }
+    .phase-card--unlit .phase-card__name::before {
+      content: '⚫ ';
+    }
+
+    /* =========================================================
+       VISOR PDF INTERACTIVO CON HERRAMIENTAS EDITORIALES
+       ========================================================= */
+    .pdf-toolbar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .btn-group {
+      display: inline-flex;
+      align-items: center;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.15rem;
+      gap: 0.15rem;
+    }
+    .btn-group .btn {
+      border: none;
+      background: transparent;
+      padding: 0.3rem 0.55rem;
+      font-size: 0.8rem;
+    }
+    .btn-group .btn:hover {
+      background: var(--surface-hover);
+    }
+    .pdf-page-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      padding: 0 0.4rem;
+    }
+    .pdf-page-indicator input {
+      width: 44px;
+      padding: 0.15rem 0.3rem;
+      text-align: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+    }
+
+    /* Botones de herramientas requeridos */
+    .btn--tool {
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 0.38rem 0.75rem;
+      border-radius: var(--radius);
+      transition: all 0.15s ease;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .btn--comment {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+    .btn--comment:hover {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: #38bdf8;
+    }
+    .btn--strikethrough {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    .btn--strikethrough:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+    }
+    .btn--humanize {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .btn--humanize:hover {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: #10b981;
+    }
+    .btn--execute {
+      background: linear-gradient(135deg, #0284c7, #10b981) !important;
+      color: #ffffff !important;
+      border: 1px solid #38bdf8 !important;
+      font-weight: 700 !important;
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.4) !important;
+      animation: execute-glow 3s infinite alternate;
+    }
+    @keyframes execute-glow {
+      0% { box-shadow: 0 0 10px rgba(2, 132, 199, 0.4); }
+      100% { box-shadow: 0 0 18px rgba(16, 185, 129, 0.7); }
+    }
+
+    /* Barra de selección */
+    .pdf-selection-bar {
+      margin-top: 0.65rem;
+      padding: 0.45rem 0.85rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .pdf-selection-bar strong {
+      color: var(--accent);
+    }
+
+    /* Workspace split layout */
+    .pdf-workspace-layout {
+      display: flex;
+      gap: 1rem;
+      min-height: 850px;
+      align-items: flex-start;
+    }
+    .pdf-viewport-container {
+      flex: 1;
+      background: #1f2937;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      max-height: 920px;
+      position: relative;
+    }
+    .pdf-loading-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(11, 15, 25, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      z-index: 50;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .pdf-page-container {
+      position: relative;
+      background: #ffffff;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+      border-radius: 4px;
+      margin: 0 auto;
+      overflow: hidden;
+      line-height: 1;
+    }
+    .pdf-page-container canvas {
+      display: block;
+      margin: 0;
+    }
+    .textLayer {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      overflow: hidden;
+      opacity: 0.28;
+      line-height: 1.0;
+      z-index: 2;
+    }
+    .textLayer span {
+      color: transparent;
+      position: absolute;
+      white-space: pre;
+      cursor: text;
+      transform-origin: 0% 0%;
+    }
+    .textLayer ::selection {
+      background: rgba(56, 189, 248, 0.55);
+      color: transparent;
+    }
+
+    /* Sidebar de marcas */
+    .pdf-annots-sidebar {
+      width: 360px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 920px;
+      overflow-y: auto;
+    }
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 0.5rem;
+    }
+    .sidebar-header h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .annots-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      min-height: 180px;
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+    .annots-empty {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      background: var(--surface-2);
+      border-radius: var(--radius);
+      border: 1px dashed var(--border);
+    }
+    .annot-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      position: relative;
+      font-size: 0.8rem;
+      transition: border-color 0.15s;
+    }
+    .annot-card--comment {
+      border-left: 3px solid #38bdf8;
+    }
+    .annot-card--strike {
+      border-left: 3px solid #ef4444;
+    }
+    .annot-card--humanize {
+      border-left: 3px solid #10b981;
+    }
+    .annot-card__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .annot-card__quote {
+      background: rgba(0,0,0,0.15);
+      padding: 0.35rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.76rem;
+      color: var(--text);
+      font-style: italic;
+      word-break: break-word;
+      border: 1px solid var(--border-subtle);
+    }
+    .annot-card__note {
+      font-size: 0.78rem;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+      padding: 0.3rem 0.5rem;
+      border-radius: 4px;
+    }
+    .annot-card__del {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0 0.25rem;
+    }
+    .annot-card__del:hover {
+      color: var(--bad);
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(56, 189, 248, 0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -578,6 +1050,24 @@
           <div class="metric-card__label">Exportación Word</div>
           <div id="statDocxStatus" class="metric-card__val">—</div>
           <div id="statDocxSub" class="metric-card__sub">—</div>
+        </div>
+      </div>
+
+      <!-- Visual illuminated flow track -->
+      <div class="panel flujo-general-card">
+        <div class="panel__header">
+          <div class="panel__title">
+            <span>⚡ Flujo General del Pipeline — Estado de Etapas</span>
+          </div>
+          <div class="flujo-meta-summary">
+            <span class="badge badge--lit" id="flujoLitBadge">💡 0 Superadas (Iluminadas)</span>
+            <span class="badge badge--unlit" id="flujoUnlitBadge">⚫ 0 Pendientes (Sin Luz)</span>
+          </div>
+        </div>
+        <div class="flujo-track-container">
+          <div class="flujo-track" id="flujoTrack">
+            <!-- Dynamically rendered -->
+          </div>
         </div>
       </div>
 
@@ -708,18 +1198,112 @@
       </div>
     </div>
 
-    <!-- TAB 7: VISOR PDF -->
+    <!-- TAB 7: VISOR PDF CON HERRAMIENTAS EDITORIALES Y EJECUCIÓN -->
     <div id="pane-preview" class="tab-pane">
-      <div class="panel">
-        <div class="panel__header">
-          <div class="panel__title">Previsualización del Documento LaTeX Compilado (main.pdf)</div>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <span id="pdfInfoBadge" class="badge badge--ok">— páginas</span>
-            <a href="/api/pdf" download class="btn">Descargar PDF</a>
-            <a href="/api/pdf" target="_blank" class="btn btn--primary">Pantalla Completa ↗</a>
+      <div class="panel" style="margin-bottom: 0.75rem;">
+        <div class="panel__header" style="flex-wrap: wrap; gap: 0.75rem;">
+          <div class="panel__title">
+            <span>📄 Revisión y Marcado Editorial sobre PDF (main.pdf)</span>
+            <span id="pdfInfoBadge" class="badge badge--ok" style="font-size: 0.72rem; margin-left: 0.5rem;">— páginas</span>
+          </div>
+          
+          <div class="pdf-toolbar">
+            <!-- Paginación y Zoom -->
+            <div class="btn-group">
+              <button class="btn btn--sm" id="btnPrevPage" onclick="changePdfPage(-1)" title="Página anterior">◀ Anterior</button>
+              <span class="pdf-page-indicator">Pág. <input type="number" id="inputPdfPage" min="1" value="1" onchange="goToPdfPage(this.value)"> / <span id="pdfTotalPages">1</span></span>
+              <button class="btn btn--sm" id="btnNextPage" onclick="changePdfPage(1)" title="Página siguiente">Siguiente ▶</button>
+            </div>
+
+            <div class="btn-group">
+              <button class="btn btn--sm" onclick="zoomPdf(-0.15)" title="Reducir zoom">🔍−</button>
+              <span id="pdfZoomLabel" style="font-size: 0.75rem; padding: 0 0.4rem; color: var(--text-muted);">120%</span>
+              <button class="btn btn--sm" onclick="zoomPdf(0.15)" title="Aumentar zoom">🔍+</button>
+            </div>
+
+            <!-- BOTONES EXIGIDOS: Comentario, Tachar, Humanizar -->
+            <div class="btn-group pdf-tools-group">
+              <button class="btn btn--tool btn--comment" id="btnComment" onclick="triggerAddComment()" title="Comentario sobre el texto seleccionado en el PDF">
+                💬 Comentario
+              </button>
+              <button class="btn btn--tool btn--strikethrough" id="btnStrikethrough" onclick="triggerStrikethrough()" title="Tachar texto seleccionado para eliminarlo del LaTeX">
+                ✂️ Tachar
+              </button>
+              <button class="btn btn--tool btn--humanize" id="btnHumanize" onclick="triggerHumanize()" title="Humanizar el texto seleccionado con la skill estilo-natural-es">
+                ✨ Humanizar la redacción
+              </button>
+            </div>
+
+            <!-- Bandeja de marcas pendientes -->
+            <button class="btn btn--sm" id="btnToggleTray" onclick="toggleAnnotationsTray()">
+              📋 Marcas (<span id="trayCountBadge">0</span>)
+            </button>
+
+            <!-- BOTÓN EXIGIDO: Ejecutar -->
+            <button class="btn btn--primary btn--execute" id="btnExecuteChanges" onclick="confirmAndExecuteChanges()" title="Ejecutar cambios en LaTeX, aplicar estilo-natural-es y recompilar PDF">
+              🚀 Ejecutar Cambios
+            </button>
+
+            <!-- Enlaces directos -->
+            <button class="btn btn--sm" onclick="toggleNativeViewer()" id="btnToggleNative">Visor Nativo</button>
+            <a href="/api/pdf" download class="btn btn--sm">⬇ Descargar</a>
           </div>
         </div>
-        <iframe id="pdfIframe" class="iframe-viewer" src="/api/pdf"></iframe>
+
+        <!-- Barra informativa de selección activa -->
+        <div class="pdf-selection-bar" id="pdfSelectionBar">
+          <span class="selection-status-icon">💡</span>
+          <span id="pdfSelectionInfoText">Selecciona cualquier texto en el PDF con el mouse para aplicar <strong>Comentario</strong>, <strong>Tachar</strong> o <strong>Humanizar</strong>.</span>
+          <div id="selectionActionsQuick" style="display: none; gap: 0.4rem; margin-left: auto;">
+            <button class="btn btn--sm btn--comment" onclick="triggerAddComment()">💬 Comentar</button>
+            <button class="btn btn--sm btn--strikethrough" onclick="triggerStrikethrough()">✂️ Tachar</button>
+            <button class="btn btn--sm btn--humanize" onclick="triggerHumanize()">✨ Humanizar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layout del visor con panel lateral de marcas -->
+      <div class="pdf-workspace-layout">
+        <div class="pdf-viewport-container" id="pdfViewportContainer">
+          <div id="pdfLoadingSpinner" class="pdf-loading-overlay">
+            <div class="spinner"></div>
+            <p>Cargando documento PDF...</p>
+          </div>
+          <div id="pdfPageContainer" class="pdf-page-container">
+            <canvas id="pdfCanvas"></canvas>
+            <div id="pdfTextLayer" class="textLayer"></div>
+          </div>
+          <iframe id="pdfNativeIframe" class="iframe-viewer" src="/api/pdf" style="display: none; height: 850px; width: 100%;"></iframe>
+        </div>
+
+        <!-- Sidebar / Bandeja lateral de marcas pendientes -->
+        <div class="pdf-annots-sidebar" id="pdfAnnotsSidebar">
+          <div class="sidebar-header">
+            <h4>Marcas Editoriales Pendientes (<span id="sidebarCount">0</span>)</h4>
+            <button class="btn btn--sm" onclick="clearAllAnnotations()" title="Descartar todas las marcas">Vaciar</button>
+          </div>
+          
+          <div class="annots-list" id="annotsList">
+            <div class="annots-empty">
+              <p>No hay marcas pendientes.</p>
+              <small>Selecciona texto en el documento y haz clic en <strong>Comentario</strong>, <strong>Tachar</strong> o <strong>Humanizar</strong>.</small>
+            </div>
+          </div>
+
+          <div class="sidebar-footer">
+            <button class="btn btn--primary btn--execute" style="width: 100%; justify-content: center;" onclick="confirmAndExecuteChanges()">
+              🚀 Ejecutar (<span id="sidebarBtnCount">0</span>)
+            </button>
+          </div>
+
+          <!-- Historial de ejecuciones previas -->
+          <div class="execution-history" id="executionHistorySection">
+            <h5 style="margin-top: 1rem; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase;">Última Ejecución Registrada</h5>
+            <div id="lastExecutionBox" style="font-size: 0.78rem; background: var(--surface-2); padding: 0.65rem; border-radius: var(--radius); border: 1px solid var(--border);">
+              Sin ejecuciones registradas.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -751,6 +1335,89 @@
       </div>
       <div id="drawerBody">
         <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Agregar Comentario -->
+  <div class="drawer-overlay" id="commentModal" onclick="closeCommentModal(event)">
+    <div class="drawer" style="max-width: 540px;" onclick="event.stopPropagation()">
+      <div class="drawer__header">
+        <h3 style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.4rem;">💬 Agregar Comentario de Revisión</h3>
+        <button class="drawer__close" onclick="closeCommentModal()">&times;</button>
+      </div>
+      <div style="padding: 1rem 0; display: flex; flex-direction: column; gap: 0.85rem;">
+        <div>
+          <label style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.35rem;">Texto Seleccionado en PDF (Pág. <span id="commentModalPage">1</span>):</label>
+          <div id="commentModalQuote" style="background: var(--surface-2); padding: 0.65rem; border-radius: var(--radius); border: 1px solid var(--border); font-size: 0.82rem; font-style: italic; max-height: 120px; overflow-y: auto;">
+            —
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.35rem;">Comentario / Instrucción para el agente:</label>
+          <textarea id="commentModalInput" rows="4" style="width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem; font-family: var(--font-sans); font-size: 0.85rem; resize: vertical;" placeholder="Ej: Ajustar redacción para enfatizar el alcance de la cohorte en Manizales y Pereira..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+          <button class="btn" onclick="closeCommentModal()">Cancelar</button>
+          <button class="btn btn--primary" onclick="saveCommentAnnotation()">Guardar Marca de Comentario</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación y Ejecución -->
+  <div class="drawer-overlay" id="executeModal" onclick="closeExecuteModal(event)">
+    <div class="drawer" style="max-width: 600px;" onclick="event.stopPropagation()">
+      <div class="drawer__header">
+        <h3 style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.4rem;">🚀 Ejecutar Cambios Editoriales en el Proyecto</h3>
+        <button class="drawer__close" onclick="closeExecuteModal()">&times;</button>
+      </div>
+      <div style="padding: 1rem 0; display: flex; flex-direction: column; gap: 0.85rem;">
+        <p style="font-size: 0.88rem; color: var(--text); line-height: 1.5;">
+          El agente procesará las marcas editoriales sobre el código fuente LaTeX de la corrida activa:
+        </p>
+
+        <div id="executeSummaryBreakdown" style="background: var(--surface-2); padding: 0.75rem; border-radius: var(--radius); border: 1px solid var(--border); font-size: 0.82rem; display: flex; flex-direction: column; gap: 0.4rem;">
+          <!-- Injected dynamically -->
+        </div>
+
+        <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.8rem; color: var(--text-muted);">
+          ℹ️ Los textos tachados serán eliminados de las secciones LaTeX correspondientes. Los comentarios se insertarán como anotaciones de revisión y los textos marcados se humanizarán aplicando la skill <code>estilo-natural-es</code>. Finalmente, se ejecutará la recompilación a PDF.
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+          <button class="btn" onclick="closeExecuteModal()">Cancelar</button>
+          <button class="btn btn--primary btn--execute" onclick="executeQueuedChanges()">Confirmar y Ejecutar Ahora</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Progreso de Ejecución -->
+  <div class="drawer-overlay" id="executingProgressModal">
+    <div class="drawer" style="max-width: 480px; text-align: center; padding: 2rem 1.5rem;" onclick="event.stopPropagation()">
+      <div class="spinner" style="margin: 0 auto 1.25rem auto; width: 48px; height: 48px; border-width: 4px;"></div>
+      <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem;">Ejecutando Cambios Editoriales...</h3>
+      <p id="executingProgressText" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+        Modificando secciones LaTeX, aplicando humanización y recompilando el documento PDF. Por favor espera...
+      </p>
+    </div>
+  </div>
+
+  <!-- Modal de Resumen Posterior a Ejecución -->
+  <div class="drawer-overlay" id="summaryModal" onclick="closeSummaryModal(event)">
+    <div class="drawer" style="max-width: 600px;" onclick="event.stopPropagation()">
+      <div class="drawer__header">
+        <h3 style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.4rem;" id="summaryModalTitle">✅ Ejecución Completada Exitosamente</h3>
+        <button class="drawer__close" onclick="closeSummaryModal()">&times;</button>
+      </div>
+      <div style="padding: 1rem 0; display: flex; flex-direction: column; gap: 0.85rem;" id="summaryModalBody">
+        <!-- Rendered by JS -->
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+        <button class="btn btn--primary" onclick="closeSummaryModal()">Aceptar y Ver PDF Actualizado</button>
       </div>
     </div>
   </div>
@@ -803,6 +1470,10 @@
       if (targetBtn) targetBtn.classList.add('active');
       const targetPane = document.getElementById(`pane-${tabId}`);
       if (targetPane) targetPane.classList.add('active');
+
+      if (tabId === 'preview') {
+        initPdfViewer();
+      }
     }
 
     function switchGraph(kind) {
@@ -920,21 +1591,63 @@
         document.getElementById('statDocxStatus').style.color = docxOk ? 'var(--ok)' : 'var(--text-muted)';
         document.getElementById('statDocxSub').textContent = docxOk ? `${Math.round(details.docx_size / 1024)} KB` : 'build.sh --docx';
 
-        // Render Pipeline Grid
+        // Render Illuminated vs Unlit Flujo General
+        const flujoTrack = document.getElementById('flujoTrack');
+        if (flujoTrack) {
+          flujoTrack.innerHTML = '';
+          let litCount = 0;
+          let unlitCount = 0;
+
+          PHASES_INFO.forEach((p, idx) => {
+            const gateMatch = (data.gates || []).find(g => g.id === p.gate);
+            const gateStatus = gateMatch ? gateMatch.status : 'PENDING';
+            const isLit = (gateStatus === 'PASS');
+
+            if (isLit) litCount++;
+            else unlitCount++;
+
+            const stepDiv = document.createElement('div');
+            stepDiv.className = `flujo-step ${isLit ? 'flujo-step--lit' : 'flujo-step--unlit'}`;
+            stepDiv.onclick = () => openDrawer(idx);
+            stepDiv.title = `${p.name} · ${isLit ? 'SUPERADA (ILUMINADA)' : 'PENDIENTE (SIN LUZ)'}`;
+
+            const isLast = (idx === PHASES_INFO.length - 1);
+            const nextGateMatch = !isLast ? (data.gates || []).find(g => g.id === PHASES_INFO[idx + 1].gate) : null;
+            const isConnectorLit = isLit && (nextGateMatch ? nextGateMatch.status === 'PASS' : false);
+
+            stepDiv.innerHTML = `
+              ${!isLast ? `<div class="flujo-connector ${isConnectorLit ? 'flujo-connector--lit' : 'flujo-connector--unlit'}"></div>` : ''}
+              <div class="flujo-beacon">
+                ${isLit ? '💡' : '⚫'}
+              </div>
+              <div class="flujo-title">${p.id}</div>
+              <div class="flujo-badge">${isLit ? 'PASS' : 'SIN LUZ'}</div>
+            `;
+            flujoTrack.appendChild(stepDiv);
+          });
+
+          const litBadge = document.getElementById('flujoLitBadge');
+          if (litBadge) litBadge.innerHTML = `💡 ${litCount} Superadas (Iluminadas)`;
+          const unlitBadge = document.getElementById('flujoUnlitBadge');
+          if (unlitBadge) unlitBadge.innerHTML = `⚫ ${unlitCount} Pendientes (Sin Luz)`;
+        }
+
+        // Render Pipeline Grid with illuminated vs unlit cards
         const pipeGrid = document.getElementById('pipelineGrid');
         pipeGrid.innerHTML = '';
         PHASES_INFO.forEach((p, idx) => {
           const gateMatch = (data.gates || []).find(g => g.id === p.gate);
           const gateStatus = gateMatch ? gateMatch.status : 'PENDING';
-          const badgeTone = gateStatus === 'PASS' ? 'ok' : (gateStatus === 'BLOCKED' ? 'bad' : 'warn');
+          const isLit = (gateStatus === 'PASS');
+          const badgeTone = isLit ? 'ok' : (gateStatus === 'BLOCKED' ? 'bad' : 'warn');
 
           const card = document.createElement('div');
-          card.className = 'phase-card';
+          card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
           card.onclick = () => openDrawer(idx);
           card.innerHTML = `
             <div class="phase-card__head">
               <span class="phase-card__name">${p.name}</span>
-              <span class="badge badge--${badgeTone}">${p.gate}: ${gateStatus}</span>
+              <span class="badge badge--${badgeTone}">${isLit ? '💡 ' : ''}${p.gate}: ${gateStatus}</span>
             </div>
             <p class="phase-card__desc">${p.desc}</p>
             <div class="phase-card__foot">
@@ -964,17 +1677,18 @@
           secTbody.appendChild(tr);
         });
 
-        // Render Gates Grid
+        // Render Gates Grid with illuminated vs unlit cards
         const gatesGrid = document.getElementById('gatesGrid');
         gatesGrid.innerHTML = '';
         (data.gates || []).forEach(g => {
+          const isLit = (g.status === 'PASS');
           const card = document.createElement('div');
-          card.className = 'phase-card';
-          const badgeTone = g.status === 'PASS' ? 'ok' : (g.status === 'BLOCKED' ? 'bad' : 'warn');
+          card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
+          const badgeTone = isLit ? 'ok' : (g.status === 'BLOCKED' ? 'bad' : 'warn');
           card.innerHTML = `
             <div class="phase-card__head">
               <span class="phase-card__name">${g.id} — ${g.name}</span>
-              <span class="badge badge--${badgeTone}">${g.status}</span>
+              <span class="badge badge--${badgeTone}">${isLit ? '💡 ' : ''}${g.status}</span>
             </div>
             <p class="phase-card__desc">${g.criteria}</p>
             <div class="phase-card__foot">
@@ -1031,6 +1745,428 @@
       } catch (err) {
         console.error("Error cargando estado:", err);
       }
+    }
+
+    /* =========================================================
+       VISOR PDF INTERACTIVO (PDF.js) Y HERRAMIENTAS EDITORIALES
+       ========================================================= */
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/vendor/pdf.worker.min.js';
+    }
+
+    let pdfDoc = null;
+    let pdfCurrentPage = 1;
+    let pdfTotalPages = 1;
+    let pdfScale = 1.25;
+    let isRenderingPdfPage = false;
+    let currentSelectedText = '';
+    let currentSelectedPage = 1;
+    let queuedAnnotations = [];
+    let isNativePdfViewer = false;
+
+    async function initPdfViewer(forceReload = false) {
+      if (pdfDoc && !forceReload) return;
+      const spinner = document.getElementById('pdfLoadingSpinner');
+      if (spinner) spinner.style.display = 'flex';
+
+      try {
+        const url = `/api/pdf?t=${Date.now()}`;
+        const loadingTask = pdfjsLib.getDocument(url);
+        pdfDoc = await loadingTask.promise;
+        pdfTotalPages = pdfDoc.numPages;
+        document.getElementById('pdfTotalPages').textContent = pdfTotalPages;
+        document.getElementById('inputPdfPage').max = pdfTotalPages;
+        
+        await renderPdfPage(pdfCurrentPage);
+        loadExecutionHistory();
+      } catch (err) {
+        console.error("Error cargando PDF con PDF.js:", err);
+        // Fallback to native iframe if PDF.js fails
+        document.getElementById('pdfPageContainer').style.display = 'none';
+        document.getElementById('pdfNativeIframe').style.display = 'block';
+      } finally {
+        if (spinner) spinner.style.display = 'none';
+      }
+    }
+
+    async function renderPdfPage(pageNum) {
+      if (!pdfDoc) return;
+      if (pageNum < 1) pageNum = 1;
+      if (pageNum > pdfTotalPages) pageNum = pdfTotalPages;
+      pdfCurrentPage = pageNum;
+      document.getElementById('inputPdfPage').value = pdfCurrentPage;
+
+      isRenderingPdfPage = true;
+      const page = await pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: pdfScale });
+
+      const canvas = document.getElementById('pdfCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      const pageContainer = document.getElementById('pdfPageContainer');
+      pageContainer.style.width = `${viewport.width}px`;
+      pageContainer.style.height = `${viewport.height}px`;
+
+      const textLayerDiv = document.getElementById('pdfTextLayer');
+      textLayerDiv.style.width = `${viewport.width}px`;
+      textLayerDiv.style.height = `${viewport.height}px`;
+      textLayerDiv.innerHTML = '';
+
+      // Render canvas
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+      // Render text layer
+      try {
+        const textContent = await page.getTextContent();
+        const textLayerRender = pdfjsLib.renderTextLayer({
+          textContentSource: textContent,
+          container: textLayerDiv,
+          viewport: viewport
+        });
+        if (textLayerRender && textLayerRender.promise) {
+          await textLayerRender.promise;
+        }
+      } catch (e) {
+        console.warn("Error renderizando textLayer:", e);
+      }
+
+      isRenderingPdfPage = false;
+      clearSelectionNotice();
+    }
+
+    function changePdfPage(delta) {
+      const target = pdfCurrentPage + delta;
+      if (target >= 1 && target <= pdfTotalPages) {
+        renderPdfPage(target);
+      }
+    }
+
+    function goToPdfPage(val) {
+      const page = parseInt(val, 10);
+      if (!isNaN(page) && page >= 1 && page <= pdfTotalPages) {
+        renderPdfPage(page);
+      }
+    }
+
+    function zoomPdf(delta) {
+      let newScale = pdfScale + delta;
+      if (newScale < 0.75) newScale = 0.75;
+      if (newScale > 2.5) newScale = 2.5;
+      pdfScale = Math.round(newScale * 100) / 100;
+      document.getElementById('pdfZoomLabel').textContent = `${Math.round(pdfScale * 100)}%`;
+      renderPdfPage(pdfCurrentPage);
+    }
+
+    function toggleNativeViewer() {
+      isNativePdfViewer = !isNativePdfViewer;
+      const pageCont = document.getElementById('pdfPageContainer');
+      const iframe = document.getElementById('pdfNativeIframe');
+      const btn = document.getElementById('btnToggleNative');
+      if (isNativePdfViewer) {
+        pageCont.style.display = 'none';
+        iframe.style.display = 'block';
+        iframe.src = `/api/pdf?t=${Date.now()}`;
+        btn.textContent = 'Visor PDF.js';
+      } else {
+        iframe.style.display = 'none';
+        pageCont.style.display = 'block';
+        btn.textContent = 'Visor Nativo';
+        renderPdfPage(pdfCurrentPage);
+      }
+    }
+
+    function handleTextSelection() {
+      const selection = window.getSelection();
+      const text = selection.toString().trim();
+      if (text.length > 0) {
+        currentSelectedText = text;
+        currentSelectedPage = pdfCurrentPage;
+        
+        const previewExcerpt = text.length > 80 ? text.substring(0, 77) + '...' : text;
+        const infoEl = document.getElementById('pdfSelectionInfoText');
+        if (infoEl) {
+          infoEl.innerHTML = 
+            `Texto seleccionado (Pág. ${currentSelectedPage}, ${text.split(/\s+/).length} palabras): <strong>"${escapeHtml(previewExcerpt)}"</strong>`;
+        }
+        const quickEl = document.getElementById('selectionActionsQuick');
+        if (quickEl) quickEl.style.display = 'flex';
+      }
+    }
+
+    function clearSelectionNotice() {
+      if (!currentSelectedText) {
+        const infoEl = document.getElementById('pdfSelectionInfoText');
+        if (infoEl) {
+          infoEl.innerHTML = 
+            'Selecciona cualquier texto en el PDF con el mouse para aplicar <strong>Comentario</strong>, <strong>Tachar</strong> o <strong>Humanizar</strong>.';
+        }
+        const quickEl = document.getElementById('selectionActionsQuick');
+        if (quickEl) quickEl.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('selectionchange', () => {
+      if (activeTab === 'preview') {
+        const sel = window.getSelection();
+        const str = sel.toString().trim();
+        if (str) {
+          handleTextSelection();
+        }
+      }
+    });
+
+    function triggerAddComment() {
+      const sel = window.getSelection().toString().trim();
+      const targetText = sel || currentSelectedText;
+      if (!targetText) {
+        alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para agregar tu comentario.");
+        return;
+      }
+      currentSelectedText = targetText;
+      document.getElementById('commentModalPage').textContent = currentSelectedPage;
+      document.getElementById('commentModalQuote').textContent = `"${targetText}"`;
+      document.getElementById('commentModalInput').value = '';
+      document.getElementById('commentModal').classList.add('active');
+      document.getElementById('commentModalInput').focus();
+    }
+
+    function closeCommentModal() {
+      document.getElementById('commentModal').classList.remove('active');
+    }
+
+    function saveCommentAnnotation() {
+      const comment = document.getElementById('commentModalInput').value.trim();
+      if (!comment) {
+        alert("Por favor escribe tu comentario o instrucción para el agente.");
+        return;
+      }
+      queuedAnnotations.push({
+        id: 'ann_' + Date.now(),
+        type: 'comment',
+        text: currentSelectedText,
+        comment: comment,
+        page: currentSelectedPage
+      });
+      closeCommentModal();
+      renderAnnotationsTray();
+      showToast('Comentario agregado a marcas pendientes');
+    }
+
+    function triggerStrikethrough() {
+      const sel = window.getSelection().toString().trim();
+      const targetText = sel || currentSelectedText;
+      if (!targetText) {
+        alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para tacharlo (marcarlo para eliminar).");
+        return;
+      }
+      queuedAnnotations.push({
+        id: 'ann_' + Date.now(),
+        type: 'strikethrough',
+        text: targetText,
+        page: currentSelectedPage
+      });
+      renderAnnotationsTray();
+      showToast('Texto marcado para tachar/eliminar');
+    }
+
+    function triggerHumanize() {
+      const sel = window.getSelection().toString().trim();
+      const targetText = sel || currentSelectedText;
+      if (!targetText) {
+        alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para marcarlo a humanizar con la skill estilo-natural-es.");
+        return;
+      }
+      queuedAnnotations.push({
+        id: 'ann_' + Date.now(),
+        type: 'humanize',
+        text: targetText,
+        page: currentSelectedPage
+      });
+      renderAnnotationsTray();
+      showToast('Texto marcado para humanizar con estilo-natural-es');
+    }
+
+    function removeAnnotation(id) {
+      queuedAnnotations = queuedAnnotations.filter(a => a.id !== id);
+      renderAnnotationsTray();
+    }
+
+    function clearAllAnnotations() {
+      if (queuedAnnotations.length === 0) return;
+      if (confirm("¿Descartar todas las marcas pendientes sin ejecutar?")) {
+        queuedAnnotations = [];
+        renderAnnotationsTray();
+      }
+    }
+
+    function toggleAnnotationsTray() {
+      const sidebar = document.getElementById('pdfAnnotsSidebar');
+      if (sidebar.style.display === 'none') {
+        sidebar.style.display = 'flex';
+      } else {
+        sidebar.style.display = (sidebar.style.display === 'flex') ? 'none' : 'flex';
+      }
+    }
+
+    function renderAnnotationsTray() {
+      const count = queuedAnnotations.length;
+      document.getElementById('trayCountBadge').textContent = count;
+      document.getElementById('sidebarCount').textContent = count;
+      document.getElementById('sidebarBtnCount').textContent = count;
+
+      const list = document.getElementById('annotsList');
+      if (count === 0) {
+        list.innerHTML = `
+          <div class="annots-empty">
+            <p>No hay marcas pendientes.</p>
+            <small>Selecciona texto en el documento y haz clic en <strong>Comentario</strong>, <strong>Tachar</strong> o <strong>Humanizar</strong>.</small>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = '';
+      queuedAnnotations.forEach(ann => {
+        const card = document.createElement('div');
+        const typeClass = ann.type === 'comment' ? 'annot-card--comment' : (ann.type === 'strikethrough' ? 'annot-card--strike' : 'annot-card--humanize');
+        const typeLabel = ann.type === 'comment' ? '💬 Comentario' : (ann.type === 'strikethrough' ? '✂️ Tachar' : '✨ Humanizar');
+        const badgeColor = ann.type === 'comment' ? 'info' : (ann.type === 'strikethrough' ? 'bad' : 'ok');
+
+        card.className = `annot-card ${typeClass}`;
+        card.innerHTML = `
+          <div class="annot-card__head">
+            <span class="badge badge--${badgeColor}">${typeLabel} · Pág. ${ann.page}</span>
+            <button class="annot-card__del" onclick="removeAnnotation('${ann.id}')" title="Eliminar marca">✕</button>
+          </div>
+          <div class="annot-card__quote">"${escapeHtml(ann.text)}"</div>
+          ${ann.comment ? `<div class="annot-card__note"><strong>Instrucción:</strong> ${escapeHtml(ann.comment)}</div>` : ''}
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function confirmAndExecuteChanges() {
+      if (queuedAnnotations.length === 0) {
+        alert("No hay marcas editoriales pendientes para ejecutar. Selecciona texto en el PDF y usa los botones Comentario, Tachar o Humanizar.");
+        return;
+      }
+
+      const strikes = queuedAnnotations.filter(a => a.type === 'strikethrough').length;
+      const comments = queuedAnnotations.filter(a => a.type === 'comment').length;
+      const humanizes = queuedAnnotations.filter(a => a.type === 'humanize').length;
+
+      const breakdown = document.getElementById('executeSummaryBreakdown');
+      breakdown.innerHTML = `
+        <div>✂️ <strong>${strikes}</strong> texto(s) para eliminar del código fuente LaTeX.</div>
+        <div>💬 <strong>${comments}</strong> comentario(s) de revisión para incorporar.</div>
+        <div>✨ <strong>${humanizes}</strong> pasaje(s) para humanizar con la skill <code>estilo-natural-es</code>.</div>
+        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--accent);">Total de marcas a ejecutar: ${queuedAnnotations.length}</div>
+      `;
+
+      document.getElementById('executeModal').classList.add('active');
+    }
+
+    function closeExecuteModal() {
+      document.getElementById('executeModal').classList.remove('active');
+    }
+
+    async function executeQueuedChanges() {
+      closeExecuteModal();
+      document.getElementById('executingProgressModal').classList.add('active');
+
+      try {
+        const response = await fetch('/api/pdf/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ annotations: queuedAnnotations })
+        });
+
+        const result = await response.json();
+        document.getElementById('executingProgressModal').classList.remove('active');
+
+        if (!result.ok) {
+          alert(`Error durante la ejecución: ${result.error || 'Fallo desconocido'}`);
+          return;
+        }
+
+        // Execution successful
+        queuedAnnotations = [];
+        renderAnnotationsTray();
+
+        // Populate summary modal
+        const s = result.summary || {};
+        const body = document.getElementById('summaryModalBody');
+        body.innerHTML = `
+          <div style="background: var(--surface-2); padding: 0.85rem; border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem;">
+            <div>✂️ <strong>${s.strikethrough_applied || 0}</strong> textos tachados eliminados de las fuentes LaTeX.</div>
+            <div>💬 <strong>${s.comments_applied || 0}</strong> comentarios insertados en el proyecto.</div>
+            <div>✨ <strong>${s.humanize_applied || 0}</strong> pasajes humanizados con la skill <code>estilo-natural-es</code>.</div>
+            <div>📁 <strong>${(s.files_modified || []).length}</strong> archivo(s) modificados: <code>${(s.files_modified || []).join(', ') || 'Ninguno'}</code></div>
+            <div>📄 Recompilación de main.pdf: <strong style="color: ${s.pdf_recompiled ? 'var(--ok)' : 'var(--warn)'}">${s.pdf_recompiled ? '✓ Exitosa' : 'Revisar log'}</strong></div>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
+            El reporte detallado fue persistido en <code>artefactos/anotaciones_pdf.md</code>. El documento PDF se ha actualizado con los cambios aplicados.
+          </p>
+        `;
+        document.getElementById('summaryModal').classList.add('active');
+
+        // Reload PDF and refresh history & status
+        await initPdfViewer(true);
+        loadExecutionHistory();
+        loadStatus();
+
+      } catch (err) {
+        document.getElementById('executingProgressModal').classList.remove('active');
+        alert(`Error comunicando con el servidor: ${err.message}`);
+      }
+    }
+
+    function closeSummaryModal() {
+      document.getElementById('summaryModal').classList.remove('active');
+    }
+
+    async function loadExecutionHistory() {
+      try {
+        const res = await fetch('/api/pdf/annotations');
+        if (!res.ok) return;
+        const data = await res.json();
+        const box = document.getElementById('lastExecutionBox');
+        if (!box) return;
+        if (!data || !data.timestamp) {
+          box.innerHTML = 'Sin ejecuciones editoriales previas.';
+          return;
+        }
+
+        const app = data.applied || {};
+        box.innerHTML = `
+          <div><strong>Fecha:</strong> ${data.timestamp.split('T')[0]} ${data.timestamp.split('T')[1].slice(0,5)}</div>
+          <div>✂️ Tachados: <strong>${app.strikethrough || 0}</strong> · 💬 Comentarios: <strong>${app.comments || 0}</strong> · ✨ Humanizados: <strong>${app.humanize || 0}</strong></div>
+          <div style="margin-top: 0.25rem;"><a href="javascript:void(0)" onclick="navigateTab('artifacts'); loadArtifact('artefactos/anotaciones_pdf.md');" style="color: var(--accent);">Ver informe anotaciones_pdf.md ↗</a></div>
+        `;
+      } catch (e) {
+        console.warn("Error cargando historial de anotaciones:", e);
+      }
+    }
+
+    function showToast(msg) {
+      const bar = document.getElementById('pdfSelectionInfoText');
+      if (bar) {
+        bar.innerHTML = `<span style="color: var(--ok); font-weight: 700;">✓ ${msg}</span>`;
+        setTimeout(() => {
+          clearSelectionNotice();
+        }, 2500);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     }
 
     // Hash routing on load

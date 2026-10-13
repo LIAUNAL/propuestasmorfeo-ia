@@ -14,6 +14,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from ..core.pdf_annotator import apply_pdf_annotations
 from ..core.status import get_project_status
 
 
@@ -68,17 +69,24 @@ def parse_telemetria(telemetria_file: Path) -> list[dict[str, Any]]:
 class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
     workspace_dir: Path
 
+    def do_HEAD(self) -> None:
+        self.do_GET()
+
     def do_GET(self) -> None:
         path = self.path.split("?")[0]
 
         if path in ("/", "/index.html"):
             self.serve_dashboard()
+        elif path.startswith("/static/vendor/"):
+            self.serve_vendor_asset(path)
         elif path == "/api/status":
             self.serve_api_status()
         elif path == "/api/flow":
             self.serve_flow()
         elif path == "/api/pdf":
             self.serve_pdf()
+        elif path == "/api/pdf/annotations":
+            self.serve_pdf_annotations()
         elif path == "/api/graph/papers":
             self.serve_graph("papers-graph.html")
         elif path == "/api/graph/vault":
@@ -87,6 +95,96 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_artifact()
         else:
             self.send_error(404, "Not Found")
+
+    def do_POST(self) -> None:
+        path = self.path.split("?")[0]
+        if path == "/api/pdf/execute":
+            self.handle_pdf_execute()
+        else:
+            self.send_error(404, "Not Found")
+
+    def serve_vendor_asset(self, req_path: str) -> None:
+        filename = req_path.replace("/static/vendor/", "")
+        vendor_dir = (Path(__file__).resolve().parent / "static" / "vendor").resolve()
+        target = (vendor_dir / filename).resolve()
+        try:
+            target.relative_to(vendor_dir)
+        except ValueError:
+            self.send_error(403, "Access denied")
+            return
+
+        if not target.is_file():
+            self.send_error(404, "Asset not found")
+            return
+
+        content_type = "application/javascript; charset=utf-8" if target.suffix == ".js" else (
+            "text/css; charset=utf-8" if target.suffix == ".css" else "application/octet-stream"
+        )
+        content = target.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
+    def serve_pdf_annotations(self) -> None:
+        data = get_project_status(self.workspace_dir)
+        active_run = data.get("active_run")
+        if not active_run:
+            self.send_error(404, "No active run")
+            return
+
+        ann_file = self.workspace_dir / "proposals" / active_run / "artefactos" / "pipeline" / "anotaciones_pdf.json"
+        if not ann_file.is_file():
+            ann_file = self.workspace_dir / "proposals" / active_run / "artefactos" / "anotaciones_pdf.json"
+
+        if ann_file.is_file():
+            body = ann_file.read_bytes()
+        else:
+            body = json.dumps({"timestamp": None, "annotations": [], "applied": {}}).encode("utf-8")
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def handle_pdf_execute(self) -> None:
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length)
+            payload = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+        except Exception as e:
+            err_body = json.dumps({"ok": False, "error": f"JSON payload inválido: {e}"}).encode("utf-8")
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(err_body)))
+            self.end_headers()
+            self.wfile.write(err_body)
+            return
+
+        annotations = payload.get("annotations", [])
+        data = get_project_status(self.workspace_dir)
+        active_run = data.get("active_run")
+        if not active_run:
+            err_body = json.dumps({"ok": False, "error": "No hay una corrida activa seleccionada"}).encode("utf-8")
+            self.send_response(404)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(err_body)))
+            self.end_headers()
+            self.wfile.write(err_body)
+            return
+
+        run_dir = self.workspace_dir / "proposals" / active_run
+        result = apply_pdf_annotations(run_dir, annotations)
+
+        status_code = 200 if result.get("ok") else 500
+        body = json.dumps(result, indent=2, ensure_ascii=False).encode("utf-8")
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def serve_dashboard(self) -> None:
         html_file = Path(__file__).resolve().parent / "static" / "index.html"
