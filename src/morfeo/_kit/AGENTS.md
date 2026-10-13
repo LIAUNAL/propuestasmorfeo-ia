@@ -58,8 +58,14 @@ Referencia completa del CLI (comandos, flags, entorno, manifest) en
 3. **Enfoque:** Productos/servicios de IA con innovación investigativa,
    transferencia tecnológica clara, productos tangibles con **TRL 6 o 7**.
 4. **Estructura:** Sigue rigurosamente las 16 secciones de la
-   `guiaProyectosIA_Agente.md`. No omitas ni renumeraciones secciones.
-5. **Dependencias cruzadas (obligatorias):**
+   `guiaProyectosIA_Agente.md`. No omitas ni renumeres secciones. **Regla de no
+   inclusión de §1 en el cuerpo de `main.tex`:** El título y la identificación
+   institucional se compilan exclusivamente en el bloque de encabezado/portada
+   (`\begin{center} ... \end{center}`) de `main.tex`. Nunca se incluye una
+   sección numerada de cuerpo ni archivo `sections/01_titulo_identificacion.tex`;
+   el cuerpo numerado arranca directamente tras el front-matter en §2 Justificación y
+   pertinencia (`\setcounter{section}{1}`).
+5. **Dependencias cruzadas y articulación institucional (obligatorias):**
    - Los 3 subproblemas (§3) ↔ 3 objetivos específicos (§7), mapeo 1:1.
    - La pregunta de investigación (cierre §3) ↔ objetivo general (§6).
    - La hipótesis (§5) ↔ objetivo general (§6).
@@ -79,13 +85,23 @@ Referencia completa del CLI (comandos, flags, entorno, manifest) en
    - TRL 6 o 7 debe ser explícito en pertinencia (§2) y resultados esperados
      (§11); **nunca** se nombra en objetivo general (§6) ni en objetivos
      específicos (§7).
+   - Alianza territorial y cohortes: La articulación interinstitucional entre la
+     Universidad Nacional de Colombia Sede Manizales y la Universidad
+     Tecnológica de Pereira (UTP) en el Eje Cafetero vincula una cohorte por
+     conveniencia de 80 estudiantes (`EST-MZ-xxx` y `EST-PE-xxx`), con
+     pruebas de campo y captura en ambos campus.
+   - Tabla 4 de productos esperados (§15): Usa `\usepackage{xltabular}` y el
+     entorno `xltabular` con encabezados de continuación para evitar
+     desbordes de página (`Float too large`).
 6. **Calidad bibliográfica:** ≥10 refs Q1/Q2 para §2 Justificación y
    pertinencia (mínimo 6 párrafos); ≥30 refs Q1/Q2 (≤3 años) para §4 Estado
    del arte; ≥50 refs totales para §16 Bibliografía; formato **APA
    author-year únicamente** (natbib+apalike, `\citet{}`/`\citep{}`) — el
    estilo numérico IEEE (`[1]`) está prohibido, conforme a
    `guiaProyectosIA_Agente.md` §16 Bibliografía. Sin tesis; preprints solo de
-   labs/líderes reconocidos.
+   labs/líderes reconocidos. En `16_bibliografia.tex`, se incluye `\clearpage`
+   y `\renewcommand{\bibsection}{}` para suprimir el título redundante
+   "Referencias" que `natbib` inserta por defecto.
 7. **Carpeta de proyecto por corrida (`RUN_ROOT`):** cada corrida vive en
    **una sola carpeta**, `proposals/<run-id>/`, creada por `/propuesta-init`
    (que delega en `scripts/init-run.sh`, determinista e idempotente) y
@@ -223,46 +239,54 @@ Paso previo  `/propuesta-init <idea>` → crea y activa `proposals/<run-id>/`
         (`RUN_ROOT`) con sus cuatro subcarpetas: insumos/ artefactos/ grafos/
         redaccion/. El usuario deja sus insumos en `insumos/`.
 Fase 0  Insumos-Observador → ingerir insumos
-Fase 1  Investigador → §3 descripción del problema + pregunta, luego el bucle
-        de figura `arbol_problemas` (procedimiento canónico único, ver
-        "Bucle de figuras" abajo):
-          Diseñador-TikZ (autor de `specs/arbol_problemas.spec.json`)
-          → `python3 scripts/figura.py arbol_problemas` (determinista, ~1 s:
-            render → compile → autofix de overflow → auditoría mecánica)
-          → con `FIGURA PASS`, Revisor-Figuras audita SOLO los 4 criterios
-            visuales sobre el preview PNG (PASS/FAIL)
-          → en FAIL (spec, auditoría o visual), vuelve a Tikz-Optimizer, que
-            corrige la SPEC (nunca el .tex); tope compartido de 4 intentos,
-            con escalamiento explícito al usuario al agotarse
-          → en PASS, continúa
+Fase 1  Investigador → §3 descripción del problema + pregunta
+        → Grant-Flow-Auditor (pule §3 con estilo-natural-es)
+        → Bucle de figura `arbol_problemas` (procedimiento canónico único, ver
+          "Bucle de figuras" abajo):
+            Diseñador-TikZ (autor de `specs/arbol_problemas.spec.json`)
+            → `python3 scripts/figura.py arbol_problemas` (determinista, ~1 s:
+              render → compile → autofix de overflow → auditoría mecánica)
+            → con `FIGURA PASS`, Revisor-Figuras audita SOLO los 4 criterios
+              visuales sobre el preview PNG (PASS/FAIL)
+            → en FAIL (spec, auditoría o visual), vuelve a Tikz-Optimizer, que
+              corrige la SPEC (nunca el .tex); tope compartido de 4 intentos,
+              con escalamiento explícito al usuario al agotarse
+            → en PASS, continúa
         ──→ GATE Revisor ──→ user
 Fase 2  Bibliografo-Propuesta → §4 estado del arte (paralelo)
-        Investigador → §5 hipótesis, luego el mismo bucle de figura con
-        `<name>` = `estado_arte` (o `estado_arte_a` + `estado_arte_b` cuando el
-        mapa no cabe en A4 a tamaño natural); contenido autorizado: el bloque
-        comentado al final de `04_estado_arte.tex` ──→ GATE Revisor ──→ user
-Fase 3  Redactor → §2 justificación y pertinencia ──→ GATE Revisor ──→ user
-Fase 4  Investigador → §6 objetivo general + §7 objetivos específicos ──→ GATE Revisor
-        (subproblema↔objetivo específico; también valida hipótesis↔objetivo general) ──→ user
-Fase 5  Investigador → §8 marco conceptual (paralelo)
-        Redactor → §9 equipo de trabajo (deriva roles de §7, nunca de Metodología) ──→ GATE Revisor ──→ user
-Fase 5.5 Redactor → §10 metodología, luego el mismo bucle de figura con
-        `<name>` = `metodologico` (nunca incluye personal responsable dentro de
-        los bloques):
-          Diseñador-TikZ (autor de `specs/metodologico.spec.json`)
-          → `python3 scripts/figura.py metodologico` (determinista)
-          → con `FIGURA PASS`, Revisor-Figuras audita los 4 criterios visuales
-          → en FAIL, Tikz-Optimizer corrige la SPEC; tope compartido de 4
-            intentos
-          → en PASS, continúa
+        Investigador → §5 hipótesis
+        → Grant-Flow-Auditor (pule §4 y §5 con estilo-natural-es)
+        → Bucle de figura `<name>` = `estado_arte` (o `estado_arte_a` + `estado_arte_b`)
         ──→ GATE Revisor ──→ user
-Fase 6  Redactor → §11 resultados esperados; §12 consideraciones éticas (sin gate propio)
+Fase 3  Redactor → §2 justificación y pertinencia
+        → Grant-Flow-Auditor (pule §2 con estilo-natural-es)
+        ──→ GATE Revisor ──→ user
+Fase 4  Investigador → §6 objetivo general + §7 objetivos específicos
+        → Grant-Flow-Auditor (pule §6 y §7 con estilo-natural-es)
+        ──→ GATE Revisor (subproblema↔objetivo específico; valida también hipótesis↔objetivo general) ──→ user
+Fase 5  Investigador → §8 marco conceptual (paralelo)
+        Redactor → §9 equipo de trabajo (deriva roles de §7, nunca de Metodología)
+        → Grant-Flow-Auditor (pule §8 y §9 con estilo-natural-es)
+        ──→ GATE Revisor ──→ user
+Fase 5.5 Redactor → §10 metodología
+        → Grant-Flow-Auditor (pule §10 con estilo-natural-es)
+        → Bucle de figura `<name>` = `metodologico`
+        ──→ GATE Revisor ──→ user
+Fase 6  Redactor → §11 resultados esperados; §12 consideraciones éticas
+        → Grant-Flow-Auditor (pule §11 y §12 con estilo-natural-es) (sin gate propio)
 Fase 6.4  Presupuestador → §13 presupuesto (interactivo) ──→ GATE Revisor ──→ user
-Fase 6.45 Redactor → §14 cronograma de actividades (Gantt); §15 productos esperados
-          Bibliografo-Propuesta → §16 bibliografía (BibTeX) (sin gate propio)
-Fase 6.5  Redactor → front-matter (Resumen, Resumen ejecutivo, Palabras clave),
-          síntesis de §1–§16 ya aprobadas ──→ GATE Revisor ──→ user
-Fase 7  Revisor → auditoría final ──→ user; Coordinador-Propuesta → ensambla main.tex
+Fase 6.45 Redactor → §14 cronograma de actividades (Gantt); §15 productos esperados (xltabular)
+          Bibliografo-Propuesta → §16 bibliografía (BibTeX, con \renewcommand{\bibsection}{})
+          → Grant-Flow-Auditor (pule §14 y §15 con estilo-natural-es) (sin gate propio)
+Fase 6.46 Redactor → §17 articulación comunitaria; §18 apropiación social
+          → Grant-Flow-Auditor (pule §17 y §18 con estilo-natural-es)
+          ──→ GATE Revisor ──→ user
+Fase 6.5  Redactor → front-matter (Resumen, Resumen ejecutivo, Palabras clave);
+          el título e identificación van exclusivamente en el encabezado de `main.tex` (sin sección de cuerpo §1)
+          → Grant-Flow-Auditor (pule front-matter con estilo-natural-es)
+          ──→ GATE Revisor ──→ user
+Fase 7  Revisor → auditoría final integral ──→ user;
+        Coordinador-Propuesta → ensambla main.tex (con \setcounter{section}{1}, xltabular y bibliografía limpia)
 ```
 
 En cada **GATE**, el asistente primario de Claude Code (siguiendo la

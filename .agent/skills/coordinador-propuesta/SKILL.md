@@ -94,8 +94,9 @@ Fase 1b [GATE COMBINADO G1b] Expansión de corpus SOTA: bibliografo-propuesta
         reporte en `grafos/vault-graph-report.md`. Descripción de referencia únicamente — ver
         `propuesta.md`, Fase 1b y "Grafo de coherencia del vault", para el
         detalle completo que ejecuta el dispatcher real.
-Fase 1  investigador → §3 descripción del problema + pregunta, luego el bucle
-        de figura `arbol_problemas` definido UNA sola vez en "Bucle de figuras
+Fase 1  investigador → §3 descripción del problema + pregunta
+        → grant-flow-auditor (pule §3 con estilo-natural-es)
+        → bucle de figura `arbol_problemas` definido UNA sola vez en "Bucle de figuras
         (canónico)" de `.agent/workflows/propuesta.md`: disenador-tikz (autor
         de la spec JSON) → `python3 scripts/figura.py arbol_problemas`
         (determinista: render → compile → autofix → auditoría mecánica) → con
@@ -108,38 +109,52 @@ Fase 1  investigador → §3 descripción del problema + pregunta, luego el bucl
         bloque `EVIDENCIA DE GRAFO` (asesor, NO bloqueante) en el prompt de revisor ──→ GATE
         revisor ──→ user
 Fase 2  bibliografo-propuesta → §4 estado del arte (paralelo)
-        investigador → §5 hipótesis, luego el mismo bucle de figura con
-        `<name>` = `estado_arte` (contenido autorizado: el bloque comentado al
+        investigador → §5 hipótesis
+        → grant-flow-auditor (pule §4 y §5 con estilo-natural-es)
+        → bucle de figura `<name>` = `estado_arte` (contenido autorizado: el bloque comentado al
         final de `04_estado_arte.tex`); procedimiento y tope idénticos a la
         Fase 1 ──→ [NUEVO] refresh del índice del
         vault + bloque `EVIDENCIA DE GRAFO` ──→ GATE revisor ──→ user
-Fase 3  redactor → §2 justificación y pertinencia ──→ [NUEVO] refresh del índice
-        del vault + bloque `EVIDENCIA DE GRAFO` ──→ GATE revisor
+Fase 3  redactor → §2 justificación y pertinencia
+        → grant-flow-auditor (pule §2 con estilo-natural-es)
+        ──→ [NUEVO] refresh del índice del vault + bloque `EVIDENCIA DE GRAFO` ──→ GATE revisor
         ──→ user
-Fase 4  investigador → §6 objetivo general + §7 objetivos específicos ──→
-        [NUEVO] refresh del índice del vault + bloque `EVIDENCIA DE GRAFO`
+Fase 4  investigador → §6 objetivo general + §7 objetivos específicos
+        → grant-flow-auditor (pule §6 y §7 con estilo-natural-es)
+        ──→ [NUEVO] refresh del índice del vault + bloque `EVIDENCIA DE GRAFO`
         ──→ GATE revisor (subproblema↔objetivo específico; valida también
         hipótesis↔objetivo general) ──→ user
 Fase 5  investigador → §8 marco conceptual (paralelo)
         redactor → §9 equipo de trabajo (deriva roles de §7, nunca de
-        Metodología) ──→ [NUEVO] refresh del índice del vault + bloque
+        Metodología)
+        → grant-flow-auditor (pule §8 y §9 con estilo-natural-es)
+        ──→ [NUEVO] refresh del índice del vault + bloque
         `EVIDENCIA DE GRAFO` ──→ GATE revisor ──→ user
-Fase 5.5 redactor → §10 metodología, luego el mismo bucle de figura con
-        `<name>` = `metodologico` (el diagrama nunca incluye personal
+Fase 5.5 redactor → §10 metodología
+        → grant-flow-auditor (pule §10 con estilo-natural-es)
+        → bucle de figura `<name>` = `metodologico` (el diagrama nunca incluye personal
         responsable dentro de sus bloques); procedimiento y tope idénticos a
         la Fase 1 ──→ [NUEVO] refresh del índice del
         vault + bloque `EVIDENCIA DE GRAFO` ──→ GATE revisor ──→ user
 Fase 6  redactor → §11 resultados esperados; §12 consideraciones éticas
+        → grant-flow-auditor (pule §11 y §12 con estilo-natural-es)
         (sin gate propio, se audita en la Fase 7)
 Fase 6.4  presupuestador → §13 presupuesto (interactivo) ──→ GATE revisor ──→ user
 Fase 6.45 redactor → §14 cronograma de actividades (Gantt); §15 productos
-        esperados; bibliografo-propuesta → §16 bibliografía (BibTeX) (sin
-        gate propio, se audita en la Fase 7)
+        esperados (xltabular); bibliografo-propuesta → §16 bibliografía (BibTeX, con \renewcommand{\bibsection}{})
+        → grant-flow-auditor (pule §14 y §15 con estilo-natural-es)
+        (sin gate propio, se audita en la Fase 7)
+Fase 6.46 redactor → §17 articulación comunitaria; §18 apropiación social
+        → grant-flow-auditor (pule §17 y §18 con estilo-natural-es)
+        ──→ [NUEVO] refresh del índice del vault + bloque `EVIDENCIA DE GRAFO`
+        ──→ GATE revisor ──→ user
 Fase 6.5  redactor → front-matter (Resumen, Resumen ejecutivo, Palabras
-        clave), síntesis de §1–§16 ya aprobadas ──→ GATE revisor ──→ user
+        clave); el título e identificación van exclusivamente en el encabezado de `main.tex` (sin sección de cuerpo §1)
+        → grant-flow-auditor (pule front-matter con estilo-natural-es)
+        ──→ GATE revisor ──→ user
 Fase 7  [NUEVO] refresh del índice del vault sobre el vault completo + bloque
         `EVIDENCIA DE GRAFO` ──→ revisor → auditoría final ──→ user;
-        coordinador-propuesta → ensambla main.tex
+        coordinador-propuesta → ensambla main.tex (con \setcounter{section}{1}, xltabular y bibliografía limpia)
 ```
 
 Cualquier hallazgo de coherencia que el reporte de grafo revele en las Fases

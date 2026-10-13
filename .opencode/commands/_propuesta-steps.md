@@ -40,18 +40,18 @@ Every run that uses analizar / continuar / auto MUST maintain:
 |-------------|------|------|----------------|
 | `fase1a` | Early scoping (bibliógrafo MODE=scope, codebase-memory scoping, investigador early) | G1a | `fase1b` |
 | `fase1b` | SOTA corpus expansion + WRITE-REFS + vault codebase-memory once | G1b | `fase1` |
-| `fase1` | §3 problema + spec del árbol de problemas (`figura.py`) + revisor | G1 | `fase2` |
-| `fase2` | §4 SOTA + §5 hipótesis + spec del mapa SOTA (`figura.py`) + revisor | G2 | `fase3` |
-| `fase3` | §2 justificación + revisor | G3 | `fase4` |
-| `fase4` | §6–§7 objetivos + revisor | G4 | `fase5` |
-| `fase5` | §8 marco + §9 equipo + revisor | G5 | `fase5_5` |
-| `fase5_5` | §10 metodología + spec del diagrama (`figura.py`) + revisor | G5.5 | `fase6` |
-| `fase6` | §11 resultados + §12 ética (no own gate) | — | `fase6_4` |
+| `fase1` | §3 problema + grant-flow-auditor + spec del árbol de problemas (`figura.py`) + revisor | G1 | `fase2` |
+| `fase2` | §4 SOTA + §5 hipótesis + grant-flow-auditor + spec del mapa SOTA (`figura.py`) + revisor | G2 | `fase3` |
+| `fase3` | §2 justificación + grant-flow-auditor + revisor | G3 | `fase4` |
+| `fase4` | §6–§7 objetivos + grant-flow-auditor + revisor | G4 | `fase5` |
+| `fase5` | §8 marco + §9 equipo + grant-flow-auditor + revisor | G5 | `fase5_5` |
+| `fase5_5` | §10 metodología + grant-flow-auditor + spec del diagrama (`figura.py`) + revisor | G5.5 | `fase6` |
+| `fase6` | §11 resultados + §12 ética + grant-flow-auditor (no own gate) | — | `fase6_4` |
 | `fase6_4` | §13 presupuesto + revisor | G budget | `fase6_45` |
-| `fase6_45` | §14 cronograma + §15 productos + §16 bib (no own gate) | — | `fase6_46` |
-| `fase6_46` | §17 articulación con comunidades + §18 apropiación social + revisor | G comunidades | `fase6_5` |
-| `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave) + revisor | G front | `fase7` |
-| `fase7` | Final audit + assemble `main.tex` | G final | `done` |
+| `fase6_45` | §14 cronograma + §15 productos (xltabular) + §16 bib + grant-flow-auditor (no own gate) | — | `fase6_46` |
+| `fase6_46` | §17 articulación con comunidades + §18 apropiación social + grant-flow-auditor + revisor | G comunidades | `fase6_5` |
+| `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave; sin sección cuerpo de título) + grant-flow-auditor + revisor | G front | `fase7` |
+| `fase7` | Final audit + assemble `main.tex` (\setcounter{section}{1}, xltabular, bibliografía limpia) | G final | `done` |
 | `done` | Pipeline complete | — | print `cd proposal && ./build.sh` |
 
 **Pre-intake units** (only in analizar / start of auto, not as `next_step` after

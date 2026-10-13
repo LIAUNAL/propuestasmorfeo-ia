@@ -12,7 +12,6 @@ from ..errors import UserError
 
 SECTION_TITLES = {
     "00_frontmatter": "§0 Front-matter (Resumen, Resumen ejecutivo, Palabras clave)",
-    "01_titulo_identificacion": "§1 Título e identificación del proyecto",
     "02_justificacion": "§2 Justificación y pertinencia (TRL 6/7)",
     "03_descripcion_problema": "§3 Descripción del problema y pregunta de investigación",
     "04_estado_arte": "§4 Estado del arte (≥30 refs Q1/Q2)",

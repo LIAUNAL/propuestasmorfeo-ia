@@ -118,6 +118,23 @@ def compone_identificacion(texto: str, titulo: str) -> str:
         j = texto.find(hasta, i) if hasta else -1
         return (texto[i:j] if j > 0 else texto[i:]).strip()
 
+    # Si no hay texto de sección, se compone directamente a partir del título y metadatos
+    if not texto:
+        partes = [
+            "TÍTULO DEL PROYECTO",
+            titulo,
+            "",
+            "LÍNEA TEMÁTICA DE INVESTIGACIÓN",
+            "Salud pública en el marco de desastres naturales.",
+            "",
+            "LUGAR DE EJECUCIÓN",
+            "Manizales, Caldas, Colombia (Universidad Nacional de Colombia Sede Manizales y Universidad Tecnológica de Pereira).",
+            "",
+            "DIRECTOR DEL PROYECTO",
+            "Andrés Marino Álvarez-Meza (Investigador Principal, Universidad Nacional de Colombia Sede Manizales).",
+        ]
+        return "\n".join(partes).strip()
+
     # El primer párrafo justifica la forma del título; el valor es el título.
     justifica = texto[:texto.find("La línea temática")].strip()
     linea = tramo("La línea temática en la que se inscribe", "El lugar de ejecución")
@@ -134,10 +151,10 @@ def compone_identificacion(texto: str, titulo: str) -> str:
         linea or "Salud pública en el marco de desastres naturales.",
         "",
         "LUGAR DE EJECUCIÓN",
-        lugar,
+        lugar or "Manizales, Caldas, Colombia (Universidad Nacional de Colombia Sede Manizales y Universidad Tecnológica de Pereira).",
         "",
         "DIRECTOR DEL PROYECTO",
-        direc,
+        direc or "Andrés Marino Álvarez-Meza (Investigador Principal, Universidad Nacional de Colombia Sede Manizales).",
     ]
     armado = "\n".join(partes).strip()
     # Lo que se pierde del original es la justificación de la forma del título:
@@ -178,15 +195,20 @@ def main() -> int:
     for letra, rotulo, archivo, seccion, clave_cond in CAMPOS:
         tex = red / "sections" / f"{archivo}.tex"
         if not tex.exists():
-            problemas.append(f"{letra}) falta {tex.name}")
-            continue
-        d = convierte(script, tex, bib, etiquetas, seccion)
-        texto = d["texto"]
-        if letra == "a":
-            texto = compone_identificacion(texto, titulo)
-        residuo = residuo_latex(texto)
-        if residuo:
-            problemas.append(f"{letra}) {residuo} comandos LaTeX sin convertir")
+            if letra == "a":
+                texto = compone_identificacion("", titulo)
+                residuo = 0
+            else:
+                problemas.append(f"{letra}) falta {tex.name}")
+                continue
+        else:
+            d = convierte(script, tex, bib, etiquetas, seccion)
+            texto = d["texto"]
+            if letra == "a":
+                texto = compone_identificacion(texto, titulo)
+            residuo = residuo_latex(texto)
+            if residuo:
+                problemas.append(f"{letra}) {residuo} comandos LaTeX sin convertir")
         cond = condensados.get(clave_cond) if clave_cond else None
         datos.append({
             "letra": letra,

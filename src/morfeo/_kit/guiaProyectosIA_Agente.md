@@ -8,6 +8,7 @@
 3. **Estructura:** Sigue rigurosamente la estructura y las instrucciones de redacción detalladas a continuación.
 4. **Redacción — prohibido el inciso "—texto—":** no uses la raya o el guion doble como recurso para intercalar una aclaración parentética (p. ej. "—no un esfuerzo aislado—", "—diagnóstico, planificación...—"). Reformula esas ideas como oración independiente, cláusula con comas, o paréntesis normal `(texto)`. Aplica a todas las secciones de la propuesta.
 5. **TRL fuera de los objetivos:** el nivel de madurez tecnológica (TRL) objetivo **no se nombra textualmente** en el objetivo general ni en los objetivos específicos (§6, §7). El TRL se precisa únicamente en Metodología (§10) y Resultados esperados (§11); en los objetivos basta con expresar el nivel de transferencia tecnológica o validación esperada sin citar la sigla TRL ni el número de nivel.
+6. **Humanización y calidad estilística obligatoria:** Toda prosa narrativa en español producida por los agentes debe ser auditada y pulida por `grant-flow-auditor` aplicando las skills `estilo-natural-es` y `depuracion-redundancias-es` antes de presentarse ante el `revisor` en cada compuerta (gate). Esto desmecaniza enumeraciones rígidas, flexibiliza conectores y asegura ritmo académico humano sin alterar cifras, fechas, ecuaciones, claves BibTeX ni tablas.
 
 ---
 
@@ -376,6 +377,8 @@ Todo contenido de esta sección que no provenga de un insumo directo del usuario
 
 **Instrucción para el agente:** Según lo descrito en Resultados esperados (§11), y cruzándolo rigurosamente con los términos de referencia de la convocatoria, el agente debe proponer y estructurar los productos académicos concretos (siguiendo la tipología institucional o de la convocatoria cuando exista, p. ej. nuevo conocimiento, formación, apropiación social/divulgación, transferencia) que garanticen la obtención del puntaje máximo estipulado para la evaluación de la propuesta. Cada producto debe indicar su tipología, un responsable y el momento del cronograma (§14) en que se entrega. Cada producto debe ser coherente con el o los productos esperados ya declarados por fase en Metodología (punto 6 del desarrollo por objetivo, §10): esta sección los formaliza con su tipología institucional, responsable y momento de entrega.
 
+**Formato de tabla de productos y prevención de desborde (`xltabular`):** La tabla de productos comprometidos debe implementarse con el entorno `\begin{xltabular}{\textwidth}` (paquete `xltabular`), definiendo encabezados `\firsthead`, `\endhead` y pie de tabla `\endfoot`. Esto permite que una composición amplia (p. ej. 8 productos con descripciones sustanciales) se divida naturalmente entre páginas con el encabezado repetido `Continuación de la Tabla N`, eliminando por completo las advertencias de `Float too large` provocadas por entornos flotantes rígidos `table`/`tabularx`.
+
 ### 16. Bibliografía
 
 **Instrucción para el agente:** La bibliografía debe consolidar la actualidad científica de la propuesta y cumplir con los siguientes parámetros de calidad:
@@ -403,6 +406,7 @@ Todo contenido de esta sección que no provenga de un insumo directo del usuario
     *   **Evitar** explícitamente citar tesis de grado o maestría.
     *   Se permite incluir libros teóricos de alto impacto.
     *   Se permite incluir artículos en pre-impresión (tipo *arXiv*) **solo** si provienen de laboratorios de empresas líderes en IA, investigadores reconocidos mundialmente o universidades de alto prestigio.
+7.  **Supresión del encabezado duplicado 'Referencias' de natbib:** En `16_bibliografia.tex`, se debe anteponer `\clearpage` antes de `\section{Bibliografía}` para desalojar cualquier flotante de las secciones anteriores, y declarar inmediatamente `\renewcommand{\bibsection}{}` antes de `\bibliographystyle{apalike}` y `\bibliography{refs}`. Esto asegura que `natbib` no imprima un título secundario no numerado 'Referencias' debajo del título oficial numerado '16. Bibliografía'.
 
 ---
 
