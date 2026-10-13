@@ -445,8 +445,18 @@ Estas convenciones son la única fuente de verdad para el ensamble LaTeX; aplíc
 | `natbib` + `apalike` | Citas autor-año |
 | `cleveref` | `\Cref` |
 | `enumitem` | Listas |
+| `sectsty` | Jerarquía tipográfica de títulos (dos tamaños menos) |
 | `pgfgantt` + `tikz` + `shapes.geometric` | Gantt / figuras |
 | `xcolor[table]` | Colores / tablas |
+| `xltabular` | Tablas multipágina (Tabla 4) |
+
+**Tipografía y jerarquía de tamaños de letra (regla permanente):**
+- **Cuerpo del texto (un tamaño menos):** Se define la clase de documento en `11pt` (`\documentclass[11pt,a4paper]{article}`), un tamaño menor que el estándar 12pt.
+- **Títulos (dos tamaños menos):**
+  - **Título principal:** En el encabezado/portada (`\begin{center} ... \end{center}`) se declara con `\Large\bfseries` (14.4pt a 11pt, dos tamaños menos frente a 20.7pt de `\LARGE`), con autor principal en `\normalsize`.
+  - **Secciones (`\section`):** Se formatean en `\large\bfseries` (12pt, dos tamaños menos frente a 17.3pt de `\Large`) mediante `\usepackage{sectsty}` (`\sectionfont{\large\bfseries}`).
+  - **Subsecciones (`\subsection`):** Se formatean en `\normalsize\bfseries` (11pt, dos tamaños menos frente a 14.4pt de `\large`) mediante `\subsectionfont{\normalsize\bfseries}`.
+  - **Subsubsecciones (`\subsubsection`):** Se formatean en `\normalsize\bfseries` mediante `\subsubsectionfont{\normalsize\bfseries}`.
 
 **Captions de tabla en español — siempre "Tabla", nunca "Cuadro" (regla permanente).** `babel[spanish]` define `\tablename` como "Cuadro" por defecto; sin corregirlo, todo `\caption{}` dentro de un entorno `table` se imprime como "Cuadro N: ...". **Un `\renewcommand{\tablename}{Tabla}` suelto en el preámbulo NO sobrevive**: babel reaplica sus nombres de idioma vía `\captionsspanish` dentro de su propio hook de `\begin{document}`, que se ejecuta después del preámbulo y sobrescribe cualquier `\renewcommand` anterior. El preámbulo de `main.tex` DEBE parchear el hook de babel en su lugar:
 

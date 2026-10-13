@@ -154,7 +154,7 @@ Fase 6.5  redactor → front-matter (Resumen, Resumen ejecutivo, Palabras
         ──→ GATE revisor ──→ user
 Fase 7  [NUEVO] refresh del índice del vault sobre el vault completo + bloque
         `EVIDENCIA DE GRAFO` ──→ revisor → auditoría final ──→ user;
-        coordinador-propuesta → ensambla main.tex (con \setcounter{section}{1}, xltabular y bibliografía limpia)
+        coordinador-propuesta → ensambla main.tex (con \documentclass[11pt,a4paper]{article}, sectsty para títulos dos tamaños menos, \setcounter{section}{1}, xltabular y bibliografía limpia)
 ```
 
 Cualquier hallazgo de coherencia que el reporte de grafo revele en las Fases

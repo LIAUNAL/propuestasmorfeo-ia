@@ -94,7 +94,7 @@ def parse_run_metadata(run_dir: Path) -> dict[str, Any]:
     # Attempt to extract title from main.tex if available
     main_tex = run_dir / "redaccion" / "main.tex"
     if main_tex.is_file():
-        m = re.search(r"\\LARGE\\bfseries\s+([^}\\]+)", main_tex.read_text(encoding="utf-8", errors="replace"))
+        m = re.search(r"\\(?:LARGE|Large|large)\\bfseries\s+([^}\\]+)", main_tex.read_text(encoding="utf-8", errors="replace"))
         if m:
             meta["title"] = m.group(1).strip()
     if not meta["title"]:

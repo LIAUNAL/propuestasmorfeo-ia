@@ -94,8 +94,8 @@ def titulo_del_documento(main_tex: pathlib.Path) -> str:
     if not m:
         return ""
     bloque = m.group(1)
-    # El título es el primer grupo \LARGE...: hasta el primer \\[..em]
-    m2 = re.search(r"\{\\LARGE\\bfseries(.*?)\}", bloque, re.S)
+    # El título es el primer grupo de tamaño en negrita: hasta el primer \\[..em]
+    m2 = re.search(r"\{\\(?:LARGE|Large|large)\\bfseries(.*?)\}", bloque, re.S)
     if not m2:
         return ""
     titulo = m2.group(1)

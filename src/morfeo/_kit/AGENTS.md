@@ -140,7 +140,15 @@ Referencia completa del CLI (comandos, flags, entorno, manifest) en
    y el resto del contenido de la corrida están en `.gitignore` (igual que
    las corridas archivadas bajo `proposals/<run-id>/`) — GitHub solo aloja el
    esqueleto del framework (agentes, comandos, scripts, plantillas), nunca
-   el contenido de una propuesta específica.
+   el contenido de una propuesta específica. **Tipografía y jerarquía de tamaños de letra:**
+   El documento base se compila en `11pt` (`\documentclass[11pt,a4paper]{article}`,
+   un tamaño menor que el estándar de 12pt). Los títulos se configuran con dos tamaños menos:
+   el título principal del proyecto en la portada/encabezado usa `\Large\bfseries`
+   (reducido dos tamaños frente a los 20.7pt de `\LARGE`), las secciones de cuerpo (`\section`)
+   usan `\large\bfseries` (12pt, dos tamaños menos frente a los 17.3pt de `\Large`) mediante
+   `\usepackage{sectsty}` (`\sectionfont{\large\bfseries}`), las subsecciones (`\subsection`)
+   usan `\normalsize\bfseries` (`\subsectionfont{\normalsize\bfseries}`) y las subsubsecciones
+   (`\subsubsection`) usan `\normalsize\bfseries` (`\subsubsectionfont{\normalsize\bfseries}`).
 9. **Espejo `artefactos/vault/`:** `artefactos/vault/secciones/` y
    `artefactos/vault/insumos/` son un espejo Markdown compatible con Obsidian,
    generado a partir de `redaccion/` para navegación y coherencia — **no** se
