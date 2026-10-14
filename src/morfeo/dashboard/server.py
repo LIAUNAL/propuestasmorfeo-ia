@@ -270,10 +270,45 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(404, "main.pdf not found")
             return
 
+        stat = pdf_path.stat()
+        file_size = stat.st_size
+        etag = f'"{int(stat.st_mtime)}-{file_size}"'
+
+        if self.headers.get("If-None-Match") == etag:
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.send_header("Accept-Ranges", "bytes")
+            self.end_headers()
+            return
+
         content = pdf_path.read_bytes()
+
+        range_header = self.headers.get("Range")
+        if range_header and range_header.startswith("bytes="):
+            try:
+                parts = range_header[6:].split("-")
+                start = int(parts[0]) if parts[0] else 0
+                end = int(parts[1]) if parts[1] else file_size - 1
+                end = min(end, file_size - 1)
+                chunk_len = max(0, end - start + 1)
+
+                self.send_response(206)
+                self.send_header("Content-Type", "application/pdf")
+                self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
+                self.send_header("Content-Length", str(chunk_len))
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("ETag", etag)
+                self.end_headers()
+                self.wfile.write(content[start:end+1])
+                return
+            except Exception:
+                pass
+
         self.send_response(200)
         self.send_header("Content-Type", "application/pdf")
-        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Content-Length", str(file_size))
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("ETag", etag)
         self.end_headers()
         self.wfile.write(content)
 
