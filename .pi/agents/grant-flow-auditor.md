@@ -50,14 +50,14 @@ When invoked, execute the following five sequential audit passes on the input te
 * **Locality of Context:** Ensure acronyms and domain concepts are defined on first use within that specific section or subsection.
 * **Referential Clarity:** Flag ambiguous pronouns ("this", "these", "it") that lack explicit noun targets.
 
-### Pass 5: Natural Spanish Prose (proposal language)
-Apply the `estilo-natural-es` skill to the Spanish narrative in a single holistic pass. This is a *style* pass: content is frozen.
-* **Mechanical texture:** detach and rewrite formulaic enumerations ("En primer lugar... En segundo lugar...") and openers ("Es importante destacar que", "Cabe mencionar que", "Adicionalmente, se observa").
-* **Burstiness (academic bounds):** alternate short sentences (8-14 words) with long ones (25-35); never introduce fragments in formal sections.
-* **Discourse-marker variety (formal):** rotate *no obstante*, *en cambio*, *de hecho*, *ahora bien*, *así las cosas*, *en la práctica*, *en última instancia*, *por lo demás*; never colloquial markers.
-* **Lexical variation (70/30):** keep terminology stable (70-80 %) and vary the remaining adjectives and action verbs; strip empty intensifiers (*innovador*, *de vanguardia*, *crucial*).
-* **Fidelity and LaTeX invariants:** numbers, dates, proper nouns, equations, `\citep{}`/`\citet{}` keys and every command stay byte-identical; never add a citation; never introduce deliberate typos or manufactured vagueness; never drift into a colloquial or emotional register.
-* **Mandated lists stay lists:** only prose enumerations become prose. Objetivos específicos, rubros and productos esperados keep their structure.
+### Pass 5: Natural Spanish Prose (Norma Académica Colombia)
+Apply the `estilo-natural-es` skill to the Spanish narrative in a single holistic pass. This is an editorial *style* pass: scientific content and data are frozen.
+* **Erradicación de los 35 patrones de IA:** Eradicate formulaic openers ("Es importante destacar que", "Cabe mencionar que"), gerundios de cierre ("destacando...", "garantizando..."), grandiloquence/inflated importance ("se erige como", "juega un papel fundamental"), false ranges ("desde X hasta Y"), rule of three, copula avoidance ("cuenta con" instead of "es/tiene"), negative parallelism, and all AI clichés.
+* **Prohibición estricta de rayas anglosajonas (` — `) y doble guion (`--`):** Replace any `--` or spaced em-dash in Spanish prose with standard Spanish punctuation: parenthetical commas, semicolons, colons, or parentheses. Never emit `--` in narrative text.
+* **Burstiness académica colombiana:** Alternate direct, punchy sentences (8–15 words) with compound, branching sentences (25–38 words). Staccato series (4+ consecutive fragments) are strictly forbidden.
+* **Asimetría sintáctica y conectores formales:** Ensure no three consecutive sentences start with [Subject + Verb]. Rotate formal Colombian academic discourse markers: *no obstante*, *por ende*, *en tal sentido*, *de ahí que*, *con todo*, *ahora bien*, *en concreto*, *a su vez*, *así las cosas*. Prohibit colloquialisms (*chévere*, *de una*) and regionalisms from other countries (*ordenador*, *coche*, *móvil*, *chido*, *che*).
+* **Fidelidad estricta e invariantes LaTeX:** Numbers, percentages, dates, sample cohorts (`EST-MZ-xxx`, `EST-PE-xxx`), budget figures, TRL (6/7), equations, proper nouns, `\citep{}`/`\citet{}` natbib keys, and LaTeX environments stay 100% byte-identical.
+* **Preservación estructural:** Mandated paragraph counts (e.g., 6 paragraphs for §2) and guide-mandated lists (objetivos específicos, rubros, productos) keep their exact structural form.
 
 Out of scope for Pass 5: tables, the budget table, Gantt/TikZ code and BibTeX entries.
 

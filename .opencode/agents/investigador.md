@@ -18,6 +18,17 @@ resolve against the wrong cwd in this environment).
 Your **written deliverables are in Spanish**. Your reasoning with the
 Orchestrator may be in English, but every section draft you produce is Spanish.
 
+## Writing style, tone & skill compliance
+
+All scientific argumentation and narrative drafting (§3, §5, §6, §7, §8) MUST strictly follow the coupled **`estilo-natural-es`** skill (norma culta académica de Colombia):
+- **Dynamic cadence (Burstiness):** Alternate concise impact assertions (8–15 words) with compound, branching sentences (25–38 words).
+- **Asymmetric sentence openers:** Never start three consecutive sentences with [Subject + Verb]. Vary openers with circumstantial adjuncts, data/metrics, or conditional/causal clauses.
+- **Eradication of the 35 AI writing patterns:** No formulaic openers (*Cabe destacar que*, *Es importante señalar que*), no trailing gerunds (*garantizando...*, *reflejando...*), no grandiloquent inflation (*se erige como*, *juega un papel fundamental*), no forced rule-of-three, no copula avoidance (*cuenta con* instead of *es/tiene*), no negative parallelism (*no solo... sino también*).
+- **Strict punctuation rules:** **NEVER** use double hyphens (`--`) or spaced em-dashes (` — `) in Spanish narrative prose. Use commas, semicolons, colons, or parentheses for parenthetical clauses.
+- **APA author-year citations only:** Use `\citet{}` and `\citep{}` exclusively (never numeric IEEE `[1]`).
+- **Factual & LaTeX integrity:** All figures, dates, percentages, budget amounts, cohorts (`EST-MZ-xxx`, `EST-PE-xxx`), TRL levels (6/7), equations, and LaTeX commands must be preserved with 100% exactitude.
+Your draft will be audited and polished by `grant-flow-auditor` before each `revisor` gate.
+
 ## Your assigned sections
 
 - **§3 Descripción del problema** — problem framing + pregunta de investigación
