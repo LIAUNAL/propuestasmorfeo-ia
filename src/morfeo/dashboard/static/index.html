@@ -745,72 +745,98 @@
       align-items: center;
       gap: 0.35rem;
     }
-    .btn--comment {
-      background: rgba(56, 189, 248, 0.15);
-      color: #38bdf8;
-      border: 1px solid rgba(56, 189, 248, 0.4);
-    }
-    .btn--comment:hover {
-      background: rgba(56, 189, 248, 0.25);
-      border-color: #38bdf8;
-    }
-    .btn--strikethrough {
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.4);
-    }
-    .btn--strikethrough:hover {
-      background: rgba(239, 68, 68, 0.25);
-      border-color: #ef4444;
-    }
-    .btn--humanize {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.4);
-    }
-    .btn--humanize:hover {
-      background: rgba(16, 185, 129, 0.25);
-      border-color: #10b981;
-    }
-    .btn--execute {
-      background: linear-gradient(135deg, #0284c7, #10b981) !important;
-      color: #ffffff !important;
-      border: 1px solid #38bdf8 !important;
-      font-weight: 700 !important;
-      box-shadow: 0 0 12px rgba(2, 132, 199, 0.4) !important;
-      animation: execute-glow 3s infinite alternate;
-    }
-    @keyframes execute-glow {
-      0% { box-shadow: 0 0 10px rgba(2, 132, 199, 0.4); }
-      100% { box-shadow: 0 0 18px rgba(16, 185, 129, 0.7); }
+    /* =========================================================
+       VISOR PDF INTERACTIVO Y PANEL DE CONTROL DE CAMBIOS LATERAL
+       ========================================================= */
+    .pdf-workspace-layout {
+      display: flex;
+      gap: 1.25rem;
+      min-height: 880px;
+      align-items: flex-start;
+      width: 100%;
     }
 
-    /* Barra de selección */
-    .pdf-selection-bar {
-      margin-top: 0.65rem;
-      padding: 0.45rem 0.85rem;
-      background: var(--surface-2);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius);
-      font-size: 0.8rem;
-      color: var(--text-muted);
+    /* Columna principal del PDF */
+    .pdf-main-column {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    /* Barra superior del visor PDF */
+    .pdf-viewer-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 1rem;
+      margin-bottom: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .pdf-topbar__left {
       display: flex;
       align-items: center;
       gap: 0.65rem;
     }
-    .pdf-selection-bar strong {
-      color: var(--accent);
+    .pdf-doc-title {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .pdf-topbar__center {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .pdf-topbar__right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
-    /* Workspace split layout */
-    .pdf-workspace-layout {
-      display: flex;
-      gap: 1rem;
-      min-height: 850px;
-      align-items: flex-start;
+    .btn-group {
+      display: inline-flex;
+      align-items: center;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.15rem;
+      gap: 0.15rem;
     }
+    .btn-group .btn {
+      border: none;
+      background: transparent;
+      padding: 0.3rem 0.55rem;
+      font-size: 0.8rem;
+    }
+    .btn-group .btn:hover {
+      background: var(--surface-hover);
+    }
+    .pdf-page-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      padding: 0 0.4rem;
+    }
+    .pdf-page-indicator input {
+      width: 44px;
+      padding: 0.15rem 0.3rem;
+      text-align: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+    }
+
     .pdf-viewport-container {
-      flex: 1;
       background: #1f2937;
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
@@ -819,7 +845,7 @@
       flex-direction: column;
       align-items: center;
       overflow-y: auto;
-      max-height: 920px;
+      max-height: 940px;
       position: relative;
     }
     .pdf-loading-overlay {
@@ -869,44 +895,207 @@
       color: transparent;
     }
 
-    /* Sidebar de marcas */
-    .pdf-annots-sidebar {
-      width: 360px;
+    /* =========================================================
+       COLUMNA DERECHA: PANEL DE CONTROL DE CAMBIOS
+       ========================================================= */
+    .pdf-control-panel {
+      width: 390px;
+      flex-shrink: 0;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 1rem;
+      padding: 1.15rem;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
-      max-height: 920px;
+      gap: 1rem;
+      max-height: 940px;
       overflow-y: auto;
+      position: sticky;
+      top: 75px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.22);
     }
-    .sidebar-header {
+
+    .control-panel__header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding-bottom: 0.75rem;
       border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 0.5rem;
     }
-    .sidebar-header h4 {
-      font-size: 0.95rem;
+    .control-panel__title {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .control-panel__title h3 {
+      font-size: 1.05rem;
       font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
     }
+    .control-panel__title p {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .control-panel__section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-dim);
+    }
+
+    /* Stack de herramientas con iconos y descripción */
+    .tools-buttons-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .btn--tool {
+      font-weight: 600;
+      padding: 0.55rem 0.85rem;
+      border-radius: var(--radius);
+      transition: all 0.15s ease;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-align: left;
+      width: 100%;
+      border: 1px solid transparent;
+    }
+    .btn--tool .tool-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .btn--tool .tool-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      line-height: 1.25;
+    }
+    .btn--tool .tool-text strong {
+      font-size: 0.85rem;
+    }
+    .btn--tool .tool-text small {
+      font-size: 0.72rem;
+      opacity: 0.85;
+      font-weight: normal;
+    }
+
+    .btn--comment {
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+    .btn--comment:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: #38bdf8;
+      transform: translateX(2px);
+    }
+
+    .btn--strikethrough {
+      background: rgba(239, 68, 68, 0.12);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+    .btn--strikethrough:hover {
+      background: rgba(239, 68, 68, 0.22);
+      border-color: #ef4444;
+      transform: translateX(2px);
+    }
+
+    .btn--humanize {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+    .btn--humanize:hover {
+      background: rgba(16, 185, 129, 0.22);
+      border-color: #10b981;
+      transform: translateX(2px);
+    }
+
+    /* Tarjeta de selección activa en el panel lateral */
+    .selection-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      font-size: 0.8rem;
+    }
+    .selection-empty {
+      text-align: center;
+      padding: 0.65rem 0.35rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .selection-empty p {
+      font-size: 0.76rem;
+      margin: 0;
+      line-height: 1.4;
+    }
+    .selection-active {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .selection-quote {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--accent);
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.76rem;
+      font-style: italic;
+      color: var(--text);
+      max-height: 80px;
+      overflow-y: auto;
+      word-break: break-word;
+    }
+    .selection-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+    .selection-quick-actions {
+      display: flex;
+      gap: 0.25rem;
+    }
+    .btn--xs {
+      padding: 0.2rem 0.45rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+    }
+
+    /* Lista de marcas pendientes en el panel lateral */
     .annots-list {
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
-      min-height: 180px;
-      max-height: 480px;
+      gap: 0.55rem;
+      min-height: 120px;
+      max-height: 260px;
       overflow-y: auto;
-      padding-right: 0.25rem;
+      padding-right: 0.2rem;
     }
     .annots-empty {
       text-align: center;
-      padding: 2.5rem 1rem;
+      padding: 1.75rem 0.75rem;
       color: var(--text-muted);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       background: var(--surface-2);
       border-radius: var(--radius);
       border: 1px dashed var(--border);
@@ -915,43 +1104,36 @@
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 0.75rem;
+      padding: 0.65rem;
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
+      gap: 0.3rem;
+      font-size: 0.78rem;
       position: relative;
-      font-size: 0.8rem;
-      transition: border-color 0.15s;
     }
-    .annot-card--comment {
-      border-left: 3px solid #38bdf8;
-    }
-    .annot-card--strike {
-      border-left: 3px solid #ef4444;
-    }
-    .annot-card--humanize {
-      border-left: 3px solid #10b981;
-    }
+    .annot-card--comment { border-left: 3px solid #38bdf8; }
+    .annot-card--strike { border-left: 3px solid #ef4444; }
+    .annot-card--humanize { border-left: 3px solid #10b981; }
     .annot-card__head {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     .annot-card__quote {
-      background: rgba(0,0,0,0.15);
-      padding: 0.35rem 0.5rem;
+      background: rgba(0,0,0,0.18);
+      padding: 0.3rem 0.45rem;
       border-radius: 4px;
-      font-size: 0.76rem;
+      font-size: 0.74rem;
       color: var(--text);
       font-style: italic;
       word-break: break-word;
       border: 1px solid var(--border-subtle);
     }
     .annot-card__note {
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       color: #38bdf8;
       background: rgba(56, 189, 248, 0.08);
-      padding: 0.3rem 0.5rem;
+      padding: 0.25rem 0.45rem;
       border-radius: 4px;
     }
     .annot-card__del {
@@ -964,6 +1146,63 @@
     }
     .annot-card__del:hover {
       color: var(--bad);
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+    }
+    .btn-link:hover {
+      color: var(--bad);
+    }
+
+    /* Footer del panel con botón de ejecución */
+    .control-panel__footer {
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-top: auto;
+    }
+    .btn--execute {
+      background: linear-gradient(135deg, #0284c7, #10b981) !important;
+      color: #ffffff !important;
+      border: 1px solid #38bdf8 !important;
+      font-weight: 700 !important;
+      box-shadow: 0 0 14px rgba(2, 132, 199, 0.4) !important;
+      animation: execute-glow 3s infinite alternate;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .execute-hint {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-align: center;
+      margin: 0;
+      line-height: 1.35;
+    }
+
+    /* Historial en el panel */
+    .execution-history-box {
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 0.75rem;
+    }
+    .last-execution-content {
+      font-size: 0.76rem;
+      background: var(--surface-2);
+      padding: 0.55rem 0.65rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      line-height: 1.4;
     }
 
     /* Spinner */
@@ -1198,112 +1437,144 @@
       </div>
     </div>
 
-    <!-- TAB 7: VISOR PDF CON HERRAMIENTAS EDITORIALES Y EJECUCIÓN -->
+    <!-- TAB 7: VISOR PDF CON PANEL LATERAL DE CONTROL DE CAMBIOS -->
     <div id="pane-preview" class="tab-pane">
-      <div class="panel" style="margin-bottom: 0.75rem;">
-        <div class="panel__header" style="flex-wrap: wrap; gap: 0.75rem;">
-          <div class="panel__title">
-            <span>📄 Revisión y Marcado Editorial sobre PDF (main.pdf)</span>
-            <span id="pdfInfoBadge" class="badge badge--ok" style="font-size: 0.72rem; margin-left: 0.5rem;">— páginas</span>
-          </div>
-          
-          <div class="pdf-toolbar">
-            <!-- Paginación y Zoom -->
-            <div class="btn-group">
-              <button class="btn btn--sm" id="btnPrevPage" onclick="changePdfPage(-1)" title="Página anterior">◀ Anterior</button>
-              <span class="pdf-page-indicator">Pág. <input type="number" id="inputPdfPage" min="1" value="1" onchange="goToPdfPage(this.value)"> / <span id="pdfTotalPages">1</span></span>
-              <button class="btn btn--sm" id="btnNextPage" onclick="changePdfPage(1)" title="Página siguiente">Siguiente ▶</button>
-            </div>
-
-            <div class="btn-group">
-              <button class="btn btn--sm" onclick="zoomPdf(-0.15)" title="Reducir zoom">🔍−</button>
-              <span id="pdfZoomLabel" style="font-size: 0.75rem; padding: 0 0.4rem; color: var(--text-muted);">120%</span>
-              <button class="btn btn--sm" onclick="zoomPdf(0.15)" title="Aumentar zoom">🔍+</button>
-            </div>
-
-            <!-- BOTONES EXIGIDOS: Comentario, Tachar, Humanizar -->
-            <div class="btn-group pdf-tools-group">
-              <button class="btn btn--tool btn--comment" id="btnComment" onclick="triggerAddComment()" title="Comentario sobre el texto seleccionado en el PDF">
-                💬 Comentario
-              </button>
-              <button class="btn btn--tool btn--strikethrough" id="btnStrikethrough" onclick="triggerStrikethrough()" title="Tachar texto seleccionado para eliminarlo del LaTeX">
-                ✂️ Tachar
-              </button>
-              <button class="btn btn--tool btn--humanize" id="btnHumanize" onclick="triggerHumanize()" title="Humanizar el texto seleccionado con la skill estilo-natural-es">
-                ✨ Humanizar la redacción
-              </button>
-            </div>
-
-            <!-- Bandeja de marcas pendientes -->
-            <button class="btn btn--sm" id="btnToggleTray" onclick="toggleAnnotationsTray()">
-              📋 Marcas (<span id="trayCountBadge">0</span>)
-            </button>
-
-            <!-- BOTÓN EXIGIDO: Ejecutar -->
-            <button class="btn btn--primary btn--execute" id="btnExecuteChanges" onclick="confirmAndExecuteChanges()" title="Ejecutar cambios en LaTeX, aplicar estilo-natural-es y recompilar PDF">
-              🚀 Ejecutar Cambios
-            </button>
-
-            <!-- Enlaces directos -->
-            <button class="btn btn--sm" onclick="toggleNativeViewer()" id="btnToggleNative">Visor Nativo</button>
-            <a href="/api/pdf" download class="btn btn--sm">⬇ Descargar</a>
-          </div>
-        </div>
-
-        <!-- Barra informativa de selección activa -->
-        <div class="pdf-selection-bar" id="pdfSelectionBar">
-          <span class="selection-status-icon">💡</span>
-          <span id="pdfSelectionInfoText">Selecciona cualquier texto en el PDF con el mouse para aplicar <strong>Comentario</strong>, <strong>Tachar</strong> o <strong>Humanizar</strong>.</span>
-          <div id="selectionActionsQuick" style="display: none; gap: 0.4rem; margin-left: auto;">
-            <button class="btn btn--sm btn--comment" onclick="triggerAddComment()">💬 Comentar</button>
-            <button class="btn btn--sm btn--strikethrough" onclick="triggerStrikethrough()">✂️ Tachar</button>
-            <button class="btn btn--sm btn--humanize" onclick="triggerHumanize()">✨ Humanizar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Layout del visor con panel lateral de marcas -->
       <div class="pdf-workspace-layout">
-        <div class="pdf-viewport-container" id="pdfViewportContainer">
-          <div id="pdfLoadingSpinner" class="pdf-loading-overlay">
-            <div class="spinner"></div>
-            <p>Cargando documento PDF...</p>
-          </div>
-          <div id="pdfPageContainer" class="pdf-page-container">
-            <canvas id="pdfCanvas"></canvas>
-            <div id="pdfTextLayer" class="textLayer"></div>
-          </div>
-          <iframe id="pdfNativeIframe" class="iframe-viewer" src="/api/pdf" style="display: none; height: 850px; width: 100%;"></iframe>
-        </div>
+        <!-- Columna Izquierda: Visor PDF con Controles de Navegación -->
+        <div class="pdf-main-column">
+          <div class="pdf-viewer-topbar">
+            <div class="pdf-topbar__left">
+              <strong class="pdf-doc-title">📄 main.pdf</strong>
+              <span id="pdfInfoBadge" class="badge badge--ok" style="font-size: 0.72rem;">— páginas</span>
+            </div>
+            
+            <div class="pdf-topbar__center">
+              <div class="btn-group">
+                <button class="btn btn--sm" id="btnPrevPage" onclick="changePdfPage(-1)" title="Página anterior">◀ Anterior</button>
+                <span class="pdf-page-indicator">Pág. <input type="number" id="inputPdfPage" min="1" value="1" onchange="goToPdfPage(this.value)"> / <span id="pdfTotalPages">1</span></span>
+                <button class="btn btn--sm" id="btnNextPage" onclick="changePdfPage(1)" title="Página siguiente">Siguiente ▶</button>
+              </div>
 
-        <!-- Sidebar / Bandeja lateral de marcas pendientes -->
-        <div class="pdf-annots-sidebar" id="pdfAnnotsSidebar">
-          <div class="sidebar-header">
-            <h4>Marcas Editoriales Pendientes (<span id="sidebarCount">0</span>)</h4>
-            <button class="btn btn--sm" onclick="clearAllAnnotations()" title="Descartar todas las marcas">Vaciar</button>
-          </div>
-          
-          <div class="annots-list" id="annotsList">
-            <div class="annots-empty">
-              <p>No hay marcas pendientes.</p>
-              <small>Selecciona texto en el documento y haz clic en <strong>Comentario</strong>, <strong>Tachar</strong> o <strong>Humanizar</strong>.</small>
+              <div class="btn-group">
+                <button class="btn btn--sm" onclick="zoomPdf(-0.15)" title="Reducir zoom">🔍−</button>
+                <span id="pdfZoomLabel" style="font-size: 0.75rem; padding: 0 0.4rem; color: var(--text-muted);">120%</span>
+                <button class="btn btn--sm" onclick="zoomPdf(0.15)" title="Aumentar zoom">🔍+</button>
+              </div>
+            </div>
+
+            <div class="pdf-topbar__right">
+              <button class="btn btn--sm" onclick="toggleNativeViewer()" id="btnToggleNative" title="Alternar entre PDF.js y visor nativo del navegador">Visor Nativo</button>
+              <a href="/api/pdf" download class="btn btn--sm" title="Descargar main.pdf compilado">⬇ Descargar</a>
             </div>
           </div>
 
-          <div class="sidebar-footer">
-            <button class="btn btn--primary btn--execute" style="width: 100%; justify-content: center;" onclick="confirmAndExecuteChanges()">
-              🚀 Ejecutar (<span id="sidebarBtnCount">0</span>)
-            </button>
+          <!-- Contenedor del documento PDF -->
+          <div class="pdf-viewport-container" id="pdfViewportContainer">
+            <div id="pdfLoadingSpinner" class="pdf-loading-overlay">
+              <div class="spinner"></div>
+              <p>Cargando documento PDF...</p>
+            </div>
+            <div id="pdfPageContainer" class="pdf-page-container">
+              <canvas id="pdfCanvas"></canvas>
+              <div id="pdfTextLayer" class="textLayer"></div>
+            </div>
+            <iframe id="pdfNativeIframe" class="iframe-viewer" src="/api/pdf" style="display: none; height: 850px; width: 100%;"></iframe>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Panel de Control de Cambios Unificado -->
+        <aside class="pdf-control-panel" id="pdfControlPanel" aria-label="Panel de Control de Cambios">
+          <div class="control-panel__header">
+            <div class="control-panel__title">
+              <div>
+                <h3>Control de Cambios</h3>
+                <p>Marcado y corrección editorial</p>
+              </div>
+            </div>
+            <span class="badge badge--ok" id="panelStatusBadge">ACTIVO</span>
           </div>
 
-          <!-- Historial de ejecuciones previas -->
-          <div class="execution-history" id="executionHistorySection">
-            <h5 style="margin-top: 1rem; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase;">Última Ejecución Registrada</h5>
-            <div id="lastExecutionBox" style="font-size: 0.78rem; background: var(--surface-2); padding: 0.65rem; border-radius: var(--radius); border: 1px solid var(--border);">
+          <!-- 1. Botones de Acción Editorial Exigidos -->
+          <div class="control-panel__section">
+            <div class="section-label">Herramientas Editoriales</div>
+            <div class="tools-buttons-stack">
+              <button class="btn--tool btn--comment" id="btnComment" onclick="triggerAddComment()" title="Comentario sobre el texto seleccionado en el PDF">
+                <span class="tool-icon">💬</span>
+                <span class="tool-text">
+                  <strong>Comentario</strong>
+                  <small>Instrucción o sugerencia para el agente</small>
+                </span>
+              </button>
+              <button class="btn--tool btn--strikethrough" id="btnStrikethrough" onclick="triggerStrikethrough()" title="Tachar texto seleccionado para eliminarlo del LaTeX">
+                <span class="tool-icon">✂️</span>
+                <span class="tool-text">
+                  <strong>Tachar</strong>
+                  <small>Eliminar fragmento en fuentes LaTeX</small>
+                </span>
+              </button>
+              <button class="btn--tool btn--humanize" id="btnHumanize" onclick="triggerHumanize()" title="Humanizar el texto seleccionado con la skill estilo-natural-es">
+                <span class="tool-icon">✨</span>
+                <span class="tool-text">
+                  <strong>Humanizar la redacción</strong>
+                  <small>Reescribir con skill estilo-natural-es</small>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Tarjeta de Selección Activa en PDF -->
+          <div class="control-panel__section">
+            <div class="section-label">Selección Activa</div>
+            <div class="selection-card" id="selectionCard">
+              <div class="selection-empty" id="selectionEmptyState">
+                <span style="font-size: 1.3rem;">👆</span>
+                <p>Selecciona texto en el PDF con el cursor para habilitar las acciones.</p>
+              </div>
+              <div class="selection-active" id="selectionActiveState" style="display: none;">
+                <div class="selection-meta">
+                  <span class="badge badge--info" id="selectedPageBadge">Pág. 1</span>
+                  <span id="selectionWordCount" style="font-size: 0.72rem; color: var(--text-dim);">0 palabras</span>
+                </div>
+                <div class="selection-quote" id="selectedQuoteText">""</div>
+                <div class="selection-quick-actions">
+                  <button class="btn btn--xs btn--comment" onclick="triggerAddComment()">💬 Comentar</button>
+                  <button class="btn btn--xs btn--strikethrough" onclick="triggerStrikethrough()">✂️ Tachar</button>
+                  <button class="btn btn--xs btn--humanize" onclick="triggerHumanize()">✨ Humanizar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Lista de Marcas Pendientes -->
+          <div class="control-panel__section">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="section-label">Marcas Pendientes (<span id="sidebarCount">0</span>)</div>
+              <button class="btn-link" onclick="clearAllAnnotations()" title="Descartar todas las marcas">Vaciar marcas</button>
+            </div>
+            <div class="annots-list" id="annotsList">
+              <div class="annots-empty">
+                <p>No hay marcas pendientes.</p>
+                <small>Selecciona texto y haz clic en Comentario, Tachar o Humanizar.</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Botón de Ejecutar Cambios (Exigido) -->
+          <div class="control-panel__footer">
+            <button class="btn btn--primary btn--execute" id="btnExecuteChanges" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.88rem;" onclick="confirmAndExecuteChanges()" title="Ejecutar cambios en LaTeX, aplicar estilo-natural-es y recompilar PDF">
+              <span>🚀 Ejecutar Cambios (<span id="sidebarBtnCount">0</span>)</span>
+            </button>
+            <p class="execute-hint">Aplica las marcas en LaTeX, invoca <code>estilo-natural-es</code> y recompila <code>main.pdf</code>.</p>
+          </div>
+
+          <!-- 5. Historial de Última Ejecución -->
+          <div class="execution-history-box" id="executionHistorySection">
+            <div class="section-label" style="margin-bottom: 0.35rem;">Última Ejecución Registrada</div>
+            <div class="last-execution-content" id="lastExecutionBox">
               Sin ejecuciones registradas.
             </div>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
 
@@ -1892,6 +2163,22 @@
         }
         const quickEl = document.getElementById('selectionActionsQuick');
         if (quickEl) quickEl.style.display = 'flex';
+
+        // Actualizar tarjeta de selección en el Panel de Control de Cambios lateral
+        const emptyState = document.getElementById('selectionEmptyState');
+        const activeState = document.getElementById('selectionActiveState');
+        const quoteEl = document.getElementById('selectedQuoteText');
+        const pageBadge = document.getElementById('selectedPageBadge');
+        const countEl = document.getElementById('selectionWordCount');
+
+        if (emptyState) emptyState.style.display = 'none';
+        if (activeState) activeState.style.display = 'flex';
+        if (quoteEl) quoteEl.textContent = `"${text}"`;
+        if (pageBadge) pageBadge.textContent = `Pág. ${currentSelectedPage}`;
+        if (countEl) {
+          const words = text.split(/\s+/).filter(Boolean).length;
+          countEl.textContent = `${words} palabra${words === 1 ? '' : 's'}`;
+        }
       }
     }
 
@@ -1904,6 +2191,12 @@
         }
         const quickEl = document.getElementById('selectionActionsQuick');
         if (quickEl) quickEl.style.display = 'none';
+
+        // Resetear tarjeta en panel lateral
+        const emptyState = document.getElementById('selectionEmptyState');
+        const activeState = document.getElementById('selectionActiveState');
+        if (emptyState) emptyState.style.display = 'flex';
+        if (activeState) activeState.style.display = 'none';
       }
     }
 
@@ -2002,7 +2295,8 @@
     }
 
     function toggleAnnotationsTray() {
-      const sidebar = document.getElementById('pdfAnnotsSidebar');
+      const sidebar = document.getElementById('pdfControlPanel') || document.getElementById('pdfAnnotsSidebar');
+      if (!sidebar) return;
       if (sidebar.style.display === 'none') {
         sidebar.style.display = 'flex';
       } else {
@@ -2012,16 +2306,20 @@
 
     function renderAnnotationsTray() {
       const count = queuedAnnotations.length;
-      document.getElementById('trayCountBadge').textContent = count;
-      document.getElementById('sidebarCount').textContent = count;
-      document.getElementById('sidebarBtnCount').textContent = count;
+      const trayBadge = document.getElementById('trayCountBadge');
+      if (trayBadge) trayBadge.textContent = count;
+      const sidebarBadge = document.getElementById('sidebarCount');
+      if (sidebarBadge) sidebarBadge.textContent = count;
+      const btnBadge = document.getElementById('sidebarBtnCount');
+      if (btnBadge) btnBadge.textContent = count;
 
       const list = document.getElementById('annotsList');
+      if (!list) return;
       if (count === 0) {
         list.innerHTML = `
           <div class="annots-empty">
             <p>No hay marcas pendientes.</p>
-            <small>Selecciona texto en el documento y haz clic en <strong>Comentario</strong>, <strong>Tachar</strong> o <strong>Humanizar</strong>.</small>
+            <small>Selecciona texto y haz clic en <strong>Comentario</strong>, <strong>Tachar</strong> o <strong>Humanizar</strong>.</small>
           </div>
         `;
         return;
