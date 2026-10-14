@@ -173,6 +173,15 @@ Referencia completa del CLI (comandos, flags, entorno, manifest) en
    JSON que escribe el dispatcher (`grafos/<corpus>-graph.html`). Detalle
    completo en "Cómo usar `codebase-memory`" de
    `.claude/commands/propuesta.md`.
+11. **Captions de tablas y figuras:**
+   - Todo caption (`\caption{...}` o `\caption[...]{...}`) debe ser **concreto, informativo y humanizado** aplicando estrictamente la skill `estilo-natural-es`.
+   - Se prohíben las descripciones mecánicas o meta-visuales vacías (por ejemplo, evitar explicaciones como "las barras azules son las actividades y los rombos rojos los hitos" o "las raíces agrupan causas y el tronco el problema central"). En su lugar, el caption debe enunciar el contenido científico y metodológico real: el objeto del estudio, los grupos temáticos, la articulación con los objetivos específicos, las responsabilidades operativas o los mecanismos de transferencia con la comunidad de interés.
+   - Prohibición estricta de rayas anglosajonas (` — `) o dobles guiones (`--`).
+   - Se mantiene la sintaxis `\caption[Título corto]{Descripción concreta}` para figuras y `\caption{Descripción concreta}` para tablas, conservando siempre las etiquetas `\label{...}` intactas.
+   - Esta regla rige para `redactor`, `disenador-tikz`, `revisor-figuras`, `presupuestador`, `coordinador-propuesta`, `grant-flow-auditor` y cualquier agente que proponga o audite tablas y figuras.
+12. **Autonomía e independencia de herramientas de memoria externa (Engram):**
+   - El marco, sus flujos de trabajo, las skills, las restricciones y los agentes son **100% autónomos y portables en disco** (`insumos/`, `artefactos/`, `redaccion/`, `specs/`).
+   - Ninguna fase, comando, validación ni regla depende de forma obligatoria de Engram. Si Engram está instalado y configurado en el entorno local, puede utilizarse como acelerador opcional de caché o espejo pasivo; si no está disponible (en otros equipos, entornos sin Engram o al usar otros agentes CLI como Pi, OpenCode, Antigravity o Claude Code básico), el pipeline opera de manera completa, determinista y sin errores.
 
 ## Roster de agentes (`.claude/agents/`) y modelos por defecto
 
@@ -204,7 +213,7 @@ que un agente carga cuando la tarea lo pide), con la misma fuente de verdad
 
 | Skill | Para qué | La usa |
 |-------|----------|--------|
-| `estilo-natural-es` | Pulir prosa narrativa en español: desmecaniza enumeraciones y aperturas formulaicas, varía longitud de frase y conectores, aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas y citas. No es una herramienta de evasión de detectores de IA: no introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`) **y el asistente primario en toda prosa en español que redacte** |
+| `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): erradica 35 patrones de IA (aperturas cósmicas, gerundios de cierre, inflación de trascendencia, falsos rangos, regla de tres, monotonía de ritmo), prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional (burstiness) y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No es una herramienta de evasión: no introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
 | `depuracion-redundancias-es` | Auditar y eliminar redundancias conceptuales, léxicas y estructurales dentro de una misma sección, asegurando que cada párrafo aporte avance argumentativo y articulando la aplicación integral de `estilo-natural-es` (humanización y ritmo). | `grant-flow-auditor`, `redactor`, `investigador` y el asistente primario en revisiones integrales de texto |
 
 La skill canónica vive en `.claude/skills/estilo-natural-es/SKILL.md` y de ahí
@@ -218,7 +227,7 @@ y a los generadores, y se regeneran los ports con su `--check`.
 ### La skill `estilo-natural-es` es obligatoria en toda prosa en español
 
 **Alcance.** Pasa por ella cualquier prosa en español que el marco produzca. Eso
-incluye las secciones de la propuesta (§1–§16 y el front-matter) y también los
+incluye las secciones de la propuesta (§1–§18 y el front-matter) y también los
 artefactos que el asistente primario redacta por su cuenta: `LEEME`, documentos
 de `odd/tasks/`, guías, reportes y notas de corrida.
 
@@ -226,7 +235,7 @@ de `odd/tasks/`, guías, reportes y notas de corrida.
 
 | Quién escribe | Cómo se aplica |
 |---|---|
-| `redactor` o `investigador` producen una sección | `grant-flow-auditor` la pule **antes** del `revisor`. El orden no es negociable: si el auditor edita después de un PASS, ese PASS queda invalidado y la revisión se repite sobre el texto final |
+| `redactor` o `investigador` producen una sección | Redactan aplicando los principios de la skill; `grant-flow-auditor` audita y pule **antes** del `revisor`. El orden no es negociable: si el auditor edita después de un PASS, ese PASS queda invalidado y la revisión se repite sobre el texto final |
 | El asistente primario redacta documentación en español | Aplica la skill **antes de escribir**. El texto sale ya pulido, en lugar de corregirse después |
 
 **Qué queda fuera.** Entradas BibTeX, tablas de LaTeX, la tabla de presupuesto
@@ -234,6 +243,13 @@ de `odd/tasks/`, guías, reportes y notas de corrida.
 (objetivos específicos, rubros, productos esperados) y todo texto en inglés. La
 skill mejora la cadencia; no reescribe contenido, no inventa datos y no mueve una
 cifra, una fecha ni una clave de cita.
+
+**Invariantes de estilo del documento (obligatorios):**
+- **Tipografía y jerarquía:** Compilado en `11pt` (`\documentclass[11pt,a4paper]{article}`). Títulos dos tamaños menos: título principal en encabezado `\Large\bfseries`, secciones de cuerpo `\large\bfseries`, subsecciones y subsubsecciones `\normalsize\bfseries`.
+- **Logos institucionales:** En el pie de página mediante `fancyhdr` con los logos oficiales (`redaccion/logos/`: LabIA, UNAL, GCPDS).
+- **Prohibición de rayas anglosajonas y dobles guiones:** Queda terminantemente prohibido el uso de `--` o ` — ` en la prosa narrativa. Los incisos se resuelven con comas, punto y coma o paréntesis.
+- **Formato de citación:** APA autor-año natbib exclusivamente (`\citet{}`, `\citep{}`); el estilo numérico IEEE está prohibido.
+- **Estructura fija:** Los párrafos requeridos por la guía (ej. los 6 de §2) y el mapeo 1:1 (3 subproblemas ↔ 3 objetivos específicos) son inalterables.
 
 **Por qué la regla vive aquí y no solo en el pipeline.** Mientras fue un paso del
 pipeline, cubría las secciones de la propuesta y dejaba fuera todo lo demás que

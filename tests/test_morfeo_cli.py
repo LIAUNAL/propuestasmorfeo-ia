@@ -21,7 +21,7 @@ from morfeo.kit import get_kit_root, load_kit_manifest
 
 class TestMorfeoCLI(unittest.TestCase):
     def test_version(self):
-        self.assertEqual(morfeo.__version__, "0.5.0")
+        self.assertEqual(morfeo.__version__, "0.5.1")
 
     def test_kit_resolution(self):
         kit_root = get_kit_root()
@@ -43,7 +43,7 @@ class TestMorfeoCLI(unittest.TestCase):
 
             # 2. status
             status_dict = get_project_status(target)
-            self.assertEqual(status_dict["version"], "0.5.0")
+            self.assertEqual(status_dict["version"], "0.5.1")
             self.assertIsNone(status_dict["active_run"])
 
             # 3. audit clean

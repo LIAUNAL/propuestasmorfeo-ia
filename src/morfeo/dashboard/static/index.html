@@ -1045,6 +1045,78 @@
     }
 
     /* =========================================================
+       CAPA VISUAL DE ANOTACIONES, SUBRAYADOS Y TACHADOS EN PDF
+       ========================================================= */
+    .annotationsLayer {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 3;
+    }
+    .pdf-annot-highlight {
+      position: absolute;
+      pointer-events: auto;
+      border-radius: 2px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+      cursor: pointer;
+    }
+    /* Comentario: subrayado azul cielo */
+    .pdf-annot-highlight--comment {
+      background: rgba(56, 189, 248, 0.22);
+      border-bottom: 2.5px solid #0284c7;
+      box-shadow: 0 1px 2px rgba(2, 132, 199, 0.25);
+    }
+    .pdf-annot-highlight--comment:hover {
+      background: rgba(56, 189, 248, 0.38);
+      border-bottom: 3px solid #0369a1;
+    }
+    /* Humanizar: subrayado verde esmeralda */
+    .pdf-annot-highlight--humanize {
+      background: rgba(16, 185, 129, 0.22);
+      border-bottom: 2.5px solid #059669;
+      box-shadow: 0 1px 2px rgba(5, 150, 105, 0.25);
+    }
+    .pdf-annot-highlight--humanize:hover {
+      background: rgba(16, 185, 129, 0.38);
+      border-bottom: 3px solid #047857;
+    }
+    /* Tachar: línea roja que tacha el texto horizontalmente */
+    .pdf-annot-highlight--strikethrough {
+      background: rgba(239, 68, 68, 0.16);
+      border-bottom: 1px dashed rgba(239, 68, 68, 0.35);
+    }
+    .pdf-annot-highlight--strikethrough::after {
+      content: '';
+      position: absolute;
+      left: -2px;
+      right: -2px;
+      top: 50%;
+      height: 2.5px;
+      background: #ef4444;
+      transform: translateY(-50%);
+      box-shadow: 0 0 3px rgba(239, 68, 68, 0.85);
+      border-radius: 1px;
+      pointer-events: none;
+    }
+    .pdf-annot-highlight--strikethrough:hover {
+      background: rgba(239, 68, 68, 0.30);
+    }
+    .pdf-annot-highlight--strikethrough:hover::after {
+      height: 3px;
+      background: #dc2626;
+    }
+    @keyframes annotFlash {
+      0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); transform: scale(1.02); }
+      70% { box-shadow: 0 0 0 6px rgba(56, 189, 248, 0); transform: scale(1.0); }
+      100% { box-shadow: none; }
+    }
+    .annot-card--flashing {
+      animation: annotFlash 1.1s ease-out;
+      border-color: var(--accent) !important;
+    }
+
+    /* =========================================================
        COLUMNA DERECHA: PANEL DE CONTROL DE CAMBIOS
        ========================================================= */
     .pdf-control-panel {
@@ -1641,6 +1713,7 @@
             <div id="pdfPageContainer" class="pdf-page-container">
               <canvas id="pdfCanvas"></canvas>
               <div id="pdfTextLayer" class="textLayer"></div>
+              <div id="pdfAnnotationsLayer" class="annotationsLayer"></div>
             </div>
             <iframe id="pdfNativeIframe" class="iframe-viewer" src="/api/pdf" style="display: none; height: 850px; width: 100%;"></iframe>
           </div>
@@ -2373,6 +2446,13 @@
           textLayerDiv.innerHTML = '';
         }
 
+        const annotationsLayerDiv = document.getElementById('pdfAnnotationsLayer');
+        if (annotationsLayerDiv) {
+          annotationsLayerDiv.style.width = `${Math.floor(viewport.width)}px`;
+          annotationsLayerDiv.style.height = `${Math.floor(viewport.height)}px`;
+          annotationsLayerDiv.innerHTML = '';
+        }
+
         const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
         currentRenderTask = page.render({
           canvasContext: ctx,
@@ -2401,6 +2481,8 @@
               await currentTextLayerTask.promise;
             }
           }
+          // Renderizar marcas visuales (subrayados y tachados) sobre el texto
+          renderPdfAnnotationsOverlay();
         } catch (e) {
           if (e && e.name !== 'RenderingCancelledException') {
             console.warn("Aviso textLayer:", e);
@@ -2506,13 +2588,31 @@
       }
     }
 
+    let savedSelectedRangeRects = null;
+
     function handleTextSelection() {
       const selection = window.getSelection();
-      const text = selection.toString().trim();
+      const text = selection ? selection.toString().trim() : '';
       if (text.length > 0) {
         currentSelectedText = text;
         currentSelectedPage = pdfCurrentPage;
         
+        // Capturar rectángulos normalizados del fragmento seleccionado sobre el contenedor de página
+        const pageContainer = document.getElementById('pdfPageContainer');
+        if (pageContainer && selection.rangeCount > 0) {
+          const containerRect = pageContainer.getBoundingClientRect();
+          const range = selection.getRangeAt(0);
+          const clientRects = Array.from(range.getClientRects());
+          if (clientRects.length > 0 && containerRect.width > 0 && containerRect.height > 0) {
+            savedSelectedRangeRects = clientRects.map(r => ({
+              xPct: (r.left - containerRect.left) / containerRect.width,
+              yPct: (r.top - containerRect.top) / containerRect.height,
+              wPct: r.width / containerRect.width,
+              hPct: r.height / containerRect.height
+            }));
+          }
+        }
+
         const previewExcerpt = text.length > 80 ? text.substring(0, 77) + '...' : text;
         const infoEl = document.getElementById('pdfSelectionInfoText');
         if (infoEl) {
@@ -2604,6 +2704,38 @@
       }
     });
 
+    function findTextRectsInTextLayer(targetText) {
+      const textLayer = document.getElementById('pdfTextLayer');
+      const pageContainer = document.getElementById('pdfPageContainer');
+      if (!textLayer || !pageContainer || !targetText) return null;
+
+      const containerRect = pageContainer.getBoundingClientRect();
+      if (containerRect.width === 0 || containerRect.height === 0) return null;
+
+      const spans = Array.from(textLayer.querySelectorAll('span'));
+      if (spans.length === 0) return null;
+
+      const cleanTarget = targetText.replace(/\s+/g, ' ').trim().toLowerCase();
+      const matchedRects = [];
+
+      for (const span of spans) {
+        const spanText = (span.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        if (spanText && (cleanTarget.includes(spanText) || spanText.includes(cleanTarget))) {
+          const rect = span.getBoundingClientRect();
+          if (rect.width > 2 && rect.height > 2) {
+            matchedRects.push({
+              xPct: (rect.left - containerRect.left) / containerRect.width,
+              yPct: (rect.top - containerRect.top) / containerRect.height,
+              wPct: rect.width / containerRect.width,
+              hPct: rect.height / containerRect.height
+            });
+          }
+        }
+      }
+
+      return matchedRects.length > 0 ? matchedRects : null;
+    }
+
     function triggerAddComment() {
       const sel = window.getSelection().toString().trim();
       const targetText = sel || currentSelectedText;
@@ -2629,16 +2761,25 @@
         alert("Por favor escribe tu comentario o instrucción para el agente.");
         return;
       }
+      const rects = (savedSelectedRangeRects && savedSelectedRangeRects.length > 0)
+        ? [...savedSelectedRangeRects]
+        : findTextRectsInTextLayer(currentSelectedText);
+
       queuedAnnotations.push({
         id: 'ann_' + Date.now(),
         type: 'comment',
         text: currentSelectedText,
         comment: comment,
-        page: currentSelectedPage
+        page: currentSelectedPage,
+        rects: rects
       });
+      savedSelectedRangeRects = null;
+      if (window.getSelection) {
+        window.getSelection().removeAllRanges();
+      }
       closeCommentModal();
       renderAnnotationsTray();
-      showToast('Comentario agregado a marcas pendientes');
+      showToast('Comentario agregado y texto subrayado');
     }
 
     function triggerStrikethrough() {
@@ -2648,14 +2789,23 @@
         alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para tacharlo (marcarlo para eliminar).");
         return;
       }
+      const rects = (savedSelectedRangeRects && savedSelectedRangeRects.length > 0)
+        ? [...savedSelectedRangeRects]
+        : findTextRectsInTextLayer(targetText);
+
       queuedAnnotations.push({
         id: 'ann_' + Date.now(),
         type: 'strikethrough',
         text: targetText,
-        page: currentSelectedPage
+        page: currentSelectedPage,
+        rects: rects
       });
+      savedSelectedRangeRects = null;
+      if (window.getSelection) {
+        window.getSelection().removeAllRanges();
+      }
       renderAnnotationsTray();
-      showToast('Texto marcado para tachar/eliminar');
+      showToast('Texto tachado con línea roja');
     }
 
     function triggerHumanize() {
@@ -2665,14 +2815,23 @@
         alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para marcarlo a humanizar con la skill estilo-natural-es.");
         return;
       }
+      const rects = (savedSelectedRangeRects && savedSelectedRangeRects.length > 0)
+        ? [...savedSelectedRangeRects]
+        : findTextRectsInTextLayer(targetText);
+
       queuedAnnotations.push({
         id: 'ann_' + Date.now(),
         type: 'humanize',
         text: targetText,
-        page: currentSelectedPage
+        page: currentSelectedPage,
+        rects: rects
       });
+      savedSelectedRangeRects = null;
+      if (window.getSelection) {
+        window.getSelection().removeAllRanges();
+      }
       renderAnnotationsTray();
-      showToast('Texto marcado para humanizar con estilo-natural-es');
+      showToast('Texto marcado para humanizar (subrayado verde)');
     }
 
     function removeAnnotation(id) {
@@ -2698,6 +2857,50 @@
       }
     }
 
+    function renderPdfAnnotationsOverlay() {
+      const overlay = document.getElementById('pdfAnnotationsLayer');
+      if (!overlay) return;
+      overlay.innerHTML = '';
+
+      const pageAnnots = queuedAnnotations.filter(a => a.page === pdfCurrentPage);
+      if (pageAnnots.length === 0) return;
+
+      pageAnnots.forEach(ann => {
+        let rects = ann.rects;
+        if (!rects || rects.length === 0) {
+          rects = findTextRectsInTextLayer(ann.text);
+          if (rects) ann.rects = rects;
+        }
+        if (rects && rects.length > 0) {
+          rects.forEach((rect) => {
+            const el = document.createElement('div');
+            el.className = `pdf-annot-highlight pdf-annot-highlight--${ann.type}`;
+            el.style.left = `${(rect.xPct * 100).toFixed(2)}%`;
+            el.style.top = `${(rect.yPct * 100).toFixed(2)}%`;
+            el.style.width = `${(rect.wPct * 100).toFixed(2)}%`;
+            el.style.height = `${(rect.hPct * 100).toFixed(2)}%`;
+            const typeLabel = ann.type === 'comment' ? `💬 Comentario: ${ann.comment || ''}` : (ann.type === 'strikethrough' ? '✂️ Tachar (eliminar)' : '✨ Humanizar con estilo-natural-es');
+            el.title = `${typeLabel}\n"${ann.text.substring(0, 60)}..." (Clic para ubicar en panel)`;
+            
+            el.onclick = (e) => {
+              e.stopPropagation();
+              highlightAnnotCardInList(ann.id);
+            };
+            overlay.appendChild(el);
+          });
+        }
+      });
+    }
+
+    function highlightAnnotCardInList(id) {
+      const card = document.querySelector(`.annot-card[data-id="${id}"]`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        card.classList.add('annot-card--flashing');
+        setTimeout(() => card.classList.remove('annot-card--flashing'), 1200);
+      }
+    }
+
     function renderAnnotationsTray() {
       const count = queuedAnnotations.length;
       const trayBadge = document.getElementById('trayCountBadge');
@@ -2716,6 +2919,7 @@
             <small>Selecciona texto y haz clic en <strong>Comentario</strong>, <strong>Tachar</strong> o <strong>Humanizar</strong>.</small>
           </div>
         `;
+        renderPdfAnnotationsOverlay();
         return;
       }
 
@@ -2727,16 +2931,24 @@
         const badgeColor = ann.type === 'comment' ? 'info' : (ann.type === 'strikethrough' ? 'bad' : 'ok');
 
         card.className = `annot-card ${typeClass}`;
+        card.setAttribute('data-id', ann.id);
+        card.onclick = () => {
+          if (ann.page && ann.page !== pdfCurrentPage) {
+            goToPdfPage(ann.page);
+          }
+        };
         card.innerHTML = `
           <div class="annot-card__head">
             <span class="badge badge--${badgeColor}">${typeLabel} · Pág. ${ann.page}</span>
-            <button class="annot-card__del" onclick="removeAnnotation('${ann.id}')" title="Eliminar marca">✕</button>
+            <button class="annot-card__del" onclick="event.stopPropagation(); removeAnnotation('${ann.id}')" title="Eliminar marca">✕</button>
           </div>
           <div class="annot-card__quote">"${escapeHtml(ann.text)}"</div>
           ${ann.comment ? `<div class="annot-card__note"><strong>Instrucción:</strong> ${escapeHtml(ann.comment)}</div>` : ''}
         `;
         list.appendChild(card);
       });
+
+      renderPdfAnnotationsOverlay();
     }
 
     function confirmAndExecuteChanges() {

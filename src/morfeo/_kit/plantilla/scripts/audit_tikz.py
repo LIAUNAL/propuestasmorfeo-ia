@@ -77,12 +77,28 @@ def figure_size_cm(figdir: pathlib.Path, name: str) -> tuple[float, float] | Non
     png = sorted(figdir.glob(f"fig_{name}-[0-9]*.png"))
     if not png:
         return None
+    width_px = None
+    height_px = None
     try:
         from PIL import Image
+        with Image.open(png[0]) as image:
+            width_px, height_px = image.size
     except ImportError:
+        pass
+
+    if width_px is None or height_px is None:
+        try:
+            import struct
+            with open(png[0], "rb") as f:
+                data = f.read(24)
+                if len(data) >= 24 and data.startswith(b"\x89PNG\r\n\x1a\n"):
+                    width_px, height_px = struct.unpack(">II", data[16:24])
+        except Exception:
+            return None
+
+    if width_px is None or height_px is None:
         return None
-    with Image.open(png[0]) as image:
-        width_px, height_px = image.size
+
     cm_per_px = 2.54 / 200.0
     return round(width_px * cm_per_px, 2), round(height_px * cm_per_px, 2)
 
