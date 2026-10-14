@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -39,29 +40,47 @@ CANONICAL_GATES = [
     {"id": "G4", "name": "Objetivos General y Específicos", "phase": "Fase 4", "reviewer": "Revisor", "criteria": "Correspondencia biyectiva 1:1 entre subproblemas y objetivos."},
     {"id": "G5", "name": "Marco Conceptual y Equipo", "phase": "Fase 5", "reviewer": "Revisor", "criteria": "Teoría fundamental y roles de equipo derivados de objetivos."},
     {"id": "G5.5", "name": "Metodología y Diagrama TikZ", "phase": "Fase 5.5", "reviewer": "Revisor", "criteria": "Cadena de valor por fase, causalidad y esquema metodológico."},
+    {"id": "G6", "name": "Resultados y Consideraciones Éticas", "phase": "Fase 6", "reviewer": "Revisor", "criteria": "Resultados tangibles, bioética, comités y consentimientos informados."},
     {"id": "G6.4", "name": "Presupuesto Financiero", "phase": "Fase 6.4", "reviewer": "Revisor", "criteria": "Aritmética exacta de rubros, topes y cofinanciación institucional."},
+    {"id": "G6.45", "name": "Cronograma, Productos y BibTeX", "phase": "Fase 6.45", "reviewer": "Revisor", "criteria": "Gantt a 12 meses, xltabular de productos y bibliografía APA consolidada."},
+    {"id": "G6.46", "name": "Articulación Territorial y Comunitaria", "phase": "Fase 6.46", "reviewer": "Revisor", "criteria": "Estrategia de anclaje territorial y apropiación social del conocimiento."},
     {"id": "G6.5", "name": "Front-Matter y Síntesis", "phase": "Fase 6.5", "reviewer": "Revisor", "criteria": "Resumen ejecutivo, palabras clave y unicidad del título."},
     {"id": "G7", "name": "Auditoría Final y Ensamble", "phase": "Fase 7", "reviewer": "Revisor & Coordinador", "criteria": "Auditoría cruzada integral, 0 errores en LaTeX y compilación PDF."},
 ]
 
+_PDF_PAGE_CACHE: dict[str, tuple[float, int, int]] = {}
+
 
 def _count_pdf_pages(pdf_path: Path) -> int:
-    """Best-effort page count for PDF using pdfinfo or binary inspection."""
+    """Best-effort page count for PDF using cached pdfinfo or binary inspection."""
     if not pdf_path.is_file():
         return 0
     try:
-        import subprocess
-        res = subprocess.run(["pdfinfo", str(pdf_path)], capture_output=True, text=True, timeout=2)
-        if res.returncode == 0:
-            for line in res.stdout.splitlines():
-                if line.startswith("Pages:"):
-                    return int(line.split(":")[1].strip())
-    except Exception:
-        pass
+        stat = pdf_path.stat()
+        mtime, size = stat.st_mtime, stat.st_size
+        cache_key = str(pdf_path.resolve())
+        cached = _PDF_PAGE_CACHE.get(cache_key)
+        if cached and cached[0] == mtime and cached[1] == size:
+            return cached[2]
 
-    try:
-        data = pdf_path.read_bytes()
-        pages = len(re.findall(b"/Type\\s*/Page\\b", data))
+        pages = 0
+        try:
+            import subprocess
+            res = subprocess.run(["pdfinfo", str(pdf_path)], capture_output=True, text=True, timeout=1.5)
+            if res.returncode == 0:
+                for line in res.stdout.splitlines():
+                    if line.startswith("Pages:"):
+                        pages = int(line.split(":")[1].strip())
+                        break
+        except Exception:
+            pass
+
+        if pages == 0:
+            data = pdf_path.read_bytes()
+            pages = len(re.findall(b"/Type\\s*/Page\\b", data))
+
+        if pages > 0:
+            _PDF_PAGE_CACHE[cache_key] = (mtime, size, pages)
         return pages
     except Exception:
         return 0
@@ -152,25 +171,56 @@ def parse_gates_info(run_dir: Path) -> list[dict[str, Any]]:
             if "|" in line:
                 parts = [p.strip() for p in line.split("|")[1:-1]]
                 if len(parts) >= 3 and parts[1] != "Gate":
+                    fase_id = parts[0].strip()
                     gate_id = parts[1].strip()
                     verdict = parts[2].strip()
                     if gate_id and gate_id != "none" and gate_id != "—":
                         recorded_gates[gate_id] = verdict
+                    if fase_id and fase_id.startswith("fase"):
+                        recorded_gates[fase_id] = verdict
 
-    if estado_file.is_file() and not recorded_gates:
-        for line in estado_file.read_text(encoding="utf-8", errors="replace").splitlines():
+    if estado_file.is_file():
+        content_estado = estado_file.read_text(encoding="utf-8", errors="replace")
+        for line in content_estado.splitlines():
             if "|" in line:
                 parts = [p.strip() for p in line.split("|")[1:-1]]
-                if len(parts) >= 2 and parts[0].startswith("G"):
+                if len(parts) >= 2 and parts[0].startswith("G") and parts[0] not in recorded_gates:
                     recorded_gates[parts[0]] = parts[1]
+        # Check explicit G0.5 approval if missing
+        if "G0.5" not in recorded_gates:
+            if re.search(r"G0\.5\s*=\s*APROBADA", content_estado, re.IGNORECASE) or re.search(r"G0\.5[^\n]+PASS", content_estado, re.IGNORECASE):
+                recorded_gates["G0.5"] = "PASS"
 
     result: list[dict[str, Any]] = []
     for g in CANONICAL_GATES:
         status = "PENDING"
-        # Match gate id or aliases
+        gid_lower = g["id"].lower()
+        phase_key = g["phase"].lower().replace(" ", "").replace(".", "_")
+
         for rk, rv in recorded_gates.items():
-            if g["id"].lower() in rk.lower() or (g["id"] == "G6.4" and "presupuesto" in rk.lower()) or (g["id"] == "G6.5" and "front" in rk.lower()) or (g["id"] == "G7" and "final" in rk.lower()):
-                if "pass" in rv.lower():
+            rk_lower = rk.lower()
+            matched = False
+            if gid_lower in rk_lower or rk_lower in gid_lower:
+                matched = True
+            elif phase_key == rk_lower or phase_key.replace("_", "") == rk_lower:
+                matched = True
+            elif gid_lower == "g0.5" and ("0.5" in rk_lower or rk_lower == "fase0"):
+                matched = True
+            elif gid_lower == "g6" and rk_lower == "fase6":
+                matched = True
+            elif gid_lower == "g6.4" and ("presupuesto" in rk_lower or rk_lower == "fase6_4"):
+                matched = True
+            elif gid_lower == "g6.45" and rk_lower == "fase6_45":
+                matched = True
+            elif gid_lower in ("g6.46", "g comunidades") and ("comunidades" in rk_lower or rk_lower == "fase6_46"):
+                matched = True
+            elif gid_lower == "g6.5" and ("front" in rk_lower or rk_lower == "fase6_5"):
+                matched = True
+            elif gid_lower == "g7" and ("final" in rk_lower or rk_lower == "fase7"):
+                matched = True
+
+            if matched:
+                if "pass" in rv.lower() or "aprobada" in rv.lower():
                     status = "PASS"
                 elif "fail" in rv.lower():
                     status = "FAIL"
@@ -223,8 +273,18 @@ def list_artifacts_info(run_dir: Path) -> list[dict[str, Any]]:
     return items
 
 
-def get_project_status(target_dir: Path) -> dict:
+_STATUS_CACHE: dict[str, tuple[float, dict]] = {}
+
+
+def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
     target_dir = target_dir.resolve()
+    cache_key = str(target_dir)
+    now = time.time()
+    if not force_refresh:
+        cached = _STATUS_CACHE.get(cache_key)
+        if cached and (now - cached[0] < 1.5):
+            return cached[1]
+
     version = "0.5.0"
     marker = target_dir / ".morfeo"
     if not marker.is_dir():
@@ -335,7 +395,7 @@ def get_project_status(target_dir: Path) -> dict:
 
     archify_flow_ready = (target_dir / "docs" / "diagrams" / "morfeo-pipeline-flow.html").is_file()
 
-    return {
+    result_data = {
         "workspace": str(target_dir),
         "version": version,
         "active_run": active_run,
@@ -350,6 +410,8 @@ def get_project_status(target_dir: Path) -> dict:
         "decisions_exists": (target_dir / "DECISIONS.md").is_file(),
         "idea_exists": (target_dir / "idea.md").is_file(),
     }
+    _STATUS_CACHE[cache_key] = (now, result_data)
+    return result_data
 
 
 def status_project(target_dir: Path, as_json: bool = False) -> int:
