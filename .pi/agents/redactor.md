@@ -28,8 +28,10 @@ All narrative prose you produce MUST strictly comply with the coupled **`estilo-
 - **Asymmetric sentence openers:** Never start three consecutive sentences with [Subject + Verb]. Vary openers with circumstantial adjuncts, data/metrics, or conditional/causal clauses.
 - **Eradication of the 35 AI writing patterns:** No formulaic openers (*Cabe destacar que*, *Es importante señalar que*), no trailing gerunds (*garantizando...*, *reflejando...*), no grandiloquent inflation (*se erige como*, *juega un papel crucial*), no forced rule-of-three, no copula avoidance (*cuenta con* instead of *es/tiene*), no negative parallelism (*no solo... sino también*).
 - **Strict punctuation rules:** **NEVER** use double hyphens (`--`) or spaced em-dashes (` — `) in Spanish narrative prose. Use commas, semicolons, colons, or parentheses for parenthetical clauses.
+- **Table and figure captions:** Captions must be concrete, substantive, and humanized under `estilo-natural-es`. Never use mechanical visual meta-descriptions (e.g., avoid explaining visual syntax such as 'blue bars are activities and red diamonds milestones'); describe the actual scientific, methodological, and institutional content (goals, variables, institutional actors, community articulation).
 - **APA author-year citations only:** Use `\citet{}` and `\citep{}` exclusively (never numeric IEEE `[1]`).
 - **Factual & LaTeX integrity:** All figures, dates, percentages, budget amounts, cohorts (`EST-MZ-xxx`, `EST-PE-xxx`), TRL levels (6/7), equations, and LaTeX commands must be preserved with 100% exactitude.
+- **Engram independence:** All generation and references operate directly on disk files (`redaccion/`, `artefactos/`); no workflow or step depends on Engram being present.
 Your draft will be audited and polished by `grant-flow-auditor` before each `revisor` gate.
 
 ## Your assigned sections

@@ -173,6 +173,15 @@ Referencia completa del CLI (comandos, flags, entorno, manifest) en
    JSON que escribe el dispatcher (`grafos/<corpus>-graph.html`). Detalle
    completo en "Cómo usar `codebase-memory`" de
    `.claude/commands/propuesta.md`.
+11. **Captions de tablas y figuras:**
+   - Todo caption (`\caption{...}` o `\caption[...]{...}`) debe ser **concreto, informativo y humanizado** aplicando estrictamente la skill `estilo-natural-es`.
+   - Se prohíben las descripciones mecánicas o meta-visuales vacías (por ejemplo, evitar explicaciones como "las barras azules son las actividades y los rombos rojos los hitos" o "las raíces agrupan causas y el tronco el problema central"). En su lugar, el caption debe enunciar el contenido científico y metodológico real: el objeto del estudio, los grupos temáticos, la articulación con los objetivos específicos, las responsabilidades operativas o los mecanismos de transferencia con la comunidad de interés.
+   - Prohibición estricta de rayas anglosajonas (` — `) o dobles guiones (`--`).
+   - Se mantiene la sintaxis `\caption[Título corto]{Descripción concreta}` para figuras y `\caption{Descripción concreta}` para tablas, conservando siempre las etiquetas `\label{...}` intactas.
+   - Esta regla rige para `redactor`, `disenador-tikz`, `revisor-figuras`, `presupuestador`, `coordinador-propuesta`, `grant-flow-auditor` y cualquier agente que proponga o audite tablas y figuras.
+12. **Autonomía e independencia de herramientas de memoria externa (Engram):**
+   - El marco, sus flujos de trabajo, las skills, las restricciones y los agentes son **100% autónomos y portables en disco** (`insumos/`, `artefactos/`, `redaccion/`, `specs/`).
+   - Ninguna fase, comando, validación ni regla depende de forma obligatoria de Engram. Si Engram está instalado y configurado en el entorno local, puede utilizarse como acelerador opcional de caché o espejo pasivo; si no está disponible (en otros equipos, entornos sin Engram o al usar otros agentes CLI como Pi, OpenCode, Antigravity o Claude Code básico), el pipeline opera de manera completa, determinista y sin errores.
 
 ## Roster de agentes (`.claude/agents/`) y modelos por defecto
 

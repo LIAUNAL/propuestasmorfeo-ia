@@ -13,7 +13,7 @@ All dependencies needed to run the multi-agent framework, build the knowledge gr
 | **TeX Live** | 2024+ | LaTeX compilation (pdflatex + bibtex) | `brew install --cask mactex` |
 | **git** | 2.40+ | Version control | `brew install git` |
 | **codegraph** | 1.2+ | **codebase-memory** knowledge-graph MCP server (required: `.mcp.json`'s `codegraph` server invokes this binary as `codegraph serve --mcp`) | `npm i -g @colbymchenry/codegraph` |
-| **engram** | 1.18+ | Persistent memory MCP server (required: `.mcp.json`'s `engram` server invokes this binary directly) | `brew install gentleman-programming/tap/engram` |
+| **engram** (opcional) | 1.18+ | Persistent memory MCP server / acelerador opcional de caché en disco (el pipeline opera 100% de forma autónoma en disco sin depender de Engram) | `brew install gentleman-programming/tap/engram` |
 | **gentle-ai** (recommended) | 1.43+ | SDD workflow orchestration, skill registry, model-assignment dispatch for `/sdd-*` commands | `brew install gentleman-programming/tap/gentle-ai` |
 | **OpenCode** (optional) | — | Secondary runtime for `.opencode/agents/` + `.opencode/commands/propuesta.md` (generated from `.claude/` via `scripts/gen-opencode.py`, stdlib-only, no new Python deps); interactive session required — gates don't work under `opencode run` headless | see [opencode.ai](https://opencode.ai) |
 | **Pi** (optional) | 0.87+ | Secondary runtime for `.pi/agents/` + `.pi/prompts/propuesta.md` (generated from `.claude/` via `scripts/gen-pi.py`); interactive session required for the approval gates | `npm i -g @earendil-works/pi-coding-agent` |
@@ -49,7 +49,7 @@ runtime generators import nothing from this file.
 
 ## 3. Node.js / MCP servers
 
-All MCP servers run via `npx -y` (fetched on demand, no global install needed). All eight are registered as Claude Code MCP servers in `.mcp.json` (`engram`, `consensus`, and the six below); the six below are used directly by the proposal agents as Claude Code tools for literature/citation search:
+All MCP servers run via `npx -y` (fetched on demand, no global install needed). The registered MCP servers in `.mcp.json` include literature search servers (`consensus`, `arxiv`, `crossref`, `openalex`, `pubmed`, `semanticscholar`), `codegraph` for knowledge graphs, and optionally `engram` (which is non-blocking and optional; all agents fall back cleanly to local files if Engram is absent):
 
 | Server | npm package | Purpose |
 |--------|-------------|---------|

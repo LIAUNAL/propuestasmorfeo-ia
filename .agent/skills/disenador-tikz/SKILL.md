@@ -24,7 +24,7 @@ a second (`artefactos/pipeline/30-fase2.md`).
 | Mapa de estado del arte | §4 | `redaccion/specs/estado_arte.spec.json` — o `estado_arte_a.spec.json` + `estado_arte_b.spec.json` cuando el mapa no cabe en A4 a tamaño natural (ver más abajo) |
 | Diagrama metodológico | §10 | `redaccion/specs/metodologico.spec.json` |
 
-Labels and captions are in **Spanish**.
+Labels and captions are in **Spanish**. Captions must be concrete, informative, and humanized under `estilo-natural-es`: never describe drawing meta-rules (e.g. avoid 'the roots group causes and the trunk is the problem'); describe the substantive scientific content, causal structure, thematic clusters, or methodological phases. Never use `--` or ` — `. Operates 100% on disk files without hard dependencies on Engram.
 
 ## What you produce
 

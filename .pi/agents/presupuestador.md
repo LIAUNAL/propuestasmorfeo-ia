@@ -106,7 +106,7 @@ This section is built through the dispatcher-mediated interactive gate (Fase
 - [ ] MODE=tdr: applicable split within tolerance; rubros ⊆ allowed list.
 - [ ] Every ítem/rubro Justificación names a §10 element by name.
 - [ ] All non-derivable values tagged `[supuesto]`.
-- [ ] Single currency, consistent formatting; `\label{tab:presupuesto}` present.
+- [ ] Single currency, consistent formatting; `\label{tab:presupuesto}` present; caption is concrete, substantive, and humanized under `estilo-natural-es` (no `--` or ` — `).
 
 ## Vault mirror
 When you write `redaccion/sections/13_presupuesto.tex`, also write/update
@@ -128,3 +128,4 @@ dispatcher flips it after the gate.
 Return to the Orchestrator an inline summary: MODE, grand total, tope + margin
 (MODE=tdr), split compliance, row count, and the list of `[supuesto]` items
 awaiting user confirmation — so the dispatcher can drive the interactive gate.
+Operates 100% on local disk files without hard dependencies on Engram.

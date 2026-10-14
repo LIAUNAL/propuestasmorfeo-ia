@@ -57,8 +57,10 @@ Apply the `estilo-natural-es` skill to the Spanish narrative in a single holisti
 * **Asimetría sintáctica y conectores formales:** Ensure no three consecutive sentences start with [Subject + Verb]. Rotate formal Colombian academic discourse markers: *no obstante*, *por ende*, *en tal sentido*, *de ahí que*, *con todo*, *ahora bien*, *en concreto*, *a su vez*, *así las cosas*. Prohibit colloquialisms (*chévere*, *de una*) and regionalisms from other countries (*ordenador*, *coche*, *móvil*, *chido*, *che*).
 * **Fidelidad estricta e invariantes LaTeX:** Numbers, percentages, dates, sample cohorts (`EST-MZ-xxx`, `EST-PE-xxx`), budget figures, TRL (6/7), equations, proper nouns, `\citep{}`/`\citet{}` natbib keys, and LaTeX environments stay 100% byte-identical.
 * **Preservación estructural:** Mandated paragraph counts (e.g., 6 paragraphs for §2) and guide-mandated lists (objetivos específicos, rubros, productos) keep their exact structural form.
+* **Captions de tablas y figuras:** All `\caption{...}` and `\caption[...]{...}` ARE in scope. Ensure captions are concrete, substantive, and natural, describing the scientific and institutional subject matter without mechanical meta-descriptions ('blue bars are...', 'roots are...') and without `--` or ` — `.
+* **Engram independence:** Operates 100% on disk files without hard dependencies on Engram.
 
-Out of scope for Pass 5: tables, the budget table, Gantt/TikZ code and BibTeX entries.
+Out of scope for Pass 5: table bodies, the budget table cells, raw Gantt/TikZ code, and BibTeX entries.
 
 When Pass 5 rewrites text, append its own short block to the output (after the Output Contract): the mechanical patterns detected, a technique | original | rewritten table, the invariant checks, and the 0-100 naturalness-and-fidelity score defined by the skill. That score measures prose quality and fidelity, never detectability.
 
