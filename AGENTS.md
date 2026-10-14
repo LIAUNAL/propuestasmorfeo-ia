@@ -16,6 +16,7 @@ cada fase al subagente correspondiente definido en `.claude/agents/`.
 | `/propuesta-analizar` | Intake (Fase 0 + G0.5); idea desde args o `ideas/`; para antes de scoping |
 | `/propuesta-continuar` | Una unidad del pipeline (`next_step`); imprime el siguiente comando |
 | `/propuesta` | Pipeline completo en una sesión (gates) |
+| `/propuesta-exportar` | Empaqueta y exporta la corrida activa con artefactos a .tar.gz o .zip |
 | `/propuesta-limpiar` | Cierra la corrida activa |
 | `/compilar-pdf` | Compila la corrida activa a PDF (`build.sh` en `redaccion/`) |
 | `/compilar-docx` | Exporta la corrida activa a Word (`build.sh --docx` en `redaccion/`) |

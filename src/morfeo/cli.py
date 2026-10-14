@@ -9,6 +9,8 @@ from pathlib import Path
 from . import __version__
 from .core.audit import audit_project
 from .core.compile import compile_proposal
+from .core.export import export_project
+from .core.import_project import import_project
 from .core.init import init_project
 from .core.status import status_project
 from .core.ui import start_ui
@@ -65,6 +67,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_ui.add_argument("--port", type=int, default=None, help="Puerto HTTP (default: 8080 o siguiente libre)")
     p_ui.add_argument("--no-open", action="store_true", help="No abrir automáticamente el navegador")
 
+    # --- export ---
+    p_export = sub.add_parser("export", help="Empaqueta y exporta un proyecto o corrida para compartir con sus artefactos.")
+    p_export.add_argument("dir", nargs="?", type=Path, default=Path("."), help="Directorio del proyecto (default: actual)")
+    p_export.add_argument("-o", "--output", type=Path, default=None, help="Ruta del archivo de salida (.tar.gz o .zip)")
+    p_export.add_argument("--run", default=None, help="ID de la corrida a exportar (default: activa)")
+    p_export.add_argument("--all-runs", action="store_true", help="Exportar todas las corridas de proposals/")
+    p_export.add_argument("--format", choices=["tar.gz", "zip"], default="tar.gz", help="Formato de compresión (default: tar.gz)")
+
+    # --- import ---
+    p_import = sub.add_parser("import", help="Importa y desempaca un proyecto Morfeo compartido con sus artefactos.")
+    p_import.add_argument("archive", type=Path, help="Archivo comprimido a importar (.tar.gz o .zip)")
+    p_import.add_argument("dir", nargs="?", type=Path, default=None, help="Directorio de destino (default: nombre del proyecto)")
+    p_import.add_argument("--force", action="store_true", help="Sobrescribir si el directorio de destino ya existe")
+
     return parser
 
 
@@ -97,6 +113,22 @@ def main(argv: list[str] | None = None) -> int:
             return compile_proposal(target_dir=args.dir, docx=args.docx, run_id=args.run)
         elif args.command == "ui":
             return start_ui(target_dir=args.dir, port=args.port, no_open=args.no_open)
+        elif args.command == "export":
+            export_project(
+                target_dir=args.dir,
+                output_path=args.output,
+                run_id=args.run,
+                all_runs=args.all_runs,
+                archive_format=args.format,
+            )
+            return 0
+        elif args.command == "import":
+            import_project(
+                archive_path=args.archive,
+                target_dir=args.dir,
+                force=args.force,
+            )
+            return 0
         else:
             parser.print_help()
             return 1

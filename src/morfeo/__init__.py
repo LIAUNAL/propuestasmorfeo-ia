@@ -10,6 +10,8 @@ __version__ = "0.5.1"
 __author__ = "Laboratorio de Inteligencia Artificial UNAL"
 __email__ = "amalvarezme@unal.edu.co"
 
+from .core.export import export_project
+from .core.import_project import import_project
 from .errors import MorfeoError, UserError
 
-__all__ = ["__version__", "MorfeoError", "UserError"]
+__all__ = ["__version__", "MorfeoError", "UserError", "export_project", "import_project"]

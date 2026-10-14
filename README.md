@@ -37,9 +37,10 @@ El sistema coordina un equipo de **11 subagentes especializados** guiados por co
 10. [Capa de Grafos de Conocimiento (Codebase-Memory)](#capa-de-grafos-de-conocimiento-codebase-memory)
 11. [Bucle Determinista de Diagramas TikZ](#bucle-determinista-de-diagramas-tikz)
 12. [Estructura de la Corrida y Privacidad de Datos](#estructura-de-la-corrida-y-privacidad-de-datos)
-13. [Runtimes Soportados](#runtimes-soportados)
-14. [Pruebas Automatizadas](#pruebas-automatizadas)
-15. [Licencia](#licencia)
+13. [Exportar, Compartir y Continuar en Otro Computador](#exportar-compartir-y-continuar-en-otro-computador)
+14. [Runtimes Soportados](#runtimes-soportados)
+15. [Pruebas Automatizadas](#pruebas-automatizadas)
+16. [Licencia](#licencia)
 
 ---
 
@@ -91,10 +92,12 @@ Dentro del directorio inicializado puedes ejecutar los comandos del asistente en
 
 | Comando | Descripción |
 |---|---|
-| `morfeo init <dir> [--title] [--preset] [--tools]` | Inicializa un workspace autocontenido con los 67 activos base del marco. |
+| `morfeo init <dir> [--title] [--preset] [--tools]` | Inicializa un workspace autocontenido con los 68 activos base del marco. |
 | `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF. |
 | `morfeo ui [dir] [--port 8765] [--no-open]` | Despliega el Command Center web interactivo en tiempo real. |
 | `morfeo compile [dir] [--docx] [--run <id>]` | Compila el proyecto LaTeX a PDF (`build.sh`) o exporta a Word (`--docx`). |
+| `morfeo export [dir] [-o <archivo>] [--run <id>]` | Empaqueta y exporta la propuesta con todos sus artefactos en `.tar.gz` o `.zip`. |
+| `morfeo import <archivo> [dir] [--force]` | Importa y desempaca un proyecto o corrida compartida en una nueva carpeta o existente. |
 | `morfeo upgrade [dir] [--force]` | Actualiza plantillas y scripts del marco preservando insumos y propuestas existentes. |
 | `morfeo audit [dir] [--json]` | Verifica la integridad criptográfica (SHA-256) de los archivos frente al manifiesto. |
 
@@ -113,6 +116,7 @@ En entornos asistidos (Claude Code, OpenCode, Antigravity, Pi), el framework ofr
 | `/propuesta-analizar` | Ejecuta la Fase 0 de intake (clasificación TDR/borrador, checklist y compuerta G0.5 opcional) antes de iniciar el scoping de literatura. |
 | `/propuesta-continuar` | Avanza exactamente una unidad metodológica del pipeline según el puntero `next_step` en `estado_propuesta.md`. |
 | `/propuesta` | Ejecuta el pipeline completo de formulación de extremo a extremo, deteniéndose interactivamente en cada compuerta de revisión (*gate*). |
+| `/propuesta-exportar` | Empaqueta y exporta la propuesta activa con todos sus artefactos, insumos y PDF listo para compartir con un colaborador. |
 | `/propuesta-limpiar` | Cierra y archiva la corrida activa en `_run.md` y `registry.md`, dejando el entorno listo para una nueva formulación sin borrar datos. |
 | `/compilar-pdf` | Compila de forma determinista la propuesta activa a PDF ejecutando `build.sh` en `redaccion/`. |
 | `/compilar-docx` | Exporta la propuesta activa a formato Word DOCX mediante `build.sh --docx` en `redaccion/` vía Pandoc y CSL APA. |
@@ -318,6 +322,76 @@ Cada propuesta formulada vive en un directorio autocontenido bajo `proposals/<ru
 > [!IMPORTANT]
 > **Privacidad y Protección Intelectual Garantizada:**
 > La carpeta `proposals/` al completo (incluyendo corridas activas, archivadas, punteros y registros) está estrictamente excluida en `.gitignore`. **Ningún dato, borrador, cifra, archivo LaTeX o PDF de tus propuestas se sincroniza jamás a GitHub**. El repositorio aloja únicamente el marco de trabajo, los agentes, las plantillas y las herramientas de orquestación.
+
+---
+
+## Exportar, Compartir y Continuar en Otro Computador
+
+Dado que la carpeta `proposals/` está protegida por `.gitignore` y nunca se sube a GitHub para salvaguardar la propiedad intelectual de las propuestas, Morfeo incluye comandos nativos para empaquetar, transferir e importar proyectos completos con todos sus artefactos.
+
+### 1. En el computador de origen (Exportar)
+
+Para empaquetar la propuesta activa junto con sus insumos, artefactos generados, grafos, marcas editoriales, fuentes LaTeX y PDF compilado:
+
+```bash
+# Exportar la corrida activa (genera <proyecto>-<corrida>.tar.gz)
+morfeo export
+
+# O especificar nombre de archivo o formato ZIP
+morfeo export -o mi-propuesta.tar.gz
+morfeo export -o mi-propuesta.zip --format zip
+
+# O desde el asistente IA
+/propuesta-exportar
+```
+
+El empaquetado excluye automáticamente archivos temporales de compilación (`.aux`, `.log`, `.synctex.gz`, `__pycache__`) pero preserva intactos `main.pdf`, `main.docx` y todos los datos metodológicos.
+
+---
+
+### 2. En el computador de destino (Continuar o Revisar)
+
+El archivo comprimido generado es **completamente autocontenido**. La persona que lo recibe tiene dos modalidades para continuar:
+
+#### Modalidad A: Usando el CLI de Morfeo (Recomendado)
+
+Si el destinatario tiene instalado Morfeo (`pip install propuestasmorfeo-ia`):
+
+```bash
+# 1. Importar y desempacar en la carpeta deseada
+morfeo import mi-propuesta.tar.gz ~/propuestas/salud-mental
+
+# 2. Entrar al proyecto importado
+cd ~/propuestas/salud-mental
+
+# 3. Lanzar el Command Center interactivo
+morfeo ui
+
+# 4. Inspeccionar el estado de avance y compuertas
+morfeo status
+
+# 5. O continuar redactando con el asistente de IA (Claude Code, Pi, Antigravity)
+/propuesta-continuar
+```
+
+#### Modalidad B: Sin tener Morfeo instalado (Portabilidad pura)
+
+Si el destinatario aún no tiene Morfeo instalado o solo desea auditar los entregables:
+
+```bash
+# Descomprimir con herramientas estándar del sistema operativo
+tar -xzf mi-propuesta.tar.gz
+# O si es ZIP: unzip mi-propuesta.zip
+
+cd <carpeta-descomprimida>
+```
+
+Dentro encontrará:
+- `proposals/<run-id>/redaccion/main.pdf`: el documento científico compilado listo para leer.
+- `proposals/<run-id>/redaccion/sections/`: todas las secciones en LaTeX editables.
+- `proposals/<run-id>/grafos/*.html`: los gemelos interactivos de los grafos de literatura y vault (se abren en cualquier navegador).
+- `proposals/<run-id>/insumos/`: todos los TDR, papers y notas aportados por el autor original.
+- Para compilar el PDF de forma local: `./scripts/compilar-pdf.sh` o `cd proposals/<run-id>/redaccion && ./build.sh`.
 
 ---
 

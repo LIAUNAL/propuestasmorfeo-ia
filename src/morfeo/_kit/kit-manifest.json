@@ -18,6 +18,7 @@
     ".claude/commands/compilar-pdf.md",
     ".claude/commands/propuesta-analizar.md",
     ".claude/commands/propuesta-continuar.md",
+    ".claude/commands/propuesta-exportar.md",
     ".claude/commands/propuesta-init.md",
     ".claude/commands/propuesta-insumos.md",
     ".claude/commands/propuesta-limpiar.md",
