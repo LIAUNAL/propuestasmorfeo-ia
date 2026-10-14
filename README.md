@@ -124,9 +124,9 @@ En entornos asistidos (Claude Code, OpenCode, Antigravity, Pi), el framework ofr
 El comando `morfeo ui` despliega un Command Center web interactivo en `http://localhost:8765` diseñado para supervisión visual y edición colaborativa:
 
 <p align="center">
-  <img src="docs/assets/morfeo-avatar.png" alt="Avatar anime de Morfeo" width="72" style="border-radius: 50%;">
+  <img src="docs/assets/morfeo-avatar.png" alt="Avatar anime de Morfeo" width="72">
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="redaccion/logos/labia.png" alt="Logo LIA UNAL" height="42">
+  <img src="docs/assets/logo_labIA.png" alt="Logo LIA UNAL" width="72">
 </p>
 
 ### Características Principales:
