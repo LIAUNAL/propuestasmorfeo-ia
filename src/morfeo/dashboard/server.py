@@ -77,8 +77,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
         if path in ("/", "/index.html"):
             self.serve_dashboard()
-        elif path.startswith("/static/vendor/"):
-            self.serve_vendor_asset(path)
+        elif path.startswith("/static/"):
+            self.serve_static_asset(path)
+        elif path in ("/favicon.ico", "/favicon.png"):
+            self.serve_favicon(path)
         elif path == "/api/status":
             self.serve_api_status()
         elif path == "/api/flow":
@@ -103,12 +105,12 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         else:
             self.send_error(404, "Not Found")
 
-    def serve_vendor_asset(self, req_path: str) -> None:
-        filename = req_path.replace("/static/vendor/", "")
-        vendor_dir = (Path(__file__).resolve().parent / "static" / "vendor").resolve()
-        target = (vendor_dir / filename).resolve()
+    def serve_static_asset(self, req_path: str) -> None:
+        rel_path = req_path.replace("/static/", "", 1)
+        static_dir = (Path(__file__).resolve().parent / "static").resolve()
+        target = (static_dir / rel_path).resolve()
         try:
-            target.relative_to(vendor_dir)
+            target.relative_to(static_dir)
         except ValueError:
             self.send_error(403, "Access denied")
             return
@@ -117,15 +119,46 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(404, "Asset not found")
             return
 
-        content_type = "application/javascript; charset=utf-8" if target.suffix == ".js" else (
-            "text/css; charset=utf-8" if target.suffix == ".css" else "application/octet-stream"
-        )
+        content_types = {
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".ico": "image/x-icon",
+            ".svg": "image/svg+xml",
+            ".webp": "image/webp",
+            ".js": "application/javascript; charset=utf-8",
+            ".css": "text/css; charset=utf-8",
+            ".html": "text/html; charset=utf-8",
+            ".json": "application/json",
+        }
+        content_type = content_types.get(target.suffix.lower(), "application/octet-stream")
         content = target.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
+        self.send_header("Cache-Control", "public, max-age=3600")
         self.end_headers()
         self.wfile.write(content)
+
+    def serve_favicon(self, req_path: str = "/favicon.ico") -> None:
+        static_dir = (Path(__file__).resolve().parent / "static").resolve()
+        target = static_dir / ("favicon.ico" if req_path == "/favicon.ico" else "favicon.png")
+        if not target.is_file():
+            target = static_dir / "favicon.png"
+        if not target.is_file():
+            self.send_error(404, "Favicon not found")
+            return
+        content = target.read_bytes()
+        content_type = "image/x-icon" if target.suffix == ".ico" else "image/png"
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Cache-Control", "public, max-age=86400")
+        self.end_headers()
+        self.wfile.write(content)
+
+    def serve_vendor_asset(self, req_path: str) -> None:
+        self.serve_static_asset(req_path)
 
     def serve_pdf_annotations(self) -> None:
         data = get_project_status(self.workspace_dir)
