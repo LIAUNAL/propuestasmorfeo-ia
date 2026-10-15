@@ -402,6 +402,14 @@ class TestDashboardViewerContract(unittest.TestCase):
         self.assertPresent("NEXT_PENDING_UNIT = (PHASES_INFO.find(p => p.kind === 'step'")
         self.assertPresent("Copiar /propuesta-continuar")
 
+    def test_the_unit_in_progress_is_marked_and_explained(self) -> None:
+        # El latido `_en_curso.json` es lo único que permite mostrar qué agente se
+        # está levantando mientras ocurre: el `NN-fase*.md` se escribe al terminar.
+        self.assertPresent("let EN_CURSO = null;")
+        self.assertPresent("EN_CURSO = data.en_curso || null;")
+        self.assertPresent("En ejecución ahora")
+        self.assertPresent("${enCurso ? 'EN CURSO' : (isLit ? 'PASS' : 'SIN LUZ')}")
+
     def test_missing_inventory_is_reported_not_faked(self) -> None:
         self.assertPresent("no publica el inventario de unidades")
         self.assertPresent("Sin inventario de unidades en el sobre de estado")

@@ -34,6 +34,28 @@ Every run that uses analizar / continuar / auto MUST maintain:
 **Clearing state:** `/propuesta-limpiar` and ARCHIVADO-Y-REINICIO rewrite
 `artefactos/estado_propuesta.md` to empty (0 bytes) — no stale `next_step`.
 
+## Latido de la unidad en curso (`artefactos/pipeline/_en_curso.json`)
+
+`artefactos/pipeline/NN-fase*.md` se escribe **al terminar** cada unidad, así que
+por sí solo no puede decir qué está pasando ahora. Para eso el dispatcher
+mantiene un latido: al abrir una unidad escribe
+
+```json
+{
+  "fase": "<id de la unidad>",
+  "agentes": ["<subagente>", "..."],
+  "skill": "<skill o null>",
+  "artefacto_esperado": "<ruta que va a escribir>",
+  "inicio": "<ISO-8601>"
+}
+```
+
+en `artefactos/pipeline/_en_curso.json`, y lo **borra** al cerrar la unidad, antes
+de escribir su `NN-fase*.md`. El tablero lo lee y marca «EN CURSO» sobre esa
+unidad, con sus agentes y su skill en el cajón. Un latido que no se borra miente:
+si una unidad queda interrumpida, el latido se queda y el operador ve que ahí se
+cortó, que es justo lo que hay que ver.
+
 ## Step sequence (post-intake)
 
 | `next_step` | Unit | Gate | On PASS → next |

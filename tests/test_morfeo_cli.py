@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -30,6 +31,63 @@ class TestMorfeoCLI(unittest.TestCase):
         repo = Path(__file__).resolve().parent.parent
         status = get_project_status(repo, force_refresh=True)
         self.assertEqual(status["version"], morfeo.__version__)
+
+    def test_status_reports_the_unit_in_progress(self):
+        """El latido `_en_curso.json` es lo unico que permite mostrar que agente
+        se esta levantando mientras ocurre; sin el solo se puede contar el
+        pasado."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo = Path(tmpdir)
+            run = repo / "proposals" / "2026-01-demo"
+            (run / "artefactos" / "pipeline").mkdir(parents=True)
+            (repo / "proposals" / ".current-run").write_text(
+                "2026-01-demo\n", encoding="utf-8"
+            )
+            (run / "artefactos" / "pipeline" / "_en_curso.json").write_text(
+                json.dumps(
+                    {
+                        "fase": "fase5",
+                        "agentes": ["redactor"],
+                        "skill": "estilo-natural-es",
+                        "artefacto_esperado": "sections/10_metodologia.tex",
+                        "inicio": "2026-01-02T10:00:00",
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            status = get_project_status(repo, force_refresh=True)
+            self.assertIsNotNone(status["en_curso"])
+            self.assertEqual(status["en_curso"]["fase"], "fase5")
+            self.assertEqual(status["en_curso"]["agentes"], ["redactor"])
+            self.assertEqual(status["en_curso"]["skill"], "estilo-natural-es")
+
+    def test_status_without_a_heartbeat_reports_none(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo = Path(tmpdir)
+            run = repo / "proposals" / "2026-01-demo"
+            (run / "artefactos" / "pipeline").mkdir(parents=True)
+            (repo / "proposals" / ".current-run").write_text(
+                "2026-01-demo\n", encoding="utf-8"
+            )
+            status = get_project_status(repo, force_refresh=True)
+            self.assertIsNone(status["en_curso"])
+
+    def test_a_corrupt_heartbeat_does_not_break_status(self):
+        """Un latido a medio escribir no puede tumbar el tablero."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo = Path(tmpdir)
+            run = repo / "proposals" / "2026-01-demo"
+            (run / "artefactos" / "pipeline").mkdir(parents=True)
+            (repo / "proposals" / ".current-run").write_text(
+                "2026-01-demo\n", encoding="utf-8"
+            )
+            (run / "artefactos" / "pipeline" / "_en_curso.json").write_text(
+                "{no es json", encoding="utf-8"
+            )
+            status = get_project_status(repo, force_refresh=True)
+            self.assertIsNone(status["en_curso"])
 
     def test_kit_resolution(self):
         kit_root = get_kit_root()
