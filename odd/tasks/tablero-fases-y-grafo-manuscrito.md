@@ -332,3 +332,11 @@ y `fase1b` presentes; tres unidades sin compuerta declaradas (`g0_5`, `fase6`,
 muestra «GATE G1A: PASS», los agentes `bibliografo-propuesta` e `investigador` y
 la unidad siguiente; el de `fase6` muestra «SIN COMPUERTA PROPIA» y explica que se
 detiene igual una vez. Cuatro pruebas nuevas, 159 en total.
+
+L6 (2026-10-15, tramo de U4 sin decisiones): el cajón muestra además el costo
+medido de la unidad, que la telemetría ya traía y se ignoraba. Verificado en
+navegador: `fase2` reporta «Ejecutada el 2026-09-29 · Tokens: 4034477 ·
+Tool-uses: 99 · Duración: 4535556 ms (~75,6 min)», y una unidad sin fila de
+telemetría dice que no se ha ejecutado en lugar de mostrar ceros. Una prueba
+nueva, 160 en total. El resto de U4 (artefactos por unidad y manuscrito parcial)
+sigue dependiendo de la decisión 4.

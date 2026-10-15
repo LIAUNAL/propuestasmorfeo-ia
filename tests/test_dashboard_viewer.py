@@ -387,6 +387,12 @@ class TestDashboardViewerContract(unittest.TestCase):
         self.assertPresent("Siguiente unidad")
         self.assertPresent("function unitSections(")
 
+    def test_drawer_shows_the_measured_cost_of_the_unit(self) -> None:
+        # La telemetría ya trae una fila por unidad con tokens, tool-uses y
+        # duración, y el cajón no la mostraba.
+        self.assertPresent("Costo medido de la unidad")
+        self.assertPresent("currentStatus?.telemetria || []")
+
     def test_missing_inventory_is_reported_not_faked(self) -> None:
         self.assertPresent("no publica el inventario de unidades")
         self.assertPresent("Sin inventario de unidades en el sobre de estado")

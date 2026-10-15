@@ -2176,6 +2176,11 @@
       const secciones = unitSections(p);
       const palabras = secciones.reduce((acc, s) => acc + (s.words || 0), 0);
 
+      const tele = (currentStatus?.telemetria || []).find(t => {
+        const tn = String(t.fase || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return tn === String(p.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      });
+
       document.getElementById('drawerBody').innerHTML = `
         <div style="margin-bottom: 1rem;">
           <span class="badge badge--${badgeTone}">${p.gate ? `Gate ${p.gate}: ${gateStatus}` : 'Sin compuerta propia'}</span>
@@ -2207,6 +2212,13 @@
           ${secciones.length
             ? `<ul style="font-size: 0.82rem; color: var(--text-muted); padding-left: 1.25rem;">${secciones.map(s => `<li><code>sections/${s.filename}</code> · ${(s.words || 0).toLocaleString()} palabras · <span class="badge badge--${s.status === 'SEALED' ? 'ok' : 'warn'}">${s.status}</span></li>`).join('')}</ul>`
             : `<p style="font-size: 0.82rem; color: var(--text-muted);">Esta unidad no produce secciones del cuerpo.</p>`}
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.5rem;">Costo medido de la unidad</h4>
+          ${tele
+            ? `<p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">Ejecutada el ${tele.fecha} · Tokens: <strong>${tele.tokens}</strong> · Tool-uses: <strong>${tele.tool_uses}</strong> · Duración: <strong>${tele.duracion}</strong></p>`
+            : `<p style="font-size: 0.82rem; color: var(--text-muted);">Sin registro de telemetría para esta unidad: no se ha ejecutado, o su corrida aún no escribió la fila.</p>`}
         </div>
 
         <div>
