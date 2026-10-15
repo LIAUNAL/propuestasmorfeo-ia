@@ -357,3 +357,18 @@ habría aparecido como pendiente para siempre. Verificado en navegador: con la
 corrida completa el puntero queda en `null`, el cajón de `fase6` anuncia
 «sigue fase6_4» con su botón de copiado, y el de `fase7` anuncia el fin del
 pipeline sin botón. Una prueba nueva, 161 en total.
+
+L9 (2026-10-15, U3 implementada): el dispatcher mantiene un latido en
+`artefactos/pipeline/_en_curso.json`, que escribe al abrir una unidad y borra al
+cerrarla, y que el contrato de `_propuesta-steps.md` documenta. `status.py` lo lee
+y lo publica como `en_curso` en el sobre; el tablero marca «EN CURSO» sobre esa
+unidad en el flujo y en su tarjeta, y el cajón muestra en vivo los agentes, la
+skill, el artefacto que va a escribir y la hora de inicio. Un latido corrupto se
+ignora, porque un archivo a medio escribir no puede tumbar el tablero.
+
+Verificación: tres pruebas del estado (con latido, sin latido y latido corrupto) y
+una del tablero, 165 en total, con los puertos regenerados y el kit sin drift. En
+navegador, con un latido sintético sobre `fase5`: el flujo y la tarjeta lo marcan,
+y el cajón muestra «Agentes: redactor, grant-flow-auditor · Skill:
+estilo-natural-es · Inicio: 2026-10-15T15:30:00 · Escribe:
+sections/09_equipo_trabajo.tex». El latido sintético se retiró después.

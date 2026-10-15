@@ -2082,6 +2082,8 @@
     // La primera unidad que aún no pasa, derivada de los veredictos que ya viajan
     // en el sobre. Evita tener que parsear `next_step` para saber por dónde va.
     let NEXT_PENDING_UNIT = null;
+    // Latido de la unidad en ejecución, cuando el dispatcher lo ha escrito.
+    let EN_CURSO = null;
 
     function describeUnit(u) {
       const partes = [];
@@ -2209,6 +2211,7 @@
       const secciones = unitSections(p);
       const palabras = secciones.reduce((acc, s) => acc + (s.words || 0), 0);
       const pendiente = NEXT_PENDING_UNIT;
+      const enEjecucion = (EN_CURSO && EN_CURSO.fase === p.id) ? EN_CURSO : null;
 
       const tele = (currentStatus?.telemetria || []).find(t => {
         const tn = String(t.fase || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -2221,6 +2224,13 @@
           <span class="badge badge--info" style="margin-left: 0.5rem;">${p.kind === 'pre' ? 'Intake' : 'Unidad del pipeline'}</span>
         </div>
         <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1.25rem;">${p.desc}</p>
+
+        ${enEjecucion
+          ? `<div style="margin-bottom: 1rem; background: var(--accent-dim); border: 1px solid var(--accent); border-radius: var(--radius); padding: 0.75rem;">
+               <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--accent); margin-bottom: 0.4rem;">⏳ En ejecución ahora</h4>
+               <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">Agentes: <strong>${(enEjecucion.agentes || []).join(', ') || '—'}</strong>${enEjecucion.skill ? ` · Skill: <strong>${enEjecucion.skill}</strong>` : ''}${enEjecucion.inicio ? ` · Inicio: ${enEjecucion.inicio}` : ''}${enEjecucion.artefacto_esperado ? `<br>Escribe: <code>${enEjecucion.artefacto_esperado}</code>` : ''}${enEjecucion.nota ? `<br>${enEjecucion.nota}` : ''}</p>
+             </div>`
+          : ''}
 
         <div style="margin-bottom: 1rem;">
           <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.5rem;">Criterio Evaluado</h4>
@@ -2384,6 +2394,7 @@
         // Render Illuminated vs Unlit Flujo General
         // El inventario manda: la lista de fases se deriva del sobre de estado,
         // no de una constante escrita aquí.
+        EN_CURSO = data.en_curso || null;
         setPhasesInfo(data.pipeline_units);
         // Solo la secuencia por pasos: `g0_5` es pre-intake y opcional, y sin fila
         // de telemetría aparecería como pendiente para siempre.
@@ -2401,6 +2412,8 @@
 
             if (isLit) litCount++;
             else unlitCount++;
+
+            const enCurso = !!(EN_CURSO && EN_CURSO.fase === p.id);
 
             const stepDiv = document.createElement('div');
             stepDiv.className = `flujo-step ${isLit ? 'flujo-step--lit' : 'flujo-step--unlit'}`;
@@ -2420,7 +2433,7 @@
                 ${isLit ? '💡' : '⚫'}
               </div>
               <div class="flujo-title">${p.id}</div>
-              <div class="flujo-badge">${isLit ? 'PASS' : 'SIN LUZ'}</div>
+              <div class="flujo-badge">${enCurso ? 'EN CURSO' : (isLit ? 'PASS' : 'SIN LUZ')}</div>
             `;
             flujoTrack.appendChild(stepDiv);
           });
@@ -2444,12 +2457,13 @@
           const badgeTone = isLit ? 'ok' : (gateStatus === 'BLOCKED' ? 'bad' : 'warn');
 
           const card = document.createElement('div');
+          const enCurso = !!(EN_CURSO && EN_CURSO.fase === p.id);
           card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
           card.onclick = () => openDrawer(idx);
           card.innerHTML = `
             <div class="phase-card__head">
               <span class="phase-card__name">${p.name}</span>
-              <span class="badge badge--${badgeTone}">${isLit ? '💡 ' : ''}${p.gateLabel}: ${gateStatus}</span>
+              <span class="badge badge--${enCurso ? 'info' : badgeTone}">${enCurso ? '⏳ EN CURSO' : `${isLit ? '💡 ' : ''}${p.gateLabel}: ${gateStatus}`}</span>
             </div>
             <p class="phase-card__desc">${p.desc}</p>
             <div class="phase-card__foot">

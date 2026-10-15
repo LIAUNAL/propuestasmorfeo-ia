@@ -249,6 +249,37 @@ def parse_telemetry_info(run_dir: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def parse_in_progress(run_dir: Path) -> dict[str, Any] | None:
+    """Latido de la unidad que el dispatcher está ejecutando ahora mismo.
+
+    Lo escribe el dispatcher al abrir una unidad y lo borra al cerrarla. Es lo
+    único que permite mostrar qué agente se está levantando **mientras** ocurre,
+    porque `artefactos/pipeline/NN-fase*.md` se escribe por evento, es decir al
+    terminar. Un latido a medio escribir se ignora en lugar de tumbar el tablero.
+    """
+    beat = run_dir / "artefactos" / "pipeline" / "_en_curso.json"
+    if not beat.is_file():
+        return None
+    try:
+        data = json.loads(beat.read_text(encoding="utf-8", errors="replace"))
+    except Exception:
+        return None
+    if not isinstance(data, dict) or not data.get("fase"):
+        return None
+
+    agentes = data.get("agentes") or []
+    if isinstance(agentes, str):
+        agentes = [agentes]
+    return {
+        "fase": str(data.get("fase")),
+        "agentes": [str(a) for a in agentes],
+        "skill": data.get("skill") or None,
+        "artefacto_esperado": data.get("artefacto_esperado") or None,
+        "inicio": data.get("inicio") or None,
+        "nota": data.get("nota") or None,
+    }
+
+
 def list_artifacts_info(run_dir: Path) -> list[dict[str, Any]]:
     art_dir = run_dir / "artefactos"
     if not art_dir.is_dir():
@@ -308,6 +339,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
     gates: list[dict[str, Any]] = []
     telemetria: list[dict[str, Any]] = []
     artifacts: list[dict[str, Any]] = []
+    en_curso: dict[str, Any] | None = None
     totals: dict[str, Any] = {
         "sections_count": 0,
         "total_words": 0,
@@ -330,6 +362,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
             run_info["idea"] = run_meta["idea"]
             run_info["created"] = run_meta["created"]
             run_info["status"] = run_meta["status"]
+            en_curso = parse_in_progress(run_dir)
             run_info["run_md"] = (run_dir / "_run.md").is_file()
 
             # Files
@@ -408,6 +441,8 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
         "telemetria": telemetria,
         "totals": totals,
         "artifacts": artifacts,
+        # El latido de la unidad en curso, cuando el dispatcher lo ha escrito.
+        "en_curso": en_curso,
         # El inventario de unidades viaja en el sobre para que el tablero deje de
         # mantener su propia lista de fases y derive de aquí.
         "pipeline_units": PIPELINE_UNITS,
