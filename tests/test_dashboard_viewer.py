@@ -393,6 +393,15 @@ class TestDashboardViewerContract(unittest.TestCase):
         self.assertPresent("Costo medido de la unidad")
         self.assertPresent("currentStatus?.telemetria || []")
 
+    def test_the_drawer_offers_the_next_command_to_copy(self) -> None:
+        # Decisión del operador: avanzar desde el tablero se hace sugiriendo el
+        # comando, no lanzando agentes desde el servidor.
+        self.assertPresent("function copyNextCommand(")
+        self.assertPresent('onclick="copyNextCommand(this)"')
+        self.assertPresent("let NEXT_PENDING_UNIT = null;")
+        self.assertPresent("NEXT_PENDING_UNIT = (PHASES_INFO.find(p => p.kind === 'step'")
+        self.assertPresent("Copiar /propuesta-continuar")
+
     def test_missing_inventory_is_reported_not_faked(self) -> None:
         self.assertPresent("no publica el inventario de unidades")
         self.assertPresent("Sin inventario de unidades en el sobre de estado")
