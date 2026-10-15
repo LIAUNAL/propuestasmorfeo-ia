@@ -372,3 +372,19 @@ navegador, con un latido sintético sobre `fase5`: el flujo y la tarjeta lo marc
 y el cajón muestra «Agentes: redactor, grant-flow-auditor · Skill:
 estilo-natural-es · Inicio: 2026-10-15T15:30:00 · Escribe:
 sections/09_equipo_trabajo.tex». El latido sintético se retiró después.
+
+L10 (2026-10-15, U6a implementada): `scripts/graph_html.py:132` declaraba *Three.js
+from robust CDN with internal fallback* y cargaba solo el CDN; el fallback nunca
+existió, así que sin red el grafo no se dibujaba y nada lo decía. Se vendorizó
+three.js r128 (603 445 bytes, `sha256:9274bbc…`, MIT) en
+`scripts/assets/three-r128.min.js`, con su aviso en `THIRD_PARTY_NOTICES.md`; el
+template empotra el paquete y el generador **se niega a generar** si el activo
+falta o si contiene `</script`, en lugar de emitir un HTML que dependa de la red.
+
+Verificación: cinco pruebas nuevas. El grafo regenerado mide 656 KB, tiene **cero
+referencias externas** y **cero peticiones de red**; `THREE` carga desde el HTML
+empotrado con revisión 128. El render visual **no se pudo verificar aquí**: este
+Chrome no tiene WebGL (`webgl: NO disponible`), y el error «Error creating WebGL
+context» es el mismo que ya aparecía en el Atlas del tablero antes de este cambio.
+El script sí llega al renderizador y construye su contenedor (`stage3d` con 3
+hijos). El kit pasa de 69 a 71 entradas.
