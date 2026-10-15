@@ -3,8 +3,8 @@
 Exploración para rediseñar cómo el Command Center presenta las fases del pipeline,
 el avance sobre el manuscrito y las relaciones internas del documento, y para
 unificar el estilo visual de todos los grafos del marco con el de
-`papersmith-ai`. Alcance de esta entrega: **exploración y propuesta. No toca
-código.**
+`papersmith-ai`. La exploración y la propuesta no tocaron código; U1 se
+implementó después con su propia prueba.
 
 ## Specs
 
@@ -294,3 +294,24 @@ del clon de `papersmith-ai` en la ruta temporal que dejó `fetch_content`.
 L3 (2026-10-15, hallazgo propio durante la exploración): el fallback de three.js
 que declara `scripts/graph_html.py:132` no existe. Es un defecto del marco, no de
 la corrida, y lo arregla la unidad U6.
+
+L4 (2026-10-15, U1 implementada): antes de empezar, la comprobación sobre los
+artefactos mostró que la divergencia era peor de lo que decía el mapa. Cuatro
+vocabularios distintos: la lista canónica de `status.py` (13 ids, **sin `G1a` ni
+`G1b`**, con `G6` y `G6.45`); la tabla de pasos (12 compuertas más `G0.5`, con
+nombres en prosa); el `_estado.md` de la corrida, que sí trae `G1a` y `G1b`; y el
+frontmatter por unidad, con `none`, `G-Presupuesto`, `G front` y una vacía. El
+`13/13` de la corrida era la coincidencia de dos treces distintos.
+
+Se creó `src/morfeo/core/pipeline_units.py` como inventario único (16 unidades,
+13 compuertas, alias de prosa y de artefacto, y las etiquetas sin compuerta
+declaradas), `status.py` deriva de ahí su lista canónica y publica
+`pipeline_units` en el sobre, y `tests/test_pipeline_units.py` ata el inventario a
+la tabla de pasos para que una divergencia falle ahí. Once pruebas nuevas, 155 en
+total. Verificación sobre la corrida: las compuertas canónicas pasan a ser
+`G0.5, G1a, G1b, G1, G2, G3, G4, G5, G5.5, G6.4, G6.46, G6.5, G7`, todas PASS, sin
+`G6` ni `G6.45`, y el total sigue siendo 13/13.
+
+Queda pendiente U2 (que el tablero derive su flujo de `pipeline_units` y muestre
+las subfases de redacción) y las demás unidades, que dependen de las cinco
+decisiones abiertas.
