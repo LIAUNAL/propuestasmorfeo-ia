@@ -37,8 +37,8 @@ release, no como archivo versionado, y su patrón se ignora en `.gitignore`.
 - [x] T2 `.gitignore`: ignorar los paquetes de `morfeo export` (S5)
 - [x] T3 versión `0.5.2` y sus dos aserciones de prueba (S3)
 - [x] T4 regenerar el paquete exportado de la corrida (S1, S4)
-- [ ] T5 commit, merge a `main` y push (S1)
-- [ ] T6 release `v0.5.2` con el zip y el tar.gz como activos (S1, S2)
+- [x] T5 commit, merge a `main` y push (S1)
+- [x] T6 release `v0.5.2` con el zip y el tar.gz como activos (S1, S2)
 
 ## Log
 
@@ -74,3 +74,17 @@ un bloque gestionado `<!-- gentle-ai:pi-codegraph-guidance -->`. Eso deja
 generador y este los reescribe sin el bloque. Se revirtieron los diez archivos
 para conservar el invariante; el activo gestionado global sí quedó sincronizado.
 Queda pendiente decidir si `gen-pi.py` debe preservar ese bloque gestionado.
+
+L7 (2026-10-15, revisión nativa): ASSESS marcó riesgo alto por el límite de
+proceso en `scripts/gen-pi.py` y por el release. Inspect se detuvo una vez con
+`managed_assets_outdated`, el operador autorizó el `sync` que pedía, y el segundo
+inspect ofreció el arranque. La revisión cerró en `approved` por tres lentes
+(riesgo, legibilidad y fiabilidad) con siete hallazgos informativos y ninguno
+bloqueante; el acuse consumió la autoridad.
+
+L8 (2026-10-15, cierre): la rama `docs/proyecto-guia-descargable` se integró a
+`main` por avance rápido en `f3d3a84` y se empujó (`2481bbe..f3d3a84`). El release
+`v0.5.2` quedó publicado en
+https://github.com/LIAUNAL/propuestasmorfeo-ia/releases/tag/v0.5.2 con los dos
+activos: el zip de 71.646.264 bytes y el tar.gz de 71.177.588 bytes. Publicar el
+release disparó el workflow Publish, run `38773349210`.
