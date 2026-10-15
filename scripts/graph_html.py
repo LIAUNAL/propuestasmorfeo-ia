@@ -129,8 +129,8 @@ TEMPLATE = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
-<!-- Three.js from robust CDN with internal fallback -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- three.js r128, empotrado: el archivo es autocontenido y no necesita red -->
+<script>__THREE_BUNDLE__</script>
 <style>
   :root {
     --bg: #060814;
@@ -1212,6 +1212,30 @@ TEMPLATE = """<!DOCTYPE html>
 """
 
 
+# three.js r128 vendorizado. Antes el template lo cargaba desde un CDN y prometía
+# un «fallback interno» que nunca existió: sin red, el grafo no se dibujaba.
+THREE_BUNDLE = pathlib.Path(__file__).resolve().parent / "assets" / "three-r128.min.js"
+
+
+def _three_bundle() -> str:
+    """Devuelve el bundle listo para empotrar.
+
+    Falla con un mensaje claro si el activo no está, en lugar de generar un HTML
+    que dependa de la red sin decirlo.
+    """
+    if not THREE_BUNDLE.is_file():
+        raise SystemExit(
+            f"Falta el activo vendorizado {THREE_BUNDLE}. Sin él el grafo se\n"
+            "generaría dependiendo de la red. Restáuralo antes de continuar."
+        )
+    text = THREE_BUNDLE.read_text(encoding="utf-8")
+    if "</script" in text.lower():
+        raise SystemExit(
+            "El bundle contiene '</script' y no puede empotrarse sin romper el HTML."
+        )
+    return text
+
+
 def build_html(data: dict) -> str:
     idx = data["index"]
     fresh = f" · frescura: {esc(idx['freshness'])}" if idx.get("freshness") else ""
@@ -1226,6 +1250,7 @@ def build_html(data: dict) -> str:
     out = out.replace("__QUESTIONS__", render_questions(data))
     out = out.replace("__PAYLOAD__", render_payload(data))
     out = out.replace("__PALETTE__", json.dumps(PALETTE))
+    out = out.replace("__THREE_BUNDLE__", _three_bundle())
     return out
 
 

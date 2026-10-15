@@ -57,6 +57,8 @@
     "scripts/check-agent-models.py",
     "scripts/compilar-docx.sh",
     "scripts/compilar-pdf.sh",
+    "scripts/assets/THIRD_PARTY_NOTICES.md",
+    "scripts/assets/three-r128.min.js",
     "scripts/convert_to_word.py",
     "scripts/gen-antigravity.py",
     "scripts/gen-antigravity.rules.json",
