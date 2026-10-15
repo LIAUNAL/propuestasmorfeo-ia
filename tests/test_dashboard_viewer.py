@@ -364,6 +364,33 @@ class TestDashboardViewerContract(unittest.TestCase):
             "el overlay de una sola página ya no existe",
         )
 
+    def test_phase_list_comes_from_the_status_envelope(self) -> None:
+        # Antes era una constante con trece entradas que inventaba compuerta para
+        # `fase6` y `fase6_45` y omitía `fase1a` y `fase1b`.
+        self.assertAbsent('{ id: "Fase 0"', "la lista de fases no puede estar aquí")
+        self.assertPresent("let PHASES_INFO = [];")
+        self.assertPresent("function buildPhasesInfo(")
+        self.assertPresent("setPhasesInfo(data.pipeline_units);")
+
+    def test_units_without_a_gate_are_not_shown_with_one(self) -> None:
+        self.assertPresent("gateLabel: u.gate || 'sin compuerta'")
+        self.assertPresent("${p.gateLabel}: ${gateStatus}")
+        # El cajón nombra la compuerta solo cuando la unidad tiene una.
+        self.assertPresent(
+            "${p.gate ? `Gate ${p.gate}: ${gateStatus}` : 'Sin compuerta propia'}"
+        )
+
+    def test_drawer_shows_agents_skills_and_manuscript(self) -> None:
+        self.assertPresent("Agentes que levanta")
+        self.assertPresent("Skills que aplica")
+        self.assertPresent("Manuscrito que produce")
+        self.assertPresent("Siguiente unidad")
+        self.assertPresent("function unitSections(")
+
+    def test_missing_inventory_is_reported_not_faked(self) -> None:
+        self.assertPresent("no publica el inventario de unidades")
+        self.assertPresent("Sin inventario de unidades en el sobre de estado")
+
     def test_pdf_is_still_served_and_downloadable(self) -> None:
         self.assertPresent("/api/pdf")
         self.assertPresent('href="/api/pdf" download')

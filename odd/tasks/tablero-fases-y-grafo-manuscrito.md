@@ -315,3 +315,20 @@ total. Verificación sobre la corrida: las compuertas canónicas pasan a ser
 Queda pendiente U2 (que el tablero derive su flujo de `pipeline_units` y muestre
 las subfases de redacción) y las demás unidades, que dependen de las cinco
 decisiones abiertas.
+
+L5 (2026-10-15, U2 implementada): la lista de fases del tablero pasa a derivarse
+del sobre. Se eliminó la constante de trece entradas y **no se dejó respaldo
+duplicado**: sin inventario, el flujo lo dice en lugar de mostrar una lista vieja
+que parece correcta. El cajón de cada unidad muestra ahora la compuerta (o «sin
+compuerta propia», con la nota de que la unidad se detiene igual una vez), los
+agentes que levanta, las skills que aplica, las secciones del manuscrito con su
+conteo de palabras y su estado, y la unidad siguiente. No hizo falta tocar
+`getPhaseVerdict`: ya resolvía por id de compuerta y, para las unidades sin
+compuerta, cae a la tabla de telemetría, que trae una fila por unidad.
+
+Verificación en navegador sobre la corrida: **16 pasos en el flujo**, con `fase1a`
+y `fase1b` presentes; tres unidades sin compuerta declaradas (`g0_5`, `fase6`,
+`fase6_45`); **cero compuertas inventadas** en las tarjetas. El cajón de `fase1a`
+muestra «GATE G1A: PASS», los agentes `bibliografo-propuesta` e `investigador` y
+la unidad siguiente; el de `fase6` muestra «SIN COMPUERTA PROPIA» y explica que se
+detiene igual una vez. Cuatro pruebas nuevas, 159 en total.
