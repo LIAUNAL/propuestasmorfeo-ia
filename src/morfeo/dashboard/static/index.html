@@ -2079,6 +2079,9 @@
     // duplicado: si el binario de `morfeo` no publica el inventario, el flujo lo
     // dice en lugar de mostrar una lista vieja que parece correcta.
     let PHASES_INFO = [];
+    // La primera unidad que aún no pasa, derivada de los veredictos que ya viajan
+    // en el sobre. Evita tener que parsear `next_step` para saber por dónde va.
+    let NEXT_PENDING_UNIT = null;
 
     function describeUnit(u) {
       const partes = [];
@@ -2124,6 +2127,36 @@
     function setPhasesInfo(units) {
       PHASES_INFO = Array.isArray(units) ? buildPhasesInfo(units) : [];
       return PHASES_INFO.length > 0;
+    }
+
+    // Decisión del operador (2026-10-15): avanzar desde el tablero se hace
+    // sugiriendo el comando, no lanzando agentes desde el servidor. Así el
+    // tablero no necesita credenciales y las compuertas siguen parando a esperar
+    // a una persona, que es para lo que están.
+    function copyNextCommand(btn) {
+      const texto = '/propuesta-continuar';
+      const confirmar = () => {
+        if (!btn) return;
+        if (!btn.dataset.original) btn.dataset.original = btn.textContent;
+        btn.textContent = '✓ Copiado';
+        setTimeout(() => { btn.textContent = btn.dataset.original; }, 2000);
+      };
+      const porSeleccion = () => {
+        const area = document.createElement('textarea');
+        area.value = texto;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        try { document.execCommand('copy'); confirmar(); } catch (_) {}
+        document.body.removeChild(area);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(confirmar).catch(porSeleccion);
+      } else {
+        porSeleccion();
+      }
     }
 
     let currentStatus = null;
@@ -2175,6 +2208,7 @@
       const badgeTone = gateStatus === 'PASS' ? 'ok' : (gateStatus === 'BLOCKED' ? 'bad' : 'warn');
       const secciones = unitSections(p);
       const palabras = secciones.reduce((acc, s) => acc + (s.words || 0), 0);
+      const pendiente = NEXT_PENDING_UNIT;
 
       const tele = (currentStatus?.telemetria || []).find(t => {
         const tn = String(t.fase || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -2223,7 +2257,10 @@
 
         <div>
           <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.5rem;">Siguiente unidad</h4>
-          <p style="font-size: 0.85rem; color: var(--text-muted);">${p.next && p.next !== 'done' ? `<code>${p.next}</code> · vuelve a ejecutar <code>/propuesta-continuar</code>` : 'Fin del pipeline: compila con <code>./build.sh</code>.'}</p>
+          ${p.next && p.next !== 'done'
+            ? `<p style="font-size: 0.85rem; color: var(--text-muted);">Según el inventario, sigue <code>${p.next}</code>.${pendiente && pendiente !== p.next ? ` La primera que aún no pasa es <code>${pendiente}</code>.` : ''}</p>
+               <button class="btn btn--sm" style="margin-top: 0.5rem;" onclick="copyNextCommand(this)">📋 Copiar /propuesta-continuar</button>`
+            : '<p style="font-size: 0.85rem; color: var(--text-muted);">Fin del pipeline: compila con <code>./build.sh</code>.</p>'}
         </div>
       `;
       document.getElementById('drawerOverlay').classList.add('active');
@@ -2348,6 +2385,9 @@
         // El inventario manda: la lista de fases se deriva del sobre de estado,
         // no de una constante escrita aquí.
         setPhasesInfo(data.pipeline_units);
+        // Solo la secuencia por pasos: `g0_5` es pre-intake y opcional, y sin fila
+        // de telemetría aparecería como pendiente para siempre.
+        NEXT_PENDING_UNIT = (PHASES_INFO.find(p => p.kind === 'step' && getPhaseVerdict(p) !== 'PASS') || {}).id || null;
 
         const flujoTrack = document.getElementById('flujoTrack');
         if (flujoTrack) {

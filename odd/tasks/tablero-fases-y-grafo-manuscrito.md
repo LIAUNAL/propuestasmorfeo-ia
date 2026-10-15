@@ -340,3 +340,20 @@ Tool-uses: 99 · Duración: 4535556 ms (~75,6 min)», y una unidad sin fila de
 telemetría dice que no se ha ejecutado en lugar de mostrar ceros. Una prueba
 nueva, 160 en total. El resto de U4 (artefactos por unidad y manuscrito parcial)
 sigue dependiendo de la decisión 4.
+
+L7 (2026-10-15, decisiones del operador): ante las cuatro preguntas, respondió
+**«Sugerir el comando»** para el avance desde el tablero, **«Spec autorizada y
+auditada»** para el grafo del manuscrito, **«Bundle 3D vendorizado»** para el
+estilo de los cuatro grafos, y **«Sí, añadir el latido»** para el progreso en
+vivo. La decisión sobre el parcial del manuscrito (último PDF compilado o copia
+por unidad) quedó sin responder y sigue abierta.
+
+L8 (2026-10-15, U5 implementada): el cajón sugiere el comando en lugar de
+lanzarlo, según la decisión del operador, y añade un puntero a la primera unidad
+que aún no pasa. El puntero se deriva de los veredictos que ya viajan en el sobre
+en vez de parsear `next_step`, y se ciñe a la secuencia por pasos: una primera
+versión incluía `g0_5`, que es pre-intake y opcional, y sin fila de telemetría
+habría aparecido como pendiente para siempre. Verificado en navegador: con la
+corrida completa el puntero queda en `null`, el cajón de `fase6` anuncia
+«sigue fase6_4» con su botón de copiado, y el de `fase7` anuncia el fin del
+pipeline sin botón. Una prueba nueva, 161 en total.
