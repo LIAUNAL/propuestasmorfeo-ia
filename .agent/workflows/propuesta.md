@@ -259,6 +259,28 @@ dispatcher además agrega una fila a `## Hallazgos de coherencia (grafo)` en
 con fase, archivo, y tipo de problema. Este hallazgo NUNCA por sí solo hace
 que `revisor` cambie su VEREDICTO a FAIL.
 
+## Instrucciones del revisor sobre el PDF (`artefactos/pipeline/instrucciones_revisor_pdf.md`)
+
+El panel de anotaciones del tablero (`morfeo ui`) deja instrucciones cuando el
+operador marca un pasaje del PDF con **Comentario**. Un comentario no reescribe
+prosa: se registra como instrucción pendiente en
+`artefactos/pipeline/instrucciones_revisor_pdf.md`, con la página, el texto ancla
+y el archivo de la sección cuando se pudo ubicar. El manuscrito no cambia.
+
+Antes de cerrar la siguiente unidad del pipeline, el DISPATCHER lee ese archivo.
+Si tiene entradas sin marcar:
+
+1. Las entrega al `redactor`, que las aplica sobre la sección correspondiente.
+2. Pasa el resultado por `grant-flow-auditor`, que pule la cadencia sin mover
+   cifras, citas ni estructura.
+3. Marca cada casilla como aplicada y anota el veredicto de la compuerta.
+
+Dos reglas que no se negocian. Una instrucción sin ejecutar no se recupera de
+ningún otro sitio, así que el archivo se anexa y nunca se reescribe desde cero.
+Y una instrucción cuyo ancla no se pudo ubicar se ejecuta igual, buscando el
+pasaje por su texto. Las marcas **Tachar** y **Humanizar** sí modifican el
+manuscrito en el acto y no pasan por este archivo.
+
 ## Registro de pipeline (`artefactos/pipeline/`, distinto de los índices de papers y vault)
 
 Un TERCER registro, independiente de los dos índices, documenta la estructura del
