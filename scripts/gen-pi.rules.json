@@ -40,7 +40,9 @@
     "skill_files": [
       "depuracion-redundancias-es/SKILL.md",
       "estilo-natural-es/SKILL.md"
-    ]
+    ],
+    "source_mcp_config": ".mcp.json",
+    "output_mcp_config": ".pi/mcp.json"
   },
   "frontmatter": {
     "agent_key_order": [
@@ -226,6 +228,14 @@
       "replace": "`.pi/agents/",
       "literal": true,
       "_note": "Same for agent references inside the stepped commands."
+    },
+    {
+      "id": "steps-coordinador-ref-pi",
+      "applies_to": [
+        "_propuesta-steps.md"
+      ],
+      "find": "Also summarized in `.pi/agents/coordinador-propuesta.md`.",
+      "replace": "Also summarized in the pipeline body of `.pi/prompts/propuesta.md`; the canonical coordinador-propuesta reference document is not part of this port."
     }
   ],
   "drift_patterns": [
@@ -238,7 +248,7 @@
   "_drift_patterns_note": "Baseline set plus `claude-bridge/`: any of these surviving into generated output means either a source edit introduced a Claude-specific mention with no matching rule, or the model SSOT was reconciled onto the Claude bridge without setting allow_claude_bridge deliberately.",
   "open_items": [
     "Pi's default tool set for an agent with no `tools:` frontmatter key is assumed (not verified here) to include MCP access, which bibliografo-propuesta needs for openalex/semanticscholar/crossref. If a ported agent reports no MCP tools, add an explicit `tools` value for it in tools_map instead of narrowing the others.",
-    "`.mcp.json` mentions inside agent prose are left untouched: Pi reads project MCP servers from its own configuration, and rewriting the filename is out of scope for this generator (same boundary the OpenCode port draws)."
+    "`.pi/mcp.json` is generated from the target project's `.mcp.json` (the kit copy is the fallback), because Pi reads project MCP servers only from `.pi/mcp.json` and never from `.mcp.json`. A name declared in `.mcp.json` is owned by the generator; a server that exists only in the local `.pi/mcp.json` is preserved, so `pi mcp add -l` additions survive `marco init/upgrade`; an `auth` entry is refused because Pi reads it only from the user-level mcp.json. The `.mcp.json` filename mentioned in agent prose is still left untouched."
   ],
   "agent_models_source": {
     "_note": "Models and thinking levels are NOT mapped from the Claude tier here. They come from scripts/agent-models.json, keyed by AGENT, so the port can never inherit `claude-bridge/*` by accident. That file is the single source of truth for both the .pi/agents/*.md frontmatter and .pi/subagents.json, and /propuesta-init reconciles it against the operator's active gentle profile at session start.",

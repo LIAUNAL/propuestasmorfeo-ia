@@ -7,7 +7,7 @@ ported from the historical monolith). This file defines **unit ids**,
 **order**, and **what each unit covers** so stepped and auto modes cannot
 diverge.
 
-Also summarized in `.pi/agents/coordinador-propuesta.md`.
+Also summarized in the pipeline body of `.pi/prompts/propuesta.md`; the canonical coordinador-propuesta reference document is not part of this port.
 
 ## Control de ejecución (`artefactos/estado_propuesta.md`)
 

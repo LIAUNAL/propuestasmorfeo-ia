@@ -1,0 +1,75 @@
+{
+  "mcpServers": {
+    "arxiv": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cyanheads/arxiv-mcp-server"
+      ]
+    },
+    "codegraph": {
+      "type": "stdio",
+      "command": "codegraph",
+      "args": [
+        "serve",
+        "--mcp"
+      ]
+    },
+    "consensus": {
+      "type": "http",
+      "url": "https://mcp.consensus.app/mcp"
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    },
+    "crossref": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@botanicastudios/crossref-mcp"
+      ]
+    },
+    "engram": {
+      "type": "stdio",
+      "command": "engram",
+      "args": [
+        "mcp",
+        "--tools=agent"
+      ]
+    },
+    "openalex": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cyanheads/openalex-mcp-server"
+      ],
+      "env": {
+        "OPENALEX_API_KEY": "carlos.perez624@yahoo.com"
+      }
+    },
+    "pubmed": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cyanheads/pubmed-mcp-server"
+      ]
+    },
+    "semanticscholar": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@xbghc/semanticscholar-mcp"
+      ]
+    }
+  }
+}

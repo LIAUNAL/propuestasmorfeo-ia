@@ -365,6 +365,72 @@ def build_subagents_json(rules: dict, models: dict) -> tuple[str, str]:
     return ".pi/subagents.json", json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
 
 
+def build_mcp_config(rules: dict) -> tuple[str, str] | None:
+    """Return (`.pi/mcp.json`, text) translated from the project `.mcp.json`.
+
+    Pi reads project MCP servers from `<cwd>/.pi/mcp.json` and never from
+    `.mcp.json`, which is Claude Code's convention: without this file the
+    pipeline's retrieval servers (openalex, semanticscholar, crossref, pubmed,
+    arxiv, consensus) and codegraph are invisible inside Pi.
+
+    Merge semantics: a server name that `.mcp.json` declares is owned by this
+    generator, and a server that exists only in `.pi/mcp.json` is preserved, so
+    an operator's `pi mcp add -l` additions survive `marco init/upgrade`.
+    `auth` is refused rather than copied: Pi accepts it only in the user-level
+    `mcp.json` and would drop the server from a project file.
+    """
+    paths = rules["paths"]
+    source_rel = paths["source_mcp_config"]
+    output_rel = paths["output_mcp_config"]
+
+    source = None
+    for candidate in (OUTPUT_ROOT / source_rel, KIT_ROOT / source_rel):
+        if candidate.is_file():
+            source = candidate
+            break
+    if source is None:
+        print(
+            f"warning: no {source_rel} found; skipping {output_rel}",
+            file=sys.stderr,
+        )
+        return None
+
+    try:
+        declared = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise GeneratorError(f"{source}: unreadable MCP configuration: {exc}") from exc
+    servers = declared.get("mcpServers")
+    if not isinstance(servers, dict):
+        raise GeneratorError(f'{source}: "mcpServers" object missing')
+    for name, entry in servers.items():
+        if not isinstance(entry, dict) or not (entry.get("command") or entry.get("url")):
+            raise GeneratorError(
+                f'{source}: MCP server "{name}" needs a "command" or a "url"'
+            )
+        if "auth" in entry:
+            raise GeneratorError(
+                f'{source}: MCP server "{name}" declares "auth", which Pi reads '
+                "only from the user-level mcp.json -- remove it from the project "
+                "source or keep that server in the user-level file"
+            )
+
+    merged: dict = {}
+    destination = OUTPUT_ROOT / output_rel
+    if destination.is_file():
+        try:
+            existing = json.loads(destination.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise GeneratorError(
+                f"{destination}: unreadable MCP configuration: {exc}"
+            ) from exc
+        if isinstance(existing.get("mcpServers"), dict):
+            merged.update(existing["mcpServers"])
+    merged.update(servers)
+
+    payload = {"mcpServers": {name: merged[name] for name in sorted(merged)}}
+    return output_rel, json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+
+
 def build_command(filename: str, rules: dict) -> tuple[str, str]:
     """Return (output_relpath, output_text) for one command. No writes."""
     paths = rules["paths"]
@@ -461,6 +527,9 @@ def main(argv: list[str]) -> int:
         for relpath in paths.get("skill_files", []):
             built.append(build_skill(relpath, rules))
         built.append(build_subagents_json(rules, models))
+        mcp_config = build_mcp_config(rules)
+        if mcp_config is not None:
+            built.append(mcp_config)
     except GeneratorError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

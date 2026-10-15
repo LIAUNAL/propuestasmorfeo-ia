@@ -13,20 +13,21 @@ python3 scripts/gen-pi.py --root DIR # write DIR/.pi (used by `marco init`)
 | Path | Generated from | Pi role |
 |---|---|---|
 | `.pi/agents/*.md` (10 files) | `.claude/agents/*.md` + `scripts/agent-models.json` | Project subagents, dispatched with `subagent_run` |
-| `.pi/prompts/*.md` (7 files) | `.claude/commands/*.md` | Prompt templates exposed as `/propuesta`, `/propuesta-init`, `/propuesta-insumos`, `/propuesta-analizar`, `/propuesta-continuar`, `/propuesta-limpiar`, plus the frontmatter-less `_propuesta-steps.md` step table they reference |
-| `.pi/skills/**/SKILL.md` (1 file) | `.claude/skills/**/SKILL.md` | Project skills, advertised by name+description and loadable with `/skill:estilo-natural-es` |
+| `.pi/prompts/*.md` (10 files) | `.claude/commands/*.md` | Prompt templates exposed as `/propuesta`, `/propuesta-init`, `/propuesta-insumos`, `/propuesta-analizar`, `/propuesta-continuar`, `/propuesta-exportar`, `/propuesta-limpiar`, `/compilar-pdf`, `/compilar-docx`, plus the frontmatter-less `_propuesta-steps.md` step table they reference |
+| `.pi/skills/**/SKILL.md` (2 files) | `.claude/skills/**/SKILL.md` | Project skills, advertised by name+description and loadable with `/skill:estilo-natural-es` or `/skill:depuracion-redundancias-es` |
 | `.pi/subagents.json` | `scripts/agent-models.json` | Project-scope subagent profile store: the model and thinking level each of the 10 agents actually runs on |
+| `.pi/mcp.json` | `.mcp.json` (merged with any server only this file declares) | Project MCP servers. Pi reads them **only** from here, so this file is what makes `codegraph`, `openalex`, `semanticscholar`, `crossref`, `pubmed`, `arxiv` and `consensus` reachable inside Pi |
 
-Both paths are Pi's documented project-level resource directories
-(`docs/configuration.md`: "Project `.pi` directory"), so no setup step and no
+All of these paths are Pi's documented project-level resource directories (Pi's
+own `docs/configuration.md`, "Project `.pi` directory"), so no setup step and no
 `settings.json` entry is needed. They load **after project trust is granted**
 (the interactive trust prompt, or `pi --approve`). Run `/reload` after
 regenerating if a session is already open.
 
 `coordinador-propuesta.md` is intentionally **not** ported: it is the canonical
 pipeline reference document, never a dispatchable subagent (a subagent cannot
-invoke other subagents). The generated `/propuesta` keeps the reference as a
-bare filename.
+invoke other subagents). Generated prose that needs the whole pipeline points at
+`.pi/prompts/propuesta.md`, which carries the body inline.
 
 OpenCode needs no skill port: it discovers project `.claude/skills/**/SKILL.md`
 automatically, so the canonical skill is generated only into `.pi/skills/` and
@@ -72,6 +73,15 @@ generator has no project-specific knowledge):
   `allowed-tools`, `disable-model-invocation`). Agent/command prose references a
   skill by name and the dispatcher passes its exact `SKILL.md` path, so no
   runtime-specific skill path is hardcoded in generated files.
+- **MCP configuration**: `.mcp.json` is Claude Code's convention, and Pi never
+  reads it. `gen-pi.py` therefore translates it into `.pi/mcp.json` (Pi's own
+  project file), using the target project's `.mcp.json` when it exists and the
+  kit's copy otherwise. A server name that `.mcp.json` declares belongs to the
+  generated file; a server that exists only in `.pi/mcp.json` (for example one
+  added with `pi mcp add -l`) is preserved, so `marco upgrade` never deletes
+  local additions. An entry carrying `auth` is refused with an error instead of
+  copied, because Pi accepts `auth` only in the user-level `~/.pi/agent/mcp.json`
+  and would drop that server from a project file.
 - **Interactive-session note** injected at the top of `/propuesta`: the
   approval gates need a live or resumed session (`pi`, `pi -c`); `pi -p`
   cannot stop to wait for a human at a gate.
@@ -85,10 +95,13 @@ the Pi port.
 
 `.mcp.json` declares the MCP servers the pipeline uses, including
 `codegraph` (**codebase-memory**, `codegraph serve --mcp`), which the
-dispatcher calls for the run's two graph indexes. Pi reads project MCP servers
-from its own configuration; if a ported agent reports no MCP tools, add an
-explicit `tools` value for it in `gen-pi.rules.json` instead of narrowing the
-others.
+dispatcher calls for the run's two graph indexes, and the bibliographic servers
+the `bibliografo-propuesta` and `investigador` agents query. Pi reads project
+servers only from `.pi/mcp.json`, which `gen-pi.py` generates from that same
+`.mcp.json`; a copy of both files lives in the kit, so a portable project
+created with `marco init --tools pi` starts configured. If a ported agent still
+reports no MCP tools, add an explicit `tools` value for it in
+`gen-pi.rules.json` instead of narrowing the others.
 
 This file is versioned so the directory travels with the repository: without
 it a collaborator cloning the repo would see `.claude/` and `.opencode/`, no
