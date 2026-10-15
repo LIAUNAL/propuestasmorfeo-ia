@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import UserError
+from .pipeline_units import PIPELINE_UNITS, canonical_gates, normalise_gate
 
 
 SECTION_TITLES = {
@@ -32,21 +33,11 @@ SECTION_TITLES = {
     "18_apropiacion_social": "§18 Estrategia de acceso y apropiación social del conocimiento",
 }
 
-CANONICAL_GATES = [
-    {"id": "G0.5", "name": "Ajuste de Guía al TDR", "phase": "Fase 0", "reviewer": "Usuario", "criteria": "Tabla de secciones del TDR aprobada y ajustada."},
-    {"id": "G1", "name": "Árbol de Problemas y Pregunta", "phase": "Fase 1", "reviewer": "Revisor", "criteria": "Subproblemas mutuamente excluyentes y árbol TikZ verificado."},
-    {"id": "G2", "name": "Estado del Arte e Hipótesis", "phase": "Fase 2", "reviewer": "Revisor", "criteria": "≥30 referencias Q1/Q2 recientes e hipótesis falsable."},
-    {"id": "G3", "name": "Justificación y Pertinencia", "phase": "Fase 3", "reviewer": "Revisor", "criteria": "Alineación ODS, PND y pertinencia tecnológica con TRL 6 o 7."},
-    {"id": "G4", "name": "Objetivos General y Específicos", "phase": "Fase 4", "reviewer": "Revisor", "criteria": "Correspondencia biyectiva 1:1 entre subproblemas y objetivos."},
-    {"id": "G5", "name": "Marco Conceptual y Equipo", "phase": "Fase 5", "reviewer": "Revisor", "criteria": "Teoría fundamental y roles de equipo derivados de objetivos."},
-    {"id": "G5.5", "name": "Metodología y Diagrama TikZ", "phase": "Fase 5.5", "reviewer": "Revisor", "criteria": "Cadena de valor por fase, causalidad y esquema metodológico."},
-    {"id": "G6", "name": "Resultados y Consideraciones Éticas", "phase": "Fase 6", "reviewer": "Revisor", "criteria": "Resultados tangibles, bioética, comités y consentimientos informados."},
-    {"id": "G6.4", "name": "Presupuesto Financiero", "phase": "Fase 6.4", "reviewer": "Revisor", "criteria": "Aritmética exacta de rubros, topes y cofinanciación institucional."},
-    {"id": "G6.45", "name": "Cronograma, Productos y BibTeX", "phase": "Fase 6.45", "reviewer": "Revisor", "criteria": "Gantt a 12 meses, xltabular de productos y bibliografía APA consolidada."},
-    {"id": "G6.46", "name": "Articulación Territorial y Comunitaria", "phase": "Fase 6.46", "reviewer": "Revisor", "criteria": "Estrategia de anclaje territorial y apropiación social del conocimiento."},
-    {"id": "G6.5", "name": "Front-Matter y Síntesis", "phase": "Fase 6.5", "reviewer": "Revisor", "criteria": "Resumen ejecutivo, palabras clave y unicidad del título."},
-    {"id": "G7", "name": "Auditoría Final y Ensamble", "phase": "Fase 7", "reviewer": "Revisor & Coordinador", "criteria": "Auditoría cruzada integral, 0 errores en LaTeX y compilación PDF."},
-]
+# La lista canónica se deriva del inventario de unidades, no se escribe aquí. Antes
+# este bloque la duplicaba y las dos copias se contradecían: faltaban G1a y G1b,
+# que la corrida de referencia sí pasó, y sobraban G6 y G6.45, que la tabla de
+# pasos declara sin compuerta.
+CANONICAL_GATES: list[dict[str, Any]] = canonical_gates()
 
 _PDF_PAGE_CACHE: dict[str, tuple[float, int, int]] = {}
 
@@ -417,6 +408,9 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
         "telemetria": telemetria,
         "totals": totals,
         "artifacts": artifacts,
+        # El inventario de unidades viaja en el sobre para que el tablero deje de
+        # mantener su propia lista de fases y derive de aquí.
+        "pipeline_units": PIPELINE_UNITS,
         "archify_flow_ready": archify_flow_ready,
         "decisions_exists": (target_dir / "DECISIONS.md").is_file(),
         "idea_exists": (target_dir / "idea.md").is_file(),
