@@ -38,9 +38,10 @@ El sistema coordina un equipo de **11 subagentes especializados** guiados por co
 11. [Bucle Determinista de Diagramas TikZ](#bucle-determinista-de-diagramas-tikz)
 12. [Estructura de la Corrida y Privacidad de Datos](#estructura-de-la-corrida-y-privacidad-de-datos)
 13. [Exportar, Compartir y Continuar en Otro Computador](#exportar-compartir-y-continuar-en-otro-computador)
-14. [Runtimes Soportados](#runtimes-soportados)
-15. [Pruebas Automatizadas](#pruebas-automatizadas)
-16. [Licencia](#licencia)
+14. [Proyecto Guía Descargable](#proyecto-guía-descargable)
+15. [Runtimes Soportados](#runtimes-soportados)
+16. [Pruebas Automatizadas](#pruebas-automatizadas)
+17. [Licencia](#licencia)
 
 ---
 
@@ -392,6 +393,60 @@ Dentro encontrará:
 - `proposals/<run-id>/grafos/*.html`: los gemelos interactivos de los grafos de literatura y vault (se abren en cualquier navegador).
 - `proposals/<run-id>/insumos/`: todos los TDR, papers y notas aportados por el autor original.
 - Para compilar el PDF de forma local: `./scripts/compilar-pdf.sh` o `cd proposals/<run-id>/redaccion && ./build.sh`.
+
+---
+
+## Proyecto Guía Descargable
+
+El repositorio publica una propuesta completa y terminada para que se pueda estudiar sin ejecutar el pipeline desde cero. Es la corrida `2026-09-tept-depresion-ia-portable`: un sistema de inteligencia artificial portable para identificar patrones de depresión asociados a estrés postraumático en estudiantes universitarios. Cada fase del marco dejó su rastro en disco, y ahí está lo que conviene mirar.
+
+El paquete se descarga desde la página de [Releases](https://github.com/LIAUNAL/propuestasmorfeo-ia/releases). El activo se llama `RedaccionPropuestas-2026-09-tept-depresion-ia-portable.zip` (68 MB) y la variante `.tar.gz` trae el mismo contenido.
+
+### Qué contiene
+
+| Métrica | Valor |
+|---|---|
+| Secciones del documento | 19 |
+| Palabras del cuerpo | 29.687 |
+| Citas en el texto | 220 |
+| Entradas BibTeX | 108 |
+| Compuertas aprobadas | 13 de 13 |
+| Páginas del PDF compilado | 59 |
+| Archivos empaquetados | 691 |
+
+### Cómo abrirlo
+
+```bash
+# Con Morfeo instalado: importar y entrar
+morfeo import RedaccionPropuestas-2026-09-tept-depresion-ia-portable.zip ~/propuestas/ejemplo-salud-mental
+cd ~/propuestas/ejemplo-salud-mental
+
+# Estado de la corrida y tablero interactivo
+morfeo status
+morfeo ui
+```
+
+Sin Morfeo instalado, basta descomprimir con la herramienta del sistema (`unzip` o `tar -xzf`) y abrir los archivos directamente. El PDF y los gemelos HTML de los grafos se leen en cualquier navegador.
+
+### Recorrido sugerido
+
+1. **El documento terminado.** `proposals/2026-09-tept-depresion-ia-portable/redaccion/main.pdf` es el entregable de 59 páginas. También hay versión Word en `main.docx`.
+2. **Las fuentes LaTeX.** `redaccion/sections/` guarda las 19 secciones, una por archivo, y `redaccion/specs/` las especificaciones JSON de los tres diagramas TikZ (árbol de problemas, mapa de estado del arte y diagrama metodológico).
+3. **La bibliografía.** `redaccion/refs.bib` reúne 108 entradas en formato APA autor-año; `redaccion/etiquetas.json` resuelve las referencias cruzadas.
+4. **El tablero de la corrida.** `artefactos/estado_propuesta.md` registra el puntero `next_step`, las compuertas aprobadas y la telemetría acumulada.
+5. **La bitácora por fase.** `artefactos/pipeline/` tiene un archivo por unidad del pipeline, de la Fase 0 al cierre de la Fase 7, con lo que decidió cada agente y qué evidencia dejó.
+6. **El corpus de literatura.** `artefactos/scoping/` guarda las fichas de los papers y `artefactos/vault/` su espejo Markdown compatible con Obsidian.
+7. **Los grafos de conocimiento.** `grafos/` trae los reportes de `codebase-memory` en Markdown y sus gemelos navegables `papers-graph.html` y `vault-graph.html`.
+8. **Los insumos de entrada.** `insumos/` conserva el TDR de la convocatoria, los anexos oficiales y las notas de idea que alimentaron la corrida.
+9. **El diligenciamiento administrativo.** `artefactos/kit/` reúne los campos del formulario listos para pegar y `artefactos/anexos/` las nueve cartas en Markdown, DOCX y PDF.
+
+### El tablero sobre el ejemplo
+
+`morfeo ui` levanta el Command Center sobre la corrida importada. El flujograma muestra las 13 etapas aprobadas, el visor abre el PDF de 59 páginas con las herramientas de anotación editorial, y el panel de telemetría reporta los 55,1 millones de tokens y los 908 tool-uses que consumió la formulación.
+
+### Antes de reutilizarlo
+
+El paquete es una propuesta real, no un corpus sintético. Incluye los datos de identificación del equipo docente y estudiantil y los documentos de la convocatoria. Conviene tratarlo como material de referencia del Laboratorio y citar su origen cuando alguna parte se reutilice.
 
 ---
 

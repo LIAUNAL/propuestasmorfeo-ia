@@ -54,3 +54,8 @@ proposals/
 # proposals/<run-id>/insumos/ y el repo nunca versiona contenido de una
 # propuesta. Los .md de docs/ sí son framework.
 docs/*.pdf
+
+# Paquetes de `morfeo export`: son activos de release, no fuente. Se regeneran
+# con un comando y pesan decenas de megabytes, así que nunca entran a git.
+/*.zip
+/*.tar.gz

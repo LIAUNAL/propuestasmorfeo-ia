@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import MorfeoError, UserError
+from .. import __version__
 from .status import get_project_status
 
 
@@ -243,7 +244,7 @@ def export_project(
     # Build manifest
     export_manifest = {
         "export_version": "1.0",
-        "morfeo_version": status.get("version", "0.5.1"),
+        "morfeo_version": status.get("version", __version__),
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "project_name": project_name,
         "selected_runs": selected_runs,

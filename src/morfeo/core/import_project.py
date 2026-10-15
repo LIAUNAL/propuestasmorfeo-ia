@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import MorfeoError, UserError
+from .. import __version__
 from .status import get_project_status
 
 
@@ -206,7 +207,7 @@ def import_project(
     try:
         status = get_project_status(target_dir, force_refresh=True)
     except Exception as e:
-        status = {"version": "0.5.1", "totals": {}, "run": {}}
+        status = {"version": __version__, "totals": {}, "run": {}}
 
     if not quiet:
         print("\n[OK] Proyecto importado exitosamente:")

@@ -6,7 +6,7 @@ Universidad Nacional de Colombia, Sede Manizales.
 
 from __future__ import annotations
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 __author__ = "Laboratorio de Inteligencia Artificial UNAL"
 __email__ = "amalvarezme@unal.edu.co"
 
