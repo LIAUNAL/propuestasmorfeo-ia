@@ -3450,16 +3450,23 @@
         // Populate summary modal
         const s = result.summary || {};
         const body = document.getElementById('summaryModalBody');
+        const pendientes = s.pending_instructions_file
+          ? `<div>📝 Instrucciones registradas para el agente en <code>${s.pending_instructions_file}</code>. Las ejecuta el <code>redactor</code> al continuar el pipeline.</div>`
+          : '';
+        const recompilacion = s.pdf_recompile_skipped
+          ? `<div>📄 Recompilación de main.pdf: <strong style="color: var(--text-muted);">No hizo falta</strong> · ${s.pdf_recompile_reason || 'sin cambios en el manuscrito'}</div>`
+          : `<div>📄 Recompilación de main.pdf: <strong style="color: ${s.pdf_recompiled ? 'var(--ok)' : 'var(--warn)'}">${s.pdf_recompiled ? '✓ Exitosa' : 'Revisar log'}</strong></div>`;
         body.innerHTML = `
           <div style="background: var(--surface-2); padding: 0.85rem; border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem;">
             <div>✂️ <strong>${s.strikethrough_applied || 0}</strong> textos tachados eliminados de las fuentes LaTeX.</div>
-            <div>💬 <strong>${s.comments_applied || 0}</strong> comentarios insertados en el proyecto.</div>
             <div>✨ <strong>${s.humanize_applied || 0}</strong> pasajes humanizados con la skill <code>estilo-natural-es</code>.</div>
+            <div>💬 <strong>${s.comments_registered || 0}</strong> instrucciones de <strong>Comentario</strong> registradas para el agente. Un comentario no reescribe prosa, así que el manuscrito no cambia por sí solo.</div>
+            ${pendientes}
             <div>📁 <strong>${(s.files_modified || []).length}</strong> archivo(s) modificados: <code>${(s.files_modified || []).join(', ') || 'Ninguno'}</code></div>
-            <div>📄 Recompilación de main.pdf: <strong style="color: ${s.pdf_recompiled ? 'var(--ok)' : 'var(--warn)'}">${s.pdf_recompiled ? '✓ Exitosa' : 'Revisar log'}</strong></div>
+            ${recompilacion}
           </div>
           <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
-            El reporte detallado fue persistido en <code>artefactos/anotaciones_pdf.md</code>. El documento PDF se ha actualizado con los cambios aplicados.
+            El reporte detallado fue persistido en <code>artefactos/anotaciones_pdf.md</code>.
           </p>
         `;
         document.getElementById('summaryModal').classList.add('active');
@@ -3492,9 +3499,11 @@
         }
 
         const app = data.applied || {};
+        const reg = data.registered || {};
+        const comentariosHistoricos = reg.comments !== undefined ? reg.comments : (app.comments || 0);
         box.innerHTML = `
           <div><strong>Fecha:</strong> ${data.timestamp.split('T')[0]} ${data.timestamp.split('T')[1].slice(0,5)}</div>
-          <div>✂️ Tachados: <strong>${app.strikethrough || 0}</strong> · 💬 Comentarios: <strong>${app.comments || 0}</strong> · ✨ Humanizados: <strong>${app.humanize || 0}</strong></div>
+          <div>✂️ Tachados: <strong>${app.strikethrough || 0}</strong> · ✨ Humanizados: <strong>${app.humanize || 0}</strong> · 💬 Instrucciones al agente: <strong>${comentariosHistoricos}</strong></div>
           <div style="margin-top: 0.25rem;"><a href="javascript:void(0)" onclick="navigateTab('artifacts'); loadArtifact('artefactos/anotaciones_pdf.md');" style="color: var(--accent);">Ver informe anotaciones_pdf.md ↗</a></div>
         `;
       } catch (e) {

@@ -1,7 +1,8 @@
 """PDF Annotation and Review Processor for Morfeo proposals.
 
 Processes annotations marked by the user in the PDF preview:
-- Comments: records feedback and attaches comments in LaTeX section sources.
+- Comments: register a pending instruction for the pipeline agent. They never
+  rewrite prose themselves, so they never touch the LaTeX sources.
 - Strikethroughs: locates and removes / comments out selected text from LaTeX sources.
 - Humanization: locates selected text and polishes it using estilo-natural-es rules.
 - Recompilation: triggers build.sh / pdflatex and records summary reports.
@@ -9,6 +10,7 @@ Processes annotations marked by the user in the PDF preview:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
@@ -30,6 +32,72 @@ def _build_fuzzy_regex(words: list[str]) -> str:
     escaped = [re.escape(w) for w in words]
     # Join with flexible whitespace pattern
     return r"\s+".join(escaped)
+
+
+PENDING_INSTRUCTIONS_FILE = "instrucciones_revisor_pdf.md"
+
+PENDING_INSTRUCTIONS_HEADER = """# Instrucciones pendientes del revisor sobre el PDF
+
+Las registra el panel de anotaciones de `morfeo ui` cuando marcas un texto con
+**Comentario**. No se aplican solas: mientras nadie las ejecute, el manuscrito no
+cambia. Las ejecuta el `redactor` al continuar el pipeline, y el
+`grant-flow-auditor` pule el resultado después.
+
+Marca cada casilla cuando la instrucción esté aplicada y verificada.
+
+## Pendientes
+"""
+
+
+def _instruction_signature(page: Any, anchor: str, comment: str) -> str:
+    """Firma estable de una instrucción, para no repetirla entre ejecuciones."""
+    payload = f"{page}|{anchor}|{comment}".encode("utf-8")
+    return hashlib.sha1(payload).hexdigest()[:12]
+
+
+def register_pending_instructions(
+    pipeline_dir: Path, items: list[dict[str, Any]]
+) -> tuple[Path | None, int]:
+    """Anexa al archivo de pendientes las instrucciones que aún no estaban.
+
+    Devuelve la ruta del archivo y cuántas entradas nuevas se escribieron. El
+    archivo se anexa en lugar de reescribirse, porque una instrucción sin
+    ejecutar no se puede recuperar de ningún otro sitio.
+    """
+    if not items:
+        return None, 0
+
+    path = pipeline_dir / PENDING_INSTRUCTIONS_FILE
+    existing = (
+        path.read_text(encoding="utf-8")
+        if path.is_file()
+        else PENDING_INSTRUCTIONS_HEADER
+    )
+    stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    nuevas: list[str] = []
+    for item in items:
+        anchor = item.get("target_text") or ""
+        comment = item.get("comment") or ""
+        signature = _instruction_signature(item.get("page"), anchor, comment)
+        if f"revisor:{signature}" in existing:
+            continue
+        location = f"`{item['file']}`" if item.get("file") else "sin ubicar en las fuentes"
+        nuevas.append(
+            f"- [ ] **Pág. {item.get('page')}** · {location}\n"
+            f"  - Ancla: «{anchor}»\n"
+            f"  - Instrucción: {comment}\n"
+            f"  - Registrada: {stamp}\n"
+            f"  <!-- revisor:{signature} -->\n"
+        )
+
+    if not nuevas:
+        if not path.is_file():
+            path.write_text(existing, encoding="utf-8")
+        return path, 0
+
+    path.write_text(existing.rstrip() + "\n\n" + "\n".join(nuevas), encoding="utf-8")
+    return path, len(nuevas)
 
 
 def _humanize_text_span(text: str) -> str:
@@ -99,7 +167,7 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         tex_files.extend(sorted(sections_dir.glob("*.tex")))
 
     applied_strikethroughs: list[dict[str, Any]] = []
-    applied_comments: list[dict[str, Any]] = []
+    registered_comments: list[dict[str, Any]] = []
     applied_humanize: list[dict[str, Any]] = []
     failed_annotations: list[dict[str, Any]] = []
 
@@ -142,6 +210,27 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             if matched_file:
                 break
 
+        matched_original = (
+            file_contents[matched_file][match_span[0]:match_span[1]]
+            if matched_file and match_span
+            else None
+        )
+
+        # Un comentario no reescribe prosa: no toca la fuente y viaja al agente
+        # del pipeline como instrucción pendiente. Se registra aunque el ancla no
+        # se localice, porque una instrucción sigue siendo válida sin ella; lo
+        # que exigía ancla era la línea `%` que se insertaba antes.
+        if ann_type in ("comment", "comentario"):
+            registered_comments.append({
+                "id": ann.get("id", str(idx + 1)),
+                "file": str(matched_file.relative_to(run_dir)) if matched_file else None,
+                "page": page_num,
+                "target_text": matched_original if matched_original else target_text,
+                "comment": comment_body,
+                "located": bool(matched_file),
+            })
+            continue
+
         if not matched_file or not match_span:
             failed_annotations.append({
                 "id": ann.get("id", str(idx + 1)),
@@ -154,7 +243,6 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
 
         content = file_contents[matched_file]
         start, end = match_span
-        matched_original = content[start:end]
 
         if ann_type in ("strikethrough", "tachar", "delete"):
             # Quitar texto tachado (o reemplazar por comentario de trazabilidad)
@@ -169,20 +257,6 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
                 "file": str(matched_file.relative_to(run_dir)),
                 "page": page_num,
                 "original_text": matched_original,
-            })
-
-        elif ann_type in ("comment", "comentario"):
-            # Insertar comentario de revisión arriba del bloque afectado
-            comment_marker = f"\n% [COMENTARIO REVISOR PDF - Pág {page_num}]: {comment_body}\n"
-            new_content = content[:start] + comment_marker + content[start:]
-            file_contents[matched_file] = new_content
-            files_modified.add(matched_file)
-            applied_comments.append({
-                "id": ann.get("id", str(idx + 1)),
-                "file": str(matched_file.relative_to(run_dir)),
-                "page": page_num,
-                "target_text": matched_original,
-                "comment": comment_body,
             })
 
         elif ann_type in ("humanize", "humanizar"):
@@ -203,6 +277,12 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
     for tf in files_modified:
         tf.write_text(file_contents[tf], encoding="utf-8")
 
+    # Las instrucciones pendientes se anexan, no se reescriben: una instrucción
+    # sin ejecutar no se puede recuperar de ningún otro sitio.
+    pending_path, _pending_written = register_pending_instructions(
+        pipeline_dir, registered_comments
+    )
+
     # Persist annotations JSON
     timestamp = datetime.now().isoformat()
     json_payload = {
@@ -211,15 +291,20 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         "total_submitted": len(annotations),
         "applied": {
             "strikethrough": len(applied_strikethroughs),
-            "comments": len(applied_comments),
             "humanize": len(applied_humanize),
+        },
+        "registered": {
+            "comments": len(registered_comments),
         },
         "details": {
             "strikethrough": applied_strikethroughs,
-            "comments": applied_comments,
             "humanize": applied_humanize,
+            "comments": registered_comments,
             "unmatched": failed_annotations,
         },
+        "pending_instructions_file": (
+            str(pending_path.relative_to(run_dir)) if pending_path else None
+        ),
     }
 
     anotaciones_json_p = pipeline_dir / "anotaciones_pdf.json"
@@ -232,8 +317,9 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         f"# Registro de Revisión y Anotaciones sobre PDF — {run_dir.name}",
         f"\n**Fecha de ejecución:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"- **Textos tachados eliminados:** {len(applied_strikethroughs)}",
-        f"- **Comentarios de revisión incorporados:** {len(applied_comments)}",
         f"- **Pasajes humanizados (estilo-natural-es):** {len(applied_humanize)}",
+        f"- **Instrucciones registradas para el agente:** {len(registered_comments)}",
+        "- **Comentarios aplicados al manuscrito:** 0 (un comentario no reescribe prosa)",
         f"- **Archivos modificados:** {len(files_modified)}",
         "\n---",
     ]
@@ -251,12 +337,21 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             md_lines.append(f"  - *Original:* {item['original_text']}")
             md_lines.append(f"  - *Humanizado:* **{item['polished_text']}**")
 
-    if applied_comments:
-        md_lines.append("\n## 💬 Comentarios e Instrucciones de Revisión")
-        for item in applied_comments:
-            md_lines.append(f"- **Pág. {item['page']}** (`{item['file']}`):")
+    if registered_comments:
+        md_lines.append("\n## 💬 Instrucciones Registradas para el Agente")
+        md_lines.append(
+            "\nNo se aplicaron al manuscrito. Las ejecuta el `redactor` al continuar "
+            "el pipeline, y el `grant-flow-auditor` pule el resultado después."
+        )
+        for item in registered_comments:
+            ubicacion = f"`{item['file']}`" if item.get("file") else "**sin ubicar**"
+            md_lines.append(f"- **Pág. {item['page']}** ({ubicacion}):")
             md_lines.append(f"  - *Texto ancla:* \"{item['target_text']}\"")
             md_lines.append(f"  - *Instrucción:* {item['comment']}")
+        if pending_path:
+            md_lines.append(
+                f"\nArchivo de pendientes: `{pending_path.relative_to(run_dir)}`"
+            )
 
     if failed_annotations:
         md_lines.append("\n## ⚠️ Anotaciones no localizadas automáticamente")
@@ -268,46 +363,69 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
     anotaciones_md_p.write_text("\n".join(md_lines) + "\n", encoding="utf-8")
     anotaciones_md_r.write_text("\n".join(md_lines) + "\n", encoding="utf-8")
 
-    # Trigger re-compilation of main.pdf
+    # Trigger re-compilation of main.pdf, but only when an annotation actually
+    # changed the manuscript. Recompiling after a comment-only run produced an
+    # identical PDF and reinforced the illusion that something had been applied.
     compile_success = False
     compile_log = ""
-    try:
-        build_sh = redaccion_dir / "build.sh"
-        if build_sh.is_file():
-            res = subprocess.run(
-                ["bash", "build.sh"],
-                cwd=redaccion_dir,
-                capture_output=True,
-                text=True,
-                timeout=60,
-                input="y\n",
-            )
-            compile_success = res.returncode == 0
-            compile_log = (res.stdout + "\n" + res.stderr)[-500:]
-        else:
-            res = subprocess.run(
-                ["pdflatex", "-interaction=nonstopmode", "main.tex"],
-                cwd=redaccion_dir,
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            compile_success = res.returncode == 0
-            compile_log = (res.stdout + "\n" + res.stderr)[-500:]
-    except Exception as e:
-        compile_log = f"Error invocando compilación: {e}"
+    recompile_skipped = not files_modified
+    recompile_reason = ""
+    if recompile_skipped:
+        compile_log = "No se recompiló: ninguna anotación cambió el manuscrito."
+        recompile_reason = "sin cambios en el manuscrito"
+    else:
+        try:
+            build_sh = redaccion_dir / "build.sh"
+            if build_sh.is_file():
+                res = subprocess.run(
+                    ["bash", "build.sh"],
+                    cwd=redaccion_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                    input="y\n",
+                )
+                compile_success = res.returncode == 0
+                compile_log = (res.stdout + "\n" + res.stderr)[-500:]
+            else:
+                res = subprocess.run(
+                    ["pdflatex", "-interaction=nonstopmode", "main.tex"],
+                    cwd=redaccion_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                )
+                compile_success = res.returncode == 0
+                compile_log = (res.stdout + "\n" + res.stderr)[-500:]
+        except Exception as e:
+            compile_log = f"Error invocando compilación: {e}"
+        if not compile_success:
+            recompile_reason = "la compilación no terminó bien"
 
     return {
         "ok": True,
-        "message": "Anotaciones ejecutadas correctamente en el proyecto.",
+        "message": (
+            "Anotaciones ejecutadas correctamente en el proyecto."
+            if files_modified
+            else "Instrucciones registradas para el agente. El manuscrito no cambió."
+        ),
         "summary": {
             "total_submitted": len(annotations),
             "strikethrough_applied": len(applied_strikethroughs),
-            "comments_applied": len(applied_comments),
+            "comments_applied": 0,
+            "comments_registered": len(registered_comments),
+            "comments_failed": len(
+                [a for a in failed_annotations if a.get("type") in ("comment", "comentario")]
+            ),
             "humanize_applied": len(applied_humanize),
             "files_modified": [str(f.relative_to(run_dir)) for f in files_modified],
             "pdf_recompiled": compile_success,
+            "pdf_recompile_skipped": recompile_skipped,
+            "pdf_recompile_reason": recompile_reason,
             "compile_log": compile_log.strip(),
+            "pending_instructions_file": (
+                str(pending_path.relative_to(run_dir)) if pending_path else None
+            ),
         },
         "report_file": "artefactos/anotaciones_pdf.md",
     }
