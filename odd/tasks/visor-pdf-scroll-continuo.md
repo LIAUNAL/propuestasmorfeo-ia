@@ -90,3 +90,36 @@ espera lo que esté en vuelo antes de liberar.
 3. Vaciar los conjuntos de seguimiento sin liberar los mapas de bits dejaba
    canvas pintados fuera de todo desalojo, así que la memoria crecía con cada
 página visitada. Ahora se liberan uno por uno antes de olvidar el estado.
+
+L7 (2026-10-15, la verificación independiente falsó la garantía C5): el
+verificador recorrió el commit y devolvió FAIL con tres contraejemplos. El
+primero es alcanzable con uso normal y tiene razón: esperar los render en vuelo
+no bastaba, porque un scroll durante la espera arrancaba un render nuevo sobre
+el mismo canvas que la aplicación de escala estaba a punto de liberar. El
+segundo y el tercero viven en el camino de recargue tras «Ejecutar». Se
+introdujeron tres piezas: cancelación del render por página, bloqueo de renders
+mientras se aplica la escala y una generación que descarta la tarea que aún no
+había pintado.
+
+L8 (2026-10-15, un cuarto defecto, este del propio arreglo): el descarte por
+generación se colocó también después de pintar, y una tarea que ya había
+redimensionado el canvas se retiraba sin registrarse: quedaba pintado y fuera de
+todo desalojo. Lo delataron las medidas, no el razonamiento: 12 canvas pintados
+contra 6 rastreados, y las páginas 1 y 2 ancladas al ancho de la escala vieja
+mientras el resto ya estaba en la nueva. Ahora toda salida posterior a pintar
+libera el canvas, y el `finally` libera también lo cancelado o fallido. Con eso
+el descarte seco queda solo antes de pintar.
+
+L9 (2026-10-15, causa de los avisos de `--scale-factor`): quedaba una segunda
+fuente de verdad. La variable se fijaba en la tira, pero `zoomPdf` cambia
+`pdfScale` de inmediato y su debounce aplica la escala 120 ms después; en esa
+ventana, una tarea construía su viewport con la escala nueva mientras la tira
+todavía declaraba la vieja, y PDF.js avisaba por la diferencia. Ahora la
+variable se fija en la propia capa de texto, con el viewport exacto que se está
+pintando.
+
+L10 (2026-10-15, verificación del arreglo, en navegador): ocho ciclos de rueda y
+zoom solapados más la travesía completa del manuscrito. **Cero errores de
+consola, cero colisiones de canvas, 6 canvas pintados y 6 rastreados, un único
+ancho de bitmap, cero tareas en vuelo.** La suite queda en 140 pruebas verdes y
+`node --check` acepta el bloque de script en línea.

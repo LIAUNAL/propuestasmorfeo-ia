@@ -2457,8 +2457,28 @@
     const pdfTextContentCache = new Map();
     const pdfRenderedPages = new Set();
     const pdfPendingRenders = new Map();
+    // Tarea de render de PDF.js en vuelo por página. Un canvas no admite dos
+    // render() a la vez, así que hay que poder cancelar el anterior.
+    const pdfRenderTasks = new Map();
+    // Mientras se aplica una escala no puede arrancar ningún render: un scroll
+    // durante la espera pintaría un canvas que la escala está a punto de liberar.
+    let pdfScaleApplying = false;
+    // Se incrementa cada vez que el estado de renderizado se reconstruye, para
+    // que una tarea que termina tarde no escriba sobre el estado nuevo.
+    let pdfRenderGeneration = 0;
     let selectionDebounceTimer = null;
     let zoomDebounceTimer = null;
+
+    function cancelPageRender(n) {
+      const task = pdfRenderTasks.get(n);
+      if (!task) return;
+      try { task.cancel(); } catch (_) {}
+      pdfRenderTasks.delete(n);
+    }
+
+    function cancelAllPageRenders() {
+      Array.from(pdfRenderTasks.keys()).forEach(cancelPageRender);
+    }
 
     // El visor es una tira continua: cada página lleva su propio canvas, su capa
     // de texto y su capa de anotaciones, y se resuelven por número de página.
@@ -2483,6 +2503,13 @@
       if (spinner) spinner.style.display = 'flex';
 
       if (forceReload) {
+        // Se cancela lo que esté en vuelo y se libera el DOM antes de soltar el
+        // seguimiento: vaciar solo los conjuntos dejaba los canvas viejos sin
+        // dueño, y entonces el desalojo no podía liberarlos nunca.
+        pdfRenderGeneration += 1;
+        cancelAllPageRenders();
+        const strip = document.getElementById('pdfPagesStrip');
+        if (strip) strip.innerHTML = '';
         pdfPageCache.clear();
         pdfTextContentCache.clear();
         pdfRenderedPages.clear();
@@ -2558,11 +2585,6 @@
       strip.removeEventListener('scroll', onStripScroll);
       strip.addEventListener('scroll', onStripScroll, { passive: true });
 
-      // PDF.js exige que --scale-factor coincida con viewport.scale en el
-      // contenedor de la capa de texto o en un ancestro. Sin esa variable el
-      // texto seleccionable queda desalineado respecto del lienzo al hacer zoom.
-      strip.style.setProperty('--scale-factor', String(pdfScale));
-
       strip.scrollTop = 0;
       updatePageIndicator(1);
     }
@@ -2620,21 +2642,30 @@
 
     function renderPageInto(n) {
       if (!pdfDoc || n < 1 || n > pdfTotalPages) return Promise.resolve();
+      if (pdfScaleApplying) return Promise.resolve();
       if (pdfRenderedPages.has(n)) return Promise.resolve();
       if (pdfPendingRenders.has(n)) return pdfPendingRenders.get(n);
 
+      // Los nodos se resuelven antes de arrancar la tarea: así no queda ningún
+      // return temprano entre el try y el finally, donde `task` aún no existe.
+      const container = getPageEl(n);
+      const canvas = getPageCanvas(n);
+      const textLayerDiv = getPageTextLayer(n);
+      if (!container || !canvas || !textLayerDiv) return Promise.resolve();
+
+      const generation = pdfRenderGeneration;
+      const renderStatus = document.getElementById('pdfRenderStatus');
+      if (renderStatus) renderStatus.style.display = 'inline';
+      container.classList.add('pdf-rendering');
+
       const task = (async () => {
-        const container = getPageEl(n);
-        const canvas = getPageCanvas(n);
-        const textLayerDiv = getPageTextLayer(n);
-        if (!container || !canvas || !textLayerDiv) return;
-
-        const renderStatus = document.getElementById('pdfRenderStatus');
-        if (renderStatus) renderStatus.style.display = 'inline';
-        container.classList.add('pdf-rendering');
-
         try {
           const page = await getPageObject(n);
+          // Antes de pintar sí se puede descartar en seco: no hay nada que
+          // liberar. Después de pintar, toda salida tiene que liberar el canvas,
+          // porque uno redimensionado y no registrado sería invisible para el
+          // desalojo y se quedaría ocupando memoria para siempre.
+          if (generation !== pdfRenderGeneration) return;
           const dpr = window.devicePixelRatio || 1;
           // Limitar la escala de salida a 2.0: nitidez sin reventar la memoria
           const outputScale = Math.min(dpr, 2.0);
@@ -2658,13 +2689,27 @@
 
           const ctx = canvas.getContext('2d', { alpha: false }); // alpha: false acelera el renderizado en GPU
           const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
-          await page.render({ canvasContext: ctx, viewport: viewport, transform: transform }).promise;
+
+          // Si quedara un render en vuelo para esta página, se cancela antes de
+          // arrancar el nuevo: el canvas rechaza dos a la vez.
+          cancelPageRender(n);
+          const renderTask = page.render({ canvasContext: ctx, viewport: viewport, transform: transform });
+          pdfRenderTasks.set(n, renderTask);
+          await renderTask.promise;
+          pdfRenderTasks.delete(n);
+          if (generation !== pdfRenderGeneration) { releasePage(n); return; }
 
           let textContent = pdfTextContentCache.get(n);
           if (!textContent) {
             textContent = await page.getTextContent();
             pdfTextContentCache.set(n, textContent);
           }
+          if (generation !== pdfRenderGeneration) { releasePage(n); return; }
+          // PDF.js exige que --scale-factor coincida con viewport.scale. Se fija
+          // en la propia capa de texto, con el viewport exacto que se está
+          // pintando: dejarlo en la tira sería una segunda fuente de verdad, y
+          // zoomPdf cambia pdfScale antes de que su debounce aplique la escala.
+          textLayerDiv.style.setProperty('--scale-factor', String(viewport.scale));
           textLayerDiv.innerHTML = '';
           const textTask = pdfjsLib.renderTextLayer({
             textContentSource: textContent,
@@ -2672,6 +2717,7 @@
             viewport: viewport
           });
           if (textTask && textTask.promise) await textTask.promise;
+          if (generation !== pdfRenderGeneration) { releasePage(n); return; }
 
           pdfRenderedPages.add(n);
           renderAnnotationsForPage(n);
@@ -2680,9 +2726,17 @@
             console.error(`Error renderizando la página ${n}:`, err);
           }
         } finally {
+          pdfRenderTasks.delete(n);
+          // Solo se retira la entrada si sigue siendo la de esta tarea: una
+          // tarea vieja no puede borrar el registro de la nueva.
+          if (pdfPendingRenders.get(n) === task) {
+            pdfPendingRenders.delete(n);
+            // Cancelada o fallida antes de registrarse: el canvas puede haber
+            // quedado redimensionado y con pintura, así que se libera aquí.
+            if (!pdfRenderedPages.has(n)) releasePage(n);
+          }
           container.classList.remove('pdf-rendering');
-          if (renderStatus) renderStatus.style.display = 'none';
-          pdfPendingRenders.delete(n);
+          if (pdfRenderTasks.size === 0 && renderStatus) renderStatus.style.display = 'none';
           evictDistantPages(pdfCurrentPage);
         }
       })();
@@ -2837,33 +2891,43 @@
     async function applyScaleToStripOnce() {
       if (!pdfDoc) return;
       const anchor = pdfCurrentPage;
-      const strip = document.getElementById('pdfPagesStrip');
-      const firstPage = await getPageObject(1);
-      const viewport = firstPage.getViewport({ scale: pdfScale });
-      pdfBaseSize = {
-        width: Math.floor(viewport.width),
-        height: Math.floor(viewport.height)
-      };
-      if (strip) strip.style.setProperty('--scale-factor', String(pdfScale));
+      // Mientras dure la operación no arranca ningún render nuevo.
+      pdfScaleApplying = true;
+      try {
+        const firstPage = await getPageObject(1);
+        const viewport = firstPage.getViewport({ scale: pdfScale });
+        pdfBaseSize = {
+          width: Math.floor(viewport.width),
+          height: Math.floor(viewport.height)
+        };
 
-      // Un canvas no admite dos render() a la vez, así que se espera lo que esté
-      // en vuelo antes de liberar los mapas de bits.
-      await Promise.allSettled(Array.from(pdfPendingRenders.values()));
+        // Un canvas no admite dos render() a la vez y una tarea que termine
+        // tarde no debe escribir sobre el estado nuevo. Se invalida la
+        // generación, se cancelan los render en vuelo y solo después se libera:
+        // esperar sin cancelar no bastaba, porque un scroll durante la espera
+        // arrancaba otro render sobre el mismo canvas.
+        pdfRenderGeneration += 1;
+        cancelAllPageRenders();
+        await Promise.allSettled(Array.from(pdfPendingRenders.values()));
 
-      document.querySelectorAll('.pdf-page-slot').forEach(slot => {
-        const n = parseInt(slot.dataset.pageNumber, 10);
-        [getPageEl(n), getPageTextLayer(n), getPageAnnotLayer(n)].forEach(el => {
-          if (!el) return;
-          el.style.width = `${pdfBaseSize.width}px`;
-          el.style.height = `${pdfBaseSize.height}px`;
+        document.querySelectorAll('.pdf-page-slot').forEach(slot => {
+          const n = parseInt(slot.dataset.pageNumber, 10);
+          [getPageEl(n), getPageTextLayer(n), getPageAnnotLayer(n)].forEach(el => {
+            if (!el) return;
+            el.style.width = `${pdfBaseSize.width}px`;
+            el.style.height = `${pdfBaseSize.height}px`;
+          });
         });
-      });
 
-      // Se liberan los mapas de bits de la escala vieja y se olvida el estado.
-      // Vaciar solo los conjuntos dejaría canvas pintados sin seguimiento, y
-      // entonces el desalojo no podría liberarlos nunca.
-      Array.from(pdfRenderedPages).forEach(releasePage);
-      pdfPendingRenders.clear();
+        // Se liberan los mapas de bits de la escala vieja y se olvida el estado.
+        // Vaciar solo los conjuntos dejaría canvas pintados sin seguimiento, y
+        // entonces el desalojo no podría liberarlos nunca.
+        Array.from(pdfRenderedPages).forEach(releasePage);
+        pdfPendingRenders.clear();
+      } finally {
+        pdfScaleApplying = false;
+      }
+      // Ya con el bloqueo suelto, se repinta lo visible a la escala nueva.
       renderVisiblePages();
       scrollToPdfPage(anchor);
     }

@@ -160,16 +160,61 @@ class TestDashboardViewerContract(unittest.TestCase):
         self.assertPresent("canvas.width = 0")
         self.assertPresent("const PDF_KEEP_RENDERED = 6;")
 
+    def test_in_flight_renders_are_cancelled_and_invalidated(self) -> None:
+        # La verificación independiente falsó esta garantía: esperar los renders
+        # en vuelo no bastaba, porque un scroll durante la espera arrancaba otro
+        # render sobre el mismo canvas. Sostienen la garantía tres piezas: la
+        # cancelación por página, el bloqueo mientras se aplica la escala y la
+        # generación que descarta la tarea que aún no había pintado.
+        self.assertPresent("const pdfRenderTasks = new Map();")
+        self.assertPresent("function cancelPageRender(")
+        self.assertPresent("function cancelAllPageRenders(")
+        self.assertPresent("const renderTask = page.render(")
+        self.assertPresent("pdfRenderTasks.set(n, renderTask);")
+        self.assertPresent("let pdfScaleApplying = false;")
+        self.assertPresent("if (pdfScaleApplying) return Promise.resolve();")
+        self.assertPresent("let pdfRenderGeneration = 0;")
+        self.assertPresent("if (generation !== pdfRenderGeneration) return;")
+        # Una tarea vieja no puede borrar el registro de la nueva.
+        self.assertPresent("if (pdfPendingRenders.get(n) === task) {")
+        self.assertPresent("pdfPendingRenders.delete(n);")
+        # Un canvas pintado y no registrado sería invisible para el desalojo:
+        # toda salida posterior a pintar tiene que liberarlo, y solo el descarte
+        # previo a pintar puede ser seco.
+        self.assertEqual(
+            self.html.count("if (generation !== pdfRenderGeneration) return;"),
+            1,
+            "solo el descarte previo a pintar puede ser seco",
+        )
+        self.assertEqual(
+            self.html.count("if (generation !== pdfRenderGeneration) { releasePage(n); return; }"),
+            3,
+            "las tres salidas posteriores a pintar liberan el canvas",
+        )
+        # Cancelada o fallida sin registrarse: el finally también libera.
+        self.assertPresent("if (!pdfRenderedPages.has(n)) releasePage(n);")
+
+    def test_reload_releases_the_dom_before_dropping_the_tracking(self) -> None:
+        # Vaciar los conjuntos sin vaciar el DOM dejaba los canvas viejos sin
+        # dueño, y el desalojo ya no podía liberarlos.
+        self.assertPresent("cancelAllPageRenders();")
+        self.assertPresent("if (strip) strip.innerHTML = '';")
+        self.assertPresent("pdfRenderGeneration += 1;")
+
     def test_scale_application_is_serialized(self) -> None:
         # Sin la cadena, dos cambios de zoom solapados dejan un mismo canvas con
         # dos render() en vuelo y PDF.js lanza "Cannot use the same canvas during
         # multiple render() operations".
         self.assertPresent("let scaleApplyChain = Promise.resolve();")
         self.assertPresent("await Promise.allSettled(Array.from(pdfPendingRenders.values()))")
-        self.assertPresent("--scale-factor")
-        # Vaciar los conjuntos sin liberar los mapas de bits dejaba canvas
-        # pintados fuera de todo seguimiento, y el desalojo ya no podía verlos.
-        self.assertPresent("Array.from(pdfRenderedPages).forEach(releasePage);")
+        # Una sola fuente de verdad para --scale-factor: la propia capa de texto,
+        # fijada con el viewport que se está pintando. En la tira no sirve, porque
+        # zoomPdf cambia pdfScale antes de que su debounce aplique la escala.
+        self.assertPresent("textLayerDiv.style.setProperty('--scale-factor', String(viewport.scale));")
+        self.assertAbsent(
+            "strip.style.setProperty('--scale-factor'",
+            "la variable vive en la capa de texto, no en la tira",
+        )
 
     def test_annotations_are_scoped_to_their_page(self) -> None:
         self.assertPresent("function renderAnnotationsForPage(")
