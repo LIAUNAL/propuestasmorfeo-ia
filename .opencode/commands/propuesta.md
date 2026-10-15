@@ -59,8 +59,9 @@ nombres de índice se derivan del mismo run-id: `<run-id>-papers` y
 
 `insumos-observador`, `investigador`, `redactor`, `bibliografo-propuesta`,
 `disenador-tikz`, `tikz-optimizer`, `revisor-figuras`, `revisor`,
-`presupuestador`. (No existen `orquestador`, `observador` ni `bibliotecario`
-— usa siempre estos 9 nombres reales.)
+`presupuestador`, `grant-flow-auditor`. (No existen `orquestador`, `observador`
+ni `bibliotecario`: usa siempre estos 10 nombres reales. `coordinador-propuesta`
+existe como documento de referencia del pipeline, no como subagente despachable.)
 
 ## Cómo usar `codebase-memory` (MCP `codegraph`)
 
