@@ -1052,3 +1052,91 @@ abierto en una pestaña del navegador controlado, y el botón de descarga del vi
 abre un diálogo nativo del sistema que esta sesión no puede operar: ese clic lo
 da el operador. Una captura de la primera página quedó en
 `artefactos/kit/reporte_69693.png` como constancia de lo que el reporte contiene.
+
+---
+
+## Sesión 2026-10-14: poner el formulario a la versión vigente del documento
+
+El documento siguió creciendo después de la carga original. Los dieciséis apartados
+del §8.3 pasaron de 143.794 a **171.455 caracteres**, y trece de ellos cambiaron
+entre el 11 y el 13 de octubre. Los tres que quedaron idénticos son el estado del
+conocimiento (§4), el objetivo general (§6) y los objetivos específicos (§7).
+
+El kit de esta versión vive en `artefactos/kit/v2026-10-14/`, sin sobrescribir el
+del 2026-10-01. Se regenera con el script del marco:
+
+```bash
+python3 plantilla/scripts/kit_formulario.py --run proposals/2026-09-tept-depresion-ia-portable \
+  --salida <RUN_ROOT>/artefactos/kit/v2026-10-14/kit-formulario.md \
+  --condensados <RUN_ROOT>/artefactos/kit/condensados.json
+```
+
+### Actualizado en el registro 69693 y verificado tras recargar
+
+Ocho campos, todos con el cierre «(ver AnexoDocumentoTecnico.pdf)» que pidió el
+operador, y ninguno por encima del tope:
+
+| Campo | Antes | Ahora |
+|---|---:|---:|
+| `Metodologia` | 2.581 | 3.794 |
+| `Titulo4` | 2.945 | 3.927 |
+| `Titulo5` | 2.867 | 3.910 |
+| `Titulo7a` | 3.653 | 3.934 |
+| `Titulo8` | 3.882 | 3.899 |
+| `Titulo9` | 3.899 | 3.906 |
+| `Titulo10` | 3.573 | 3.903 |
+| `Resumen ejecutivo` | 2.434 | 2.327 |
+
+La verificación no comparó longitudes: leyó el texto completo del servidor después
+de recargar y lo cotejó carácter por carácter con el archivo del kit.
+
+Quedaron sin tocar por estar al día el título del proyecto, el objetivo general, los
+tres objetivos específicos con sus medios de verificación, `Titulo1` y
+`Justificacion` (idénticos a los tramos vigentes de §1) y `Titulo6`, cuya fuente no
+se ha editado desde el 30 de septiembre. Las **quince actividades** también están
+correctas: sus meses y duraciones coinciden una a una con el Gantt de §14.
+
+### Preparado y no escrito: las seis parejas de resultados y entregables
+
+Los doce textos están redactados desde §11 y §15 vigentes y guardados en
+`artefactos/kit/v2026-10-14/infoesp/resultados/` (`resultado-0..5.txt` y
+`entregable-0..5.txt`, entre 827 y 2.065 caracteres cada uno). Corrigen dos cosas
+que el formulario tenía mal: la fila 5 afirmaba «una tesis doctoral y una de
+maestría» cuando el compromiso vigente es una tesis de maestría más la vinculación
+de un doctorando, y los productos estaban numerados con el orden anterior, porque
+§15 pasó de seis a ocho productos acreditables.
+
+No se pudieron escribir. La tabla editable vive dentro de un contenedor oculto:
+
+```
+div#form:panelUnoInfAcad:resultadoTable   display:none
+botón «Adicionar resultado»  form:panelUnoInfAcad:j_id_ew   offsetParent nulo
+```
+
+Escribir los doce valores y pulsar «Guardar y continuar después» no persiste nada:
+el servidor devuelve los valores viejos. En cambio el resumen, escrito y guardado
+con el mismo botón, sí persistió. Los paneles de la ficha no se despliegan en el
+navegador del MCP con ninguno de los tres caminos probados (clic por código en la
+cabecera, clic real sobre el `tab`, y pulsación del botón `form:btninfo1`), así que
+el bloque queda inalcanzable desde esta sesión. El operador autorizó borrar y
+volver a agregar las filas, pero los controles de alta y borrado están ocultos por
+el mismo motivo.
+
+### Dos hallazgos
+
+**La cedilla turca no sobrevive al formulario.** Hermes devuelve `¿` donde va `ş`,
+y ya lo hacía antes de esta sesión. Se usó la transliteración «Kahramanmaras» en el
+formulario y en los archivos del kit.
+
+**La bibliografía arrastra dos defectos.** El registro guarda 106 filas y
+`refs.bib` tiene 108 entradas, así que faltan al menos dos referencias. Y once filas
+arrancan con el año porque `refs_apa_final.json` dejó el bloque de autores al final
+de la entrada, no al principio.
+
+### Pendiente de revisar
+
+Los paneles de **Equipo de trabajo**, **Costos**, **Fuentes de financiación** y
+**Entidades participantes** no cargan su contenido en el DOM de `fichaMinimaHome`,
+así que no se pudieron contrastar con §9 y §13, que se editaron el 12 y el 13.
+
+Nunca se pulsó «Enviar proyecto para revisión».
