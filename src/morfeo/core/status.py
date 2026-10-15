@@ -276,6 +276,17 @@ def list_artifacts_info(run_dir: Path) -> list[dict[str, Any]]:
 _STATUS_CACHE: dict[str, tuple[float, dict]] = {}
 
 
+def _package_version() -> str:
+    """Version of the running package, the fallback for a workspace that carries
+    no `.marco/version` marker (this framework repository is one). It used to be
+    the frozen literal `0.5.0`, which `marco status` kept printing several
+    releases later.
+    """
+    from .. import __version__
+
+    return __version__
+
+
 def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
     target_dir = target_dir.resolve()
     cache_key = str(target_dir)
@@ -285,7 +296,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
         if cached and (now - cached[0] < 1.5):
             return cached[1]
 
-    version = "0.5.0"
+    version = _package_version()
     marker = target_dir / ".morfeo"
     if not marker.is_dir():
         marker = target_dir / ".marco"

@@ -21,7 +21,15 @@ from morfeo.kit import get_kit_root, load_kit_manifest
 
 class TestMorfeoCLI(unittest.TestCase):
     def test_version(self):
-        self.assertEqual(morfeo.__version__, "0.5.1")
+        self.assertEqual(morfeo.__version__, "0.5.2")
+
+    def test_status_without_a_version_marker_reports_the_package_version(self):
+        """A workspace with no `.morfeo/version` marker (this framework
+        repository is one) printed the frozen literal `0.5.0` while the package
+        was already several releases ahead."""
+        repo = Path(__file__).resolve().parent.parent
+        status = get_project_status(repo, force_refresh=True)
+        self.assertEqual(status["version"], morfeo.__version__)
 
     def test_kit_resolution(self):
         kit_root = get_kit_root()
@@ -43,7 +51,7 @@ class TestMorfeoCLI(unittest.TestCase):
 
             # 2. status
             status_dict = get_project_status(target)
-            self.assertEqual(status_dict["version"], "0.5.1")
+            self.assertEqual(status_dict["version"], "0.5.2")
             self.assertIsNone(status_dict["active_run"])
 
             # 3. audit clean
