@@ -412,7 +412,7 @@ El paquete se descarga desde la página de [Releases](https://github.com/LIAUNAL
 | Entradas BibTeX | 108 |
 | Compuertas aprobadas | 13 de 13 |
 | Páginas del PDF compilado | 59 |
-| Archivos empaquetados | 691 |
+| Archivos empaquetados, sin el manifiesto | 691 |
 
 ### Cómo abrirlo
 

@@ -32,11 +32,11 @@ release, no como archivo versionado, y su patrón se ignora en `.gitignore`.
 
 ## Tareas
 
-- [ ] T1 `README.md`: sección «Proyecto guía descargable» con el recorrido por
+- [x] T1 `README.md`: sección «Proyecto guía descargable» con el recorrido por
       artefactos, grafos y tablero (S1, S4)
-- [ ] T2 `.gitignore`: ignorar los paquetes de `morfeo export` (S5)
-- [ ] T3 versión `0.5.2` y sus dos aserciones de prueba (S3)
-- [ ] T4 regenerar el paquete exportado de la corrida (S1, S4)
+- [x] T2 `.gitignore`: ignorar los paquetes de `morfeo export` (S5)
+- [x] T3 versión `0.5.2` y sus dos aserciones de prueba (S3)
+- [x] T4 regenerar el paquete exportado de la corrida (S1, S4)
 - [ ] T5 commit, merge a `main` y push (S1)
 - [ ] T6 release `v0.5.2` con el zip y el tar.gz como activos (S1, S2)
 
@@ -59,3 +59,18 @@ L4 (2026-10-15, evidencia): el árbol traía trabajo completo y probado sin
 commitear del puerto Pi (`scripts/gen-pi.py`, `.pi/mcp.json`, sus pruebas) y del
 arreglo de versión de `morfeo status`. Entra en el mismo release con commits
 propios.
+
+L5 (2026-10-15, verificación independiente): el verificador recorrió las 27
+rutas del rango `main..HEAD` y dio PASS en el ancla del README, las 16 rutas que
+nombra, la coherencia de la versión y las reglas nuevas de `.gitignore`. Encontró
+un desajuste real: el README declaraba 691 archivos y `unzip -l` cuenta 692,
+porque el manifiesto de exportación viaja dentro del paquete y no se cuenta a sí
+mismo en `files_count`. La fila ahora dice «sin el manifiesto».
+
+L6 (2026-10-15, hallazgo de integración): el `sync` que pidió el evaluador nativo
+también reescribió los diez `.pi/agents/*.md` del proyecto, y le agregó a cada uno
+un bloque gestionado `<!-- gentle-ai:pi-codegraph-guidance -->`. Eso deja
+`scripts/gen-pi.py --check` en rojo, porque esos archivos son salida de nuestro
+generador y este los reescribe sin el bloque. Se revirtieron los diez archivos
+para conservar el invariante; el activo gestionado global sí quedó sincronizado.
+Queda pendiente decidir si `gen-pi.py` debe preservar ese bloque gestionado.
