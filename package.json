@@ -1,0 +1,18 @@
+{
+  "name": "propuestasmorfeo-ia-dashboard",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Arnés DOM para el visor PDF continuo del tablero (src/morfeo/dashboard/static/index.html). No es un paquete publicable: existe para poder ejecutar el JavaScript en línea del visor bajo jsdom y observar su comportamiento asíncrono.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test tests/js/*.test.mjs",
+    "test:behavior": "node --test tests/js/viewer.behavior.test.mjs",
+    "test:race": "VIEWER_RACE_STRICT=1 node --test tests/js/viewer.race.test.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
+}

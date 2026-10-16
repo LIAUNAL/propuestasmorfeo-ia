@@ -22,6 +22,12 @@ __pycache__/
 build/
 dist/
 
+# Arnés DOM del visor: el JavaScript del tablero se ejecuta bajo Node con jsdom
+# (`npm install` en la raíz). El árbol instalado nunca se versiona; el pin vive
+# en package.json y package-lock.json.
+node_modules/
+npm-debug.log*
+
 # LaTeX build artifacts
 **/*.aux
 **/*.bbl

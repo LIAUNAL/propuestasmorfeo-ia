@@ -2586,6 +2586,10 @@
     const pdfPageCache = new Map();
     const pdfTextContentCache = new Map();
     const pdfRenderedPages = new Set();
+    // Canvas con el que cada página registrada quedó pintada. El registro por
+    // número de página no distingue el nodo vivo del desprendido: una tarea que
+    // termina sobre un canvas viejo deja la página "registrada" pero en blanco.
+    const pdfRenderedCanvases = new Map();
     const pdfPendingRenders = new Map();
     // Tarea de render de PDF.js en vuelo por página. Un canvas no admite dos
     // render() a la vez, así que hay que poder cancelar el anterior.
@@ -2593,9 +2597,18 @@
     // Mientras se aplica una escala no puede arrancar ningún render: un scroll
     // durante la espera pintaría un canvas que la escala está a punto de liberar.
     let pdfScaleApplying = false;
+    // Sello de la recarga. Se levanta de forma síncrona antes del primer await y
+    // deja sordos a los puntos de entrada del render y al observer: durante la
+    // ventana de la recarga no arranca ninguna tarea nueva contra el documento
+    // viejo. Se baja recién cuando la tira nueva quedó construida.
+    let pdfReloadInProgress = false;
     // Se incrementa cada vez que el estado de renderizado se reconstruye, para
     // que una tarea que termina tarde no escriba sobre el estado nuevo.
     let pdfRenderGeneration = 0;
+    // Identidad del documento vivo. La generación no distingue una tarea que
+    // arrancó tras la recarga contra el documento viejo de una legítima del
+    // nuevo; este contador sí, porque solo avanza cuando `pdfDoc` se reemplaza.
+    let pdfDocIdentity = 0;
     let selectionDebounceTimer = null;
     let zoomDebounceTimer = null;
 
@@ -2610,6 +2623,12 @@
       Array.from(pdfRenderTasks.keys()).forEach(cancelPageRender);
     }
 
+    function disconnectPageObserver() {
+      if (!pdfRenderObserver) return;
+      pdfRenderObserver.disconnect();
+      pdfRenderObserver = null;
+    }
+
     // El visor es una tira continua: cada página lleva su propio canvas, su capa
     // de texto y su capa de anotaciones, y se resuelven por número de página.
     function getPageSlot(n) { return document.getElementById(`pdfPageSlot-${n}`); }
@@ -2618,13 +2637,33 @@
     function getPageTextLayer(n) { return document.getElementById(`pdfTextLayer-${n}`); }
     function getPageAnnotLayer(n) { return document.getElementById(`pdfAnnotationsLayer-${n}`); }
 
-    async function getPageObject(n) {
+    async function getPageObject(n, generation = pdfRenderGeneration, identity = pdfDocIdentity) {
       let page = pdfPageCache.get(n);
       if (!page) {
         page = await pdfDoc.getPage(n);
-        pdfPageCache.set(n, page);
+        // Ni la generación ni el documento pueden haber cambiado durante la
+        // espera: una tarea vieja no siembra el documento nuevo con páginas del
+        // anterior aunque su generación ya coincida.
+        if (generation === pdfRenderGeneration && identity === pdfDocIdentity) {
+          pdfPageCache.set(n, page);
+        }
       }
       return page;
+    }
+
+    // Tope de la espera de la recarga. Una tarea atascada en una frontera que
+    // `cancelPageRender` no alcanza (por ejemplo `pdfDoc.getPage()`) no puede
+    // retenerla para siempre: vencido el tope se reconstruye igual, porque el
+    // descarte por generación ya impide que esa tarea escriba el estado nuevo.
+    const PDF_RELOAD_SETTLE_MS = 2500;
+    function settleWithinBound(promises, ms) {
+      if (promises.length === 0) return Promise.resolve();
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        setTimeout(finish, ms);
+        Promise.allSettled(promises).then(finish, finish);
+      });
     }
 
     async function initPdfViewer(forceReload = false) {
@@ -2632,21 +2671,32 @@
       const spinner = document.getElementById('pdfLoadingSpinner');
       if (spinner) spinner.style.display = 'flex';
 
-      if (forceReload) {
-        // Se cancela lo que esté en vuelo y se libera el DOM antes de soltar el
-        // seguimiento: vaciar solo los conjuntos dejaba los canvas viejos sin
-        // dueño, y entonces el desalojo no podía liberarlos nunca.
-        pdfRenderGeneration += 1;
-        cancelAllPageRenders();
-        const strip = document.getElementById('pdfPagesStrip');
-        if (strip) strip.innerHTML = '';
-        pdfPageCache.clear();
-        pdfTextContentCache.clear();
-        pdfRenderedPages.clear();
-        pdfPendingRenders.clear();
-      }
-
       try {
+        if (forceReload) {
+          // El sello va primero y de forma síncrona, antes del primer await: la
+          // generación invalida lo viejo, el observer se desconecta y el indicador
+          // `pdfReloadInProgress` deja sordos a los puntos de entrada del render y
+          // al callback del observer. Solo entonces se puede esperar sin que una
+          // tarea nueva arranque contra el documento viejo y capture la generación
+          // nueva. Después de la espera acotada se toca el DOM y se olvidan las
+          // cachés, sin canvas sin dueño ni contenido viejo en las cachés nuevas.
+          // Todo el tramo vive dentro del `try` protegido: un fallo entre el
+          // levantamiento del sello y la reconstrucción de la tira no puede dejar
+          // el visor sordo para siempre, porque el `finally` siempre lo baja.
+          pdfRenderGeneration += 1;
+          pdfReloadInProgress = true;
+          disconnectPageObserver();
+          cancelAllPageRenders();
+          await settleWithinBound(Array.from(pdfPendingRenders.values()), PDF_RELOAD_SETTLE_MS);
+          const strip = document.getElementById('pdfPagesStrip');
+          if (strip) strip.innerHTML = '';
+          pdfPageCache.clear();
+          pdfTextContentCache.clear();
+          pdfRenderedPages.clear();
+          pdfRenderedCanvases.clear();
+          pdfPendingRenders.clear();
+        }
+
         const url = `/api/pdf?t=${forceReload ? Date.now() : 'doc'}`;
         const loadingTask = pdfjsLib.getDocument({
           url: url,
@@ -2656,6 +2706,7 @@
           disableFontFace: false
         });
         pdfDoc = await loadingTask.promise;
+        pdfDocIdentity += 1;
         pdfTotalPages = pdfDoc.numPages;
 
         const totalEl = document.getElementById('pdfTotalPages');
@@ -2673,6 +2724,10 @@
         if (strip) strip.style.display = 'none';
         document.getElementById('pdfNativeIframe').style.display = 'block';
       } finally {
+        // El sello se baja recién cuando la tira nueva quedó construida (o el
+        // camino de error terminó): a partir de aquí el observer nuevo vuelve a
+        // arrancar renders con normalidad.
+        pdfReloadInProgress = false;
         if (spinner) spinner.style.display = 'none';
       }
     }
@@ -2682,11 +2737,11 @@
       if (!strip) return;
 
       if (pdfRenderObserver) {
-        pdfRenderObserver.disconnect();
-        pdfRenderObserver = null;
+        disconnectPageObserver();
       }
       strip.innerHTML = '';
       pdfRenderedPages.clear();
+      pdfRenderedCanvases.clear();
       pdfPendingRenders.clear();
 
       // La página 1 fija el alto de todos los marcadores de posición. El
@@ -2763,6 +2818,9 @@
     }
 
     function onPageIntersection(entries) {
+      // El sello sordea también el callback: mientras la recarga espera, una
+      // intersección tardía no puede abrir una tarea contra el documento viejo.
+      if (pdfReloadInProgress) return;
       entries.forEach(entry => {
         if (!entry.isIntersecting) return;
         const n = parseInt(entry.target.dataset.pageNumber, 10);
@@ -2771,26 +2829,30 @@
     }
 
     function renderPageInto(n) {
+      // Primer punto de entrada: ni el observer ni un scroll tardío arrancan
+      // nada mientras la recarga tiene levantado el sello.
+      if (pdfReloadInProgress) return Promise.resolve();
       if (!pdfDoc || n < 1 || n > pdfTotalPages) return Promise.resolve();
       if (pdfScaleApplying) return Promise.resolve();
-      if (pdfRenderedPages.has(n)) return Promise.resolve();
+      if (isPagePainted(n)) return Promise.resolve();
       if (pdfPendingRenders.has(n)) return pdfPendingRenders.get(n);
 
       // Los nodos se resuelven antes de arrancar la tarea: así no queda ningún
       // return temprano entre el try y el finally, donde `task` aún no existe.
       const container = getPageEl(n);
       const canvas = getPageCanvas(n);
-      const textLayerDiv = getPageTextLayer(n);
+      let textLayerDiv = getPageTextLayer(n);
       if (!container || !canvas || !textLayerDiv) return Promise.resolve();
 
       const generation = pdfRenderGeneration;
+      const identity = pdfDocIdentity;
       const renderStatus = document.getElementById('pdfRenderStatus');
       if (renderStatus) renderStatus.style.display = 'inline';
       container.classList.add('pdf-rendering');
 
       const task = (async () => {
         try {
-          const page = await getPageObject(n);
+          const page = await getPageObject(n, generation);
           // Antes de pintar sí se puede descartar en seco: no hay nada que
           // liberar. Después de pintar, toda salida tiene que liberar el canvas,
           // porque uno redimensionado y no registrado sería invisible para el
@@ -2827,18 +2889,24 @@
           pdfRenderTasks.set(n, renderTask);
           await renderTask.promise;
           pdfRenderTasks.delete(n);
-          if (generation !== pdfRenderGeneration) { releasePage(n); return; }
+          if (generation !== pdfRenderGeneration || identity !== pdfDocIdentity) { releasePage(n, canvas); return; }
 
           let textContent = pdfTextContentCache.get(n);
           if (!textContent) {
-            textContent = await page.getTextContent();
-            pdfTextContentCache.set(n, textContent);
+            const fetched = await page.getTextContent();
+            // La comprobación va antes de escribir: la generación sola no basta,
+            // porque una tarea que arrancó contra el documento viejo comparte la
+            // generación nueva. La identidad del documento sí la descarta, así
+            // que el contenido viejo no envenena la caché del nuevo.
+            if (generation !== pdfRenderGeneration || identity !== pdfDocIdentity) { releasePage(n, canvas); return; }
+            pdfTextContentCache.set(n, fetched);
+            textContent = fetched;
           }
-          if (generation !== pdfRenderGeneration) { releasePage(n); return; }
           // PDF.js exige que --scale-factor coincida con viewport.scale. Se fija
           // en la propia capa de texto, con el viewport exacto que se está
           // pintando: dejarlo en la tira sería una segunda fuente de verdad, y
           // zoomPdf cambia pdfScale antes de que su debounce aplique la escala.
+          textLayerDiv = getPageTextLayer(n) || textLayerDiv;
           textLayerDiv.style.setProperty('--scale-factor', String(viewport.scale));
           textLayerDiv.innerHTML = '';
           const textTask = pdfjsLib.renderTextLayer({
@@ -2847,9 +2915,10 @@
             viewport: viewport
           });
           if (textTask && textTask.promise) await textTask.promise;
-          if (generation !== pdfRenderGeneration) { releasePage(n); return; }
+          if (generation !== pdfRenderGeneration || identity !== pdfDocIdentity) { releasePage(n, canvas); return; }
 
           pdfRenderedPages.add(n);
+          pdfRenderedCanvases.set(n, canvas);
           renderAnnotationsForPage(n);
         } catch (err) {
           if (!err || err.name !== 'RenderingCancelledException') {
@@ -2861,8 +2930,10 @@
           // tarea vieja no puede borrar el registro de la nueva.
           if (pdfPendingRenders.get(n) === task) {
             pdfPendingRenders.delete(n);
-            // Cancelada o fallida antes de registrarse: el canvas puede haber
-            // quedado redimensionado y con pintura, así que se libera aquí.
+            // Cancelada o fallida sin registrarse: el canvas puede haber quedado
+            // redimensionado y con pintura, así que se libera aquí. El registro
+            // por página garantiza que esta tarea sigue siendo la del documento
+            // vigente, así que resolver el nodo por número es seguro.
             if (!pdfRenderedPages.has(n)) releasePage(n);
           }
           container.classList.remove('pdf-rendering');
@@ -2902,8 +2973,27 @@
     // la tira no salta al liberar.
     const PDF_KEEP_RENDERED = 6;
 
-    function releasePage(n) {
+    // Una página solo está servida si el canvas que la pintó sigue siendo el
+    // nodo vivo de esa página. Cuando una tarea termina sobre un canvas ya
+    // desprendido (por ejemplo, el de una tira que la recarga reemplazó), el
+    // registro apunta a un nodo muerto: la tira nueva tiene que repintarla, no
+    // confiar en el número de página.
+    function isPagePainted(n) {
+      if (!pdfRenderedPages.has(n)) return false;
+      const painted = pdfRenderedCanvases.get(n);
+      if (!painted) return false;
+      if (painted !== getPageCanvas(n)) return false;
+      return painted.width > 0 && painted.height > 0;
+    }
+
+    function releasePage(n, paintedCanvas) {
       const canvas = getPageCanvas(n);
+      // Una tarea que termina tarde no puede vaciar el canvas que pintó otra:
+      // solo libera el nodo que ella misma pintó. Sin nodo explícito (desalojo,
+      // cambio de escala) se libera el canvas vigente, que sí es el que toca
+      // olvidar. Antes se resolvía siempre por número de página, y una tarea
+      // vieja borraba el canvas recién pintado por la nueva.
+      if (paintedCanvas && paintedCanvas !== canvas) return;
       if (canvas) {
         canvas.width = 0;
         canvas.height = 0;
@@ -2913,6 +3003,7 @@
       const annotLayer = getPageAnnotLayer(n);
       if (annotLayer) annotLayer.innerHTML = '';
       pdfRenderedPages.delete(n);
+      pdfRenderedCanvases.delete(n);
     }
 
     function evictDistantPages(current) {
@@ -2921,7 +3012,7 @@
         .filter(n => !pdfPendingRenders.has(n))
         .sort((a, b) => Math.abs(a - current) - Math.abs(b - current))
         .slice(PDF_KEEP_RENDERED)
-        .forEach(releasePage);
+        .forEach(n => releasePage(n));
     }
 
     function syncCurrentPageFromScroll() {
@@ -2977,13 +3068,21 @@
         p => p >= 1 && p <= pdfTotalPages && !pdfPageCache.has(p)
       );
       if (neighbors.length === 0) return;
+      const generation = pdfRenderGeneration;
+      const identity = pdfDocIdentity;
       setTimeout(async () => {
+        if (pdfReloadInProgress) return;
         for (const p of neighbors) {
           if (!pdfDoc) return;
           try {
-            const pageObj = await getPageObject(p);
-            if (!pdfTextContentCache.has(p)) {
-              pdfTextContentCache.set(p, await pageObj.getTextContent());
+            const pageObj = await getPageObject(p, generation, identity);
+            if (generation === pdfRenderGeneration && identity === pdfDocIdentity && !pdfTextContentCache.has(p)) {
+              const text = await pageObj.getTextContent();
+              // El documento pudo reemplazarse tras la espera: el contenido
+              // viejo no entra a la caché del nuevo.
+              if (generation === pdfRenderGeneration && identity === pdfDocIdentity) {
+                pdfTextContentCache.set(p, text);
+              }
             }
           } catch (_) {}
         }
@@ -3019,6 +3118,11 @@
     }
 
     async function applyScaleToStripOnce() {
+      // El zoom no toca el estado mientras la recarga tiene levantado el sello:
+      // el rebote de `zoomPdf` y `resetZoomPdf` mueren aquí. La tira nueva se
+      // reconstruye con el `pdfScale` vigente, así que la aplicación se descarta
+      // sin perder el zoom que el usuario pidió durante la recarga.
+      if (pdfReloadInProgress) return;
       if (!pdfDoc) return;
       const anchor = pdfCurrentPage;
       // Mientras dure la operación no arranca ningún render nuevo.
@@ -3052,7 +3156,7 @@
         // Se liberan los mapas de bits de la escala vieja y se olvida el estado.
         // Vaciar solo los conjuntos dejaría canvas pintados sin seguimiento, y
         // entonces el desalojo no podría liberarlos nunca.
-        Array.from(pdfRenderedPages).forEach(releasePage);
+        Array.from(pdfRenderedPages).forEach(n => releasePage(n));
         pdfPendingRenders.clear();
       } finally {
         pdfScaleApplying = false;
