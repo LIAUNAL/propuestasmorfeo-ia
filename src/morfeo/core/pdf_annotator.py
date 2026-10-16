@@ -3,6 +3,9 @@
 Processes annotations marked by the user in the PDF preview:
 - Comments: register a pending instruction for the pipeline agent. They never
   rewrite prose themselves, so they never touch the LaTeX sources.
+- Replacements: substitute the anchored span with the operator's literal text
+  (or remove it when the deletion was confirmed explicitly). This path is
+  fully deterministic and no model participates in it.
 - Strikethroughs: locates and removes / comments out selected text from LaTeX sources.
 - Humanization: locates selected text and polishes it using estilo-natural-es rules.
 - Recompilation: triggers build.sh / pdflatex and records summary reports.
@@ -178,6 +181,7 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
     applied_strikethroughs: list[dict[str, Any]] = []
     registered_comments: list[dict[str, Any]] = []
     applied_humanize: list[dict[str, Any]] = []
+    applied_replace: list[dict[str, Any]] = []
     failed_annotations: list[dict[str, Any]] = []
 
     # Map file contents in memory
@@ -290,6 +294,36 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
                 "polished_text": polished_text,
             })
 
+        elif ann_type in ("replace", "reemplazar"):
+            # Reemplazo determinista: el texto literal que escribió el operador
+            # sustituye el pasaje anclado. Ningún modelo interviene aquí.
+            raw_replacement = ann.get("replacement")
+            replacement = "" if raw_replacement is None else str(raw_replacement)
+            delete_intent = bool(ann.get("delete_intent"))
+            if replacement.strip() == "" and not delete_intent:
+                failed_annotations.append({
+                    "id": ann.get("id", str(idx + 1)),
+                    "type": ann_type,
+                    "text": target_text,
+                    "page": page_num,
+                    "reason": (
+                        "Reemplazo vacío sin confirmación de borrado: no se toca "
+                        "el ancla. Marca la casilla de borrado si quieres eliminarla."
+                    ),
+                })
+                continue
+            new_content = content[:start] + replacement + content[end:]
+            file_contents[matched_file] = new_content
+            files_modified.add(matched_file)
+            applied_replace.append({
+                "id": ann.get("id", str(idx + 1)),
+                "file": str(matched_file.relative_to(run_dir)),
+                "page": page_num,
+                "original_text": matched_original,
+                "replacement": replacement,
+                "deleted": replacement == "",
+            })
+
     # Write all modified files back to disk
     for tf in files_modified:
         tf.write_text(file_contents[tf], encoding="utf-8")
@@ -315,6 +349,7 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         "applied": {
             "strikethrough": len(applied_strikethroughs),
             "humanize": len(applied_humanize),
+            "replace": len(applied_replace),
         },
         "registered": {
             "comments": pending_written,
@@ -324,6 +359,7 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         "details": {
             "strikethrough": applied_strikethroughs,
             "humanize": applied_humanize,
+            "replace": applied_replace,
             "comments": registered_comments,
             "unmatched": failed_annotations,
         },
@@ -343,6 +379,7 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         f"\n**Fecha de ejecución:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"- **Textos tachados eliminados:** {len(applied_strikethroughs)}",
         f"- **Pasajes humanizados (estilo-natural-es):** {len(applied_humanize)}",
+        f"- **Reemplazos deterministas aplicados:** {len(applied_replace)}",
         f"- **Instrucciones nuevas registradas para el agente:** {pending_written}",
         f"- **Instrucciones ya registradas (omitidas por duplicado):** {duplicated_comments}",
         f"- **Anotaciones sin aplicar:** {len(failed_annotations)}",
@@ -363,6 +400,18 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             md_lines.append(f"- **Pág. {item['page']}** (`{item['file']}`):")
             md_lines.append(f"  - *Original:* {item['original_text']}")
             md_lines.append(f"  - *Humanizado:* **{item['polished_text']}**")
+
+    if applied_replace:
+        md_lines.append("\n## 🔁 Reemplazos Deterministas Aplicados")
+        md_lines.append(
+            "\nEl panel los aplicó sobre el pasaje anclado y recompiló. "
+            "Ningún modelo intervino en este camino."
+        )
+        for item in applied_replace:
+            md_lines.append(f"- **Pág. {item['page']}** (`{item['file']}`):")
+            md_lines.append(f"  - *Original:* {item['original_text']}")
+            destino = item['replacement'] if not item.get('deleted') else "(borrado)"
+            md_lines.append(f"  - *Reemplazo:* **{destino}**")
 
     if registered_comments:
         md_lines.append("\n## 💬 Instrucciones Registradas para el Agente")
@@ -445,6 +494,11 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             "comments_failed": len(comment_failures),
             "annotations_failed": len(failed_annotations),
             "humanize_applied": len(applied_humanize),
+            "replace_applied": len(applied_replace),
+            "replace_failed": len(
+                [a for a in failed_annotations if a.get("type") in ("replace", "reemplazar")]
+            ),
+            "unmatched": failed_annotations,
             "files_modified": [str(f.relative_to(run_dir)) for f in files_modified],
             "pdf_recompiled": compile_success,
             "pdf_recompile_skipped": recompile_skipped,

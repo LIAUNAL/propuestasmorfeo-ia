@@ -1434,6 +1434,7 @@
     .annot-card--comment { border-left: 3px solid #38bdf8; }
     .annot-card--strike { border-left: 3px solid #ef4444; }
     .annot-card--humanize { border-left: 3px solid #10b981; }
+    .annot-card--replace { border-left: 3px solid #f59e0b; }
     .annot-card__head {
       display: flex;
       justify-content: space-between;
@@ -1821,6 +1822,7 @@
                   <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('strikethrough')">✂️ Quitar tachados <span class="marks-menu__count" id="marksCountStrike">0</span></button>
                   <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('comment')">💬 Quitar comentarios <span class="marks-menu__count" id="marksCountComment">0</span></button>
                   <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('humanize')">✨ Quitar humanizaciones <span class="marks-menu__count" id="marksCountHumanize">0</span></button>
+                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('replace')">🔁 Quitar reemplazos <span class="marks-menu__count" id="marksCountReplace">0</span></button>
                   <button type="button" class="marks-menu__item marks-menu__item--all" onclick="clearAllAnnotations()">🧹 Quitar todas <span class="marks-menu__count" id="marksCountAll">0</span></button>
                 </div>
               </div>
@@ -1915,15 +1917,23 @@
             </div>
           </div>
 
-          <!-- 4. Botón de Ejecutar Cambios (Exigido) -->
+          <!-- 4. Cola de instrucciones del redactor (cambian cuando se consumen) -->
+          <div class="control-panel__section">
+            <div class="section-label">Cola de instrucciones del redactor</div>
+            <div class="pending-queue-box" id="pendingQueueBox" style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem; font-size: 0.78rem; line-height: 1.5; color: var(--text-muted);">
+              <span id="pendingQueueCount">0</span> instrucciones pendientes. No cambian el manuscrito hasta que el <code>redactor</code> las consuma.
+            </div>
+          </div>
+
+          <!-- 5. Botón de Ejecutar Cambios (Exigido) -->
           <div class="control-panel__footer">
             <button class="btn btn--primary btn--execute" id="btnExecuteChanges" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.88rem;" onclick="confirmAndExecuteChanges()" title="Ejecutar cambios en LaTeX, aplicar estilo-natural-es y recompilar PDF">
               <span>🚀 Ejecutar Cambios (<span id="sidebarBtnCount">0</span>)</span>
             </button>
-            <p class="execute-hint">Aplica las marcas en LaTeX, invoca <code>estilo-natural-es</code> y recompila <code>main.pdf</code>.</p>
+            <p class="execute-hint">Reemplaza y tacha en LaTeX, aplica <code>estilo-natural-es</code>, registra los comentarios para el redactor y recompila <code>main.pdf</code>.</p>
           </div>
 
-          <!-- 5. Historial de Última Ejecución -->
+          <!-- 6. Historial de Última Ejecución -->
           <div class="execution-history-box" id="executionHistorySection">
             <div class="section-label" style="margin-bottom: 0.35rem;">Última Ejecución Registrada</div>
             <div class="last-execution-content" id="lastExecutionBox">
@@ -1984,6 +1994,16 @@
         <div>
           <label style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.35rem;">Comentario / Instrucción para el agente:</label>
           <textarea id="commentModalInput" rows="4" style="width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem; font-family: var(--font-sans); font-size: 0.85rem; resize: vertical;" placeholder="Ej: Ajustar redacción para enfatizar el alcance de la cohorte en Manizales y Pereira..."></textarea>
+        </div>
+
+        <div style="border-top: 1px dashed var(--border); padding-top: 0.85rem;">
+          <label style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.35rem;">Reemplazar por (opcional, sin modelo):</label>
+          <textarea id="commentReplacementInput" rows="3" oninput="updateReplacementPreview()" style="width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem; font-family: var(--font-sans); font-size: 0.85rem; resize: vertical;" placeholder="Texto literal que sustituirá al pasaje anclado. Si lo dejas vacío, escribes una instrucción para el redactor."></textarea>
+          <label style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.45rem; font-size: 0.78rem; color: var(--text-muted);">
+            <input type="checkbox" id="commentReplacementIsDelete" onchange="updateReplacementPreview()">
+            <span>Borrar el fragmento (confirmo que el reemplazo va vacío a propósito)</span>
+          </label>
+          <div id="commentReplacementPreview" style="margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.45;"></div>
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
@@ -2581,6 +2601,9 @@
     let currentSelectedText = '';
     let currentSelectedPage = 1;
     let queuedAnnotations = [];
+    // Ruta, relativa a la corrida activa, del archivo que el redactor consume.
+    // El panel la consulta para mostrar cuántas instrucciones siguen pendientes.
+    let PENDING_INSTRUCTIONS_PATH = 'artefactos/pipeline/instrucciones_revisor_pdf.md';
 
     // Cachés de memoria para navegación instantánea
     const pdfPageCache = new Map();
@@ -3360,6 +3383,11 @@
       document.getElementById('commentModalPage').textContent = currentSelectedPage;
       document.getElementById('commentModalQuote').textContent = `"${targetText}"`;
       document.getElementById('commentModalInput').value = '';
+      const replInput = document.getElementById('commentReplacementInput');
+      if (replInput) replInput.value = '';
+      const deleteBox = document.getElementById('commentReplacementIsDelete');
+      if (deleteBox) deleteBox.checked = false;
+      updateReplacementPreview();
       document.getElementById('commentModal').classList.add('active');
       document.getElementById('commentModalInput').focus();
     }
@@ -3368,31 +3396,83 @@
       document.getElementById('commentModal').classList.remove('active');
     }
 
-    function saveCommentAnnotation() {
-      const comment = document.getElementById('commentModalInput').value.trim();
-      if (!comment) {
-        alert("Por favor escribe tu comentario o instrucción para el agente.");
+    // El panel dice sin rodeos qué se reemplazará. Un reemplazo determinista
+    // toca la fuente LaTeX, así que el operador tiene que verlo antes de guardar.
+    function updateReplacementPreview() {
+      const preview = document.getElementById('commentReplacementPreview');
+      if (!preview) return;
+      const replInput = document.getElementById('commentReplacementInput');
+      const deleteBox = document.getElementById('commentReplacementIsDelete');
+      const replacement = replInput ? replInput.value : '';
+      const deleteIntent = !!(deleteBox && deleteBox.checked);
+      if (!replacement.trim() && !deleteIntent) {
+        preview.innerHTML = 'Sin reemplazo: esta marca queda como <strong>instrucción para el redactor</strong> y no cambia el manuscrito.';
         return;
       }
+      const anchor = escapeHtml(currentSelectedText || '');
+      const destino = (deleteIntent && !replacement.trim())
+        ? '<strong>borrado</strong>'
+        : `<strong>${escapeHtml(replacement)}</strong>`;
+      preview.innerHTML = `Se reemplazará «${anchor}» por ${destino} en el código fuente LaTeX.`;
+    }
+
+    function saveCommentAnnotation() {
+      const comment = document.getElementById('commentModalInput').value.trim();
+      const replInput = document.getElementById('commentReplacementInput');
+      const replacement = replInput ? replInput.value : '';
+      const deleteBox = document.getElementById('commentReplacementIsDelete');
+      const deleteIntent = !!(deleteBox && deleteBox.checked);
+      const isReplacement = replacement.trim() !== '' || deleteIntent;
+
+      if (!isReplacement && !comment) {
+        alert("Por favor escribe tu comentario o instrucción para el agente, o llena el reemplazo.");
+        return;
+      }
+      if (isReplacement && replacement.trim() === '' && !deleteIntent) {
+        alert("El reemplazo está vacío. Marca la casilla de borrado si quieres eliminar el fragmento.");
+        return;
+      }
+
       const rects = (savedSelectedRangeRects && savedSelectedRangeRects.length > 0)
         ? [...savedSelectedRangeRects]
         : findTextRectsInTextLayer(currentSelectedText);
 
-      queuedAnnotations.push({
-        id: 'ann_' + Date.now(),
-        type: 'comment',
-        text: currentSelectedText,
-        comment: comment,
-        page: currentSelectedPage,
-        rects: rects
-      });
+      let toast;
+      if (isReplacement) {
+        // Camino determinista: el texto literal reemplaza el ancla en la fuente
+        // LaTeX y se recompila. Ningún modelo interviene aquí.
+        queuedAnnotations.push({
+          id: 'ann_' + Date.now(),
+          type: 'replace',
+          text: currentSelectedText,
+          replacement: replacement,
+          delete_intent: deleteIntent,
+          comment: comment,
+          page: currentSelectedPage,
+          rects: rects
+        });
+        toast = (deleteIntent && !replacement.trim())
+          ? 'Borrado confirmado: se eliminará el fragmento al ejecutar'
+          : 'Reemplazo registrado: se aplicará literal al ejecutar';
+      } else {
+        // Camino de prosa: el comentario viaja como instrucción y no reescribe nada.
+        queuedAnnotations.push({
+          id: 'ann_' + Date.now(),
+          type: 'comment',
+          text: currentSelectedText,
+          comment: comment,
+          page: currentSelectedPage,
+          rects: rects
+        });
+        toast = 'Comentario agregado: queda en la cola del redactor';
+      }
       savedSelectedRangeRects = null;
       if (window.getSelection) {
         window.getSelection().removeAllRanges();
       }
       closeCommentModal();
       renderAnnotationsTray();
-      showToast('Comentario agregado y texto subrayado');
+      showToast(toast);
     }
 
     function triggerStrikethrough() {
@@ -3469,9 +3549,10 @@
       const labels = {
         strikethrough: 'tachado',
         comment: 'comentario',
-        humanize: 'humanización'
+        humanize: 'humanización',
+        replace: 'reemplazo'
       };
-      const plural = { strikethrough: 'tachados', comment: 'comentarios', humanize: 'humanizaciones' };
+      const plural = { strikethrough: 'tachados', comment: 'comentarios', humanize: 'humanizaciones', replace: 'reemplazos' };
       const count = queuedAnnotations.filter(a => a.type === type).length;
       if (count === 0) {
         showToast(`No hay ${plural[type]} que quitar`);
@@ -3547,7 +3628,9 @@
             el.style.top = `${(rect.yPct * 100).toFixed(2)}%`;
             el.style.width = `${(rect.wPct * 100).toFixed(2)}%`;
             el.style.height = `${(rect.hPct * 100).toFixed(2)}%`;
-            const typeLabel = ann.type === 'comment' ? `💬 Comentario: ${ann.comment || ''}` : (ann.type === 'strikethrough' ? '✂️ Tachar (eliminar)' : '✨ Humanizar con estilo-natural-es');
+            const typeLabel = ann.type === 'comment' ? `💬 Comentario: ${ann.comment || ''}`
+              : (ann.type === 'strikethrough' ? '✂️ Tachar (eliminar)'
+              : (ann.type === 'replace' ? '🔁 Reemplazar (determinista)' : '✨ Humanizar con estilo-natural-es'));
             el.title = `${typeLabel}\n"${ann.text.substring(0, 60)}..." (Clic para ubicar en panel)`;
             
             el.onclick = (e) => {
@@ -3590,6 +3673,7 @@
       setCount('marksCountStrike', countByType('strikethrough'));
       setCount('marksCountComment', countByType('comment'));
       setCount('marksCountHumanize', countByType('humanize'));
+      setCount('marksCountReplace', countByType('replace'));
       setCount('marksCountAll', count);
 
       const list = document.getElementById('annotsList');
@@ -3608,9 +3692,15 @@
       list.innerHTML = '';
       queuedAnnotations.forEach(ann => {
         const card = document.createElement('div');
-        const typeClass = ann.type === 'comment' ? 'annot-card--comment' : (ann.type === 'strikethrough' ? 'annot-card--strike' : 'annot-card--humanize');
-        const typeLabel = ann.type === 'comment' ? '💬 Comentario' : (ann.type === 'strikethrough' ? '✂️ Tachar' : '✨ Humanizar');
-        const badgeColor = ann.type === 'comment' ? 'info' : (ann.type === 'strikethrough' ? 'bad' : 'ok');
+        const typeClass = ann.type === 'comment' ? 'annot-card--comment'
+          : (ann.type === 'strikethrough' ? 'annot-card--strike'
+          : (ann.type === 'replace' ? 'annot-card--replace' : 'annot-card--humanize'));
+        const typeLabel = ann.type === 'comment' ? '💬 Comentario'
+          : (ann.type === 'strikethrough' ? '✂️ Tachar'
+          : (ann.type === 'replace' ? '🔁 Reemplazar' : '✨ Humanizar'));
+        const badgeColor = ann.type === 'comment' ? 'info'
+          : (ann.type === 'strikethrough' ? 'bad'
+          : (ann.type === 'replace' ? 'warn' : 'ok'));
 
         card.className = `annot-card ${typeClass}`;
         card.setAttribute('data-id', ann.id);
@@ -3625,6 +3715,7 @@
             <button class="annot-card__del" onclick="event.stopPropagation(); removeAnnotation('${ann.id}')" title="Eliminar marca">✕</button>
           </div>
           <div class="annot-card__quote">"${escapeHtml(ann.text)}"</div>
+          ${ann.type === 'replace' ? `<div class="annot-card__note"><strong>Reemplazar por:</strong> ${ann.replacement ? escapeHtml(ann.replacement) : '<em>(borrado)</em>'}</div>` : ''}
           ${ann.comment ? `<div class="annot-card__note"><strong>Instrucción:</strong> ${escapeHtml(ann.comment)}</div>` : ''}
         `;
         list.appendChild(card);
@@ -3635,18 +3726,24 @@
 
     function confirmAndExecuteChanges() {
       if (queuedAnnotations.length === 0) {
-        alert("No hay marcas editoriales pendientes para ejecutar. Selecciona texto en el PDF y usa los botones Comentario, Tachar o Humanizar.");
+        alert("No hay marcas editoriales pendientes para ejecutar. Selecciona texto en el PDF y usa los botones Comentario, Tachar, Humanizar o Reemplazar.");
         return;
       }
 
       const strikes = queuedAnnotations.filter(a => a.type === 'strikethrough').length;
       const comments = queuedAnnotations.filter(a => a.type === 'comment').length;
       const humanizes = queuedAnnotations.filter(a => a.type === 'humanize').length;
+      const replaces = queuedAnnotations.filter(a => a.type === 'replace');
+      const replaceList = replaces.length
+        ? `<ul style="margin: 0.3rem 0 0 1rem; padding: 0;">${replaces.map(a => `<li>«${escapeHtml((a.text || '').slice(0, 60))}» → ${a.replacement ? escapeHtml(a.replacement) : '(borrado)'}</li>`).join('')}</ul>`
+        : '';
 
       const breakdown = document.getElementById('executeSummaryBreakdown');
       breakdown.innerHTML = `
         <div>✂️ <strong>${strikes}</strong> texto(s) para eliminar del código fuente LaTeX.</div>
-        <div>💬 <strong>${comments}</strong> comentario(s) de revisión para incorporar.</div>
+        <div>🔁 <strong>${replaces.length}</strong> reemplazo(s) determinista(s) sobre el pasaje anclado, sin modelo.</div>
+        ${replaceList}
+        <div>💬 <strong>${comments}</strong> comentario(s) que quedan como instrucción para el redactor y no reescriben prosa.</div>
         <div>✨ <strong>${humanizes}</strong> pasaje(s) para humanizar con la skill <code>estilo-natural-es</code>.</div>
         <div style="margin-top: 0.35rem; font-weight: 700; color: var(--accent);">Total de marcas a ejecutar: ${queuedAnnotations.length}</div>
       `;
@@ -3680,6 +3777,7 @@
       return `
           <div style="background: var(--surface-2); padding: 0.85rem; border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem;">
             <div>✂️ <strong>${s.strikethrough_applied || 0}</strong> textos tachados eliminados de las fuentes LaTeX.</div>
+            <div>🔁 <strong>${s.replace_applied || 0}</strong> reemplazos deterministas aplicados sobre el ancla y recompilados, sin modelo.</div>
             <div>✨ <strong>${s.humanize_applied || 0}</strong> pasajes humanizados con la skill <code>estilo-natural-es</code>.</div>
             <div>💬 <strong>${s.comments_registered || 0}</strong> instrucciones de <strong>Comentario</strong> registradas para el agente. Un comentario no reescribe prosa, así que el manuscrito no cambia por sí solo.</div>
             ${duplicadas}
@@ -3719,12 +3817,16 @@
 
         // Populate summary modal
         const s = result.summary || {};
+        if (s.pending_instructions_file) {
+          PENDING_INSTRUCTIONS_PATH = s.pending_instructions_file;
+        }
         const body = document.getElementById('summaryModalBody');
         body.innerHTML = executionSummaryMarkup(s, result.details || {});
         document.getElementById('summaryModal').classList.add('active');
 
-        // Reload PDF and refresh history & status
+        // Reload PDF and refresh history, status and the redactor queue
         await initPdfViewer(true);
+        loadPendingInstructionsQueue();
         loadExecutionHistory();
         loadStatus();
 
@@ -3755,11 +3857,51 @@
         const comentariosHistoricos = reg.comments !== undefined ? reg.comments : (app.comments || 0);
         box.innerHTML = `
           <div><strong>Fecha:</strong> ${data.timestamp.split('T')[0]} ${data.timestamp.split('T')[1].slice(0,5)}</div>
-          <div>✂️ Tachados: <strong>${app.strikethrough || 0}</strong> · ✨ Humanizados: <strong>${app.humanize || 0}</strong> · 💬 Instrucciones al agente: <strong>${comentariosHistoricos}</strong></div>
+          <div>✂️ Tachados: <strong>${app.strikethrough || 0}</strong> · 🔁 Reemplazos: <strong>${app.replace || 0}</strong> · ✨ Humanizados: <strong>${app.humanize || 0}</strong> · 💬 Instrucciones al agente: <strong>${comentariosHistoricos}</strong></div>
           <div style="margin-top: 0.25rem;"><a href="javascript:void(0)" onclick="navigateTab('artifacts'); loadArtifact('artefactos/anotaciones_pdf.md');" style="color: var(--accent);">Ver informe anotaciones_pdf.md ↗</a></div>
         `;
       } catch (e) {
         console.warn("Error cargando historial de anotaciones:", e);
+      }
+    }
+
+    // La cola del redactor vive en disco, no en el visor. El panel la lee para
+    // que el operador vea que un comentario no cambia nada hasta que se consume.
+    function renderPendingInstructionsQueue(pending, total) {
+      const box = document.getElementById('pendingQueueBox');
+      if (!box) return;
+      const pend = Number(pending) || 0;
+      const tot = Number(total) || 0;
+      const consumidas = Math.max(0, tot - pend);
+      const detalle = tot > 0
+        ? ` de ${tot} registradas (${consumidas} ya consumidas)`
+        : '';
+      box.innerHTML = `<span id="pendingQueueCount">${pend}</span> instrucciones pendientes${detalle}. `
+        + `No cambian el manuscrito hasta que el <code>redactor</code> las consuma.`;
+    }
+
+    async function loadPendingInstructionsQueue() {
+      try {
+        const res = await fetch(`/api/artifact?file=${encodeURIComponent(PENDING_INSTRUCTIONS_PATH)}`);
+        if (!res.ok) {
+          renderPendingInstructionsQueue(0, 0);
+          return;
+        }
+        const text = await res.text();
+        let pending = 0;
+        let total = 0;
+        text.split('\n').forEach(line => {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('- [ ]')) {
+            pending += 1;
+            total += 1;
+          } else if (trimmed.startsWith('- [x]') || trimmed.startsWith('- [X]')) {
+            total += 1;
+          }
+        });
+        renderPendingInstructionsQueue(pending, total);
+      } catch (e) {
+        console.warn('Error leyendo la cola de instrucciones del redactor:', e);
       }
     }
 
@@ -3789,6 +3931,7 @@
         navigateTab(hash);
       }
       loadStatus();
+      loadPendingInstructionsQueue();
       // Polling every 5 seconds for live status
       setInterval(loadStatus, 5000);
     });
