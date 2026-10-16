@@ -187,9 +187,17 @@ class TestDashboardViewerContract(unittest.TestCase):
             "solo el descarte previo a pintar puede ser seco",
         )
         self.assertEqual(
-            self.html.count("if (generation !== pdfRenderGeneration) { releasePage(n); return; }"),
+            self.html.count("if (generation !== pdfRenderGeneration) { releasePage(n, canvas); return; }"),
+            0,
+            "toda salida posterior a pintar comprueba generación e identidad",
+        )
+        self.assertEqual(
+            self.html.count(
+                "if (generation !== pdfRenderGeneration || identity !== pdfDocIdentity) "
+                "{ releasePage(n, canvas); return; }"
+            ),
             3,
-            "las tres salidas posteriores a pintar liberan el canvas",
+            "las tres salidas posteriores a pintar liberan el canvas que pintaron",
         )
         # Cancelada o fallida sin registrarse: el finally también libera.
         self.assertPresent("if (!pdfRenderedPages.has(n)) releasePage(n);")
@@ -200,6 +208,138 @@ class TestDashboardViewerContract(unittest.TestCase):
         self.assertPresent("cancelAllPageRenders();")
         self.assertPresent("if (strip) strip.innerHTML = '';")
         self.assertPresent("pdfRenderGeneration += 1;")
+
+    # --- Carreras del render continuo (bucle de corrección) -----------------
+    # No hay entorno DOM en el repositorio: ni jsdom en `node_modules`, ni un
+    # runner de JavaScript, ni un arnés de navegador, ni una extracción con
+    # `node --check` en la suite existente. Lo que sigue fija el orden de las
+    # sentencias del visor; es estructural, no de comportamiento, y su límite
+    # está declarado a propósito.
+
+    def functionSource(self, signature: str, following: str) -> str:
+        """Cuerpo de una función del visor, entre su firma y la que le sigue."""
+        start = self.html.index(signature)
+        return self.html[start : self.html.index(following, start)]
+
+    def test_force_reload_awaits_pending_renders_before_tearing_down(self) -> None:
+        # La recarga invalidaba la generación, vaciaba la tira y limpiaba las
+        # cachés sin esperar a las tareas en vuelo. Una tarea vieja se reanudaba
+        # contra los nodos nuevos de la tira y, al resolver el canvas por número
+        # de página, borraba el que acababa de pintar la tarea nueva; la página
+        # quedaba en blanco.
+        body = self.functionSource(
+            "async function initPdfViewer(", "async function buildPagesStrip("
+        )
+        wait = body.index(
+            "await settleWithinBound(Array.from(pdfPendingRenders.values()), PDF_RELOAD_SETTLE_MS)"
+        )
+        self.assertLess(body.index("pdfRenderGeneration += 1;"), wait)
+        self.assertLess(body.index("pdfReloadInProgress = true;"), wait)
+        self.assertLess(body.index("disconnectPageObserver();"), wait)
+        self.assertLess(body.index("cancelAllPageRenders();"), wait)
+        self.assertLess(
+            wait,
+            body.index("if (strip) strip.innerHTML = '';"),
+            "la recarga espera los renders en vuelo antes de vaciar la tira",
+        )
+        self.assertLess(
+            wait,
+            body.index("pdfPageCache.clear();"),
+            "la recarga espera los renders en vuelo antes de olvidar las cachés",
+        )
+        # La espera es acotada: una tarea atascada en una frontera que
+        # `cancelPageRender` no alcanza no puede retener la recarga para siempre.
+        self.assertPresent("const PDF_RELOAD_SETTLE_MS = 2500;")
+        bound = self.functionSource("function settleWithinBound(", "async function initPdfViewer(")
+        self.assertIn("setTimeout(finish, ms);", bound)
+        self.assertIn("Promise.allSettled(promises).then(finish, finish);", bound)
+
+    def test_reload_seals_the_render_entries_before_awaiting(self) -> None:
+        # El sello se levanta de forma síncrona, antes del primer await, y deja
+        # sordos al callback del observer y a los puntos de entrada del render: la
+        # tira vieja sigue viva durante la espera, así que una intersección tardía
+        # arrancaba una tarea contra el documento viejo que capturaba la generación
+        # nueva. Se baja cuando la tira nueva quedó construida.
+        self.assertPresent("let pdfReloadInProgress = false;")
+        self.assertPresent("function disconnectPageObserver()")
+        resets = self.html.count("pdfReloadInProgress = false;")
+        self.assertEqual(resets, 2, "el indicador arranca y se baja en el finally")
+        observer = self.functionSource(
+            "function onPageIntersection(", "function renderPageInto("
+        )
+        self.assertIn(
+            "if (pdfReloadInProgress) return;",
+            observer,
+            "el callback del observer se sorda durante la recarga",
+        )
+        render = self.functionSource("function renderPageInto(", "function renderVisiblePages(")
+        self.assertIn(
+            "if (pdfReloadInProgress) return Promise.resolve();",
+            render,
+            "renderPageInto se sorda durante la recarga",
+        )
+        build = self.functionSource("async function buildPagesStrip(", "function createPageSlot(")
+        self.assertIn("disconnectPageObserver();", build)
+
+    def test_a_stale_task_cannot_write_the_pdf_caches(self) -> None:
+        # Las escrituras iban antes de la comprobación de generación, así que el
+        # contenido del documento viejo envenenaba las cachés del nuevo. La
+        # generación no basta: la identidad del documento distingue una tarea
+        # que arrancó tras la recarga contra el documento viejo.
+        self.assertIn("let pdfDocIdentity = 0;", self.html)
+        self.assertIn("pdfDocIdentity += 1;", self.html)
+        get_page = self.functionSource(
+            "async function getPageObject(", "async function initPdfViewer("
+        )
+        self.assertIn("identity = pdfDocIdentity", get_page)
+        self.assertIn(
+            "if (generation === pdfRenderGeneration && identity === pdfDocIdentity) {",
+            get_page,
+        )
+        render = self.functionSource("function renderPageInto(", "function renderVisiblePages(")
+        block = render[
+            render.index("let textContent = pdfTextContentCache.get(n);")
+            : render.index("textLayerDiv.style.setProperty(")
+        ]
+        guard = (
+            "if (generation !== pdfRenderGeneration || identity !== pdfDocIdentity) "
+            "{ releasePage(n, canvas); return; }"
+        )
+        self.assertLess(
+            block.index(guard),
+            block.index("pdfTextContentCache.set(n, fetched);"),
+            "el contenido de texto se guarda después de comprobar generación e identidad",
+        )
+        preload = self.functionSource("function preloadAdjacentPages(", "function zoomPdf(")
+        self.assertIn("await getPageObject(p, generation, identity)", preload)
+        self.assertIn("identity === pdfDocIdentity && !pdfTextContentCache.has(p)", preload)
+        self.assertIn("pdfTextContentCache.set(p, text);", preload)
+
+    def test_release_page_only_frees_the_canvas_its_task_painted(self) -> None:
+        # `releasePage` resolvía el nodo por número de página, así que una tarea
+        # vieja vaciaba el canvas de la nueva. Ahora solo puede liberar el nodo
+        # que ella misma pintó.
+        release = self.functionSource("function releasePage(", "function evictDistantPages(")
+        self.assertIn("function releasePage(n, paintedCanvas) {", release)
+        self.assertIn("if (paintedCanvas && paintedCanvas !== canvas) return;", release)
+        render = self.functionSource("function renderPageInto(", "function renderVisiblePages(")
+        guard = (
+            "if (generation !== pdfRenderGeneration || identity !== pdfDocIdentity) "
+            "{ releasePage(n, canvas); return; }"
+        )
+        self.assertEqual(
+            render.count(guard),
+            3,
+            "las tres salidas posteriores a pintar liberan el canvas que pintaron",
+        )
+        # El registro queda atado al nodo que se pintó: una página "registrada"
+        # sobre un canvas desprendido no cuenta como servida, así que la tira
+        # nueva vuelve a pintarla en lugar de dejarla en blanco.
+        self.assertPresent("const pdfRenderedCanvases = new Map();")
+        self.assertPresent("if (isPagePainted(n)) return Promise.resolve();")
+        self.assertIn("pdfRenderedCanvases.set(n, canvas);", render)
+        registry = self.functionSource("function isPagePainted(", "function releasePage(")
+        self.assertIn("if (painted !== getPageCanvas(n)) return false;", registry)
 
     def test_scale_application_is_serialized(self) -> None:
         # Sin la cadena, dos cambios de zoom solapados dejan un mismo canvas con
