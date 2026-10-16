@@ -136,7 +136,17 @@ class TestDashboardViewerContract(unittest.TestCase):
         self.assertPresent("function toggleMarksMenu(")
         self.assertPresent("function closeMarksMenu(")
 
-    # --- Comportamiento anterior que debe sobrevivir (S5) -----------------
+    # --- Panel de anotaciones que consume lo que registra (S7) -------------
+    def test_annotation_panel_consumes_replacements_and_shows_the_queue(self) -> None:
+        # El reemplazo es determinista: el panel lo aplica sobre el ancla y
+        # recompila, sin pasar por el agente. La cola del redactor, en cambio,
+        # no cambia nada hasta que alguien la consuma, y eso debe verse.
+        self.assertPresent('id="commentReplacementInput"')
+        self.assertPresent('id="commentReplacementIsDelete"')
+        self.assertPresent('id="pendingQueueBox"')
+        self.assertPresent("function renderPendingInstructionsQueue(")
+        self.assertPresent("type: 'replace'")
+
     def test_editorial_tools_and_side_panel_survive(self) -> None:
         for fn in EDITORIAL_TOOLS:
             self.assertPresent(fn)

@@ -10,6 +10,8 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+import json
+
 from morfeo.core.pdf_annotator import (
     _build_fuzzy_regex,
     _humanize_text_span,
@@ -107,6 +109,103 @@ class TestPdfAnnotator(unittest.TestCase):
             texto = self._pendientes(run_dir).read_text(encoding="utf-8")
             self.assertIn("revisar el tono de este pasaje", texto)
             self.assertIn("sin ubicar", texto)
+
+    def test_replacement_changes_the_anchored_span_literally(self):
+        """Un reemplazo no pasa por el agente: el panel sustituye el pasaje
+        anclado por el texto literal y recompila. Sin modelo de por medio."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, sec = self._workspace(tmpdir)
+            res = apply_pdf_annotations(run_dir, [{
+                "id": "ann1",
+                "type": "replace",
+                "text": "El entrenamiento externo se apoya en los corpus DAIC-WOZ.",
+                "replacement": "El entrenamiento se apoya en corpus clínicos externos.",
+                "page": 1,
+            }])
+
+            self.assertTrue(res["ok"])
+            self.assertEqual(res["summary"]["replace_applied"], 1)
+            self.assertEqual(res["summary"]["replace_failed"], 0)
+            texto = sec.read_text(encoding="utf-8")
+            self.assertIn("El entrenamiento se apoya en corpus clínicos externos.", texto)
+            self.assertNotIn("DAIC-WOZ", texto)
+            self.assertIn(
+                "redaccion/sections/00_frontmatter.tex", res["summary"]["files_modified"]
+            )
+            self.assertFalse(res["summary"]["pdf_recompile_skipped"])
+
+    def test_replacement_without_a_located_anchor_changes_nothing(self):
+        """El ancla es la única garantía de que se reemplaza el pasaje correcto:
+        sin ella no se toca la fuente y el operador recibe el motivo."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, sec = self._workspace(tmpdir)
+            antes = sec.read_text(encoding="utf-8")
+            res = apply_pdf_annotations(run_dir, [{
+                "id": "ann1",
+                "type": "replace",
+                "text": "Un pasaje que no existe en ninguna sección fuente.",
+                "replacement": "texto que nunca debería escribirse",
+                "page": 9,
+            }])
+
+            self.assertTrue(res["ok"])
+            self.assertEqual(res["summary"]["replace_applied"], 0)
+            self.assertEqual(res["summary"]["replace_failed"], 1)
+            self.assertEqual(sec.read_text(encoding="utf-8"), antes, "la fuente no se toca")
+            reasons = [u["reason"] for u in res["summary"]["unmatched"]]
+            self.assertTrue(
+                any("no localizado" in reason.lower() for reason in reasons),
+                f"el motivo debe decir que el ancla no se localizó: {reasons}",
+            )
+
+    def test_empty_replacement_needs_a_deliberate_deletion(self):
+        """Un reemplazo vacío es un borrado: solo se aplica si el operador lo
+        confirmó, nunca porque el campo viaje vacío por descuido."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, sec = self._workspace(tmpdir)
+            antes = sec.read_text(encoding="utf-8")
+
+            accidental = apply_pdf_annotations(run_dir, [{
+                "id": "ann1",
+                "type": "replace",
+                "text": "El entrenamiento externo se apoya en los corpus DAIC-WOZ.",
+                "replacement": "",
+                "page": 1,
+            }])
+            self.assertEqual(accidental["summary"]["replace_applied"], 0)
+            self.assertEqual(accidental["summary"]["replace_failed"], 1)
+            self.assertEqual(sec.read_text(encoding="utf-8"), antes, "no se borra por descuido")
+
+            deliberate = apply_pdf_annotations(run_dir, [{
+                "id": "ann2",
+                "type": "replace",
+                "text": "El entrenamiento externo se apoya en los corpus DAIC-WOZ.",
+                "replacement": "",
+                "delete_intent": True,
+                "page": 1,
+            }])
+            self.assertEqual(deliberate["summary"]["replace_applied"], 1)
+            self.assertNotIn(
+                "El entrenamiento externo se apoya en los corpus DAIC-WOZ.",
+                sec.read_text(encoding="utf-8"),
+            )
+
+    def test_replacement_metric_is_persisted_with_the_other_metrics(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, _ = self._workspace(tmpdir)
+            apply_pdf_annotations(run_dir, [{
+                "id": "ann1",
+                "type": "replace",
+                "text": "El entrenamiento externo se apoya en los corpus DAIC-WOZ.",
+                "replacement": "El entrenamiento se apoya en corpus clínicos externos.",
+                "page": 1,
+            }])
+            payload = json.loads(
+                (run_dir / "artefactos" / "pipeline" / "anotaciones_pdf.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(payload["applied"]["replace"], 1)
 
     def test_comment_only_run_does_not_claim_a_recompilation(self):
         """Recompilar sin cambios en el manuscrito produce un PDF idéntico y
