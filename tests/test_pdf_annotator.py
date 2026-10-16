@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -103,10 +104,167 @@ class TestPdfAnnotator(unittest.TestCase):
                 "page": 7,
             }])
             self.assertEqual(res["summary"]["comments_registered"], 1)
-            self.assertEqual(res["summary"]["comments_failed"], 0)
+            self.assertEqual(res["summary"]["annotations_failed"], 0)
             texto = self._pendientes(run_dir).read_text(encoding="utf-8")
             self.assertIn("revisar el tono de este pasaje", texto)
             self.assertIn("sin ubicar", texto)
+
+    def test_comment_without_anchor_is_failed_instead_of_vanishing(self):
+        """Una anotación sin texto ancla no puede nombrar a qué se refiere; antes
+        desaparecía en silencio: ni se registraba, ni se contaba como fallo, solo
+        inflaba `total_submitted`. El operador debe ver el desenlace."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, _ = self._workspace(tmpdir)
+            res = apply_pdf_annotations(run_dir, [{
+                "id": "ann1",
+                "type": "comment",
+                "text": "   ",
+                "comment": "una instrucción que no nombra su ancla",
+                "page": 4,
+            }])
+            summary = res["summary"]
+            self.assertTrue(res["ok"])
+            self.assertEqual(summary["total_submitted"], 1)
+            self.assertEqual(summary["comments_registered"], 0)
+            self.assertEqual(summary["comments_failed"], 1)
+            self.assertEqual(summary["annotations_failed"], 1)
+
+            fallos = res["details"]["unmatched"]
+            self.assertEqual(len(fallos), 1)
+            self.assertEqual(fallos[0]["type"], "comment")
+
+            pendientes = self._pendientes(run_dir)
+            if pendientes.is_file():
+                self.assertNotIn(
+                    "una instrucción que no nombra su ancla",
+                    pendientes.read_text(encoding="utf-8"),
+                    "una anotación sin ancla no deja una instrucción huérfana en la cola",
+                )
+
+    def test_unmatched_strikethrough_in_a_mixed_batch_is_counted_as_a_failure(self):
+        """Un tachado que no se localiza no aparecía en ningún campo del resumen;
+        solo quedaba en el detalle. El conteo agregado debe delatarlo."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, _ = self._workspace(tmpdir)
+            res = apply_pdf_annotations(run_dir, [
+                {
+                    "id": "a1",
+                    "type": "strikethrough",
+                    "text": "El entrenamiento externo se apoya en los corpus DAIC-WOZ.",
+                    "page": 1,
+                },
+                {
+                    "id": "a2",
+                    "type": "strikethrough",
+                    "text": "Un texto que no existe en ninguna sección fuente.",
+                    "page": 2,
+                },
+            ])
+            summary = res["summary"]
+            self.assertEqual(summary["strikethrough_applied"], 1)
+            self.assertEqual(summary["annotations_failed"], 1)
+            self.assertEqual(len(res["details"]["unmatched"]), 1)
+            self.assertEqual(res["details"]["unmatched"][0]["type"], "strikethrough")
+
+    def test_deduplicated_batch_is_reported_as_deduplicated_not_as_applied_work(self):
+        """`comments_registered` contaba la lista en memoria aunque no se
+        escribiera nada: reenviar el mismo lote decía «1 registrada» con el
+        archivo intacto. Lo omitido por duplicado es su propio número."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, _ = self._workspace(tmpdir)
+            base = {
+                "type": "comment",
+                "text": "El entrenamiento externo se apoya en los corpus DAIC-WOZ.",
+                "comment": "unificar la redacción de este pasaje",
+                "page": 1,
+            }
+            first = apply_pdf_annotations(run_dir, [dict(base, id="ann1")])
+            self.assertEqual(first["summary"]["comments_registered"], 1)
+            self.assertEqual(first["summary"]["comments_duplicated"], 0)
+
+            second = apply_pdf_annotations(run_dir, [dict(base, id="ann2")])
+            self.assertEqual(
+                second["summary"]["comments_registered"],
+                0,
+                "un lote duplicado no escribe nada y no puede reportarse como registrado",
+            )
+            self.assertEqual(second["summary"]["comments_duplicated"], 1)
+
+            texto = self._pendientes(run_dir).read_text(encoding="utf-8")
+            self.assertEqual(texto.count("unificar la redacción de este pasaje"), 1)
+
+    def test_a_second_run_preserves_the_existing_queue_byte_for_byte(self):
+        """La cola es el único registro de una instrucción sin ejecutar. Si se
+        reescribe desde cero, un fallo a mitad de escritura la pierde. Conservar
+        los bytes anteriores es la garantía mínima."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, _ = self._workspace(tmpdir)
+            apply_pdf_annotations(run_dir, [{
+                "id": "ann1",
+                "type": "comment",
+                "text": "El entrenamiento externo se apoya en los corpus DAIC-WOZ.",
+                "comment": "primera instrucción",
+                "page": 1,
+            }])
+            pendientes = self._pendientes(run_dir)
+            antes = pendientes.read_bytes()
+
+            apply_pdf_annotations(run_dir, [{
+                "id": "ann2",
+                "type": "comment",
+                "text": "El acompañamiento corre por cuenta de la psicóloga Camila.",
+                "comment": "segunda instrucción",
+                "page": 2,
+            }])
+            despues = pendientes.read_bytes()
+            self.assertTrue(
+                despues.startswith(antes),
+                "la cola existente debe conservarse byte a byte tras una segunda corrida",
+            )
+            self.assertIn(b"segunda instrucci", despues)
+
+    def test_a_crash_while_registering_does_not_lose_the_existing_queue(self):
+        """La cola se reescribía entera con `write_text`, que primero trunca. Un
+        fallo en esa escritura borraba las instrucciones que ya estaban, y no hay
+        copia recuperable en otro sitio. Registrar no puede destruir lo previo."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, _ = self._workspace(tmpdir)
+            apply_pdf_annotations(run_dir, [{
+                "id": "ann1",
+                "type": "comment",
+                "text": "El entrenamiento externo se apoya en los corpus DAIC-WOZ.",
+                "comment": "primera instrucción",
+                "page": 1,
+            }])
+            pendientes = self._pendientes(run_dir)
+            antes = pendientes.read_bytes()
+
+            original = Path.write_text
+
+            def crashing_write_text(self, data, *args, **kwargs):
+                if self == pendientes:
+                    # Simula el truncado previo a la escritura y el fallo posterior.
+                    with open(self, "w", encoding="utf-8"):
+                        pass
+                    raise OSError("fallo simulado durante el registro")
+                return original(self, data, *args, **kwargs)
+
+            with mock.patch.object(Path, "write_text", crashing_write_text):
+                try:
+                    apply_pdf_annotations(run_dir, [{
+                        "id": "ann2",
+                        "type": "comment",
+                        "text": "El acompañamiento corre por cuenta de la psicóloga Camila.",
+                        "comment": "segunda instrucción",
+                        "page": 2,
+                    }])
+                except OSError:
+                    pass
+
+            self.assertTrue(
+                pendientes.read_bytes().startswith(antes),
+                "un fallo al registrar no puede borrar la cola que ya existía",
+            )
 
     def test_comment_only_run_does_not_claim_a_recompilation(self):
         """Recompilar sin cambios en el manuscrito produce un PDF idéntico y

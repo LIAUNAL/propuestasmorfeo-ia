@@ -61,18 +61,18 @@ def register_pending_instructions(
     """Anexa al archivo de pendientes las instrucciones que aún no estaban.
 
     Devuelve la ruta del archivo y cuántas entradas nuevas se escribieron. El
-    archivo se anexa en lugar de reescribirse, porque una instrucción sin
-    ejecutar no se puede recuperar de ningún otro sitio.
+    archivo se anexa con `open(..., "a")` en lugar de reescribirse: una
+    instrucción sin ejecutar no se puede recuperar de ningún otro sitio, y
+    `write_text` trunca primero, de modo que un fallo a mitad de la escritura
+    perdería todo lo anterior. Anexar no toca los bytes que ya están, así que
+    tampoco un segundo escritor puede borrar lo que otro ya dejó.
     """
     if not items:
         return None, 0
 
     path = pipeline_dir / PENDING_INSTRUCTIONS_FILE
-    existing = (
-        path.read_text(encoding="utf-8")
-        if path.is_file()
-        else PENDING_INSTRUCTIONS_HEADER
-    )
+    file_exists = path.is_file()
+    existing = path.read_text(encoding="utf-8") if file_exists else ""
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     nuevas: list[str] = []
@@ -92,11 +92,20 @@ def register_pending_instructions(
         )
 
     if not nuevas:
-        if not path.is_file():
-            path.write_text(existing, encoding="utf-8")
+        if not file_exists:
+            path.write_text(PENDING_INSTRUCTIONS_HEADER, encoding="utf-8")
         return path, 0
 
-    path.write_text(existing.rstrip() + "\n\n" + "\n".join(nuevas), encoding="utf-8")
+    if not file_exists:
+        prefix = PENDING_INSTRUCTIONS_HEADER.rstrip() + "\n\n"
+    elif existing.endswith("\n"):
+        prefix = "\n"
+    else:
+        prefix = "\n\n"
+
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(prefix)
+        handle.write("\n".join(nuevas))
     return path, len(nuevas)
 
 
@@ -180,12 +189,20 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         target_text = ann.get("text", "").strip()
         comment_body = ann.get("comment", "").strip()
         page_num = ann.get("page", 1)
-
-        if not target_text:
-            continue
+        ann_id = ann.get("id", str(idx + 1))
 
         words = _normalize_words(target_text)
         if not words:
+            # Sin texto ancla la anotación no puede nombrar a qué se refiere ni
+            # hay pasaje que buscar. Antes se descartaba en silencio; ahora el
+            # fallo queda a la vista del operador.
+            failed_annotations.append({
+                "id": ann_id,
+                "type": ann_type,
+                "text": target_text,
+                "page": page_num,
+                "reason": "Anotación sin texto ancla: no hay pasaje que localizar",
+            })
             continue
 
         # Search for target text in all candidate files
@@ -279,9 +296,15 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
 
     # Las instrucciones pendientes se anexan, no se reescriben: una instrucción
     # sin ejecutar no se puede recuperar de ningún otro sitio.
-    pending_path, _pending_written = register_pending_instructions(
+    pending_path, pending_written = register_pending_instructions(
         pipeline_dir, registered_comments
     )
+    # Solo lo que se escribió de verdad cuenta como registrado; lo que ya estaba
+    # en la cola se reporta como duplicado, y un comentario sin ancla como fallo.
+    comment_failures = [
+        a for a in failed_annotations if a.get("type") in ("comment", "comentario")
+    ]
+    duplicated_comments = max(0, len(registered_comments) - pending_written)
 
     # Persist annotations JSON
     timestamp = datetime.now().isoformat()
@@ -294,7 +317,9 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             "humanize": len(applied_humanize),
         },
         "registered": {
-            "comments": len(registered_comments),
+            "comments": pending_written,
+            "duplicated": duplicated_comments,
+            "failed": len(comment_failures),
         },
         "details": {
             "strikethrough": applied_strikethroughs,
@@ -318,7 +343,9 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         f"\n**Fecha de ejecución:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"- **Textos tachados eliminados:** {len(applied_strikethroughs)}",
         f"- **Pasajes humanizados (estilo-natural-es):** {len(applied_humanize)}",
-        f"- **Instrucciones registradas para el agente:** {len(registered_comments)}",
+        f"- **Instrucciones nuevas registradas para el agente:** {pending_written}",
+        f"- **Instrucciones ya registradas (omitidas por duplicado):** {duplicated_comments}",
+        f"- **Anotaciones sin aplicar:** {len(failed_annotations)}",
         "- **Comentarios aplicados al manuscrito:** 0 (un comentario no reescribe prosa)",
         f"- **Archivos modificados:** {len(files_modified)}",
         "\n---",
@@ -354,7 +381,7 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             )
 
     if failed_annotations:
-        md_lines.append("\n## ⚠️ Anotaciones no localizadas automáticamente")
+        md_lines.append("\n## ⚠️ Anotaciones sin aplicar")
         for item in failed_annotations:
             md_lines.append(f"- **Pág. {item['page']}** [{item['type']}]: \"{item['text']}\" ({item['reason']})")
 
@@ -413,10 +440,10 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             "total_submitted": len(annotations),
             "strikethrough_applied": len(applied_strikethroughs),
             "comments_applied": 0,
-            "comments_registered": len(registered_comments),
-            "comments_failed": len(
-                [a for a in failed_annotations if a.get("type") in ("comment", "comentario")]
-            ),
+            "comments_registered": pending_written,
+            "comments_duplicated": duplicated_comments,
+            "comments_failed": len(comment_failures),
+            "annotations_failed": len(failed_annotations),
             "humanize_applied": len(applied_humanize),
             "files_modified": [str(f.relative_to(run_dir)) for f in files_modified],
             "pdf_recompiled": compile_success,
@@ -426,6 +453,12 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             "pending_instructions_file": (
                 str(pending_path.relative_to(run_dir)) if pending_path else None
             ),
+        },
+        "details": {
+            "strikethrough": applied_strikethroughs,
+            "humanize": applied_humanize,
+            "comments": registered_comments,
+            "unmatched": failed_annotations,
         },
         "report_file": "artefactos/anotaciones_pdf.md",
     }
