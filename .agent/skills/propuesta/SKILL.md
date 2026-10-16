@@ -267,6 +267,21 @@ prosa: se registra como instrucción pendiente en
 `artefactos/pipeline/instrucciones_revisor_pdf.md`, con la página, el texto ancla
 y el archivo de la sección cuando se pudo ubicar. El manuscrito no cambia.
 
+El panel tiene además un campo **Reemplazar por**, y ese sí cambia el manuscrito
+en el acto. Cuando el operador lo llena, la marca deja de ser un aviso y pasa a
+ser un reemplazo determinista: al pulsar **Ejecutar cambios** el pasaje anclado se
+sustituye por ese texto literal en la sección correspondiente y el PDF se
+recompila, sin modelo de por medio. Dos validaciones lo gobiernan: el ancla tiene
+que ubicarse, o el reemplazo falla con un mensaje claro y no toca nada; y un
+reemplazo vacío solo borra si el operador lo confirma, porque sin confirmar se
+queda como comentario y viaja a la cola. El registro guarda la métrica del
+reemplazo junto a las demás, y una corrida que no cambió la fuente no declara
+recompilación.
+
+El panel muestra cuántas instrucciones están pendientes y dice que no cambian
+nada hasta que alguien las consuma. Esa cola era invisible, y su invisibilidad es
+lo que hacía parecer roto el botón.
+
 Antes de cerrar la siguiente unidad del pipeline, el DISPATCHER lee ese archivo.
 Si tiene entradas sin marcar:
 
