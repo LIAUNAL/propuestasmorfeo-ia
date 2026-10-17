@@ -89,10 +89,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_pdf()
         elif path == "/api/pdf/annotations":
             self.serve_pdf_annotations()
-        elif path == "/api/graph/papers":
-            self.serve_graph("papers-graph.html")
-        elif path == "/api/graph/vault":
-            self.serve_graph("vault-graph.html")
+        elif path.startswith("/api/graph/"):
+            graph_key = path[len("/api/graph/"):].strip("/")
+            filename = graph_key if graph_key.endswith(".html") else f"{graph_key}-graph.html"
+            self.serve_graph(filename)
         elif path == "/api/artifact":
             self.serve_artifact()
         else:
@@ -354,7 +354,23 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
         graph_path = self.workspace_dir / "proposals" / active_run / "grafos" / filename
         if not graph_path.is_file():
-            self.send_error(404, f"{filename} not found")
+            fallback = f"""<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Grafo no disponible</title></head>
+<body style="background:#0f172a;color:#94a3b8;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;">
+  <div style="background:#1e293b;padding:2.5rem;border-radius:12px;border:1px solid #334155;max-width:520px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+    <div style="font-size:2.5rem;margin-bottom:0.75rem;">🌌</div>
+    <h3 style="color:#38bdf8;margin:0 0 0.5rem 0;font-size:1.25rem;">Grafo no disponible para esta corrida</h3>
+    <p style="font-size:0.9rem;line-height:1.5;margin:0 0 1rem 0;">El reporte <code>{filename}</code> aún no ha sido generado en el directorio <code>grafos/</code> de la corrida activa.</p>
+    <p style="font-size:0.8rem;color:#64748b;margin:0;">Se compila automáticamente durante el pipeline con la herramienta <code>codebase-memory</code> o con <code>scripts/graph_html.py</code>.</p>
+  </div>
+</body>
+</html>""".encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(fallback)))
+            self.end_headers()
+            self.wfile.write(fallback)
             return
 
         content = graph_path.read_bytes()

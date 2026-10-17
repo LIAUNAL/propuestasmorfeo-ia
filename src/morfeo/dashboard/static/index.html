@@ -1205,6 +1205,46 @@
       height: 3px;
       background: #dc2626;
     }
+    /* Reemplazar: fondo y subrayado ámbar */
+    .pdf-annot-highlight--replace {
+      background: rgba(245, 158, 11, 0.22);
+      border-bottom: 2.5px solid #d97706;
+      box-shadow: 0 1px 2px rgba(217, 119, 6, 0.25);
+    }
+    .pdf-annot-highlight--replace:hover {
+      background: rgba(245, 158, 11, 0.38);
+      border-bottom: 3px solid #b45309;
+    }
+    /* Marcas de cambios aplicados sobre el PDF compilado */
+    .pdf-annot-highlight--executed {
+      border: 1.5px dashed;
+      cursor: help;
+      opacity: 0.85;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      z-index: 4;
+    }
+    .pdf-annot-highlight--executed:hover {
+      opacity: 1;
+      transform: scale(1.01);
+      z-index: 6;
+    }
+    .pdf-annot-highlight--executed-strikethrough {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: #ef4444;
+      text-decoration: line-through;
+    }
+    .pdf-annot-highlight--executed-humanize {
+      background: rgba(16, 185, 129, 0.16);
+      border-color: #10b981;
+    }
+    .pdf-annot-highlight--executed-replace {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: #f59e0b;
+    }
+    .btn--tool.btn--replace:hover {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.08);
+    }
     @keyframes annotFlash {
       0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); transform: scale(1.02); }
       70% { box-shadow: 0 0 0 6px rgba(56, 189, 248, 0); transform: scale(1.0); }
@@ -1759,9 +1799,10 @@
       <div class="panel">
         <div class="panel__header">
           <div class="panel__title">Atlas de Conocimiento y Mapeo Conceptual (Codebase-Memory MCP)</div>
-          <div style="display: flex; gap: 0.5rem;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <button id="btnGraphPapers" class="btn btn--primary" onclick="switchGraph('papers')">Grafo de Literatura SOTA</button>
             <button id="btnGraphVault" class="btn" onclick="switchGraph('vault')">Grafo del Vault Obsidian</button>
+            <button id="btnGraphManuscript" class="btn" onclick="switchGraph('manuscript')">Grafo del Manuscrito</button>
             <a id="linkOpenGraph" href="/api/graph/papers" target="_blank" class="btn">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
@@ -1807,23 +1848,27 @@
           <!-- Barra interactiva del visor: aviso de selección, acciones rápidas y limpieza -->
           <div class="pdf-interaction-bar" id="pdfInteractionBar">
             <div class="pdf-interaction-hint" id="pdfSelectionInfoText">
-              Selecciona cualquier texto en el PDF con el mouse para aplicar <strong>Comentario</strong>, <strong>Tachar</strong> o <strong>Humanizar</strong>.
+              Selecciona cualquier texto en el PDF con el mouse para aplicar <strong>Comentario</strong>, <strong>Tachar</strong>, <strong>Reemplazar</strong> o <strong>Humanizar</strong>.
             </div>
             <div class="selection-quick-actions" id="selectionActionsQuick" style="display: none;">
               <button class="btn btn--xs btn--comment" onclick="triggerAddComment()">💬 Comentar</button>
               <button class="btn btn--xs btn--strikethrough" onclick="triggerStrikethrough()">✂️ Tachar</button>
+              <button class="btn btn--xs btn--replace" onclick="triggerReplace()" style="background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #f59e0b;">🔁 Reemplazar</button>
               <button class="btn btn--xs btn--humanize" onclick="triggerHumanize()">✨ Humanizar</button>
             </div>
             <div class="pdf-interaction-actions">
               <button class="btn btn--sm" id="btnClearSelection" onclick="deselectPdfText()" title="Quitar la selección de texto del visor">✕ Deseleccionar</button>
+              <button class="btn btn--sm" id="btnDesmarcarTodos" onclick="clearAllAnnotations()" title="Desmarcar todos los cambios pendientes sin ejecutar">Desmarcar todos</button>
+              <button class="btn btn--sm btn--executed-marks" id="btnClearExecutedMarks" onclick="clearExecutedChangeMarks()" title="Quitar marcas de cambios aplicados en el PDF" style="display: none; background: rgba(16, 185, 129, 0.15); border-color: var(--ok); color: var(--ok);">🧹 Quitar marcas de cambios (<span id="executedMarksCount">0</span>)</button>
               <div class="marks-menu" id="marksMenu">
-                <button class="btn btn--sm" id="btnMarksMenu" onclick="toggleMarksMenu(event)" aria-expanded="false" title="Quitar tachados, comentarios o humanizaciones del visor">🧹 Quitar marcas <span class="marks-menu__caret">▾</span></button>
+                <button class="btn btn--sm" id="btnMarksMenu" onclick="toggleMarksMenu(event)" aria-expanded="false" title="Quitar tachados, comentarios, reemplazos o marcas de cambios del visor">🧹 Quitar marcas <span class="marks-menu__caret">▾</span></button>
                 <div class="marks-menu__panel" id="marksMenuPanel" style="display: none;">
                   <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('strikethrough')">✂️ Quitar tachados <span class="marks-menu__count" id="marksCountStrike">0</span></button>
+                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('replace')">🔁 Quitar reemplazos <span class="marks-menu__count" id="marksCountReplace">0</span></button>
                   <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('comment')">💬 Quitar comentarios <span class="marks-menu__count" id="marksCountComment">0</span></button>
                   <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('humanize')">✨ Quitar humanizaciones <span class="marks-menu__count" id="marksCountHumanize">0</span></button>
-                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('replace')">🔁 Quitar reemplazos <span class="marks-menu__count" id="marksCountReplace">0</span></button>
-                  <button type="button" class="marks-menu__item marks-menu__item--all" onclick="clearAllAnnotations()">🧹 Quitar todas <span class="marks-menu__count" id="marksCountAll">0</span></button>
+                  <button type="button" class="marks-menu__item marks-menu__item--all" onclick="clearAllAnnotations()">🧹 Desmarcar todos los cambios pendientes <span class="marks-menu__count" id="marksCountAll">0</span></button>
+                  <button type="button" class="marks-menu__item" id="menuItemClearExecuted" onclick="clearExecutedChangeMarks()" style="display: none;">✨ Quitar marcas de cambios aplicados <span class="marks-menu__count" id="marksCountExecuted">0</span></button>
                 </div>
               </div>
             </div>
@@ -1877,6 +1922,13 @@
                   <small>Reescribir con skill estilo-natural-es</small>
                 </span>
               </button>
+              <button class="btn--tool btn--replace" id="btnReplace" onclick="triggerReplace()" title="Reemplazar texto seleccionado por otro texto literal o borrarlo">
+                <span class="tool-icon">🔁</span>
+                <span class="tool-text">
+                  <strong>Reemplazar</strong>
+                  <small>Sustituir por texto exacto o borrar</small>
+                </span>
+              </button>
             </div>
           </div>
 
@@ -1897,6 +1949,7 @@
                 <div class="selection-quick-actions">
                   <button class="btn btn--xs btn--comment" onclick="triggerAddComment()">💬 Comentar</button>
                   <button class="btn btn--xs btn--strikethrough" onclick="triggerStrikethrough()">✂️ Tachar</button>
+                  <button class="btn btn--xs btn--replace" onclick="triggerReplace()" style="background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #f59e0b;">🔁 Reemplazar</button>
                   <button class="btn btn--xs btn--humanize" onclick="triggerHumanize()">✨ Humanizar</button>
                 </div>
               </div>
@@ -2155,8 +2208,7 @@
     // sugiriendo el comando, no lanzando agentes desde el servidor. Así el
     // tablero no necesita credenciales y las compuertas siguen parando a esperar
     // a una persona, que es para lo que están.
-    function copyNextCommand(btn) {
-      const texto = '/propuesta-continuar';
+    function copyCommand(texto, btn) {
       const confirmar = () => {
         if (!btn) return;
         if (!btn.dataset.original) btn.dataset.original = btn.textContent;
@@ -2179,6 +2231,10 @@
       } else {
         porSeleccion();
       }
+    }
+
+    function copyNextCommand(btn) {
+      copyCommand('/propuesta-continuar', btn);
     }
 
     let currentStatus = null;
@@ -2214,8 +2270,12 @@
     }
 
     function switchGraph(kind) {
-      document.getElementById('btnGraphPapers').className = kind === 'papers' ? 'btn btn--primary' : 'btn';
-      document.getElementById('btnGraphVault').className = kind === 'vault' ? 'btn btn--primary' : 'btn';
+      const btnPapers = document.getElementById('btnGraphPapers');
+      const btnVault = document.getElementById('btnGraphVault');
+      const btnManuscript = document.getElementById('btnGraphManuscript');
+      if (btnPapers) btnPapers.className = kind === 'papers' ? 'btn btn--primary' : 'btn';
+      if (btnVault) btnVault.className = kind === 'vault' ? 'btn btn--primary' : 'btn';
+      if (btnManuscript) btnManuscript.className = kind === 'manuscript' ? 'btn btn--primary' : 'btn';
       document.getElementById('graphIframe').src = `/api/graph/${kind}`;
       document.getElementById('linkOpenGraph').href = `/api/graph/${kind}`;
     }
@@ -2232,6 +2292,7 @@
       const palabras = secciones.reduce((acc, s) => acc + (s.words || 0), 0);
       const pendiente = NEXT_PENDING_UNIT;
       const enEjecucion = (EN_CURSO && EN_CURSO.fase === p.id) ? EN_CURSO : null;
+      const launchCmd = p.kind === 'pre' ? '/propuesta-analizar' : '/propuesta-continuar';
 
       const tele = (currentStatus?.telemetria || []).find(t => {
         const tn = String(t.fase || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -2244,6 +2305,24 @@
           <span class="badge badge--info" style="margin-left: 0.5rem;">${p.kind === 'pre' ? 'Intake' : 'Unidad del pipeline'}</span>
         </div>
         <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1.25rem;">${p.desc}</p>
+
+        <div style="margin-bottom: 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem;">
+          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--accent); margin-bottom: 0.35rem;">🚀 Lanzar o continuar flujo</h4>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.5rem;">Comando canónico para orquestar esta fase en Claude Code:</p>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <code style="background: var(--surface-1); padding: 0.35rem 0.6rem; border-radius: 4px; font-size: 0.88rem; flex-grow: 1; border: 1px solid var(--border);">${launchCmd}</code>
+            <button class="btn btn--sm btn--primary" onclick="copyCommand('${launchCmd}', this)">📋 Copiar</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.5rem;">Navegación Rápida</h4>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn--sm" onclick="closeDrawer(); navigateTab('preview');">📄 Ver en PDF</button>
+            <button class="btn btn--sm" onclick="closeDrawer(); navigateTab('sections');">📑 Ver en Secciones</button>
+            <button class="btn btn--sm" onclick="closeDrawer(); navigateTab('artifacts');">📁 Ver en Artefactos</button>
+          </div>
+        </div>
 
         ${enEjecucion
           ? `<div style="margin-bottom: 1rem; background: var(--accent-dim); border: 1px solid var(--accent); border-radius: var(--radius); padding: 0.75rem;">
@@ -2525,6 +2604,18 @@
           const card = document.createElement('div');
           card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
           const badgeTone = isLit ? 'ok' : (g.status === 'BLOCKED' ? 'bad' : 'warn');
+          
+          const pIdx = PHASES_INFO.findIndex(p => 
+            p.gate === g.id || 
+            p.id === g.phase || 
+            (p.gate && g.id.toLowerCase().replace(/[^a-z0-9]/g, '') === p.gate.toLowerCase().replace(/[^a-z0-9]/g, ''))
+          );
+          if (pIdx !== -1) {
+            card.onclick = () => openDrawer(pIdx);
+            card.style.cursor = 'pointer';
+            card.title = 'Clic para ver detalles de la fase y comandos de ejecución';
+          }
+
           card.innerHTML = `
             <div class="phase-card__head">
               <span class="phase-card__name">${g.id} — ${g.name}</span>
@@ -2601,6 +2692,7 @@
     let currentSelectedText = '';
     let currentSelectedPage = 1;
     let queuedAnnotations = [];
+    let executedChangeMarks = [];
     // Ruta, relativa a la corrida activa, del archivo que el redactor consume.
     // El panel la consulta para mostrar cuántas instrucciones siguen pendientes.
     let PENDING_INSTRUCTIONS_PATH = 'artefactos/pipeline/instrucciones_revisor_pdf.md';
@@ -2693,6 +2785,7 @@
       if (pdfDoc && !forceReload) return;
       const spinner = document.getElementById('pdfLoadingSpinner');
       if (spinner) spinner.style.display = 'flex';
+      const pageToRestore = forceReload ? (pdfCurrentPage || 1) : 1;
 
       try {
         if (forceReload) {
@@ -2739,7 +2832,7 @@
         const inputPage = document.getElementById('inputPdfPage');
         if (inputPage) inputPage.max = pdfTotalPages;
 
-        await buildPagesStrip();
+        await buildPagesStrip(pageToRestore);
         loadExecutionHistory();
       } catch (err) {
         console.error("Error cargando PDF con PDF.js:", err);
@@ -2755,7 +2848,7 @@
       }
     }
 
-    async function buildPagesStrip() {
+    async function buildPagesStrip(initialPage = 1) {
       const strip = document.getElementById('pdfPagesStrip');
       if (!strip) return;
 
@@ -2793,8 +2886,13 @@
       strip.removeEventListener('scroll', onStripScroll);
       strip.addEventListener('scroll', onStripScroll, { passive: true });
 
-      strip.scrollTop = 0;
-      updatePageIndicator(1);
+      const target = Math.max(1, Math.min(pdfTotalPages, initialPage || 1));
+      if (target > 1) {
+        scrollToPdfPage(target);
+      } else {
+        strip.scrollTop = 0;
+        updatePageIndicator(1);
+      }
     }
 
     function createPageSlot(n) {
@@ -3392,6 +3490,26 @@
       document.getElementById('commentModalInput').focus();
     }
 
+    function triggerReplace() {
+      const sel = window.getSelection().toString().trim();
+      const targetText = sel || currentSelectedText;
+      if (!targetText) {
+        alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para reemplazar.");
+        return;
+      }
+      currentSelectedText = targetText;
+      document.getElementById('commentModalPage').textContent = currentSelectedPage;
+      document.getElementById('commentModalQuote').textContent = `"${targetText}"`;
+      document.getElementById('commentModalInput').value = '';
+      const replInput = document.getElementById('commentReplacementInput');
+      if (replInput) replInput.value = '';
+      const deleteBox = document.getElementById('commentReplacementIsDelete');
+      if (deleteBox) deleteBox.checked = false;
+      updateReplacementPreview();
+      document.getElementById('commentModal').classList.add('active');
+      if (replInput) replInput.focus();
+    }
+
     function closeCommentModal() {
       document.getElementById('commentModal').classList.remove('active');
     }
@@ -3533,13 +3651,16 @@
     }
 
     function clearAllAnnotations() {
-      if (queuedAnnotations.length === 0) return;
-      if (confirm("¿Descartar todas las marcas pendientes sin ejecutar?")) {
+      if (queuedAnnotations.length === 0) {
+        showToast("No hay cambios pendientes para desmarcar");
+        return;
+      }
+      if (confirm("¿Desmarcar todos los cambios pendientes sin ejecutar?")) {
         const removed = queuedAnnotations.length;
         queuedAnnotations = [];
         closeMarksMenu();
         renderAnnotationsTray();
-        showToast(`${removed} marca${removed === 1 ? '' : 's'} descartada${removed === 1 ? '' : 's'}`);
+        showToast(`${removed} cambio${removed === 1 ? '' : 's'} desmarcado${removed === 1 ? '' : 's'}`);
       }
     }
 
@@ -3611,9 +3732,8 @@
       if (!overlay) return;
       overlay.innerHTML = '';
 
+      // 1. Marcas de cambios pendientes
       const pageAnnots = queuedAnnotations.filter(a => a.page === pageNumber);
-      if (pageAnnots.length === 0) return;
-
       pageAnnots.forEach(ann => {
         let rects = ann.rects;
         if (!rects || rects.length === 0) {
@@ -3641,6 +3761,69 @@
           });
         }
       });
+
+      // 2. Marcas de cambios aplicados (resaltan qué parte del texto cambió tras compilar)
+      const pageExecuted = executedChangeMarks.filter(e => e.page === pageNumber);
+      pageExecuted.forEach(exec => {
+        let rects = null;
+        if (exec.searchText) {
+          rects = findTextRectsInPage(pageNumber, exec.searchText);
+        }
+        if (!rects || rects.length === 0) {
+          rects = exec.rects;
+        }
+        if (rects && rects.length > 0) {
+          rects.forEach((rect) => {
+            const el = document.createElement('div');
+            el.className = `pdf-annot-highlight pdf-annot-highlight--executed pdf-annot-highlight--executed-${exec.type}`;
+            el.style.left = `${(rect.xPct * 100).toFixed(2)}%`;
+            el.style.top = `${(rect.yPct * 100).toFixed(2)}%`;
+            el.style.width = `${(rect.wPct * 100).toFixed(2)}%`;
+            el.style.height = `${(rect.hPct * 100).toFixed(2)}%`;
+            const badgeLabel = exec.type === 'strikethrough' ? '✂️ Cambio aplicado: Texto eliminado'
+              : (exec.type === 'replace' ? `🔁 Cambio aplicado: Reemplazado por "${exec.replacement || ''}"`
+              : '✨ Cambio aplicado: Humanizado con estilo-natural-es');
+            el.title = `${badgeLabel}\n(Clic para quitar esta marca de cambio)`;
+            el.onclick = (e) => {
+              e.stopPropagation();
+              removeExecutedMark(exec.id);
+            };
+            overlay.appendChild(el);
+          });
+        }
+      });
+    }
+
+    function updateExecutedMarksUI() {
+      const count = executedChangeMarks.length;
+      const btn = document.getElementById('btnClearExecutedMarks');
+      const badge = document.getElementById('executedMarksCount');
+      const menuItem = document.getElementById('menuItemClearExecuted');
+      const menuBadge = document.getElementById('marksCountExecuted');
+      
+      if (btn) btn.style.display = count > 0 ? 'inline-flex' : 'none';
+      if (badge) badge.textContent = count;
+      if (menuItem) menuItem.style.display = count > 0 ? 'flex' : 'none';
+      if (menuBadge) menuBadge.textContent = count;
+      renderAllAnnotationsOverlays();
+    }
+
+    function removeExecutedMark(id) {
+      executedChangeMarks = executedChangeMarks.filter(m => m.id !== id);
+      updateExecutedMarksUI();
+      showToast('Marca de cambio aplicada removida');
+    }
+
+    function clearExecutedChangeMarks() {
+      if (executedChangeMarks.length === 0) {
+        showToast("No hay marcas de cambios aplicados para quitar");
+        return;
+      }
+      const count = executedChangeMarks.length;
+      executedChangeMarks = [];
+      closeMarksMenu();
+      updateExecutedMarksUI();
+      showToast(`${count} marca${count === 1 ? '' : 's'} de cambios aplicados eliminada${count === 1 ? '' : 's'} del visor`);
     }
 
     function renderAllAnnotationsOverlays() {
@@ -3811,9 +3994,26 @@
           return;
         }
 
+        // Conservar marcas de cambios ejecutados para resaltarlos en el PDF recompilado
+        const appliedTypes = ['strikethrough', 'replace', 'humanize'];
+        const newlyExecuted = queuedAnnotations.filter(a => appliedTypes.includes(a.type));
+        newlyExecuted.forEach(item => {
+          executedChangeMarks.push({
+            id: 'exec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            type: item.type,
+            text: item.text,
+            replacement: item.replacement || '',
+            searchText: (item.type === 'replace' && item.replacement && item.replacement.trim()) ? item.replacement.trim() : (item.text || ''),
+            page: item.page || 1,
+            rects: item.rects || null,
+            timestamp: new Date().toISOString()
+          });
+        });
+
         // Execution successful
         queuedAnnotations = [];
         renderAnnotationsTray();
+        updateExecutedMarksUI();
 
         // Populate summary modal
         const s = result.summary || {};
@@ -3860,6 +4060,25 @@
           <div>✂️ Tachados: <strong>${app.strikethrough || 0}</strong> · 🔁 Reemplazos: <strong>${app.replace || 0}</strong> · ✨ Humanizados: <strong>${app.humanize || 0}</strong> · 💬 Instrucciones al agente: <strong>${comentariosHistoricos}</strong></div>
           <div style="margin-top: 0.25rem;"><a href="javascript:void(0)" onclick="navigateTab('artifacts'); loadArtifact('artefactos/anotaciones_pdf.md');" style="color: var(--accent);">Ver informe anotaciones_pdf.md ↗</a></div>
         `;
+
+        if (executedChangeMarks.length === 0 && data.details) {
+          const dt = data.details;
+          ['strikethrough', 'replace', 'humanize'].forEach(type => {
+            (dt[type] || []).forEach(item => {
+              executedChangeMarks.push({
+                id: 'exec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                type: type,
+                text: item.text || '',
+                replacement: item.replacement || '',
+                searchText: (type === 'replace' && item.replacement && item.replacement.trim()) ? item.replacement.trim() : (item.text || ''),
+                page: item.page || 1,
+                rects: item.rects || null,
+                timestamp: data.timestamp || ''
+              });
+            });
+          });
+          updateExecutedMarksUI();
+        }
       } catch (e) {
         console.warn("Error cargando historial de anotaciones:", e);
       }
@@ -3932,6 +4151,7 @@
       }
       loadStatus();
       loadPendingInstructionsQueue();
+      loadExecutionHistory();
       // Polling every 5 seconds for live status
       setInterval(loadStatus, 5000);
     });

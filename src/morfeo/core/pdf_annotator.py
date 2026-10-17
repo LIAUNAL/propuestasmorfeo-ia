@@ -458,6 +458,8 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
                     cwd=redaccion_dir,
                     capture_output=True,
                     text=True,
+                    encoding="utf-8",
+                    errors="replace",
                     timeout=60,
                     input="y\n",
                 )
@@ -469,6 +471,8 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
                     cwd=redaccion_dir,
                     capture_output=True,
                     text=True,
+                    encoding="utf-8",
+                    errors="replace",
                     timeout=60,
                 )
                 compile_success = res.returncode == 0

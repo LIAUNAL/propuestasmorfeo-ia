@@ -57,7 +57,14 @@ def _count_pdf_pages(pdf_path: Path) -> int:
         pages = 0
         try:
             import subprocess
-            res = subprocess.run(["pdfinfo", str(pdf_path)], capture_output=True, text=True, timeout=1.5)
+            res = subprocess.run(
+                ["pdfinfo", str(pdf_path)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=1.5,
+            )
             if res.returncode == 0:
                 for line in res.stdout.splitlines():
                     if line.startswith("Pages:"):
