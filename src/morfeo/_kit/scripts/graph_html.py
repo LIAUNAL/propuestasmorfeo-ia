@@ -13,18 +13,19 @@ import json
 import pathlib
 import sys
 
-# High-luminosity neon palette for 3D codebase visualization
+# SOTA Atlas celestial constellation palette (from Papersmith AI)
 PALETTE = [
-    "#00f0ff",  # Neon Cyan
-    "#10b981",  # Neon Emerald
-    "#a855f7",  # Neon Purple
-    "#f59e0b",  # Neon Amber
-    "#f43f5e",  # Neon Rose
-    "#3b82f6",  # Electric Blue
-    "#06b6d4",  # Bright Teal
-    "#ec4899",  # Neon Pink
-    "#84cc16",  # Electric Lime
-    "#6366f1",  # Indigo Laser
+    "#5aa9e6",  # Celestial Cyan (topic_app)
+    "#9b7ede",  # Stellar Violet (family)
+    "#e8b339",  # Sun Gold (sun)
+    "#2ecc71",  # Emerald Plasma (result)
+    "#7f6ae6",  # Deep Nebula (topic_ai)
+    "#e67e22",  # Stellar Amber (novelty)
+    "#e65a5a",  # Radiant Ruby (problem)
+    "#7fb069",  # Sage Branch (branch)
+    "#e879f9",  # Cosmic Orchid (contribution)
+    "#5ad1e6",  # Bright Pulsar (application)
+    "#95a5a6",  # Starlight Silver (conclusion)
 ]
 
 
@@ -627,30 +628,61 @@ TEMPLATE = """<!DOCTYPE html>
     }
   });
 
-  // 3D Force Layout Simulation
+  // 3D Celestial Force Layout with Golden Spiral Neighborhoods (Papersmith SOTA Atlas)
   function init3DPositions() {
-    var count = nodes.length || 1;
-    var R = 280;
-    nodes.forEach(function(n, i) {
-      // Golden spiral distribution on 3D sphere
-      var phi = Math.acos(1 - 2 * (i + 0.5) / count);
-      var theta = Math.PI * (1 + Math.sqrt(5)) * i;
-      n.x = R * Math.sin(phi) * Math.cos(theta);
-      n.y = R * Math.sin(phi) * Math.sin(theta);
-      n.z = R * Math.cos(phi);
-      // Extra cluster offset
-      if (n.group) {
-        var gIdx = groups.indexOf(n.group);
-        var gAngle = (gIdx / (groups.length || 1)) * Math.PI * 2;
-        n.x += Math.cos(gAngle) * 90;
-        n.y += Math.sin(gAngle) * 90;
-      }
+    var GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+    var PHI = (Math.sqrt(5) - 1) / 2;
+    var CLUSTER_STEP = 320;
+    var FAMILY_LIFT = 380;
+    var MEMBER_STEP = 90;
+    var TILT_MAX = 0.85;
+
+    // Group nodes by community/cluster
+    var byGroup = {};
+    groups.forEach(function(g) { byGroup[g] = []; });
+    nodes.forEach(function(n) {
+      var g = n.group || "General";
+      if (!byGroup[g]) byGroup[g] = [];
+      byGroup[g].push(n);
     });
 
-    // Run 3D Relaxation
-    for (var it = 0; it < 180; it++) {
-      var cool = 1 - it / 180;
-      // Repulsion in 3D
+    // Compute cluster centers on an outer golden spiral with family lift
+    var clusterCenters = {};
+    groups.forEach(function(g, findex) {
+      var radius = CLUSTER_STEP * Math.sqrt(findex);
+      var angle = findex * GOLDEN_ANGLE;
+      var ccx = radius * Math.cos(angle);
+      var ccy = radius * Math.sin(angle);
+      var ccz = FAMILY_LIFT * (2 * ((findex * PHI) % 1.0) - 1);
+      clusterCenters[g] = { x: ccx, y: ccy, z: ccz };
+
+      // Tilted orbital frame (u, v) for this cluster
+      var spin = findex * GOLDEN_ANGLE;
+      var tilt = TILT_MAX * (2 * (((findex + 1) * PHI) % 1.0) - 1);
+      var u = { x: Math.cos(spin), y: Math.sin(spin), z: 0.0 };
+      var v = {
+        x: -Math.sin(spin) * Math.cos(tilt),
+        y: Math.cos(spin) * Math.cos(tilt),
+        z: Math.sin(tilt)
+      };
+
+      // Place cluster members along their orbital plane
+      byGroup[g].forEach(function(n, mindex) {
+        var mradius = MEMBER_STEP * Math.sqrt(mindex);
+        var mangle = mindex * GOLDEN_ANGLE;
+        var lx = mradius * Math.cos(mangle);
+        var ly = mradius * Math.sin(mangle);
+        n.x = ccx + lx * u.x + ly * v.x;
+        n.y = ccy + lx * u.y + ly * v.y;
+        n.z = ccz + lx * u.z + ly * v.z;
+        n.vx = 0; n.vy = 0; n.vz = 0;
+      });
+    });
+
+    // 3D Relaxation Simulation to settle nodes into celestial balance
+    for (var it = 0; it < 160; it++) {
+      var cool = 1 - it / 160;
+      // Repulsion between all nodes
       for (var i = 0; i < nodes.length; i++) {
         var a = nodes[i];
         for (var j = i + 1; j < nodes.length; j++) {
@@ -659,9 +691,9 @@ TEMPLATE = """<!DOCTYPE html>
           var dy = b.y - a.y;
           var dz = b.z - a.z;
           var d2 = dx*dx + dy*dy + dz*dz || 1.0;
-          if (d2 < 60000) {
+          if (d2 < 65000) {
             var d = Math.sqrt(d2);
-            var f = (3800 / d2) * cool;
+            var f = (3200 / d2) * cool;
             var fx = (dx / d) * f;
             var fy = (dy / d) * f;
             var fz = (dz / d) * f;
@@ -677,19 +709,21 @@ TEMPLATE = """<!DOCTYPE html>
         var dy = b.y - a.y;
         var dz = b.z - a.z;
         var d = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1.0;
-        var f = (d - 120) * 0.02 * cool;
+        var targetDist = (a.group === b.group) ? 80 : 240;
+        var f = (d - targetDist) * 0.025 * cool;
         var fx = (dx / d) * f;
         var fy = (dy / d) * f;
         var fz = (dz / d) * f;
         a.vx += fx; a.vy += fy; a.vz += fz;
         b.vx -= fx; b.vy -= fy; b.vz -= fz;
       });
-      // Center gravity & integration
+      // Soft tether to cluster center
       nodes.forEach(function(n) {
-        n.vx -= n.x * 0.002;
-        n.vy -= n.y * 0.002;
-        n.vz -= n.z * 0.002;
-        n.vx *= 0.85; n.vy *= 0.85; n.vz *= 0.85;
+        var c = clusterCenters[n.group] || { x: 0, y: 0, z: 0 };
+        n.vx += (c.x - n.x) * 0.015 * cool;
+        n.vy += (c.y - n.y) * 0.015 * cool;
+        n.vz += (c.z - n.z) * 0.015 * cool;
+        n.vx *= 0.82; n.vy *= 0.82; n.vz *= 0.82;
         n.x += n.vx; n.y += n.vy; n.z += n.vz;
       });
     }
@@ -749,55 +783,78 @@ TEMPLATE = """<!DOCTYPE html>
     });
   }
 
-  // --- THREE.JS 3D SCENE SETUP ---
+  // --- THREE.JS 3D SCENE SETUP (SOTA ATLAS CELESTIAL SKY) ---
   var scene, camera, renderer;
   var nodeMeshes = [];
   var nodeGlowSprites = [];
   var lineSegments;
   var linePositions, lineColors;
+  var edgeSegmentMeta = [];
 
   function initThree() {
     var width = stageEl.clientWidth || window.innerWidth - 360;
     var height = stageEl.clientHeight || window.innerHeight - 60;
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060814);
-    scene.fog = new THREE.FogExp2(0x060814, 0.0006);
+    scene.background = new THREE.Color(0x070a13);
+    scene.fog = new THREE.FogExp2(0x070a13, 0.00045);
 
-    camera = new THREE.PerspectiveCamera(55, width / height, 1, 4000);
-    camera.position.set(0, 80, 680);
+    camera = new THREE.PerspectiveCamera(52, width / height, 1, 4500);
+    camera.position.set(0, 120, 750);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     stageEl.appendChild(renderer.domElement);
 
-    // Subtle 3D Starfield particles
+    // Subtle 3D Starfield particles (celestial dust)
     var starGeo = new THREE.BufferGeometry();
-    var starCount = 350;
+    var starCount = 450;
     var starPos = new Float32Array(starCount * 3);
     for (var s = 0; s < starCount * 3; s += 3) {
-      starPos[s] = (Math.random() - 0.5) * 2000;
-      starPos[s+1] = (Math.random() - 0.5) * 2000;
-      starPos[s+2] = (Math.random() - 0.5) * 2000;
+      starPos[s] = (Math.random() - 0.5) * 2400;
+      starPos[s+1] = (Math.random() - 0.5) * 2400;
+      starPos[s+2] = (Math.random() - 0.5) * 2400;
     }
     starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
-    var starMat = new THREE.PointsMaterial({ color: 0x38bdf8, size: 2.2, transparent: true, opacity: 0.45 });
+    var starMat = new THREE.PointsMaterial({ color: 0x93c5fd, size: 2.2, transparent: true, opacity: 0.5 });
     var stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
-    // Lighting
-    var ambient = new THREE.AmbientLight(0xffffff, 0.9);
+    // Warm & Cool Celestial Point Lights + Ambient + Directional Rim
+    var ambient = new THREE.AmbientLight(0xdde8ff, 0.65);
     scene.add(ambient);
 
-    // Nodes Construction
-    var sphereGeo = new THREE.SphereGeometry(1, 16, 16);
+    var light1 = new THREE.PointLight(0x5aa9e6, 1.4, 4500);
+    light1.position.set(800, 1000, 800);
+    scene.add(light1);
+
+    var light2 = new THREE.PointLight(0x9b7ede, 1.2, 4500);
+    light2.position.set(-800, -700, 600);
+    scene.add(light2);
+
+    var light3 = new THREE.PointLight(0xe8b339, 0.85, 3500);
+    light3.position.set(0, 500, -900);
+    scene.add(light3);
+
+    var rimLight = new THREE.DirectionalLight(0xffffff, 0.35);
+    rimLight.position.set(0, 1200, 400);
+    scene.add(rimLight);
+
+    // Nodes Construction (Celestial bodies with specular reflection and emissive glow)
+    var sphereGeo = new THREE.SphereGeometry(1, 24, 24);
 
     nodes.forEach(function(n) {
       var colorObj = new THREE.Color(n.color);
 
-      // Core Solid Sphere
-      var mat = new THREE.MeshBasicMaterial({ color: colorObj, transparent: true, opacity: 0.95 });
+      // Core Phong Sphere
+      var mat = new THREE.MeshPhongMaterial({
+        color: colorObj,
+        emissive: colorObj.clone().multiplyScalar(0.22),
+        shininess: 35,
+        transparent: true,
+        opacity: 0.95
+      });
       var mesh = new THREE.Mesh(sphereGeo, mat);
       mesh.scale.setScalar(n.size);
       mesh.position.set(n.x, n.y, n.z);
@@ -806,39 +863,85 @@ TEMPLATE = """<!DOCTYPE html>
       nodeMeshes.push(mesh);
       n.mesh = mesh;
 
-      // Luminous Glow Sprite
+      // Luminous Glow Sprite (Additive Blending)
       var glowTex = createGlowTexture(n.color);
       var glowMat = new THREE.SpriteMaterial({
         map: glowTex,
         color: colorObj,
         transparent: true,
-        opacity: 0.75,
+        opacity: 0.72,
         blending: THREE.AdditiveBlending
       });
       var sprite = new THREE.Sprite(glowMat);
-      sprite.scale.setScalar(n.size * 5.2);
+      sprite.scale.setScalar(n.size * 5.4);
       sprite.position.copy(mesh.position);
       scene.add(sprite);
       nodeGlowSprites.push(sprite);
       n.sprite = sprite;
     });
 
-    // Edges Construction
-    linePositions = new Float32Array(edges.length * 2 * 3);
-    lineColors = new Float32Array(edges.length * 2 * 3);
+    // Edges Construction: Straight lines for intra-cluster, 3D curved parabolic arcs for cross-cluster
+    var ARC_SEGMENTS = 12;
+    var totalSegments = 0;
+    edges.forEach(function(e) {
+      e.isInter = (e.source.group !== e.target.group);
+      totalSegments += e.isInter ? ARC_SEGMENTS : 1;
+    });
 
-    edges.forEach(function(e, i) {
-      var idx = i * 6;
-      linePositions[idx] = e.source.x;
-      linePositions[idx+1] = e.source.y;
-      linePositions[idx+2] = e.source.z;
-      linePositions[idx+3] = e.target.x;
-      linePositions[idx+4] = e.target.y;
-      linePositions[idx+5] = e.target.z;
+    linePositions = new Float32Array(totalSegments * 2 * 3);
+    lineColors = new Float32Array(totalSegments * 2 * 3);
+    edgeSegmentMeta = [];
 
-      var c = new THREE.Color(e.source.color);
-      lineColors[idx] = c.r; lineColors[idx+1] = c.g; lineColors[idx+2] = c.b;
-      lineColors[idx+3] = c.r; lineColors[idx+4] = c.g; lineColors[idx+5] = c.b;
+    var vertIdx = 0;
+    edges.forEach(function(e) {
+      var segStart = vertIdx;
+      var cSrc = new THREE.Color(e.source.color);
+      var cTgt = new THREE.Color(e.target.color);
+
+      if (e.isInter) {
+        // 3D Parabolic Curved Arc between clusters
+        var v0 = new THREE.Vector3(e.source.x, e.source.y, e.source.z);
+        var v2 = new THREE.Vector3(e.target.x, e.target.y, e.target.z);
+        var mid = new THREE.Vector3().addVectors(v0, v2).multiplyScalar(0.5);
+        var dist = v0.distanceTo(v2);
+
+        // Control point lifted in normal direction away from the origin
+        var liftDir = mid.clone().normalize();
+        if (liftDir.lengthSq() < 0.01) liftDir.set(0, 1, 0);
+        var arcLift = Math.min(dist * 0.45, 180);
+        var v1 = mid.clone().add(liftDir.multiplyScalar(arcLift));
+
+        var curve = new THREE.QuadraticBezierCurve3D(v0, v1, v2);
+        var pts = curve.getPoints(ARC_SEGMENTS);
+
+        for (var s = 0; s < ARC_SEGMENTS; s++) {
+          var pA = pts[s];
+          var pB = pts[s + 1];
+          var tA = s / ARC_SEGMENTS;
+          var tB = (s + 1) / ARC_SEGMENTS;
+          var colA = cSrc.clone().lerp(cTgt, tA);
+          var colB = cSrc.clone().lerp(cTgt, tB);
+
+          linePositions[vertIdx] = pA.x; linePositions[vertIdx+1] = pA.y; linePositions[vertIdx+2] = pA.z;
+          lineColors[vertIdx] = colA.r; lineColors[vertIdx+1] = colA.g; lineColors[vertIdx+2] = colA.b;
+          vertIdx += 3;
+
+          linePositions[vertIdx] = pB.x; linePositions[vertIdx+1] = pB.y; linePositions[vertIdx+2] = pB.z;
+          lineColors[vertIdx] = colB.r; lineColors[vertIdx+1] = colB.g; lineColors[vertIdx+2] = colB.b;
+          vertIdx += 3;
+        }
+        edgeSegmentMeta.push({ edge: e, segStart: segStart, vertCount: ARC_SEGMENTS * 6, isInter: true });
+      } else {
+        // Straight line intra-cluster
+        linePositions[vertIdx] = e.source.x; linePositions[vertIdx+1] = e.source.y; linePositions[vertIdx+2] = e.source.z;
+        lineColors[vertIdx] = cSrc.r; lineColors[vertIdx+1] = cSrc.g; lineColors[vertIdx+2] = cSrc.b;
+        vertIdx += 3;
+
+        linePositions[vertIdx] = e.target.x; linePositions[vertIdx+1] = e.target.y; linePositions[vertIdx+2] = e.target.z;
+        lineColors[vertIdx] = cTgt.r; lineColors[vertIdx+1] = cTgt.g; lineColors[vertIdx+2] = cTgt.b;
+        vertIdx += 3;
+        edgeSegmentMeta.push({ edge: e, segStart: segStart, vertCount: 6, isInter: false });
+      }
     });
 
     var lineGeo = new THREE.BufferGeometry();
@@ -848,7 +951,7 @@ TEMPLATE = """<!DOCTYPE html>
     var lineMat = new THREE.LineBasicMaterial({
       vertexColors: true,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.35,
       blending: THREE.AdditiveBlending
     });
     lineSegments = new THREE.LineSegments(lineGeo, lineMat);
@@ -902,18 +1005,18 @@ TEMPLATE = """<!DOCTYPE html>
         // Default Luminous State
         n.mesh.material.opacity = 0.95;
         n.mesh.scale.setScalar(n.size);
-        n.sprite.material.opacity = 0.75;
-        n.sprite.scale.setScalar(n.size * 5.2);
+        n.sprite.material.opacity = 0.72;
+        n.sprite.scale.setScalar(n.size * 5.4);
       }
     });
 
     // Update Edges Opacity and Luminosity
-    if (lineSegments) {
+    if (lineSegments && edgeSegmentMeta) {
       var colorsAttr = lineSegments.geometry.attributes.color;
       var cArr = colorsAttr.array;
 
-      edges.forEach(function(e, i) {
-        var idx = i * 6;
+      edgeSegmentMeta.forEach(function(meta) {
+        var e = meta.edge;
         var activeEdge = false;
 
         if (selectedNode) {
@@ -924,24 +1027,37 @@ TEMPLATE = """<!DOCTYPE html>
           activeEdge = true;
         }
 
-        var col;
+        var colSrc = new THREE.Color(e.source.color);
+        var colTgt = new THREE.Color(e.target.color);
+
         if (selectedNode) {
           if (activeEdge) {
-            col = new THREE.Color(0x00f0ff); // Highlight neon beam
+            colSrc = new THREE.Color(0x38bdf8); // Glowing celestial beam
+            colTgt = new THREE.Color(0x818cf8);
           } else {
-            col = new THREE.Color(0x11162b); // Dimmed
+            colSrc = new THREE.Color(0x0a0f1d); // Dimmed into space
+            colTgt = new THREE.Color(0x0a0f1d);
           }
         } else if (activeClusterFilter) {
-          col = activeEdge ? new THREE.Color(e.source.color) : new THREE.Color(0x11162b);
-        } else {
-          col = new THREE.Color(e.source.color);
+          if (!activeEdge) {
+            colSrc = new THREE.Color(0x0a0f1d);
+            colTgt = new THREE.Color(0x0a0f1d);
+          }
         }
 
-        cArr[idx] = col.r; cArr[idx+1] = col.g; cArr[idx+2] = col.b;
-        cArr[idx+3] = col.r; cArr[idx+4] = col.g; cArr[idx+5] = col.b;
+        for (var vi = 0; vi < meta.vertCount; vi += 6) {
+          var vBase = meta.segStart + vi;
+          var tA = vi / meta.vertCount;
+          var tB = (vi + 3) / meta.vertCount;
+          var cA = colSrc.clone().lerp(colTgt, tA);
+          var cB = colSrc.clone().lerp(colTgt, tB);
+
+          cArr[vBase] = cA.r; cArr[vBase+1] = cA.g; cArr[vBase+2] = cA.b;
+          cArr[vBase+3] = cB.r; cArr[vBase+4] = cB.g; cArr[vBase+5] = cB.b;
+        }
       });
       colorsAttr.needsUpdate = true;
-      lineSegments.material.opacity = selectedNode ? 0.95 : 0.25;
+      lineSegments.material.opacity = selectedNode ? 0.95 : 0.35;
     }
   }
 

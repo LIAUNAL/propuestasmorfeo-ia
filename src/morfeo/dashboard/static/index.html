@@ -1705,6 +1705,16 @@
         </div>
         <iframe id="flowIframe" class="iframe-viewer" src="/api/flow"></iframe>
       </div>
+
+      <div class="panel" style="margin-top: 1.25rem;">
+        <div class="panel__header">
+          <div class="panel__title">Fases del Pipeline Metodológico de Redacción (Flujo Archify)</div>
+          <span class="panel__meta">Descripción de qué se realiza en cada fase del pipeline</span>
+        </div>
+        <div class="pipeline-grid" id="archifyPhasesGrid">
+          <!-- Rendered dynamically by JS with identical 3-line descriptions -->
+        </div>
+      </div>
     </div>
 
     <!-- TAB 3: SECTIONS -->
@@ -1857,6 +1867,10 @@
               <button class="btn btn--xs btn--humanize" onclick="triggerHumanize()">✨ Humanizar</button>
             </div>
             <div class="pdf-interaction-actions">
+              <div class="btn-group" style="margin-right: 0.25rem;">
+                <button class="btn btn--sm" id="btnUndoAnnot" onclick="undoAnnotationAction()" title="Deshacer el último cambio realizado de forma iterativa (Ctrl+Z / Cmd+Z)" disabled style="opacity: 0.45; cursor: not-allowed;">↩️ Deshacer</button>
+                <button class="btn btn--sm" id="btnRedoAnnot" onclick="redoAnnotationAction()" title="Volver adelante / Rehacer el cambio deshecho (Ctrl+Y / Cmd+Shift+Z)" disabled style="opacity: 0.45; cursor: not-allowed;">↪️ Volver adelante</button>
+              </div>
               <button class="btn btn--sm" id="btnClearSelection" onclick="deselectPdfText()" title="Quitar la selección de texto del visor">✕ Deseleccionar</button>
               <button class="btn btn--sm" id="btnDesmarcarTodos" onclick="clearAllAnnotations()" title="Desmarcar todos los cambios pendientes sin ejecutar">Desmarcar todos</button>
               <button class="btn btn--sm btn--executed-marks" id="btnClearExecutedMarks" onclick="clearExecutedChangeMarks()" title="Quitar marcas de cambios aplicados en el PDF" style="display: none; background: rgba(16, 185, 129, 0.15); border-color: var(--ok); color: var(--ok);">🧹 Quitar marcas de cambios (<span id="executedMarksCount">0</span>)</button>
@@ -1929,6 +1943,10 @@
                   <small>Sustituir por texto exacto o borrar</small>
                 </span>
               </button>
+              <div style="display: flex; gap: 0.5rem; margin-top: 0.65rem;">
+                <button class="btn btn--sm" id="btnPanelUndo" onclick="undoAnnotationAction()" style="flex: 1; opacity: 0.45; cursor: not-allowed;" title="Deshacer el último cambio de forma iterativa (Ctrl+Z)" disabled>↩️ Deshacer</button>
+                <button class="btn btn--sm" id="btnPanelRedo" onclick="redoAnnotationAction()" style="flex: 1; opacity: 0.45; cursor: not-allowed;" title="Volver adelante / Rehacer (Ctrl+Y)" disabled>↪️ Rehacer</button>
+              </div>
             </div>
           </div>
 
@@ -2175,6 +2193,25 @@
       return partes.join(' ') || 'Unidad del pipeline.';
     }
 
+    const CANONICAL_PHASE_DESCRIPTIONS = {
+      fase0: "Ingesta, clasificación y extracción de los insumos del usuario (documentos base, TDR, papers y enlaces) para estructurar el contexto compartido de la propuesta.",
+      g0_5: "Cotejo preliminar de las secciones de la guía frente a los términos de referencia de la convocatoria, fijando requisitos específicos y restricciones formales.",
+      fase1a: "Búsqueda bibliográfica de encuadre en el grafo de conocimiento para delimitar el alcance temático y postular los tres subproblemas preliminares mutuamente excluyentes.",
+      fase1b: "Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo las referencias semilla e indexando el grafo de papers y el vault de conocimiento.",
+      fase1: "Redacción de la descripción del problema (§3), formulación de la pregunta central de investigación y diseño del árbol de problemas validado en TikZ.",
+      fase2: "Construcción del estado del arte con referencias Q1/Q2 (§4), formulación de la hipótesis falsable (§5) y elaboración del mapa visual del estado del arte.",
+      fase3: "Elaboración de la justificación y pertinencia (§2), articulando la solución con los ODS, el PND y el nivel de madurez tecnológica TRL 6 o 7.",
+      fase4: "Formulación del objetivo general (§6) y los tres objetivos específicos (§7), garantizando una correspondencia biyectiva estricta con los subproblemas.",
+      fase5: "Desarrollo de los fundamentos teóricos (§8) y conformación del equipo de trabajo (§9), derivando roles operativos directamente de los objetivos específicos.",
+      fase5_5: "Estructuración de la metodología (§10) por fases y cadena de valor, junto con la especificación y verificación determinista del diagrama en TikZ.",
+      fase6: "Definición de los resultados e impactos esperados (§11) y fundamentación de las consideraciones éticas y de gestión de datos (§12).",
+      fase6_4: "Construcción del presupuesto (§13) detallando rubros, contrapartidas y cofinanciación con balance aritmético verificable conforme al TDR.",
+      fase6_45: "Planificación del cronograma de actividades (§14, Gantt), consolidación de la tabla de productos entregables (§15) y bibliografía en BibTeX APA (§16).",
+      fase6_46: "Diseño de la articulación comunitaria territorial (§17) y el plan de apropiación social del conocimiento (§18) con las comunidades de interés.",
+      fase6_5: "Redacción del resumen técnico, resumen ejecutivo institucional, palabras clave y verificación final del título definitivo en el encabezado.",
+      fase7: "Auditoría final cruzada de dependencias, verificación de consistencia entre secciones, ensamble del documento y compilación del PDF final."
+    };
+
     function buildPhasesInfo(units) {
       return units.map(u => ({
         id: u.id,
@@ -2186,7 +2223,7 @@
         agents: u.agents || [],
         skills: u.skills || [],
         sections: u.sections || [],
-        desc: describeUnit(u)
+        desc: u.desc || CANONICAL_PHASE_DESCRIPTIONS[u.id] || describeUnit(u)
       }));
     }
 
@@ -2304,7 +2341,10 @@
           <span class="badge badge--${badgeTone}">${p.gate ? `Gate ${p.gate}: ${gateStatus}` : 'Sin compuerta propia'}</span>
           <span class="badge badge--info" style="margin-left: 0.5rem;">${p.kind === 'pre' ? 'Intake' : 'Unidad del pipeline'}</span>
         </div>
-        <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1.25rem;">${p.desc}</p>
+        <div class="phase-drawer-desc" style="font-size: 0.92rem; color: var(--text-normal); line-height: 1.5; margin-bottom: 1.25rem; background: var(--surface-2); padding: 0.85rem 1rem; border-radius: var(--radius); border-left: 3px solid var(--accent); border: 1px solid var(--border);">
+          <strong style="display:block; margin-bottom: 0.35rem; font-size: 0.82rem; text-transform: uppercase; color: var(--accent);">¿Qué se hace en esta fase?</strong>
+          ${p.desc}
+        </div>
 
         <div style="margin-bottom: 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem;">
           <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--accent); margin-bottom: 0.35rem;">🚀 Lanzar o continuar flujo</h4>
@@ -2577,6 +2617,34 @@
           pipeGrid.innerHTML = `<div class="annots-empty"><p>Sin inventario de unidades en el sobre de estado.</p><small>Actualiza el paquete de <code>morfeo</code>.</small></div>`;
         }
 
+        // Render Archify Flow Phases Grid with identical descriptions
+        const archGrid = document.getElementById('archifyPhasesGrid');
+        if (archGrid) {
+          archGrid.innerHTML = '';
+          PHASES_INFO.forEach((p, idx) => {
+            const gateStatus = getPhaseVerdict(p);
+            const isLit = (gateStatus === 'PASS');
+            const badgeTone = isLit ? 'ok' : (gateStatus === 'BLOCKED' ? 'bad' : 'warn');
+            const card = document.createElement('div');
+            card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
+            card.onclick = () => openDrawer(idx);
+            card.style.cursor = 'pointer';
+            card.title = `${p.name} · Clic para ver detalles y dependencias`;
+            card.innerHTML = `
+              <div class="phase-card__head">
+                <span class="phase-card__name">${p.name}</span>
+                <span class="badge badge--${badgeTone}">${isLit ? '💡 ' : ''}${p.gateLabel}: ${gateStatus}</span>
+              </div>
+              <p class="phase-card__desc">${p.desc}</p>
+              <div class="phase-card__foot">
+                <span>Agentes: <strong>${p.agents.length ? p.agents.join(', ') : '—'}</strong></span>
+                <span>${p.sections.length} secciones</span>
+              </div>
+            `;
+            archGrid.appendChild(card);
+          });
+        }
+
         // Render Sections Table
         const secTbody = document.getElementById('sectionsTableBody');
         secTbody.innerHTML = '';
@@ -2693,6 +2761,8 @@
     let currentSelectedPage = 1;
     let queuedAnnotations = [];
     let executedChangeMarks = [];
+    let annotUndoStack = [];
+    let annotRedoStack = [];
     // Ruta, relativa a la corrida activa, del archivo que el redactor consume.
     // El panel la consulta para mostrar cuántas instrucciones siguen pendientes.
     let PENDING_INSTRUCTIONS_PATH = 'artefactos/pipeline/instrucciones_revisor_pdf.md';
@@ -3556,10 +3626,11 @@
         : findTextRectsInTextLayer(currentSelectedText);
 
       let toast;
+      let newAnn;
       if (isReplacement) {
         // Camino determinista: el texto literal reemplaza el ancla en la fuente
         // LaTeX y se recompila. Ningún modelo interviene aquí.
-        queuedAnnotations.push({
+        newAnn = {
           id: 'ann_' + Date.now(),
           type: 'replace',
           text: currentSelectedText,
@@ -3568,22 +3639,24 @@
           comment: comment,
           page: currentSelectedPage,
           rects: rects
-        });
+        };
         toast = (deleteIntent && !replacement.trim())
           ? 'Borrado confirmado: se eliminará el fragmento al ejecutar'
           : 'Reemplazo registrado: se aplicará literal al ejecutar';
       } else {
         // Camino de prosa: el comentario viaja como instrucción y no reescribe nada.
-        queuedAnnotations.push({
+        newAnn = {
           id: 'ann_' + Date.now(),
           type: 'comment',
           text: currentSelectedText,
           comment: comment,
           page: currentSelectedPage,
           rects: rects
-        });
+        };
         toast = 'Comentario agregado: queda en la cola del redactor';
       }
+      queuedAnnotations.push(newAnn);
+      recordAnnotAction({ type: 'add', item: newAnn });
       savedSelectedRangeRects = null;
       if (window.getSelection) {
         window.getSelection().removeAllRanges();
@@ -3604,13 +3677,15 @@
         ? [...savedSelectedRangeRects]
         : findTextRectsInTextLayer(targetText);
 
-      queuedAnnotations.push({
+      const newAnn = {
         id: 'ann_' + Date.now(),
         type: 'strikethrough',
         text: targetText,
         page: currentSelectedPage,
         rects: rects
-      });
+      };
+      queuedAnnotations.push(newAnn);
+      recordAnnotAction({ type: 'add', item: newAnn });
       savedSelectedRangeRects = null;
       if (window.getSelection) {
         window.getSelection().removeAllRanges();
@@ -3630,13 +3705,15 @@
         ? [...savedSelectedRangeRects]
         : findTextRectsInTextLayer(targetText);
 
-      queuedAnnotations.push({
+      const newAnn = {
         id: 'ann_' + Date.now(),
         type: 'humanize',
         text: targetText,
         page: currentSelectedPage,
         rects: rects
-      });
+      };
+      queuedAnnotations.push(newAnn);
+      recordAnnotAction({ type: 'add', item: newAnn });
       savedSelectedRangeRects = null;
       if (window.getSelection) {
         window.getSelection().removeAllRanges();
@@ -3646,7 +3723,12 @@
     }
 
     function removeAnnotation(id) {
-      queuedAnnotations = queuedAnnotations.filter(a => a.id !== id);
+      const idx = queuedAnnotations.findIndex(a => a.id === id);
+      if (idx !== -1) {
+        const removed = queuedAnnotations[idx];
+        queuedAnnotations.splice(idx, 1);
+        recordAnnotAction({ type: 'remove', item: removed, index: idx });
+      }
       renderAnnotationsTray();
     }
 
@@ -3657,7 +3739,9 @@
       }
       if (confirm("¿Desmarcar todos los cambios pendientes sin ejecutar?")) {
         const removed = queuedAnnotations.length;
+        const prevItems = [...queuedAnnotations];
         queuedAnnotations = [];
+        recordAnnotAction({ type: 'clear', items: prevItems });
         closeMarksMenu();
         renderAnnotationsTray();
         showToast(`${removed} cambio${removed === 1 ? '' : 's'} desmarcado${removed === 1 ? '' : 's'}`);
@@ -3680,7 +3764,10 @@
         return;
       }
       if (!confirm(`¿Quitar ${count} ${count === 1 ? labels[type] : plural[type]} del visor?`)) return;
+      const removedItems = queuedAnnotations.filter(a => a.type === type);
+      const prevList = [...queuedAnnotations];
       queuedAnnotations = queuedAnnotations.filter(a => a.type !== type);
+      recordAnnotAction({ type: 'removeMany', items: removedItems, prevList: prevList });
       closeMarksMenu();
       renderAnnotationsTray();
       showToast(`${count} ${count === 1 ? labels[type] : plural[type]} quitado${count === 1 ? '' : 's'}`);
@@ -3715,6 +3802,102 @@
     document.addEventListener('click', (e) => {
       const menu = document.getElementById('marksMenu');
       if (menu && !menu.contains(e.target)) closeMarksMenu();
+    });
+
+    function recordAnnotAction(action) {
+      annotUndoStack.push(action);
+      annotRedoStack = [];
+      updateUndoRedoUI();
+    }
+
+    function updateUndoRedoUI() {
+      const canUndo = annotUndoStack.length > 0;
+      const canRedo = annotRedoStack.length > 0;
+
+      const undoBtns = [document.getElementById('btnUndoAnnot'), document.getElementById('btnPanelUndo')];
+      const redoBtns = [document.getElementById('btnRedoAnnot'), document.getElementById('btnPanelRedo')];
+
+      undoBtns.forEach(btn => {
+        if (!btn) return;
+        btn.disabled = !canUndo;
+        btn.style.opacity = canUndo ? '1' : '0.45';
+        btn.style.cursor = canUndo ? 'pointer' : 'not-allowed';
+      });
+
+      redoBtns.forEach(btn => {
+        if (!btn) return;
+        btn.disabled = !canRedo;
+        btn.style.opacity = canRedo ? '1' : '0.45';
+        btn.style.cursor = canRedo ? 'pointer' : 'not-allowed';
+      });
+    }
+
+    function undoAnnotationAction() {
+      if (annotUndoStack.length === 0) return;
+      const action = annotUndoStack.pop();
+      if (action.type === 'add') {
+        queuedAnnotations = queuedAnnotations.filter(a => a.id !== action.item.id);
+        annotRedoStack.push(action);
+      } else if (action.type === 'remove') {
+        if (typeof action.index === 'number' && action.index >= 0 && action.index <= queuedAnnotations.length) {
+          queuedAnnotations.splice(action.index, 0, action.item);
+        } else {
+          queuedAnnotations.push(action.item);
+        }
+        annotRedoStack.push(action);
+      } else if (action.type === 'clear') {
+        annotRedoStack.push({ type: 'clear', items: [...queuedAnnotations] });
+        queuedAnnotations = [...action.items];
+      } else if (action.type === 'removeMany') {
+        annotRedoStack.push({ type: 'removeMany', items: action.items, prevList: [...queuedAnnotations] });
+        queuedAnnotations = [...action.prevList];
+      }
+      renderAnnotationsTray();
+      updateUndoRedoUI();
+      showToast('Acción deshecha ↩️');
+    }
+
+    function redoAnnotationAction() {
+      if (annotRedoStack.length === 0) return;
+      const action = annotRedoStack.pop();
+      if (action.type === 'add') {
+        queuedAnnotations.push(action.item);
+        annotUndoStack.push(action);
+      } else if (action.type === 'remove') {
+        const idx = queuedAnnotations.findIndex(a => a.id === action.item.id);
+        if (idx !== -1) queuedAnnotations.splice(idx, 1);
+        annotUndoStack.push(action);
+      } else if (action.type === 'clear') {
+        annotRedoStack.push({ type: 'clear', items: [...queuedAnnotations] });
+        queuedAnnotations = [];
+      } else if (action.type === 'removeMany') {
+        annotUndoStack.push({ type: 'removeMany', items: action.items, prevList: [...queuedAnnotations] });
+        const idsToRemove = new Set(action.items.map(a => a.id));
+        queuedAnnotations = queuedAnnotations.filter(a => !idsToRemove.has(a.id));
+      }
+      renderAnnotationsTray();
+      updateUndoRedoUI();
+      showToast('Acción vuelta a aplicar ↪️');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || (e.target && e.target.isContentEditable)) {
+        return;
+      }
+      const isZ = e.key === 'z' || e.key === 'Z';
+      const isY = e.key === 'y' || e.key === 'Y';
+      if ((e.ctrlKey || e.metaKey) && isZ) {
+        if (e.shiftKey) {
+          redoAnnotationAction();
+        } else {
+          undoAnnotationAction();
+        }
+        e.preventDefault();
+      } else if ((e.ctrlKey || e.metaKey) && isY) {
+        redoAnnotationAction();
+        e.preventDefault();
+      }
     });
 
     function toggleAnnotationsTray() {
@@ -3858,6 +4041,7 @@
       setCount('marksCountHumanize', countByType('humanize'));
       setCount('marksCountReplace', countByType('replace'));
       setCount('marksCountAll', count);
+      updateUndoRedoUI();
 
       const list = document.getElementById('annotsList');
       if (!list) return;
@@ -4012,6 +4196,9 @@
 
         // Execution successful
         queuedAnnotations = [];
+        annotUndoStack = [];
+        annotRedoStack = [];
+        updateUndoRedoUI();
         renderAnnotationsTray();
         updateExecutedMarksUI();
 
@@ -4152,6 +4339,7 @@
       loadStatus();
       loadPendingInstructionsQueue();
       loadExecutionHistory();
+      updateUndoRedoUI();
       // Polling every 5 seconds for live status
       setInterval(loadStatus, 5000);
     });

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import time
@@ -266,11 +267,13 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         start, end = match_span
 
         if ann_type in ("strikethrough", "tachar", "delete"):
-            # Quitar texto tachado (o reemplazar por comentario de trazabilidad)
-            replacement = ""
-            new_content = content[:start] + replacement + content[end:]
-            # Clean up residual whitespace around deletion
-            new_content = re.sub(r" {2,}", " ", new_content)
+            # Quitar únicamente el texto explícitamente tachado sin reescribir ni humanizar el resto
+            prefix = content[:start]
+            suffix = content[end:]
+            # Limpiar solo el espacio doble en la juntura exacta del corte
+            if prefix.endswith(" ") and suffix.startswith(" "):
+                suffix = suffix[1:]
+            new_content = prefix + suffix
             file_contents[matched_file] = new_content
             files_modified.add(matched_file)
             applied_strikethroughs.append({
@@ -453,9 +456,12 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         try:
             build_sh = redaccion_dir / "build.sh"
             if build_sh.is_file():
+                build_env = dict(os.environ)
+                build_env["SKIP_DOI_REPAIR"] = "1"
                 res = subprocess.run(
                     ["bash", "build.sh"],
                     cwd=redaccion_dir,
+                    env=build_env,
                     capture_output=True,
                     text=True,
                     encoding="utf-8",

@@ -66,6 +66,10 @@ clean_artifacts() {
 
 # --- Reparación de refs.bib (doi2bib3) ---------------------------------------
 repair_bib() {
+  if [[ "${SKIP_DOI_REPAIR:-0}" == "1" ]]; then
+    log "SKIP_DOI_REPAIR=1 activo: salteando reparación DOI para compilación rápida."
+    return 0
+  fi
   local bib="${SCRIPT_DIR}/${BIB_FILE}"
   if [[ ! -f "${bib}" ]]; then
     warn "${BIB_FILE} ausente — salteando reparación DOI (se crea en Fase 2 del pipeline)."

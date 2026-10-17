@@ -151,3 +151,61 @@ test('el panel hace visible la cola de instrucciones pendientes del redactor', a
     )}`,
   );
 });
+
+test('deshacer y volver adelante (undo/redo) gestionan iterativamente las anotaciones', async (t) => {
+  const viewer = await createViewerHarness({ numPages: 2 });
+  t.after(() => viewer.dispose());
+
+  const btnUndo = viewer.document.getElementById('btnUndoAnnot');
+  const btnRedo = viewer.document.getElementById('btnRedoAnnot');
+  assert.ok(btnUndo, 'existe el botón de deshacer en la barra del visor');
+  assert.ok(btnRedo, 'existe el botón de rehacer en la barra del visor');
+  assert.equal(btnUndo.disabled, true, 'inicialmente no se puede deshacer');
+  assert.equal(btnRedo.disabled, true, 'inicialmente no se puede rehacer');
+
+  // 1. Agregar tachado
+  viewer.window.eval('currentSelectedText = "texto obsoleto"; currentSelectedPage = 1;');
+  viewer.viewer('triggerStrikethrough');
+
+  let list = queued(viewer);
+  assert.equal(list.length, 1);
+  assert.equal(list[0].type, 'strikethrough');
+  assert.equal(btnUndo.disabled, false, 'tras agregar, el botón deshacer está habilitado');
+  assert.equal(btnRedo.disabled, true, 'rehacer sigue deshabilitado');
+
+  // 2. Deshacer
+  viewer.viewer('undoAnnotationAction');
+  list = queued(viewer);
+  assert.equal(list.length, 0, 'deshacer remueve la marca agregada');
+  assert.equal(btnUndo.disabled, true, 'ya no hay más para deshacer');
+  assert.equal(btnRedo.disabled, false, 'ahora el botón rehacer está habilitado');
+
+  // 3. Rehacer
+  viewer.viewer('redoAnnotationAction');
+  list = queued(viewer);
+  assert.equal(list.length, 1, 'rehacer vuelve a colocar la marca');
+  assert.equal(list[0].type, 'strikethrough');
+  assert.equal(btnUndo.disabled, false, 'vuelve a poderse deshacer');
+  assert.equal(btnRedo.disabled, true, 'pila de rehacer vacía');
+
+  // 4. Agregar humanización
+  viewer.window.eval('currentSelectedText = "texto a mejorar"; currentSelectedPage = 2;');
+  viewer.viewer('triggerHumanize');
+  list = queued(viewer);
+  assert.equal(list.length, 2);
+  assert.equal(list[1].type, 'humanize');
+
+  // 5. Eliminar individual y deshacer la eliminación
+  const idToRemove = list[0].id;
+  viewer.viewer('removeAnnotation', idToRemove);
+  list = queued(viewer);
+  assert.equal(list.length, 1);
+  assert.equal(list[0].type, 'humanize');
+
+  viewer.viewer('undoAnnotationAction');
+  list = queued(viewer);
+  assert.equal(list.length, 2, 'deshacer la eliminación restaura el elemento');
+  assert.equal(list[0].type, 'strikethrough');
+  assert.equal(list[1].type, 'humanize');
+});
+
