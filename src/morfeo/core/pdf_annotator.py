@@ -258,6 +258,66 @@ def _humanize_text_span(text: str) -> str:
     return polished.strip()
 
 
+def _clean_latex_to_plain(text: str) -> str:
+    """Strips common LaTeX commands and braces to produce clean plain text for matching in PDF."""
+    if not text:
+        return ""
+    # Strip comments
+    t = re.sub(r"(?<!\\)%.*$", "", text, flags=re.MULTILINE)
+    # Strip cite commands like \citep{...}, \citet{...}, \cite{...}
+    t = re.sub(r"\\cite[a-zA-Z]*\*?(?:\[[^\]]*\])?\{[^}]*\}", " ", t)
+    # Strip formatting commands like \textbf{...}, \emph{...}, etc. keeping content
+    t = re.sub(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?\{([^}]*)\}", r"\1", t)
+    # Strip standalone commands like \item, \noindent, \centering, etc.
+    t = re.sub(r"\\[a-zA-Z]+\*?", " ", t)
+    # Strip LaTeX special chars
+    t = re.sub(r"[{}\$%~_#&]", " ", t)
+    # Normalize spaces
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
+def _extract_surrounding_sentences(content: str, start: int, end: int) -> tuple[str, str]:
+    """Extracts the sentence immediately before `start` and immediately after `end` in `content`.
+
+    Returns (context_before, context_after) as clean plain text for locating in PDF.
+    """
+    preceding = content[:start].rstrip()
+    following = content[end:].lstrip()
+
+    pre_clean = _clean_latex_to_plain(preceding)
+    foll_clean = _clean_latex_to_plain(following)
+
+    # Context before: find last sentence in pre_clean
+    pre_sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", pre_clean) if s.strip()]
+    if pre_sentences:
+        context_before = pre_sentences[-1].rstrip(".").strip()
+    else:
+        context_before = ""
+
+    # Context after: find first sentence in foll_clean
+    foll_sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", foll_clean) if s.strip()]
+    if foll_sentences:
+        context_after = foll_sentences[0].rstrip(".").strip()
+    else:
+        context_after = ""
+
+    # Cap sentence length to ~120 chars for reliable PDF text layer matching
+    if len(context_before) > 120:
+        context_before = context_before[-100:].strip()
+        sp = context_before.find(" ")
+        if sp != -1 and sp < 25:
+            context_before = context_before[sp + 1:].strip()
+
+    if len(context_after) > 120:
+        context_after = context_after[:100].strip()
+        sp = context_after.rfind(" ")
+        if sp != -1 and sp > 75:
+            context_after = context_after[:sp].strip()
+
+    return context_before, context_after
+
+
 def _parse_instruction_action(comment: str, target_text: str, matched_original: str) -> tuple[str, str] | None:
     """Parse whether a user's comment text is an actionable editorial command on the selected text.
 
@@ -408,11 +468,14 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
                         suffix = suffix[1:]
                     file_contents[matched_file] = prefix + suffix
                     files_modified.add(matched_file)
+                    before_sent, after_sent = _extract_surrounding_sentences(content, start, end)
                     applied_strikethroughs.append({
                         "id": ann_id,
                         "file": str(matched_file.relative_to(run_dir)),
                         "page": page_num,
                         "original_text": matched_original,
+                        "context_before": before_sent,
+                        "context_after": after_sent,
                         "rects": ann.get("rects"),
                         "via_instruction": comment_body,
                     })
@@ -438,6 +501,9 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
                         "page": page_num,
                         "original_text": matched_original,
                         "replacement": new_text,
+                        "deleted": False,
+                        "context_before": "",
+                        "context_after": "",
                         "rects": ann.get("rects"),
                         "via_instruction": comment_body,
                     })
@@ -486,11 +552,14 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             new_content = prefix + suffix
             file_contents[matched_file] = new_content
             files_modified.add(matched_file)
+            before_sent, after_sent = _extract_surrounding_sentences(content, start, end)
             applied_strikethroughs.append({
                 "id": ann_id,
                 "file": str(matched_file.relative_to(run_dir)),
                 "page": page_num,
                 "original_text": matched_original,
+                "context_before": before_sent,
+                "context_after": after_sent,
                 "rects": ann.get("rects"),
             })
 
@@ -527,13 +596,17 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             new_content = content[:start] + replacement + content[end:]
             file_contents[matched_file] = new_content
             files_modified.add(matched_file)
+            is_deleted = replacement == "" or delete_intent
+            before_sent, after_sent = _extract_surrounding_sentences(content, start, end) if is_deleted else ("", "")
             applied_replace.append({
                 "id": ann_id,
                 "file": str(matched_file.relative_to(run_dir)),
                 "page": page_num,
                 "original_text": matched_original,
                 "replacement": replacement,
-                "deleted": replacement == "",
+                "deleted": is_deleted,
+                "context_before": before_sent,
+                "context_after": after_sent,
                 "rects": ann.get("rects"),
             })
 

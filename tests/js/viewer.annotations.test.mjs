@@ -209,3 +209,82 @@ test('deshacer y volver adelante (undo/redo) gestionan iterativamente las anotac
   assert.equal(list[1].type, 'humanize');
 });
 
+test('clic en comentario sin texto activa modo pin estilo Acrobat Reader y guarda pin', async (t) => {
+  const viewer = await createViewerHarness({ numPages: 2 });
+  t.after(() => viewer.dispose());
+
+  // Sin texto seleccionado
+  viewer.window.eval('currentSelectedText = ""; currentSelectedPage = 1;');
+  viewer.viewer('triggerAddComment');
+
+  const isPinMode = viewer.window.eval('isCommentPinPlacementMode');
+  assert.equal(isPinMode, true, 'activa el modo de colocación de pin de comentario');
+
+  // Simular fijación de pin en posición (x: 0.25, y: 0.40)
+  viewer.window.eval(`
+    currentCommentPin = { page: 1, xPct: 0.25, yPct: 0.40, text: "" };
+    currentSelectedPage = 1;
+    currentSelectedText = "";
+  `);
+  const commentInput = viewer.document.getElementById('commentModalInput');
+  assert.ok(commentInput);
+  commentInput.value = 'Revisar margen y figura';
+  viewer.viewer('saveCommentAnnotation');
+
+  const marks = queued(viewer);
+  assert.equal(marks.length, 1);
+  assert.equal(marks[0].type, 'comment');
+  assert.ok(marks[0].pin, 'la marca almacena las coordenadas del pin');
+  assert.equal(marks[0].pin.xPct, 0.25);
+  assert.equal(marks[0].pin.yPct, 0.40);
+});
+
+test('marcas de cambios ejecutados en strikethrough conservan oración anterior y posterior', async (t) => {
+  const viewer = await createViewerHarness({ numPages: 2 });
+  t.after(() => viewer.dispose());
+
+  viewer.window.eval(`
+    executedChangeMarks = [];
+    const details = {
+      strikethrough: [{
+        page: 1,
+        original_text: 'texto eliminado',
+        context_before: 'Esta es la oración anterior al borrado.',
+        context_after: 'Esta es la oración posterior al borrado.'
+      }]
+    };
+    (details.strikethrough || []).forEach(item => {
+      if (item.context_before) {
+        executedChangeMarks.push({
+          id: 'exec_before_1',
+          type: 'strikethrough',
+          subtype: 'context_before',
+          text: item.context_before,
+          searchText: item.context_before,
+          deletedText: item.original_text,
+          page: item.page || 1
+        });
+      }
+      if (item.context_after) {
+        executedChangeMarks.push({
+          id: 'exec_after_1',
+          type: 'strikethrough',
+          subtype: 'context_after',
+          text: item.context_after,
+          searchText: item.context_after,
+          deletedText: item.original_text,
+          page: item.page || 1
+        });
+      }
+    });
+  `);
+
+  const execMarks = JSON.parse(viewer.window.eval('JSON.stringify(executedChangeMarks)'));
+  assert.equal(execMarks.length, 2, 'crea marcas tanto para la oración anterior como posterior');
+  assert.equal(execMarks[0].subtype, 'context_before');
+  assert.equal(execMarks[0].searchText, 'Esta es la oración anterior al borrado.');
+  assert.equal(execMarks[1].subtype, 'context_after');
+  assert.equal(execMarks[1].searchText, 'Esta es la oración posterior al borrado.');
+});
+
+

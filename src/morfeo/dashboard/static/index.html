@@ -1234,31 +1234,77 @@
       background: rgba(245, 158, 11, 0.38);
       border-bottom: 3px solid #b45309;
     }
-    /* Marcas de cambios aplicados sobre el PDF compilado */
+    /* Modo de colocación de pin de comentario (estilo Acrobat Reader) */
+    .pdf-viewport-container--pin-mode,
+    .pdf-viewport-container--pin-mode .pdf-page-slot,
+    .pdf-viewport-container--pin-mode .pdf-page-container,
+    .pdf-viewport-container--pin-mode .textLayer,
+    .pdf-viewport-container--pin-mode .annotationsLayer {
+      cursor: crosshair !important;
+    }
+    .btn--tool--active,
+    .btn--comment--active {
+      background: rgba(56, 189, 248, 0.28) !important;
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.45) !important;
+      transform: translateY(-1px);
+    }
+    .pdf-comment-pin {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      margin-left: -13px;
+      margin-top: -13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      background: #0284c7;
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      z-index: 10;
+      pointer-events: auto;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+      user-select: none;
+    }
+    .pdf-comment-pin:hover {
+      transform: scale(1.25);
+      background: #0369a1;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.65);
+      z-index: 25;
+    }
+
+    /* Marcas de cambios aplicados sobre el PDF compilado (Amarillo Claro) */
     .pdf-annot-highlight--executed {
-      border: 1.5px dashed;
+      background: rgba(254, 240, 138, 0.58) !important;
+      border: 1.5px dashed #ca8a04 !important;
+      border-radius: 2px;
       cursor: help;
-      opacity: 0.85;
-      transition: opacity 0.15s ease, transform 0.15s ease;
+      opacity: 0.92;
+      transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
       z-index: 4;
     }
     .pdf-annot-highlight--executed:hover {
       opacity: 1;
+      background: rgba(253, 224, 71, 0.85) !important;
+      border-color: #a16207 !important;
       transform: scale(1.01);
       z-index: 6;
     }
     .pdf-annot-highlight--executed-strikethrough {
-      background: rgba(239, 68, 68, 0.14);
-      border-color: #ef4444;
-      text-decoration: line-through;
+      background: rgba(254, 240, 138, 0.50) !important;
+      border-color: #eab308 !important;
     }
     .pdf-annot-highlight--executed-humanize {
-      background: rgba(16, 185, 129, 0.16);
-      border-color: #10b981;
+      background: rgba(254, 240, 138, 0.65) !important;
+      border-color: #ca8a04 !important;
     }
     .pdf-annot-highlight--executed-replace {
-      background: rgba(245, 158, 11, 0.16);
-      border-color: #f59e0b;
+      background: rgba(254, 240, 138, 0.60) !important;
+      border-color: #ca8a04 !important;
     }
     .btn--tool.btn--replace:hover {
       border-color: #f59e0b;
@@ -3590,6 +3636,139 @@
       }
     });
 
+    // Variables de estado para colocación de comentarios tipo Acrobat Reader
+    let isCommentPinPlacementMode = false;
+    let currentCommentPin = null;
+
+    function enterCommentPinPlacementMode() {
+      isCommentPinPlacementMode = true;
+      const container = document.getElementById('pdfViewportContainer');
+      const strip = document.getElementById('pdfPagesStrip');
+      if (container) container.classList.add('pdf-viewport-container--pin-mode');
+      if (strip) strip.classList.add('pdf-viewport-container--pin-mode');
+
+      const btn1 = document.getElementById('btnComment');
+      if (btn1) btn1.classList.add('btn--tool--active');
+      const quickBtns = document.querySelectorAll('.btn--comment');
+      quickBtns.forEach(b => b.classList.add('btn--comment--active'));
+
+      const infoEl = document.getElementById('pdfSelectionInfoText');
+      if (infoEl) {
+        infoEl.innerHTML = '📍 <strong>Modo Comentario activo:</strong> Haz clic en cualquier parte del PDF donde quieras colocar el icono de comentario 💬 (o presiona Esc para cancelar).';
+      }
+      showToast('Modo Comentario: Haz clic en el PDF para ubicar tu comentario 💬');
+    }
+
+    function exitCommentPinPlacementMode() {
+      isCommentPinPlacementMode = false;
+      const container = document.getElementById('pdfViewportContainer');
+      const strip = document.getElementById('pdfPagesStrip');
+      if (container) container.classList.remove('pdf-viewport-container--pin-mode');
+      if (strip) strip.classList.remove('pdf-viewport-container--pin-mode');
+
+      const btn1 = document.getElementById('btnComment');
+      if (btn1) btn1.classList.remove('btn--tool--active');
+      const quickBtns = document.querySelectorAll('.btn--comment');
+      quickBtns.forEach(b => b.classList.remove('btn--comment--active'));
+
+      clearSelectionNotice();
+    }
+
+    function toggleCommentPinPlacementMode() {
+      if (isCommentPinPlacementMode) {
+        exitCommentPinPlacementMode();
+        showToast('Modo Comentario cancelado');
+      } else {
+        enterCommentPinPlacementMode();
+      }
+    }
+
+    // Cancelar modo pin con tecla Esc
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isCommentPinPlacementMode) {
+        exitCommentPinPlacementMode();
+        showToast('Modo Comentario cancelado');
+      }
+    });
+
+    // Clic en visor de PDF para colocar pin de comentario
+    document.addEventListener('click', (e) => {
+      if (!isCommentPinPlacementMode) return;
+      if (e.target.closest('#pdfControlPanel') || e.target.closest('.pdf-toolbar') || e.target.closest('.drawer-overlay')) {
+        return;
+      }
+      const slot = e.target.closest('.pdf-page-slot');
+      if (!slot) return;
+
+      const pageNum = parseInt(slot.dataset.pageNumber, 10);
+      const container = slot.querySelector('.pdf-page-container');
+      if (!container) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const cRect = container.getBoundingClientRect();
+      const xPct = Math.max(0, Math.min(1, (e.clientX - cRect.left) / cRect.width));
+      const yPct = Math.max(0, Math.min(1, (e.clientY - cRect.top) / cRect.height));
+
+      // Muestreo de texto cercano en textLayer
+      let nearbyText = '';
+      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      for (const el of elements) {
+        if (el.tagName === 'SPAN' && el.closest('.textLayer')) {
+          nearbyText = (el.textContent || '').trim();
+          break;
+        }
+      }
+      if (!nearbyText) {
+        const spans = Array.from(container.querySelectorAll('.textLayer span'));
+        let closestDist = Infinity;
+        let closestSpan = null;
+        for (const sp of spans) {
+          const r = sp.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+          if (dist < closestDist && dist < 70) {
+            closestDist = dist;
+            closestSpan = sp;
+          }
+        }
+        if (closestSpan) {
+          nearbyText = (closestSpan.textContent || '').trim();
+        }
+      }
+
+      exitCommentPinPlacementMode();
+
+      currentCommentPin = {
+        page: pageNum,
+        xPct: xPct,
+        yPct: yPct,
+        text: nearbyText
+      };
+      currentSelectedPage = pageNum;
+      currentSelectedText = nearbyText;
+
+      document.getElementById('commentModalPage').textContent = pageNum;
+      const quoteEl = document.getElementById('commentModalQuote');
+      if (quoteEl) {
+        if (nearbyText) {
+          quoteEl.textContent = `"${nearbyText}" (Cerca de la posición seleccionada x: ${(xPct * 100).toFixed(0)}%, y: ${(yPct * 100).toFixed(0)}%)`;
+        } else {
+          quoteEl.textContent = `Icono de comentario en Pág. ${pageNum} (x: ${(xPct * 100).toFixed(0)}%, y: ${(yPct * 100).toFixed(0)}%)`;
+        }
+      }
+      document.getElementById('commentModalInput').value = '';
+      const replInput = document.getElementById('commentReplacementInput');
+      if (replInput) replInput.value = '';
+      const deleteBox = document.getElementById('commentReplacementIsDelete');
+      if (deleteBox) deleteBox.checked = false;
+      updateReplacementPreview();
+      document.getElementById('commentModal').classList.add('active');
+      document.getElementById('commentModalInput').focus();
+    }, true);
+
     function findTextRectsInPage(pageNumber, targetText) {
       const textLayer = getPageTextLayer(pageNumber);
       const pageContainer = getPageEl(pageNumber);
@@ -3602,13 +3781,47 @@
       if (spans.length === 0) return null;
 
       const cleanTarget = targetText.replace(/\s+/g, ' ').trim().toLowerCase();
-      const matchedRects = [];
+      if (!cleanTarget) return null;
 
-      for (const span of spans) {
-        const spanText = (span.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-        if (spanText && (cleanTarget.includes(spanText) || spanText.includes(cleanTarget))) {
-          const rect = span.getBoundingClientRect();
-          if (rect.width > 2 && rect.height > 2) {
+      // 1. Mapeo continuo de spans y offsets de caracteres sobre el texto de la página
+      let pageText = '';
+      const spanOffsets = [];
+      for (let i = 0; i < spans.length; i++) {
+        const span = spans[i];
+        const txt = (span.textContent || '').replace(/\s+/g, ' ');
+        const startOffset = pageText.length;
+        pageText += (i > 0 ? ' ' : '') + txt;
+        spanOffsets.push({
+          span: span,
+          start: startOffset + (i > 0 ? 1 : 0),
+          end: pageText.length,
+          text: txt
+        });
+      }
+
+      const lowerPage = pageText.toLowerCase();
+
+      // Búsqueda de subcadena directa o normalizada
+      let matchIdx = lowerPage.indexOf(cleanTarget);
+      let matchLen = cleanTarget.length;
+
+      if (matchIdx === -1) {
+        // Normalización sin signos de puntuación comunes
+        const normTarget = cleanTarget.replace(/[.,;:()¿?¡!«»"']/g, '').replace(/\s+/g, ' ').trim();
+        const normPage = lowerPage.replace(/[.,;:()¿?¡!«»"']/g, ' ');
+        if (normTarget.length >= 8) {
+          matchIdx = normPage.indexOf(normTarget);
+          matchLen = normTarget.length;
+        }
+      }
+
+      if (matchIdx !== -1) {
+        const matchEnd = matchIdx + matchLen;
+        const matchedSpans = spanOffsets.filter(so => so.start < matchEnd && so.end > matchIdx);
+        const matchedRects = [];
+        for (const so of matchedSpans) {
+          const rect = so.span.getBoundingClientRect();
+          if (rect.width > 1 && rect.height > 1) {
             matchedRects.push({
               xPct: (rect.left - containerRect.left) / containerRect.width,
               yPct: (rect.top - containerRect.top) / containerRect.height,
@@ -3617,9 +3830,31 @@
             });
           }
         }
+        if (matchedRects.length > 0) return matchedRects;
       }
 
-      return matchedRects.length > 0 ? matchedRects : null;
+      // 2. Coincidencia por fragmentos o palabras significativas (fallback si hay saltos de línea)
+      const targetWords = cleanTarget.split(/\s+/).filter(w => w.length >= 4);
+      if (targetWords.length >= 2) {
+        const matchedRects = [];
+        for (const span of spans) {
+          const sText = (span.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+          if (sText.length >= 3 && targetWords.some(w => sText.includes(w))) {
+            const rect = span.getBoundingClientRect();
+            if (rect.width > 2 && rect.height > 2) {
+              matchedRects.push({
+                xPct: (rect.left - containerRect.left) / containerRect.width,
+                yPct: (rect.top - containerRect.top) / containerRect.height,
+                wPct: rect.width / containerRect.width,
+                hPct: rect.height / containerRect.height
+              });
+            }
+          }
+        }
+        if (matchedRects.length > 0) return matchedRects;
+      }
+
+      return null;
     }
 
     function findTextRectsInTextLayer(targetText) {
@@ -3630,10 +3865,13 @@
       const sel = window.getSelection().toString().trim();
       const targetText = sel || currentSelectedText;
       if (!targetText) {
-        alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para agregar tu comentario.");
+        // Enfoque Acrobat Reader: clic en comentario sin texto activa modo pin para ubicarlo con el mouse
+        toggleCommentPinPlacementMode();
         return;
       }
+      if (isCommentPinPlacementMode) exitCommentPinPlacementMode();
       currentSelectedText = targetText;
+      currentCommentPin = null;
       document.getElementById('commentModalPage').textContent = currentSelectedPage;
       document.getElementById('commentModalQuote').textContent = `"${targetText}"`;
       document.getElementById('commentModalInput').value = '';
@@ -3654,6 +3892,7 @@
         return;
       }
       currentSelectedText = targetText;
+      currentCommentPin = null;
       document.getElementById('commentModalPage').textContent = currentSelectedPage;
       document.getElementById('commentModalQuote').textContent = `"${targetText}"`;
       document.getElementById('commentModalInput').value = '';
@@ -3667,6 +3906,7 @@
     }
 
     function closeCommentModal() {
+      currentCommentPin = null;
       document.getElementById('commentModal').classList.remove('active');
     }
 
@@ -3707,9 +3947,9 @@
         return;
       }
 
-      const rects = (savedSelectedRangeRects && savedSelectedRangeRects.length > 0)
+      let rects = (savedSelectedRangeRects && savedSelectedRangeRects.length > 0)
         ? [...savedSelectedRangeRects]
-        : findTextRectsInTextLayer(currentSelectedText);
+        : (currentSelectedText ? findTextRectsInTextLayer(currentSelectedText) : null);
 
       let toast;
       let newAnn;
@@ -3731,15 +3971,28 @@
           : 'Reemplazo registrado: se aplicará literal al ejecutar';
       } else {
         // Camino de prosa: el comentario viaja como instrucción y no reescribe nada.
+        const pinData = currentCommentPin ? { xPct: currentCommentPin.xPct, yPct: currentCommentPin.yPct } : null;
+        if (pinData && (!rects || rects.length === 0)) {
+          rects = [{
+            xPct: Math.max(0, pinData.xPct - 0.015),
+            yPct: Math.max(0, pinData.yPct - 0.01),
+            wPct: 0.03,
+            hPct: 0.02
+          }];
+        }
         newAnn = {
           id: 'ann_' + Date.now(),
           type: 'comment',
-          text: currentSelectedText,
+          text: currentSelectedText || (currentCommentPin ? `Icono de comentario en Pág. ${currentCommentPin.page}` : `Comentario en Pág. ${currentSelectedPage}`),
           comment: comment,
           page: currentSelectedPage,
+          pin: pinData,
           rects: rects
         };
-        toast = 'Comentario agregado: queda en la cola del redactor';
+        toast = pinData
+          ? 'Icono de comentario fijado en el PDF 💬'
+          : 'Comentario agregado: queda en la cola del redactor';
+        currentCommentPin = null;
       }
       queuedAnnotations.push(newAnn);
       recordAnnotAction({ type: 'add', item: newAnn });
@@ -4029,9 +4282,26 @@
             overlay.appendChild(el);
           });
         }
+        if (ann.type === 'comment') {
+          const pinX = (ann.pin && typeof ann.pin.xPct === 'number') ? ann.pin.xPct : (rects && rects[0] ? rects[0].xPct : null);
+          const pinY = (ann.pin && typeof ann.pin.yPct === 'number') ? ann.pin.yPct : (rects && rects[0] ? rects[0].yPct : null);
+          if (pinX !== null && pinY !== null) {
+            const pinEl = document.createElement('div');
+            pinEl.className = 'pdf-comment-pin';
+            pinEl.style.left = `${(pinX * 100).toFixed(2)}%`;
+            pinEl.style.top = `${(pinY * 100).toFixed(2)}%`;
+            pinEl.title = `💬 Comentario: ${ann.comment || ''}\n(Clic para ubicar en panel)`;
+            pinEl.innerHTML = '<span>💬</span>';
+            pinEl.onclick = (e) => {
+              e.stopPropagation();
+              highlightAnnotCardInList(ann.id);
+            };
+            overlay.appendChild(pinEl);
+          }
+        }
       });
 
-      // 2. Marcas de cambios aplicados (resaltan qué parte del texto cambió tras compilar)
+      // 2. Marcas de cambios aplicados (resaltan qué parte del texto cambió tras compilar en Amarillo Claro)
       const pageExecuted = executedChangeMarks.filter(e => e.page === pageNumber);
       pageExecuted.forEach(exec => {
         let rects = null;
@@ -4049,9 +4319,15 @@
             el.style.top = `${(rect.yPct * 100).toFixed(2)}%`;
             el.style.width = `${(rect.wPct * 100).toFixed(2)}%`;
             el.style.height = `${(rect.hPct * 100).toFixed(2)}%`;
-            const badgeLabel = exec.type === 'strikethrough' ? '✂️ Cambio aplicado: Texto eliminado'
-              : (exec.type === 'replace' ? `🔁 Cambio aplicado: Reemplazado por "${exec.replacement || ''}"`
-              : '✨ Cambio aplicado: Humanizado con estilo-natural-es');
+            let badgeLabel = '';
+            if (exec.type === 'strikethrough') {
+              const posLabel = exec.subtype === 'context_before' ? 'Oración anterior' : (exec.subtype === 'context_after' ? 'Oración posterior' : 'Ubicación');
+              badgeLabel = `✂️ Cambio aplicado (${posLabel} al fragmento eliminado: "${exec.deletedText || ''}")`;
+            } else if (exec.type === 'replace') {
+              badgeLabel = `🔁 Cambio aplicado: Texto modificado/reemplazado ("${exec.text || ''}")`;
+            } else {
+              badgeLabel = `✨ Cambio aplicado: Texto humanizado con estilo-natural-es ("${exec.text || ''}")`;
+            }
             el.title = `${badgeLabel}\n(Clic para quitar esta marca de cambio)`;
             el.onclick = (e) => {
               e.stopPropagation();
@@ -4264,47 +4540,109 @@
           return;
         }
 
-        // Conservar marcas de cambios ejecutados para resaltarlos en el PDF recompilado
-        const appliedTypes = ['strikethrough', 'replace', 'humanize'];
+        // Conservar marcas de cambios ejecutados para resaltarlos en Amarillo Claro en el PDF recompilado
         const details = result.details || {};
-        appliedTypes.forEach(type => {
-          (details[type] || []).forEach(item => {
-            const matchedQueued = queuedAnnotations.find(q =>
-              (q.page === item.page) && (
-                q.text === item.original_text ||
-                (item.original_text && q.text && item.original_text.includes(q.text)) ||
-                (q.text && item.original_text && q.text.includes(item.original_text))
-              )
-            );
-            const rects = item.rects || (matchedQueued ? matchedQueued.rects : null);
+
+        // 1. Textos tachados/eliminados: resaltar la oración antes y después en amarillo claro
+        (details.strikethrough || []).forEach(item => {
+          const original = item.original_text || '';
+          if (item.context_before) {
             executedChangeMarks.push({
-              id: 'exec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-              type: type,
-              text: item.original_text || item.text || (matchedQueued ? matchedQueued.text : ''),
-              replacement: item.replacement || item.polished_text || '',
-              searchText: (item.replacement && item.replacement.trim()) ? item.replacement.trim() : (item.original_text || item.text || ''),
+              id: 'exec_before_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+              type: 'strikethrough',
+              subtype: 'context_before',
+              text: item.context_before,
+              searchText: item.context_before,
+              deletedText: original,
               page: item.page || 1,
-              rects: rects,
+              rects: null,
               timestamp: new Date().toISOString()
             });
-          });
-        });
-
-        if (executedChangeMarks.length === 0) {
-          const newlyExecuted = queuedAnnotations.filter(a => appliedTypes.includes(a.type));
-          newlyExecuted.forEach(item => {
+          }
+          if (item.context_after) {
+            executedChangeMarks.push({
+              id: 'exec_after_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+              type: 'strikethrough',
+              subtype: 'context_after',
+              text: item.context_after,
+              searchText: item.context_after,
+              deletedText: original,
+              page: item.page || 1,
+              rects: null,
+              timestamp: new Date().toISOString()
+            });
+          }
+          if (!item.context_before && !item.context_after) {
             executedChangeMarks.push({
               id: 'exec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-              type: item.type,
-              text: item.text,
-              replacement: item.replacement || '',
-              searchText: (item.type === 'replace' && item.replacement && item.replacement.trim()) ? item.replacement.trim() : (item.text || ''),
+              type: 'strikethrough',
+              subtype: 'fallback',
+              text: original,
+              searchText: original,
+              deletedText: original,
               page: item.page || 1,
               rects: item.rects || null,
               timestamp: new Date().toISOString()
             });
+          }
+        });
+
+        // 2. Humanizaciones aplicadas: resaltar el pasaje humanizado en amarillo claro
+        (details.humanize || []).forEach(item => {
+          executedChangeMarks.push({
+            id: 'exec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            type: 'humanize',
+            text: item.polished_text || item.original_text || '',
+            searchText: (item.polished_text && item.polished_text.trim()) ? item.polished_text.trim() : (item.original_text || ''),
+            originalText: item.original_text || '',
+            page: item.page || 1,
+            rects: item.rects || null,
+            timestamp: new Date().toISOString()
           });
-        }
+        });
+
+        // 3. Reemplazos aplicados: resaltar el texto reemplazado o las oraciones circundantes si fue borrado
+        (details.replace || []).forEach(item => {
+          if (item.deleted) {
+            if (item.context_before) {
+              executedChangeMarks.push({
+                id: 'exec_before_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                type: 'strikethrough',
+                subtype: 'context_before',
+                text: item.context_before,
+                searchText: item.context_before,
+                deletedText: item.original_text || '',
+                page: item.page || 1,
+                rects: null,
+                timestamp: new Date().toISOString()
+              });
+            }
+            if (item.context_after) {
+              executedChangeMarks.push({
+                id: 'exec_after_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                type: 'strikethrough',
+                subtype: 'context_after',
+                text: item.context_after,
+                searchText: item.context_after,
+                deletedText: item.original_text || '',
+                page: item.page || 1,
+                rects: null,
+                timestamp: new Date().toISOString()
+              });
+            }
+          } else {
+            executedChangeMarks.push({
+              id: 'exec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+              type: 'replace',
+              text: item.replacement || '',
+              searchText: (item.replacement && item.replacement.trim()) ? item.replacement.trim() : (item.original_text || ''),
+              originalText: item.original_text || '',
+              page: item.page || 1,
+              rects: item.rects || null,
+              timestamp: new Date().toISOString()
+            });
+          }
+        });
 
         // Execution successful
         queuedAnnotations = [];

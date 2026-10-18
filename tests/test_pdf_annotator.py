@@ -529,5 +529,28 @@ class TestPdfAnnotator(unittest.TestCase):
             self.assertNotIn("posdesastre.", content)
 
 
+    def test_strikethrough_returns_surrounding_sentences(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, sec = self._workspace(tmpdir)
+            sec.write_text(
+                "La primera oración introduce el problema. "
+                "Esta segunda oración debe ser eliminada por completo. "
+                "La tercera oración concluye el argumento.",
+                encoding="utf-8"
+            )
+            res = apply_pdf_annotations(run_dir, [{
+                "id": "ann_del",
+                "type": "strikethrough",
+                "text": "Esta segunda oración debe ser eliminada por completo.",
+                "page": 1,
+            }])
+            self.assertTrue(res["ok"])
+            applied = res["details"]["strikethrough"]
+            self.assertEqual(len(applied), 1)
+            self.assertIn("La primera oración introduce el problema", applied[0]["context_before"])
+            self.assertIn("La tercera oración concluye el argumento", applied[0]["context_after"])
+
+
 if __name__ == "__main__":
     unittest.main()
+
