@@ -85,6 +85,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_api_status()
         elif path == "/api/terminal/agents":
             self.serve_terminal_agents()
+        elif path == "/api/terminal/tools":
+            self.serve_terminal_tools()
         elif path == "/ws/terminal":
             self.handle_terminal_ws()
         elif path == "/api/flow":
@@ -108,6 +110,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_pdf_execute()
         elif path == "/api/graph/build":
             self.handle_graph_build()
+        elif path == "/api/terminal/launch-external":
+            self.handle_launch_external_terminal()
         else:
             self.send_error(404, "Not Found")
 
@@ -375,6 +379,27 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def serve_terminal_tools(self) -> None:
+        from .terminal import detect_terminal_tools
+        tools = detect_terminal_tools()
+        tools["monitored_path"] = str(self.workspace_dir.resolve())
+        body = json.dumps({"ok": True, "tools": tools}, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def handle_launch_external_terminal(self) -> None:
+        from .terminal import launch_external_terminal
+        res = launch_external_terminal(self.workspace_dir)
+        body = json.dumps(res, ensure_ascii=False).encode("utf-8")
+        self.send_response(200 if res.get("ok") else 400)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def handle_terminal_ws(self) -> None:
         upgrade = self.headers.get("Upgrade", "").strip().lower()
         if upgrade != "websocket":
@@ -401,7 +426,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         import urllib.parse
         parsed = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(parsed.query)
-        agent = qs.get("agent", ["claude"])[0]
+        agent = qs.get("agent", ["herdr"])[0]
         try:
             cols = int(qs.get("cols", [80])[0])
         except (ValueError, TypeError):

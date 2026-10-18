@@ -1896,6 +1896,127 @@
       color: var(--text);
       border-color: #475569;
     }
+    .terminal-btn-external {
+      font-size: 0.72rem;
+      width: auto;
+      padding: 0 0.45rem;
+      gap: 0.25rem;
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .terminal-btn-external:hover {
+      background: rgba(56, 189, 248, 0.15);
+      color: #7dd3fc;
+      border-color: #38bdf8;
+    }
+
+    /* Modal de Advertencia: Herramientas Requeridas */
+    .morfeo-tools-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(4, 7, 14, 0.78);
+      backdrop-filter: blur(4px);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .morfeo-tools-modal-overlay.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .morfeo-tools-modal {
+      background: #0b1120;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      width: 540px;
+      max-width: calc(100vw - 32px);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(245, 158, 11, 0.2);
+      overflow: hidden;
+      animation: modalSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .morfeo-tools-modal__header {
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      padding: 0.85rem 1.15rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .morfeo-tools-modal__title {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .morfeo-tools-modal__close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.1rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+    }
+    .morfeo-tools-modal__close:hover {
+      color: #f1f5f9;
+    }
+    .morfeo-tools-modal__body {
+      padding: 1.25rem 1.25rem 1rem 1.25rem;
+      font-size: 0.86rem;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+    .tools-pkg-card {
+      background: #060913;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 0.75rem 0.95rem;
+      margin-top: 0.65rem;
+    }
+    .tools-pkg-card.is-missing {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.04);
+    }
+    .tools-pkg-card.is-ok {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.04);
+    }
+    .tools-pkg-title {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.3rem;
+      color: #f8fafc;
+    }
+    .tools-cmd-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 0.35rem 0.65rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.78rem;
+      color: #38bdf8;
+      margin-top: 0.35rem;
+      user-select: all;
+    }
+    .morfeo-tools-modal__footer {
+      background: #090e1c;
+      border-top: 1px solid #1e293b;
+      padding: 0.75rem 1.15rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.6rem;
+    }
 
     /* Cuerpo del Terminal */
     .morfeo-terminal-body {
@@ -2575,6 +2696,25 @@
     <span class="morfeo-fab__badge" id="morfeoFabBadge">CLI</span>
   </div>
 
+  <!-- Modal de Advertencia: Herramientas CLI Requeridas -->
+  <div id="morfeoToolsRequiredModal" class="morfeo-tools-modal-overlay">
+    <div class="morfeo-tools-modal">
+      <div class="morfeo-tools-modal__header">
+        <div class="morfeo-tools-modal__title">
+          <span class="tools-modal-icon">⚠️</span>
+          <span>Herramientas CLI Requeridas</span>
+        </div>
+        <button class="morfeo-tools-modal__close" onclick="closeToolsRequiredModal()" title="Cerrar">✕</button>
+      </div>
+      <div class="morfeo-tools-modal__body" id="morfeoToolsModalBody">
+      </div>
+      <div class="morfeo-tools-modal__footer">
+        <button class="btn-secondary" onclick="closeToolsRequiredModal()">Entendido</button>
+        <button class="btn-primary" onclick="proceedWithBasicShell()">Continuar con Shell Básico Web</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Ventana Flotante del Asistente Terminal CLI -->
   <div id="morfeoTerminalWindow" class="morfeo-terminal-window">
     <div class="morfeo-terminal-header">
@@ -2584,10 +2724,12 @@
         <span class="terminal-status-dot" id="terminalStatusDot" title="Desconectado"></span>
       </div>
       <div class="morfeo-terminal-controls">
+        <button class="terminal-btn-icon terminal-btn-external" id="btnLaunchExternalTerm" onclick="launchExternalTerminal()" title="Abrir en Ghostty o WezTerm">🖥️ Terminal</button>
         <div class="terminal-agent-picker">
           <label for="terminalAgentSelect">Agente:</label>
           <select id="terminalAgentSelect" class="terminal-agent-select" onchange="onTerminalAgentChange()">
-            <option value="claude" selected>Claude Code</option>
+            <option value="herdr" selected>Herdr (Espejo en Vivo)</option>
+            <option value="claude">Claude Code</option>
             <option value="opencode">OpenCode</option>
             <option value="pi">Pi</option>
             <option value="agy">Antigravity (AGY)</option>
@@ -2606,7 +2748,7 @@
 
     <div class="morfeo-terminal-footer">
       <div class="terminal-footer-info" id="terminalFooterInfo">
-        <strong id="terminalFooterAgent">Claude Code</strong>
+        <strong id="terminalFooterAgent">Herdr (Espejo en Vivo)</strong>
         <span>·</span>
         <span id="terminalFooterRun" class="terminal-footer-path">proposals/activa</span>
       </div>
@@ -6001,43 +6143,211 @@
     let terminalSocket = null;
     let isTerminalOpen = false;
     let isTerminalMaximized = false;
-    let selectedAgent = localStorage.getItem('morfeo_terminal_agent') || 'claude';
+    let selectedAgent = localStorage.getItem('morfeo_terminal_agent') || 'herdr';
+    let cachedTerminalTools = null;
+    let monitoredProjectPath = '';
+
+    async function checkTerminalTools() {
+      if (typeof fetch === 'undefined') {
+        return { ready: true, preferred_terminal: 'ghostty', herdr: { installed: true, client_running: true } };
+      }
+      try {
+        const res = await fetch('/api/terminal/tools');
+        const data = await res.json();
+        if (data && data.ok && data.tools) {
+          cachedTerminalTools = data.tools;
+          monitoredProjectPath = data.tools.monitored_path || '';
+          updateTerminalFooterPath();
+          updateExternalLaunchButton();
+          return data.tools;
+        }
+      } catch (err) {
+        console.warn('Error verificando herramientas de terminal:', err);
+      }
+      return null;
+    }
+
+    function updateTerminalFooterPath() {
+      const el = document.getElementById('terminalFooterRun');
+      if (el && monitoredProjectPath) {
+        el.textContent = monitoredProjectPath;
+        el.title = monitoredProjectPath;
+      }
+    }
+
+    function updateExternalLaunchButton() {
+      const btn = document.getElementById('btnLaunchExternalTerm');
+      if (!btn || !cachedTerminalTools) return;
+      const pref = cachedTerminalTools.preferred_terminal;
+      if (pref === 'ghostty') {
+        btn.textContent = '🖥️ Ghostty';
+        btn.title = 'Traer al frente o abrir en Ghostty con Herdr';
+      } else if (pref === 'wezterm') {
+        btn.textContent = '🖥️ WezTerm';
+        btn.title = 'Traer al frente o abrir en WezTerm con Herdr';
+      } else {
+        btn.textContent = '🖥️ Terminal';
+        btn.title = 'Abrir en terminal nativo';
+      }
+    }
 
     function initTerminalUI() {
       const select = document.getElementById('terminalAgentSelect');
       if (select) {
         select.value = selectedAgent;
       }
-      fetch('/api/terminal/agents')
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.ok && Array.isArray(data.agents)) {
-            const selectEl = document.getElementById('terminalAgentSelect');
-            if (selectEl) {
-              const currentVal = selectedAgent || selectEl.value;
-              selectEl.innerHTML = '';
-              data.agents.forEach(a => {
-                const opt = document.createElement('option');
-                opt.value = a.id;
-                opt.textContent = `${a.name}${a.installed ? '' : ' (no instalado)'}`;
-                selectEl.appendChild(opt);
-              });
-              if ([...selectEl.options].some(o => o.value === currentVal)) {
-                selectEl.value = currentVal;
-              } else {
-                selectEl.value = 'claude';
+      checkTerminalTools();
+      if (typeof fetch !== 'undefined') {
+        fetch('/api/terminal/agents')
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.ok && Array.isArray(data.agents)) {
+              const selectEl = document.getElementById('terminalAgentSelect');
+              if (selectEl) {
+                const currentVal = selectedAgent || selectEl.value;
+                selectEl.innerHTML = '';
+                data.agents.forEach(a => {
+                  const opt = document.createElement('option');
+                  opt.value = a.id;
+                  opt.textContent = `${a.name}${a.installed ? '' : ' (no instalado)'}`;
+                  selectEl.appendChild(opt);
+                });
+                if ([...selectEl.options].some(o => o.value === currentVal)) {
+                  selectEl.value = currentVal;
+                } else {
+                  selectEl.value = 'herdr';
+                }
               }
             }
-          }
-        })
-        .catch(() => {});
+          })
+          .catch(() => {});
+      }
     }
 
     function toggleMorfeoTerminal() {
       if (isTerminalOpen) {
         closeMorfeoTerminal();
+        return;
+      }
+
+      // Si previamente se determinó que faltan herramientas, muestra el modal de aviso
+      if (cachedTerminalTools && !cachedTerminalTools.ready) {
+        showToolsRequiredModal(cachedTerminalTools);
+        return;
+      }
+
+      // Abre el terminal de inmediato y verifica herramientas en segundo plano
+      openMorfeoTerminal();
+
+      if (typeof fetch !== 'undefined') {
+        checkTerminalTools().then(tools => {
+          if (tools && !tools.ready) {
+            closeMorfeoTerminal();
+            showToolsRequiredModal(tools);
+          } else if (tools && tools.herdr && !tools.herdr.client_running) {
+            // Si Herdr no está en ejecución, se lanza en segundo plano
+            fetch('/api/terminal/launch-external', { method: 'POST' }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
+    }
+
+    function showToolsRequiredModal(tools) {
+      const modal = document.getElementById('morfeoToolsRequiredModal');
+      const body = document.getElementById('morfeoToolsModalBody');
+      if (!modal || !body) return;
+
+      const hasHerdr = tools && tools.herdr && tools.herdr.installed;
+      const hasGhostty = tools && tools.ghostty && tools.ghostty.installed;
+      const hasWezterm = tools && tools.wezterm && tools.wezterm.installed;
+      const hasTerminal = hasGhostty || hasWezterm;
+
+      let html = `
+        <p style="margin-bottom:0.75rem;">Para visualizar la pantalla de terminal como un espejo interactivo de <strong>Herdr</strong> y operar en el entorno nativo del proyecto, se requiere contar con las herramientas correspondientes:</p>
+      `;
+
+      if (!hasHerdr) {
+        html += `
+          <div class="tools-pkg-card is-missing">
+            <div class="tools-pkg-title">
+              <span>✕ Herdr (Workspace Manager de IA)</span>
+              <span style="color:#ef4444;font-size:0.75rem;font-weight:700;">No instalado</span>
+            </div>
+            <div style="font-size:0.8rem;color:#94a3b8;">Gestor de sesiones persistentes y workspaces de agentes. Para instalarlo:</div>
+            <div class="tools-cmd-box">brew install herdr</div>
+          </div>
+        `;
       } else {
-        openMorfeoTerminal();
+        html += `
+          <div class="tools-pkg-card is-ok">
+            <div class="tools-pkg-title">
+              <span>✓ Herdr</span>
+              <span style="color:#10b981;font-size:0.75rem;font-weight:700;">Instalado</span>
+            </div>
+          </div>
+        `;
+      }
+
+      if (!hasTerminal) {
+        html += `
+          <div class="tools-pkg-card is-missing">
+            <div class="tools-pkg-title">
+              <span>✕ Emulador de Terminal (Ghostty o WezTerm)</span>
+              <span style="color:#ef4444;font-size:0.75rem;font-weight:700;">No instalado</span>
+            </div>
+            <div style="font-size:0.8rem;color:#94a3b8;">Se requiere Ghostty (prioritario) o WezTerm para ejecutar la consola nativa:</div>
+            <div class="tools-cmd-box">brew install --cask ghostty</div>
+            <div style="margin-top:0.35rem;font-size:0.75rem;color:#64748b;">Alternativa: <code>brew install --cask wezterm</code></div>
+          </div>
+        `;
+      } else {
+        const termName = hasGhostty ? 'Ghostty (prioritario)' : 'WezTerm';
+        html += `
+          <div class="tools-pkg-card is-ok">
+            <div class="tools-pkg-title">
+              <span>✓ Emulador de Terminal: ${termName}</span>
+              <span style="color:#10b981;font-size:0.75rem;font-weight:700;">Instalado</span>
+            </div>
+          </div>
+        `;
+      }
+
+      html += `
+        <p style="margin-top:0.85rem;font-size:0.8rem;color:#94a3b8;">
+          Ruta del proyecto monitoreado: <code style="color:#38bdf8;">${monitoredProjectPath || 'Directorio del workspace'}</code>
+        </p>
+      `;
+
+      body.innerHTML = html;
+      modal.classList.add('is-open');
+    }
+
+    function closeToolsRequiredModal() {
+      const modal = document.getElementById('morfeoToolsRequiredModal');
+      if (modal) modal.classList.remove('is-open');
+    }
+
+    function proceedWithBasicShell() {
+      closeToolsRequiredModal();
+      selectedAgent = 'shell';
+      const select = document.getElementById('terminalAgentSelect');
+      if (select) select.value = 'shell';
+      openMorfeoTerminal();
+    }
+
+    async function launchExternalTerminal() {
+      try {
+        const res = await fetch('/api/terminal/launch-external', { method: 'POST' });
+        const data = await res.json();
+        if (data && data.ok) {
+          const name = data.terminal === 'ghostty' ? 'Ghostty' : 'WezTerm';
+          const act = data.action === 'activated' ? 'enfocado' : 'iniciado';
+          console.log(`[Morfeo] Terminal ${name} ${act} en: ${data.cwd}`);
+        } else {
+          alert('No fue posible abrir el terminal nativo: ' + (data.error || 'Desconocido'));
+        }
+      } catch (err) {
+        alert('Error de conexión al abrir terminal nativo: ' + err.message);
       }
     }
 
@@ -6212,6 +6522,7 @@
       const footerRun = document.getElementById('terminalFooterRun');
 
       const agentMap = {
+        'herdr': 'Herdr (Espejo en Vivo)',
         'claude': 'Claude Code',
         'opencode': 'OpenCode',
         'pi': 'Pi',
@@ -6221,8 +6532,13 @@
       const agentLabel = agentMap[agent] || agent;
 
       if (footerAgent) footerAgent.textContent = agentLabel;
-      if (footerRun && window.LAST_STATUS_PAYLOAD && window.LAST_STATUS_PAYLOAD.active_run) {
-        footerRun.textContent = `proposals/${window.LAST_STATUS_PAYLOAD.active_run}`;
+      if (footerRun) {
+        if (monitoredProjectPath) {
+          footerRun.textContent = monitoredProjectPath;
+          footerRun.title = monitoredProjectPath;
+        } else if (window.LAST_STATUS_PAYLOAD && window.LAST_STATUS_PAYLOAD.active_run) {
+          footerRun.textContent = `proposals/${window.LAST_STATUS_PAYLOAD.active_run}`;
+        }
       }
 
       if (dot) {

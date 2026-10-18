@@ -61,8 +61,9 @@ class TestDashboardTerminalBridge(unittest.TestCase):
 
     def test_get_available_agents(self):
         agents = get_available_agents()
-        self.assertTrue(len(agents) >= 4)
+        self.assertTrue(len(agents) >= 5)
         agent_ids = [a["id"] for a in agents]
+        self.assertIn("herdr", agent_ids)
         self.assertIn("claude", agent_ids)
         self.assertIn("opencode", agent_ids)
         self.assertIn("pi", agent_ids)
@@ -82,6 +83,24 @@ class TestDashboardTerminalBridge(unittest.TestCase):
         cmd_claude, name_claude, banner_claude = build_agent_command("claude")
         self.assertTrue(len(cmd_claude) >= 1)
 
+        cmd_herdr, name_herdr, banner_herdr = build_agent_command("herdr")
+        self.assertTrue(len(cmd_herdr) >= 1)
+        self.assertIn("herdr", name_herdr.lower())
+
+    def test_detect_terminal_tools(self):
+        from src.morfeo.dashboard.terminal import detect_terminal_tools
+        tools = detect_terminal_tools()
+        self.assertIn("ready", tools)
+        self.assertIn("preferred_terminal", tools)
+        self.assertIn("missing", tools)
+        self.assertIn("herdr", tools)
+        self.assertIn("ghostty", tools)
+        self.assertIn("wezterm", tools)
+        self.assertIsInstance(tools["ready"], bool)
+        self.assertIsInstance(tools["missing"], list)
+        if tools["ghostty"]["installed"]:
+            self.assertEqual(tools["preferred_terminal"], "ghostty")
+
     def test_http_api_terminal_agents(self):
         workspace_dir = Path(__file__).resolve().parent.parent
         handler_cls = type("ConfiguredHandler", (MorfeoDashboardHandler,), {"workspace_dir": workspace_dir})
@@ -99,6 +118,14 @@ class TestDashboardTerminalBridge(unittest.TestCase):
                 data = json.loads(resp.read().decode("utf-8"))
                 self.assertTrue(data.get("ok"))
                 self.assertTrue(isinstance(data.get("agents"), list))
+
+            tools_url = f"http://127.0.0.1:{port}/api/terminal/tools"
+            with urllib.request.urlopen(tools_url) as resp:
+                self.assertEqual(resp.status, 200)
+                tdata = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(tdata.get("ok"))
+                self.assertIn("tools", tdata)
+                self.assertIn("monitored_path", tdata["tools"])
         finally:
             server.shutdown()
             server.server_close()

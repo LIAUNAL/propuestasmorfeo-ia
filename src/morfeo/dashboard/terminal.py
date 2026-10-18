@@ -116,9 +116,163 @@ def find_executable(name: str) -> Optional[str]:
     return None
 
 
+def detect_terminal_tools() -> dict[str, Any]:
+    """Inspect availability of Herdr and terminal emulators (Ghostty priority over WezTerm)."""
+    herdr_bin = find_executable("herdr")
+    herdr_socket = Path.home() / ".config" / "herdr" / "herdr.sock"
+    herdr_server_running = False
+    herdr_client_running = False
+
+    if herdr_bin:
+        try:
+            status_res = subprocess.run([herdr_bin, "status", "server"], capture_output=True, text=True, timeout=1.5)
+            if status_res.returncode == 0 and "status: running" in status_res.stdout:
+                herdr_server_running = True
+        except Exception:
+            herdr_server_running = herdr_socket.exists()
+
+        try:
+            pgrep_res = subprocess.run(["pgrep", "-x", "herdr"], capture_output=True, text=True, timeout=1.5)
+            herdr_client_running = pgrep_res.returncode == 0 and bool(pgrep_res.stdout.strip())
+        except Exception:
+            herdr_client_running = False
+
+    # Ghostty detection (priority)
+    ghostty_bin = find_executable("ghostty")
+    ghostty_app = Path("/Applications/Ghostty.app")
+    ghostty_user_app = Path.home() / "Applications" / "Ghostty.app"
+    ghostty_installed = bool(ghostty_bin or ghostty_app.exists() or ghostty_user_app.exists())
+    ghostty_path = ghostty_bin or (str(ghostty_app) if ghostty_app.exists() else (str(ghostty_user_app) if ghostty_user_app.exists() else None))
+
+    # WezTerm detection
+    wezterm_bin = find_executable("wezterm")
+    wezterm_app = Path("/Applications/WezTerm.app")
+    wezterm_user_app = Path.home() / "Applications" / "WezTerm.app"
+    wezterm_installed = bool(wezterm_bin or wezterm_app.exists() or wezterm_user_app.exists())
+    wezterm_path = wezterm_bin or (str(wezterm_app) if wezterm_app.exists() else (str(wezterm_user_app) if wezterm_user_app.exists() else None))
+
+    # Preferred terminal emulator: Ghostty priority over WezTerm
+    preferred_terminal = "ghostty" if ghostty_installed else ("wezterm" if wezterm_installed else None)
+
+    herdr_installed = herdr_bin is not None
+    ready = bool(herdr_installed and preferred_terminal)
+
+    missing = []
+    if not herdr_installed:
+        missing.append("herdr")
+    if not preferred_terminal:
+        missing.append("terminal")
+
+    return {
+        "ready": ready,
+        "preferred_terminal": preferred_terminal,
+        "missing": missing,
+        "herdr": {
+            "installed": herdr_installed,
+            "path": herdr_bin,
+            "server_running": herdr_server_running,
+            "client_running": herdr_client_running,
+        },
+        "ghostty": {
+            "installed": ghostty_installed,
+            "path": ghostty_path,
+        },
+        "wezterm": {
+            "installed": wezterm_installed,
+            "path": wezterm_path,
+        },
+    }
+
+
+def ensure_herdr_workspace(workspace_dir: Path) -> dict[str, Any]:
+    """Ensure Herdr workspace exists for the monitored project path and is focused."""
+    herdr_bin = find_executable("herdr")
+    if not herdr_bin:
+        return {"ok": False, "error": "Herdr no está instalado en el sistema"}
+
+    resolved_path = workspace_dir.resolve()
+    target_label = resolved_path.name
+
+    try:
+        res = subprocess.run([herdr_bin, "workspace", "list"], capture_output=True, text=True, timeout=3.0)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)
+            workspaces = data.get("result", {}).get("workspaces", [])
+            for ws in workspaces:
+                ws_id = ws.get("workspace_id")
+                if ws.get("label") == target_label:
+                    if not ws.get("focused"):
+                        subprocess.run([herdr_bin, "workspace", "focus", ws_id], capture_output=True, text=True, timeout=2.0)
+                    return {"ok": True, "workspace_id": ws_id, "action": "focused", "label": target_label}
+
+            create_res = subprocess.run(
+                [herdr_bin, "workspace", "create", "--cwd", str(resolved_path), "--label", target_label, "--focus"],
+                capture_output=True, text=True, timeout=3.0
+            )
+            if create_res.returncode == 0:
+                cdata = json.loads(create_res.stdout)
+                ws_id = cdata.get("result", {}).get("workspace_id")
+                return {"ok": True, "workspace_id": ws_id, "action": "created", "label": target_label}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+    return {"ok": True, "action": "noop"}
+
+
+def launch_external_terminal(workspace_dir: Path) -> dict[str, Any]:
+    """Launch or focus external terminal (Ghostty priority over WezTerm) with Herdr at workspace_dir."""
+    tools = detect_terminal_tools()
+    if not tools["ready"]:
+        return {
+            "ok": False,
+            "error": "missing_tools",
+            "missing": tools["missing"],
+            "tools": tools,
+        }
+
+    resolved_path = workspace_dir.resolve()
+    ensure_herdr_workspace(resolved_path)
+
+    preferred = tools["preferred_terminal"]
+    herdr_bin = tools["herdr"]["path"] or "herdr"
+    client_running = tools["herdr"]["client_running"]
+
+    try:
+        if preferred == "ghostty":
+            if client_running:
+                subprocess.run(["open", "-a", "Ghostty"], capture_output=True, text=True, timeout=3.0)
+                action = "activated"
+            else:
+                subprocess.run(
+                    ["open", "-a", "Ghostty", "--args", f"--working-directory={resolved_path}", "-e", herdr_bin],
+                    capture_output=True, text=True, timeout=3.0
+                )
+                action = "launched"
+            return {"ok": True, "terminal": "ghostty", "action": action, "cwd": str(resolved_path)}
+
+        elif preferred == "wezterm":
+            wezterm_bin = tools["wezterm"]["path"]
+            if client_running:
+                subprocess.run(["open", "-a", "WezTerm"], capture_output=True, text=True, timeout=3.0)
+                action = "activated"
+            else:
+                if wezterm_bin and shutil.which("wezterm"):
+                    subprocess.Popen([wezterm_bin, "start", "--cwd", str(resolved_path), herdr_bin])
+                else:
+                    subprocess.run(["open", "-a", "WezTerm"], capture_output=True, text=True, timeout=3.0)
+                action = "launched"
+            return {"ok": True, "terminal": "wezterm", "action": action, "cwd": str(resolved_path)}
+
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+    return {"ok": False, "error": "No hay emulador de terminal disponible"}
+
+
 def get_available_agents() -> list[dict[str, Any]]:
     """Inspect and return the status of all supported CLI coding agents."""
     agents_spec = [
+        {"id": "herdr", "name": "Herdr (Espejo en Vivo)", "bin": "herdr", "desc": "Terminal Workspace Manager: Espejo interactivo de Herdr"},
         {"id": "claude", "name": "Claude Code", "bin": "claude", "desc": "Asistente primario canónico"},
         {"id": "opencode", "name": "OpenCode", "bin": "opencode", "desc": "Agente CLI multi-modelo OpenCode"},
         {"id": "pi", "name": "Pi", "desc": "Agente autónomo Pi CLI", "bin": "pi"},
@@ -148,10 +302,16 @@ def build_agent_command(agent_id: str) -> tuple[list[str], str, Optional[str]]:
 
     Returns (cmd_args, resolved_name, banner_warning).
     """
-    agent_id = (agent_id or "claude").lower().strip()
+    agent_id = (agent_id or "herdr").lower().strip()
     system_shell = os.environ.get("SHELL") or find_executable("zsh") or find_executable("bash") or "/bin/sh"
 
-    if agent_id == "claude":
+    if agent_id == "herdr":
+        path = find_executable("herdr")
+        if path:
+            return [path], "Herdr (Espejo en Vivo)", None
+        return [system_shell], "Shell (Herdr no instalado)", "\r\n\x1b[33m[Morfeo] Herdr ('herdr') no se encontró en el PATH. Iniciando shell interactivo...\x1b[0m\r\n"
+
+    elif agent_id == "claude":
         path = find_executable("claude")
         if path:
             return [path], "Claude Code", None
@@ -202,6 +362,15 @@ def run_pty_session(
     if paths_to_add:
         env["PATH"] = ":".join(paths_to_add) + ":" + existing_path
 
+    # Clean any parent Herdr environment variables so child Herdr attaches cleanly
+    for k in list(env.keys()):
+        if "HERDR" in k or k == "TERM_PROGRAM":
+            del env[k]
+
+    # Ensure Herdr workspace is configured for the monitored project path
+    if agent_id == "herdr":
+        ensure_herdr_workspace(workspace_dir)
+
     # Point to active proposal if present
     current_run_file = workspace_dir / "proposals" / ".current-run"
     if current_run_file.is_file():
@@ -227,20 +396,21 @@ def run_pty_session(
     finally:
         os.close(slave_fd)
 
-    # Send startup message / banner to client
-    welcome_banner = (
-        f"\r\n\x1b[1;36m┌──────────────────────────────────────────────────────────────┐\x1b[0m\r\n"
-        f"\x1b[1;36m│\x1b[0m  \x1b[1;35mMorfeo Command Center\x1b[0m — Terminal interactivo activo        \x1b[1;36m│\x1b[0m\r\n"
-        f"\x1b[1;36m│\x1b[0m  Agente: \x1b[1;32m{resolved_name:<49}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
-        f"\x1b[1;36m│\x1b[0m  Directorio: \x1b[90m{str(workspace_dir)[-45:]:<45}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
-        f"\x1b[1;36m└──────────────────────────────────────────────────────────────┘\x1b[0m\r\n\r\n"
-    )
-    try:
-        sock.sendall(encode_ws_frame(welcome_banner.encode("utf-8"), 0x1))
-        if warning_banner:
-            sock.sendall(encode_ws_frame(warning_banner.encode("utf-8"), 0x1))
-    except Exception:
-        pass
+    # Send startup message / banner to client (only for non-Herdr agents to avoid TUI artifacts)
+    if agent_id != "herdr":
+        welcome_banner = (
+            f"\r\n\x1b[1;36m┌──────────────────────────────────────────────────────────────┐\x1b[0m\r\n"
+            f"\x1b[1;36m│\x1b[0m  \x1b[1;35mMorfeo Command Center\x1b[0m: Terminal interactivo activo         \x1b[1;36m│\x1b[0m\r\n"
+            f"\x1b[1;36m│\x1b[0m  Agente: \x1b[1;32m{resolved_name:<49}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
+            f"\x1b[1;36m│\x1b[0m  Directorio: \x1b[90m{str(workspace_dir)[-45:]:<45}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
+            f"\x1b[1;36m└──────────────────────────────────────────────────────────────┘\x1b[0m\r\n\r\n"
+        )
+        try:
+            sock.sendall(encode_ws_frame(welcome_banner.encode("utf-8"), 0x1))
+            if warning_banner:
+                sock.sendall(encode_ws_frame(warning_banner.encode("utf-8"), 0x1))
+        except Exception:
+            pass
 
     sock.setblocking(False)
     in_buffer = bytearray()

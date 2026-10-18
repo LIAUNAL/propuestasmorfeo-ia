@@ -29,17 +29,57 @@ test('el botón flotante (FAB) y la ventana del terminal existen en el DOM', () 
   const select = doc.getElementById('terminalAgentSelect');
   assert.ok(select, 'Debe existir el selector de agentes #terminalAgentSelect');
   const values = Array.from(select.options).map(o => o.value);
+  assert.ok(values.includes('herdr'), 'Debe incluir la opción de Herdr (Espejo en Vivo)');
   assert.ok(values.includes('claude'), 'Debe incluir la opción de Claude Code');
   assert.ok(values.includes('opencode'), 'Debe incluir la opción de OpenCode');
   assert.ok(values.includes('pi'), 'Debe incluir la opción de Pi');
   assert.ok(values.includes('agy'), 'Debe incluir la opción de Antigravity (AGY)');
   assert.ok(values.includes('shell'), 'Debe incluir la opción de Shell interactivo');
 
+  const btnExternal = doc.getElementById('btnLaunchExternalTerm');
+  assert.ok(btnExternal, 'Debe existir el botón #btnLaunchExternalTerm para abrir terminal nativo');
+
+  const toolsModal = doc.getElementById('morfeoToolsRequiredModal');
+  assert.ok(toolsModal, 'Debe existir el modal #morfeoToolsRequiredModal');
+
   const container = doc.getElementById('xtermContainer');
   assert.ok(container, 'Debe existir el contenedor #xtermContainer');
 
   const dot = doc.getElementById('terminalStatusDot');
   assert.ok(dot, 'Debe existir el indicador de estado #terminalStatusDot');
+
+  dom.window.close();
+});
+
+test('showToolsRequiredModal y closeToolsRequiredModal gestionan el aviso de dependencias', () => {
+  const dom = new JSDOM(htmlSource, {
+    runScripts: 'dangerously',
+    url: 'http://localhost:8080/'
+  });
+
+  const { window } = dom;
+  const doc = window.document;
+
+  const modal = doc.getElementById('morfeoToolsRequiredModal');
+  assert.ok(!modal.classList.contains('is-open'), 'El modal arranca cerrado');
+
+  // Muestra el modal con herramientas faltantes
+  window.showToolsRequiredModal({
+    ready: false,
+    missing: ['herdr', 'terminal'],
+    herdr: { installed: false },
+    ghostty: { installed: false },
+    wezterm: { installed: false }
+  });
+
+  assert.ok(modal.classList.contains('is-open'), 'showToolsRequiredModal debe abrir el modal');
+  const bodyText = doc.getElementById('morfeoToolsModalBody').textContent;
+  assert.ok(bodyText.includes('Herdr'), 'Debe advertir sobre la falta de Herdr');
+  assert.ok(bodyText.includes('Ghostty'), 'Debe advertir sobre la falta de Ghostty o WezTerm');
+
+  // Cierra el modal
+  window.closeToolsRequiredModal();
+  assert.ok(!modal.classList.contains('is-open'), 'closeToolsRequiredModal debe cerrar el modal');
 
   dom.window.close();
 });
