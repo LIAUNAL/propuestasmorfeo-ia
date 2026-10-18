@@ -57,6 +57,173 @@ def extract_citations(text: str) -> list[str]:
     return keys
 
 
+def clean_latex_str(text: str) -> str:
+    """Strip basic LaTeX formatting commands and comments from text."""
+    t = re.sub(r"%.*", "", text)
+    t = re.sub(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?\{([^}]*)\}", r"\1", t)
+    t = re.sub(r"\\[a-zA-Z]+", " ", t)
+    t = re.sub(r"[\{\}\$]", "", t)
+    t = re.sub(r"\s+", " ", t)
+    return t.strip()
+
+
+def parse_scientific_architecture(run_dir: Path) -> dict[str, Any]:
+    sections_dir = run_dir / "redaccion" / "sections"
+
+    # 1. Subproblemas y Pregunta desde 03_descripcion_problema.tex
+    sp_nodes = [
+        ("sci:sp1", "SP1: Subproblema de Modelado y Representación"),
+        ("sci:sp2", "SP2: Subproblema de Optimización e Inferencia"),
+        ("sci:sp3", "SP3: Subproblema de Validación y Transferencia"),
+    ]
+    pregunta_label = "Pregunta: ¿Cómo resolver el problema central mediante IA?"
+
+    sec3_file = sections_dir / "03_descripcion_problema.tex"
+    if sec3_file.is_file():
+        sec3_raw = sec3_file.read_text(encoding="utf-8", errors="replace")
+        sp_matches = re.findall(r"(?:\\textbf\{)?(?:Subproblema\s*(\d)|SP(\d))[:\.\s\}]+([^\.\n]+)", sec3_raw, re.IGNORECASE)
+        parsed_sps = []
+        for m in sp_matches:
+            num = m[0] or m[1]
+            title = clean_latex_str(m[2])[:60]
+            if title and not any(p[0] == f"sci:sp{num}" for p in parsed_sps):
+                parsed_sps.append((f"sci:sp{num}", f"SP{num}: {title}"))
+        if len(parsed_sps) >= 3:
+            sp_nodes = parsed_sps[:3]
+
+        q_match = re.search(r"¿([^?]+)\?", sec3_raw)
+        if q_match:
+            clean_q = clean_latex_str(q_match.group(1))[:70]
+            pregunta_label = f"Pregunta: ¿{clean_q}?"
+
+    # 2. Objetivo General desde 06_objetivo_general.tex
+    og_label = "OG: Objetivo General del Proyecto"
+    sec6_file = sections_dir / "06_objetivo_general.tex"
+    if sec6_file.is_file():
+        sec6_raw = sec6_file.read_text(encoding="utf-8", errors="replace")
+        cleaned_og = clean_latex_str(sec6_raw)
+        if cleaned_og:
+            short_og = cleaned_og[:65]
+            if len(cleaned_og) > 65:
+                short_og += "..."
+            og_label = f"OG: {short_og}"
+
+    # 3. Objetivos Específicos desde 07_objetivos_especificos.tex
+    oe_nodes = [
+        ("sci:oe1", "OE1: Objetivo Específico 1"),
+        ("sci:oe2", "OE2: Objetivo Específico 2"),
+        ("sci:oe3", "OE3: Objetivo Específico 3"),
+    ]
+    sec7_file = sections_dir / "07_objetivos_especificos.tex"
+    if sec7_file.is_file():
+        sec7_raw = sec7_file.read_text(encoding="utf-8", errors="replace")
+        items = re.findall(r"\\item\s+([^\n\\]+)", sec7_raw)
+        parsed_oes = []
+        for idx, it in enumerate(items[:3]):
+            clean_it = clean_latex_str(it)[:60]
+            parsed_oes.append((f"sci:oe{idx+1}", f"OE{idx+1}: {clean_it}"))
+        if len(parsed_oes) >= 3:
+            oe_nodes = parsed_oes[:3]
+
+    # 4. Hipótesis desde 05_hipotesis.tex
+    h1_label = "H1: Hipótesis de Investigación"
+    sec5_file = sections_dir / "05_hipotesis.tex"
+    if sec5_file.is_file():
+        sec5_raw = sec5_file.read_text(encoding="utf-8", errors="replace")
+        clean_h = clean_latex_str(sec5_raw)
+        if clean_h:
+            short_h = clean_h[:65]
+            if len(clean_h) > 65:
+                short_h += "..."
+            h1_label = f"H1: {short_h}"
+
+    # 5. Metodología Fases desde 10_metodologia.tex
+    fase_nodes = [
+        ("met:fase1", "Fase 1: Preparación y Modelado"),
+        ("met:fase2", "Fase 2: Implementación y Optimización"),
+        ("met:fase3", "Fase 3: Validación y Pruebas"),
+    ]
+    sec10_file = sections_dir / "10_metodologia.tex"
+    if sec10_file.is_file():
+        sec10_raw = sec10_file.read_text(encoding="utf-8", errors="replace")
+        subsecs = re.findall(r"\\(?:sub)?section\*?\{([^}]+)\}", sec10_raw)
+        parsed_fases = []
+        for idx, sub in enumerate(subsecs[:3]):
+            clean_sub = clean_latex_str(sub)[:55]
+            parsed_fases.append((f"met:fase{idx+1}", f"Fase {idx+1}: {clean_sub}"))
+        if len(parsed_fases) >= 3:
+            fase_nodes = parsed_fases[:3]
+
+    # 6. Entregables desde 15_productos_esperados.tex
+    prod_nodes = [
+        ("prod:prototipo_trl", "Entregable: Prototipo Tecnológico TRL 6/7"),
+        ("prod:paper_q1", "Entregable: Artículo Científico en Revista Q1/Q2"),
+        ("prod:plan_transferencia", "Entregable: Estrategia de Transferencia Tecnológica"),
+    ]
+    sec15_file = sections_dir / "15_productos_esperados.tex"
+    if sec15_file.is_file():
+        sec15_raw = sec15_file.read_text(encoding="utf-8", errors="replace")
+        items = re.findall(r"\\item\s+([^\n\\]+)", sec15_raw)
+        if not items:
+            items = [re.sub(r"&.*", "", line).strip() for line in sec15_raw.splitlines() if "&" in line and not line.strip().startswith("%")]
+        parsed_prods = []
+        for idx, it in enumerate(items[:3]):
+            clean_it = clean_latex_str(it)[:55]
+            if clean_it and not clean_it.startswith("---") and not clean_it.lower().startswith("producto"):
+                parsed_prods.append((f"prod:prod_{idx+1}", f"Entregable: {clean_it}"))
+        if len(parsed_prods) >= 3:
+            prod_nodes = parsed_prods[:3]
+
+    # 7. Roles del Equipo desde 09_equipo_trabajo.tex
+    team_nodes = [
+        ("team:pi", "Rol: Investigador Principal"),
+        ("team:co_inv", "Rol: Co-investigador / Aliado Territorial"),
+        ("team:developer", "Rol: Personal Técnico y Desarrollador"),
+    ]
+    sec9_file = sections_dir / "09_equipo_trabajo.tex"
+    if sec9_file.is_file():
+        sec9_raw = sec9_file.read_text(encoding="utf-8", errors="replace")
+        roles = re.findall(r"\\(?:sub)?section\*?\{([^}]+)\}", sec9_raw)
+        if not roles:
+            roles = re.findall(r"\\item\s+([^\n\\]+)", sec9_raw)
+        parsed_roles = []
+        for idx, r in enumerate(roles[:3]):
+            clean_r = clean_latex_str(r)[:50]
+            parsed_roles.append((f"team:role_{idx+1}", f"Rol: {clean_r}"))
+        if len(parsed_roles) >= 3:
+            team_nodes = parsed_roles[:3]
+
+    # 8. Presupuesto desde 13_presupuesto.tex
+    pres_nodes = [
+        ("pres:personal", "Rubro: Servicios Técnicos y Personal"),
+        ("pres:equipos", "Rubro: Equipos y Recursos Tecnológicos"),
+        ("pres:campo", "Rubro: Validación de Campo y Operación"),
+    ]
+    sec13_file = sections_dir / "13_presupuesto.tex"
+    if sec13_file.is_file():
+        sec13_raw = sec13_file.read_text(encoding="utf-8", errors="replace")
+        rubros = [re.sub(r"&.*", "", line).strip() for line in sec13_raw.splitlines() if "&" in line and not line.strip().startswith("%")]
+        parsed_pres = []
+        for idx, rub in enumerate(rubros[:3]):
+            clean_rub = clean_latex_str(rub)[:50]
+            if clean_rub and not clean_rub.startswith("---") and not clean_rub.lower().startswith("rubro"):
+                parsed_pres.append((f"pres:rubro_{idx+1}", f"Rubro: {clean_rub}"))
+        if len(parsed_pres) >= 3:
+            pres_nodes = parsed_pres[:3]
+
+    return {
+        "sp_nodes": sp_nodes,
+        "pregunta_label": pregunta_label,
+        "og_label": og_label,
+        "oe_nodes": oe_nodes,
+        "h1_label": h1_label,
+        "fase_nodes": fase_nodes,
+        "prod_nodes": prod_nodes,
+        "team_nodes": team_nodes,
+        "pres_nodes": pres_nodes,
+    }
+
+
 def build_manuscript_graph(run_dir: Path) -> dict:
     redaccion_dir = run_dir / "redaccion"
     sections_dir = redaccion_dir / "sections"
@@ -146,83 +313,56 @@ def build_manuscript_graph(run_dir: Path) -> dict:
         add_edge(sec_names_ordered[i], sec_names_ordered[i + 1], "NARRATIVE_FLOW")
 
     # 3. Register Core Scientific Architecture Nodes
-    # 3 Subproblemas
-    add_node("sci:sp1", "SP1: Desalineación multimodal habla-síntomas de depresión", "Subproblema", "Coherencia Científica")
-    add_node("sci:sp2", "SP2: Despliegue portable e incertidumbre clínica en borde", "Subproblema", "Coherencia Científica")
-    add_node("sci:sp3", "SP3: Falta de validación territorial cohorte UNAL-UTP", "Subproblema", "Coherencia Científica")
+    arch = parse_scientific_architecture(run_dir)
 
-    # Pregunta de investigación
-    add_node("sci:pregunta", "Pregunta: ¿Cómo estimar objetivamente depresión pos-sismo en dispositivos móviles?", "Pregunta", "Coherencia Científica")
+    for sp_id, sp_label in arch["sp_nodes"]:
+        add_node(sp_id, sp_label, "Subproblema", "Coherencia Científica")
 
-    # Objetivo General
-    add_node("sci:og", "OG: Sistema de IA portable para tamizaje de depresión posdesastre", "Objetivo General", "Coherencia Científica")
+    add_node("sci:pregunta", arch["pregunta_label"], "Pregunta", "Coherencia Científica")
+    add_node("sci:og", arch["og_label"], "Objetivo General", "Coherencia Científica")
 
-    # 3 Objetivos Específicos
-    add_node("sci:oe1", "OE1: Alineación multimodal débilmente supervisada (instancia-ítem PHQ-8)", "Objetivo Específico", "Coherencia Científica")
-    add_node("sci:oe2", "OE2: Inferencia en el borde con cuantificación de incertidumbre y equidad", "Objetivo Específico", "Coherencia Científica")
-    add_node("sci:oe3", "OE3: Validación territorial en cohorte 80 estudiantes Eje Cafetero", "Objetivo Específico", "Coherencia Científica")
+    for oe_id, oe_label in arch["oe_nodes"]:
+        add_node(oe_id, oe_label, "Objetivo Específico", "Coherencia Científica")
 
-    # Hipótesis
-    add_node("sci:h1", "H1: La alineación semántica y optimización en borde superan el tamizaje estándar", "Hipótesis", "Coherencia Científica")
+    add_node("sci:h1", arch["h1_label"], "Hipótesis", "Coherencia Científica")
 
-    # Metodología Fases
-    add_node("met:fase1", "Fase 1: Preparación de corpus DAIC-WOZ y alineación MIL", "Fase Metodológica", "Metodología y Fases")
-    add_node("met:fase2", "Fase 2: Optimización para hardware restringido y calibración", "Fase Metodológica", "Metodología y Fases")
-    add_node("met:fase3", "Fase 3: Estudio de campo cohorte 80 estudiantes UNAL-UTP", "Fase Metodológica", "Metodología y Fases")
+    for fase_id, fase_label in arch["fase_nodes"]:
+        add_node(fase_id, fase_label, "Fase Metodológica", "Metodología y Fases")
 
-    # Entregables Clave
-    add_node("prod:app_trl6", "Entregable: Prototipo Aplicativo Móvil TRL 6", "Producto", "Productos y Transferencia")
-    add_node("prod:manual_campo", "Entregable: Manual de Operación de Campo", "Producto", "Productos y Transferencia")
-    add_node("prod:corpus_anotado", "Entregable: Corpus Anotado Desidentificado en Español", "Producto", "Productos y Transferencia")
-    add_node("prod:paper_q1", "Entregable: Artículo Científico en Revista Q1/Q2", "Producto", "Productos y Transferencia")
-    add_node("prod:tesis_maestria", "Entregable: Tesis de Maestría en IA/Ingeniería", "Producto", "Productos y Transferencia")
-    add_node("prod:taller_transferencia", "Entregable: Taller de Transferencia Tecnológica Eje Cafetero", "Producto", "Productos y Transferencia")
+    for prod_id, prod_label in arch["prod_nodes"]:
+        add_node(prod_id, prod_label, "Producto", "Productos y Transferencia")
 
-    # Roles del Equipo
-    add_node("team:pi", "Rol: Investigador Principal (Prof. UNAL Manizales)", "Rol Equipo", "Gobernanza y Recursos")
-    add_node("team:co_utp", "Rol: Co-investigador Territorial (Prof. UTP)", "Rol Equipo", "Gobernanza y Recursos")
-    add_node("team:psicometria", "Rol: Asesoría de Personal Especializado en Psicometría", "Rol Equipo", "Gobernanza y Recursos")
-    add_node("team:estudiante_msc", "Rol: Estudiante de Maestría (Desarrollo y Experimentación)", "Rol Equipo", "Gobernanza y Recursos")
+    for team_id, team_label in arch["team_nodes"]:
+        add_node(team_id, team_label, "Rol Equipo", "Gobernanza y Recursos")
 
-    # Rubros Presupuestales
-    add_node("pres:equipos", "Rubro: Dispositivos de Borde y Sensores de Captura", "Presupuesto", "Gobernanza y Recursos")
-    add_node("pres:personal", "Rubro: Servicios Técnicos y Personal Científico", "Presupuesto", "Gobernanza y Recursos")
-    add_node("pres:campo", "Rubro: Salidas de Campo Manizales-Pereira", "Presupuesto", "Gobernanza y Recursos")
+    for pres_id, pres_label in arch["pres_nodes"]:
+        add_node(pres_id, pres_label, "Presupuesto", "Gobernanza y Recursos")
 
     # 4. Mandatory Cross-Dependencies Edges (Playbook Rule 5)
     # 1:1 Mapping Subproblemas ↔ Objetivos Específicos
-    add_edge("sci:sp1", "sci:oe1", "MAPS_1TO1")
-    add_edge("sci:sp2", "sci:oe2", "MAPS_1TO1")
-    add_edge("sci:sp3", "sci:oe3", "MAPS_1TO1")
+    for (sp_id, _), (oe_id, _) in zip(arch["sp_nodes"], arch["oe_nodes"]):
+        add_edge(sp_id, oe_id, "MAPS_1TO1")
 
     # Pregunta e Hipótesis ↔ Objetivo General
     add_edge("sci:pregunta", "sci:og", "FORMULATES")
     add_edge("sci:h1", "sci:og", "TESTS")
 
     # Objetivos Específicos ↔ Metodología
-    add_edge("sci:oe1", "met:fase1", "EXECUTES")
-    add_edge("sci:oe2", "met:fase2", "EXECUTES")
-    add_edge("sci:oe3", "met:fase3", "EXECUTES")
+    for (oe_id, _), (fase_id, _) in zip(arch["oe_nodes"], arch["fase_nodes"]):
+        add_edge(oe_id, fase_id, "EXECUTES")
 
     # Objetivos Específicos ↔ Roles de Equipo
-    add_edge("sci:oe1", "team:pi", "LEADS")
-    add_edge("sci:oe2", "team:estudiante_msc", "IMPLEMENTS")
-    add_edge("sci:oe3", "team:co_utp", "COORDINATES")
-    add_edge("sci:oe3", "team:psicometria", "SUPERVISES")
+    for (oe_id, _), (team_id, _) in zip(arch["oe_nodes"], arch["team_nodes"]):
+        add_edge(oe_id, team_id, "ASSIGNED_ROLE")
 
     # Metodología Fases ↔ Cronograma y Presupuesto
-    add_edge("met:fase1", "sec:14_cronograma_actividades.tex", "SCHEDULED_IN")
-    add_edge("met:fase2", "sec:14_cronograma_actividades.tex", "SCHEDULED_IN")
-    add_edge("met:fase3", "sec:14_cronograma_actividades.tex", "SCHEDULED_IN")
-
-    add_edge("met:fase1", "pres:equipos", "REQUIRES_RESOURCE")
-    add_edge("met:fase2", "pres:personal", "REQUIRES_RESOURCE")
-    add_edge("met:fase3", "pres:campo", "REQUIRES_RESOURCE")
+    for (fase_id, _), (pres_id, _) in zip(arch["fase_nodes"], arch["pres_nodes"]):
+        add_edge(fase_id, "sec:14_cronograma_actividades.tex", "SCHEDULED_IN")
+        add_edge(fase_id, pres_id, "REQUIRES_RESOURCE")
 
     # Sections embedding Scientific Core
-    add_edge("sec:03_descripcion_problema.tex", "sci:sp1", "DEFINES")
-    add_edge("sec:03_descripcion_problema.tex", "sci:sp2", "DEFINES")
-    add_edge("sec:03_descripcion_problema.tex", "sci:sp3", "DEFINES")
+    for sp_id, _ in arch["sp_nodes"]:
+        add_edge("sec:03_descripcion_problema.tex", sp_id, "DEFINES")
     add_edge("sec:03_descripcion_problema.tex", "sci:pregunta", "CLOSES_WITH")
     add_edge("sec:03_descripcion_problema.tex", "sec:diag_arbol_problemas.tex", "EMBEDS_DIAGRAM")
 
@@ -232,34 +372,26 @@ def build_manuscript_graph(run_dir: Path) -> dict:
     add_edge("sec:05_hipotesis.tex", "sci:h1", "FORMULATES")
     add_edge("sec:06_objetivo_general.tex", "sci:og", "DEFINES")
 
-    add_edge("sec:07_objetivos_especificos.tex", "sci:oe1", "DEFINES")
-    add_edge("sec:07_objetivos_especificos.tex", "sci:oe2", "DEFINES")
-    add_edge("sec:07_objetivos_especificos.tex", "sci:oe3", "DEFINES")
+    for oe_id, _ in arch["oe_nodes"]:
+        add_edge("sec:07_objetivos_especificos.tex", oe_id, "DEFINES")
 
-    add_edge("sec:09_equipo_trabajo.tex", "team:pi", "ASSIGNED")
-    add_edge("sec:09_equipo_trabajo.tex", "team:co_utp", "ASSIGNED")
-    add_edge("sec:09_equipo_trabajo.tex", "team:psicometria", "ASSIGNED")
-    add_edge("sec:09_equipo_trabajo.tex", "team:estudiante_msc", "ASSIGNED")
+    for team_id, _ in arch["team_nodes"]:
+        add_edge("sec:09_equipo_trabajo.tex", team_id, "ASSIGNED")
 
-    add_edge("sec:10_metodologia.tex", "met:fase1", "DESCRIBES")
-    add_edge("sec:10_metodologia.tex", "met:fase2", "DESCRIBES")
-    add_edge("sec:10_metodologia.tex", "met:fase3", "DESCRIBES")
+    for fase_id, _ in arch["fase_nodes"]:
+        add_edge("sec:10_metodologia.tex", fase_id, "DESCRIBES")
     add_edge("sec:10_metodologia.tex", "sec:diag_metodologico.tex", "EMBEDS_DIAGRAM")
 
-    add_edge("sec:11_resultados_esperados.tex", "prod:app_trl6", "TARGETS")
-    add_edge("sec:11_resultados_esperados.tex", "prod:manual_campo", "TARGETS")
-    add_edge("sec:11_resultados_esperados.tex", "prod:corpus_anotado", "TARGETS")
-    add_edge("sec:15_productos_esperados.tex", "prod:app_trl6", "DELIVERS")
-    add_edge("sec:15_productos_esperados.tex", "prod:paper_q1", "DELIVERS")
-    add_edge("sec:15_productos_esperados.tex", "prod:tesis_maestria", "DELIVERS")
-    add_edge("sec:15_productos_esperados.tex", "prod:taller_transferencia", "DELIVERS")
+    for prod_id, _ in arch["prod_nodes"]:
+        add_edge("sec:11_resultados_esperados.tex", prod_id, "TARGETS")
+        add_edge("sec:15_productos_esperados.tex", prod_id, "DELIVERS")
 
-    add_edge("sec:13_presupuesto.tex", "pres:equipos", "ALLOCATES")
-    add_edge("sec:13_presupuesto.tex", "pres:personal", "ALLOCATES")
-    add_edge("sec:13_presupuesto.tex", "pres:campo", "ALLOCATES")
+    for pres_id, _ in arch["pres_nodes"]:
+        add_edge("sec:13_presupuesto.tex", pres_id, "ALLOCATES")
 
-    add_edge("sec:17_articulacion_comunidades.tex", "prod:taller_transferencia", "ENGAGES")
-    add_edge("sec:18_apropiacion_social.tex", "prod:corpus_anotado", "OPEN_ACCESS")
+    if arch["prod_nodes"]:
+        add_edge("sec:17_articulacion_comunidades.tex", arch["prod_nodes"][-1][0], "ENGAGES")
+        add_edge("sec:18_apropiacion_social.tex", arch["prod_nodes"][0][0], "OPEN_ACCESS")
 
     # 5. Top Citations Integration
     top_cites = [k for k, _ in all_citations_counter.most_common(28)]
@@ -302,9 +434,7 @@ def build_manuscript_graph(run_dir: Path) -> dict:
                 "sec:00_frontmatter.tex",
                 "sec:02_justificacion.tex",
                 "sec:03_descripcion_problema.tex",
-                "sci:sp1",
-                "sci:sp2",
-                "sci:sp3",
+                *[sp[0] for sp in arch["sp_nodes"]],
                 "sec:diag_arbol_problemas.tex",
             ]
         },
@@ -326,9 +456,7 @@ def build_manuscript_graph(run_dir: Path) -> dict:
                 "sec:05_hipotesis.tex",
                 "sec:06_objetivo_general.tex",
                 "sec:07_objetivos_especificos.tex",
-                "sci:oe1",
-                "sci:oe2",
-                "sci:oe3",
+                *[oe[0] for oe in arch["oe_nodes"]],
             ]
         },
         {
@@ -337,24 +465,17 @@ def build_manuscript_graph(run_dir: Path) -> dict:
                 "sec:08_marco_conceptual.tex",
                 "sec:10_metodologia.tex",
                 "sec:diag_metodologico.tex",
-                "met:fase1",
-                "met:fase2",
-                "met:fase3",
+                *[f[0] for f in arch["fase_nodes"]],
             ]
         },
         {
             "name": "Gobernanza, Equipo, Recursos y Ética",
             "files": [
                 "sec:09_equipo_trabajo.tex",
-                "team:pi",
-                "team:co_utp",
-                "team:psicometria",
-                "team:estudiante_msc",
+                *[t[0] for t in arch["team_nodes"]],
                 "sec:12_consideraciones_eticas.tex",
                 "sec:13_presupuesto.tex",
-                "pres:equipos",
-                "pres:personal",
-                "pres:campo",
+                *[pr[0] for pr in arch["pres_nodes"]],
                 "sec:14_cronograma_actividades.tex",
             ]
         },
@@ -363,12 +484,7 @@ def build_manuscript_graph(run_dir: Path) -> dict:
             "files": [
                 "sec:11_resultados_esperados.tex",
                 "sec:15_productos_esperados.tex",
-                "prod:app_trl6",
-                "prod:manual_campo",
-                "prod:corpus_anotado",
-                "prod:paper_q1",
-                "prod:tesis_maestria",
-                "prod:taller_transferencia",
+                *[p[0] for p in arch["prod_nodes"]],
                 "sec:17_articulacion_comunidades.tex",
                 "sec:18_apropiacion_social.tex",
             ]
@@ -376,10 +492,10 @@ def build_manuscript_graph(run_dir: Path) -> dict:
     ]
 
     questions = [
-        "**Mapeo 1:1 estricto.** Cada uno de los 3 subproblemas (SP1 desalineación, SP2 despliegue en borde, SP3 validación territorial) se acopla exactamente con su respectivo objetivo específico (OE1, OE2, OE3) y su fase metodológica.",
-        "**Articulación de la Hipótesis.** La hipótesis H1 postula que la alineación semántica por ítem PHQ-8 y la cuantificación de incertidumbre superan el tamizaje estándar, convergiendo directamente sobre el Objetivo General sin derivaciones ajenas.",
-        "**Cadena de Valor Presupuesto-Cronograma.** Los rubros clave de hardware embebido, talento humano y trabajo de campo Manizales-Pereira se corresponden con los hitos temporales de las Fases 1, 2 y 3.",
-        "**Madurez Tecnológica TRL 6.** La progresión tecnológica declarada en Metodología (§10) y Resultados Esperados (§11) culmina en el prototipo verificado en entorno relevante sin invadir atribuciones de diagnóstico clínico."
+        "**Mapeo 1:1 estricto.** Cada uno de los 3 subproblemas técnicos se acopla exactamente con su respectivo objetivo específico (OE1, OE2, OE3) y su correspondiente fase metodológica.",
+        "**Articulación de la Hipótesis.** La hipótesis de investigación converge directamente sobre el Objetivo General sin derivaciones ajenas, sustentando la validez científica del proyecto.",
+        "**Cadena de Valor Presupuesto-Cronograma.** Los rubros presupuestales asignados respaldan las actividades operativas e hitos temporales a lo largo de las fases de la propuesta.",
+        "**Madurez Tecnológica TRL 6/7.** La progresión metodológica declarada y los resultados esperados culminan en productos tangibles y verificables conforme al TRL objetivo."
     ]
 
     payload = {
@@ -456,71 +572,23 @@ def build_papers_graph(run_dir: Path) -> dict:
                 "type": etype
             })
 
-    # 1. 5 SOTA Subtopics
-    subtopics = [
-        {
-            "id": "sota:mil",
-            "name": "Aprendizaje múltiple-instancia y granularidad fina en entrevistas clínicas",
-            "short": "Eje 1: Aprendizaje MIL y Granularidad Fina",
-            "sp": "sci:sp1"
-        },
-        {
-            "id": "sota:fusion",
-            "name": "Fusión multimodal de voz, texto y video para la estimación de severidad",
-            "short": "Eje 2: Fusión Multimodal Voz-Texto-Video",
-            "sp": "sci:sp1"
-        },
-        {
-            "id": "sota:voice",
-            "name": "Biomarcadores vocales y validación diagnóstica del tamizaje por voz",
-            "short": "Eje 3: Biomarcadores Vocales y Validez",
-            "sp": "sci:sp2"
-        },
-        {
-            "id": "sota:edge",
-            "name": "Inferencia en el borde y salud mental digital en entornos de recursos limitados",
-            "short": "Eje 4: Inferencia en Borde y Recursos Restringidos",
-            "sp": "sci:sp2"
-        },
-        {
-            "id": "sota:disaster",
-            "name": "Transferencia intercultural y salud mental juvenil en contextos posdesastre",
-            "short": "Eje 5: Salud Mental Juvenil y Posdesastre",
-            "sp": "sci:sp3"
-        }
-    ]
-
-    for st in subtopics:
-        add_node(st["id"], st["short"], "Eje Temático SOTA", st["name"])
-
-    # 2. Bridge Nodes (Subproblemas y Benchmarks)
-    add_node("sci:sp1", "SP1: Desbalance y granularidad en entrevistas clínicas", "Subproblema", "Subproblemas de Investigación")
-    add_node("sci:sp2", "SP2: Inferencia en el borde y telemetría por voz", "Subproblema", "Subproblemas de Investigación")
-    add_node("sci:sp3", "SP3: Adaptación intercultural posdesastre Manizales-Pereira", "Subproblema", "Subproblemas de Investigación")
-
-    add_node("bench:daic", "Dataset Clínico DAIC-WOZ / E-DAIC (Audio + Texto)", "Benchmark Clínico", "Corpus y Validación")
-    add_node("bench:phq", "Instrumento Clínico PHQ-8 / PHQ-9 (8-9 Ítems)", "Escala Psicofisiológica", "Corpus y Validación")
-    add_node("bench:cohort", "Cohorte Estudiantil UNAL Manizales y UTP Pereira (80 sujetos)", "Validación Territorial", "Corpus y Validación")
-
-    # Connect SOTA hubs to Subproblemas
-    for st in subtopics:
-        add_edge(st["id"], st["sp"], "ADDRESSES_PROBLEM")
-
-    # Connect Benchmarks to Subtopics
-    add_edge("sota:mil", "bench:daic", "EVALUATED_ON")
-    add_edge("sota:fusion", "bench:daic", "EVALUATED_ON")
-    add_edge("sota:mil", "bench:phq", "TARGETS_ITEMS")
-    add_edge("sota:voice", "bench:phq", "TARGETS_ITEMS")
-    add_edge("sota:edge", "bench:cohort", "FIELD_TESTS")
-    add_edge("sota:disaster", "bench:cohort", "FIELD_TESTS")
-
-    # 3. Parse papers from scoping dir and citations in 04_estado_arte.tex
+    # 1. Parse or Fallback SOTA Subtopics from 04_estado_arte.tex
+    subtopics = []
     subtopic_by_cite = {}
     if sec_sota_file.is_file():
         sec_text = sec_sota_file.read_text(encoding="utf-8", errors="replace")
-        matches = list(re.finditer(r"\\subsection\*\{([^}]+)\}", sec_text))
+        matches = list(re.finditer(r"\\subsection\*?\{([^}]+)\}", sec_text))
         for i, m in enumerate(matches):
-            st_name = m.group(1).strip()
+            st_name = clean_latex_str(m.group(1))
+            st_id = f"sota:axis_{i+1}"
+            st_short = st_name if len(st_name) <= 45 else st_name[:42] + "..."
+            sp_target = f"sci:sp{min(i+1, 3)}"
+            subtopics.append({
+                "id": st_id,
+                "name": st_name,
+                "short": f"Eje {i+1}: {st_short}",
+                "sp": sp_target
+            })
             start = m.end()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(sec_text)
             chunk = sec_text[start:end]
@@ -531,6 +599,35 @@ def build_papers_graph(run_dir: Path) -> dict:
                     if k and not k.startswith("%"):
                         subtopic_by_cite[k] = st_name
 
+    if not subtopics:
+        default_axes = [
+            ("sota:axis_1", "Modelos Base y Representación de Conocimiento", "Eje 1: Modelos Base y Representación", "sci:sp1"),
+            ("sota:axis_2", "Métodos de Aprendizaje, Calibración y Optimización", "Eje 2: Aprendizaje y Optimización", "sci:sp1"),
+            ("sota:axis_3", "Validación Experimental y Benchmarks Comparativos", "Eje 3: Validación y Benchmarks", "sci:sp2"),
+            ("sota:axis_4", "Arquitectura, Despliegue e Inferencia Tecnológica", "Eje 4: Despliegue e Inferencia", "sci:sp2"),
+            ("sota:axis_5", "Transferencia Tecnológica e Impacto Sectorial", "Eje 5: Transferencia e Impacto", "sci:sp3"),
+        ]
+        for aid, aname, ashort, asp in default_axes:
+            subtopics.append({
+                "id": aid,
+                "name": aname,
+                "short": ashort,
+                "sp": asp
+            })
+
+    for st in subtopics:
+        add_node(st["id"], st["short"], "Eje Temático SOTA", st["name"])
+
+    # 2. Bridge Nodes (Subproblemas parsed from run_dir)
+    arch = parse_scientific_architecture(run_dir)
+    for sp_id, sp_label in arch["sp_nodes"]:
+        add_node(sp_id, sp_label, "Subproblema", "Subproblemas de Investigación")
+
+    # Connect SOTA hubs to Subproblemas
+    for st in subtopics:
+        add_edge(st["id"], st["sp"], "ADDRESSES_PROBLEM")
+
+    # 3. Parse papers from scoping dir and citations in 04_estado_arte.tex
     paper_files = sorted(papers_dir.glob("paper-*.md")) if papers_dir.is_dir() else []
 
     prior_json = grafos_dir / "papers-graph.json"
@@ -545,13 +642,19 @@ def build_papers_graph(run_dir: Path) -> dict:
         except Exception:
             pass
 
-    for pf in paper_files:
+    clave_to_paper_id = {}
+    paper_texts = {}
+
+    for idx, pf in enumerate(paper_files):
         text = pf.read_text(encoding="utf-8", errors="replace")
         lines = [line.strip() for line in text.split("\n") if line.strip()]
         title = lines[0].lstrip("#").strip() if lines else pf.stem
 
         m_clave = re.search(r"- Clave:\s*([^\n]+)", text)
         clave = m_clave.group(1).strip() if m_clave else pf.stem
+        clave_to_paper_id[clave] = pf.name
+        paper_texts[pf.name] = (clave, text)
+
         m_autor = re.search(r"- Autores:\s*([^\n]+)", text)
         autores = m_autor.group(1).strip() if m_autor else ""
         first_author = autores.split(",")[0].split(" and ")[0].strip() if autores else ""
@@ -566,17 +669,8 @@ def build_papers_graph(run_dir: Path) -> dict:
         if not assigned_group:
             assigned_group = prior_clusters.get(pf.name)
         if not assigned_group:
-            lower_text = text.lower()
-            if "voice" in lower_text or "speech" in lower_text or "vocal" in lower_text or "acoustic" in lower_text:
-                assigned_group = "Biomarcadores vocales y validación diagnóstica del tamizaje por voz"
-            elif "multimodal" in lower_text or "video" in lower_text or "fusion" in lower_text:
-                assigned_group = "Fusión multimodal de voz, texto y video para la estimación de severidad"
-            elif "edge" in lower_text or "wearable" in lower_text or "disaster" in lower_text or "lmic" in lower_text:
-                assigned_group = "Inferencia en el borde y salud mental digital en entornos de recursos limitados"
-            elif "earthquake" in lower_text or "ptsd" in lower_text or "tept" in lower_text:
-                assigned_group = "Transferencia intercultural y salud mental juvenil en contextos posdesastre"
-            else:
-                assigned_group = "Aprendizaje múltiple-instancia y granularidad fina en entrevistas clínicas"
+            assigned_st = subtopics[idx % len(subtopics)]
+            assigned_group = assigned_st["name"]
 
         short_title = title if len(title) <= 55 else title[:52] + "..."
         display_label = f"{first_author} ({ano}) · {short_title}" if first_author else f"{clave} ({ano}) · {short_title}"
@@ -586,20 +680,14 @@ def build_papers_graph(run_dir: Path) -> dict:
         add_node(paper_id, display_label, node_type, assigned_group)
 
         # Connect paper to its SOTA Subtopic hub
-        hub_id = next((st["id"] for st in subtopics if st["name"].lower() in assigned_group.lower() or assigned_group.lower() in st["name"].lower()), None)
-        if hub_id:
-            add_edge(hub_id, paper_id, "CONTAINS_PAPER")
+        hub_id = next((st["id"] for st in subtopics if st["name"].lower() in assigned_group.lower() or assigned_group.lower() in st["name"].lower()), subtopics[0]["id"])
+        add_edge(hub_id, paper_id, "CONTAINS_PAPER")
 
-        # Contextual edges
-        lower_content = text.lower()
-        if "daic" in lower_content:
-            add_edge(paper_id, "bench:daic", "BENCHMARKS_ON")
-        if "phq" in lower_content:
-            add_edge(paper_id, "bench:phq", "ASSESSES")
-        if "edge" in lower_content or "mobile" in lower_content or "wearable" in lower_content:
-            add_edge(paper_id, "sci:sp2", "SUPPORTS_EDGE")
-        if "disaster" in lower_content or "earthquake" in lower_content or "ptsd" in lower_content:
-            add_edge(paper_id, "sci:sp3", "LOCAL_EVIDENCE")
+    # Cross-citation edges between papers
+    for pid, (k, ptxt) in paper_texts.items():
+        for other_k, other_pid in clave_to_paper_id.items():
+            if other_pid != pid and other_k in ptxt:
+                add_edge(pid, other_pid, "CITES")
 
     # Degrees and hotspots
     in_deg = collections.defaultdict(int)
@@ -635,16 +723,20 @@ def build_papers_graph(run_dir: Path) -> dict:
             "files": files
         })
     clusters.append({
-        "name": "Subproblemas y Validación de Campo",
-        "files": ["sci:sp1", "sci:sp2", "sci:sp3", "bench:daic", "bench:phq", "bench:cohort"]
+        "name": "Subproblemas de Investigación",
+        "files": [sp[0] for sp in arch["sp_nodes"]]
     })
 
+    q1_count = sum(1 for n in nodes if "Q1" in n.get("type", ""))
+    q2_count = sum(1 for n in nodes if "Q2" in n.get("type", ""))
+    total_papers = len(paper_files)
+
     questions = [
-        "**Densidad de SP1 y Supervisión Débil.** El corpus concentra una densidad sobresaliente en aprendizaje múltiple-instancia y prompts finos sobre entrevistas DAIC-WOZ, sustentando la necesidad de alineación explícita por ítem sintomático.",
-        "**Biomarcadores de Voz y Sensibilidad Clínica.** Los metaanálisis recientes validan AUC superiores a 0.89 en habla para tamizaje, exigiendo cuantificación de incertidumbre y equidad sociodemográfica en atención primaria.",
-        "**Factibilidad de Despliegue en Borde (SP2).** Los transformers reparametrizados y modelos acústicos compactos demuestran viabilidad en dispositivos móviles y portátiles sin requerir cómputo en nube centralizada.",
-        "**Urgencia y Validación Territorial Posdesastre (SP3).** Los estudios en zonas sísmicas documentan prevalencias de TEPT y depresión de hasta 32.4 % en población joven, fundamentando el trabajo de campo en Manizales y Pereira.",
-        "**Riesgo y Rigor Ético.** La literatura advierte sobre la fragilidad de modelos sin validación externa; la propuesta responde con protocolo de consentimiento informado y prototipo de tamizaje asistido sin emitir diagnósticos definitivos."
+        f"**Solidez del Corpus Bibliográfico.** El corpus de literatura analizado reúne {total_papers} artículos científicos con predominio de publicaciones de alto impacto ({q1_count} Q1 y {q2_count} Q2), fundamentando el estado del arte reciente.",
+        "**Articulación con los Subproblemas.** La literatura indexada respalda directamente los 3 subproblemas técnicos formulados en §3, abordando las brechas metodológicas identificadas.",
+        "**Equilibrio en los Ejes Temáticos SOTA.** La distribución de referencias entre los ejes temáticos garantiza cobertura integral desde los modelos conceptuales hasta la evaluación experimental.",
+        "**Viabilidad Tecnológica y Transferencia.** Los antecedentes analizados demuestran factibilidad técnica para alcanzar el nivel de madurez tecnológica TRL 6/7 proyectado.",
+        "**Rigor Metodológico y Ético.** Las evidencias de la literatura orientan las salvaguardas éticas, la reproducibilidad experimental y los protocolos de validación en campo."
     ]
 
     payload = {
@@ -728,13 +820,13 @@ def build_vault_graph(run_dir: Path) -> dict:
         "08_marco_conceptual.md": ("§8 Marco Conceptual", "SOTA y Fundamentación Conceptual"),
         "09_equipo_trabajo.md": ("§9 Equipo de Trabajo (Roles OE)", "Metodología e Ingeniería"),
         "10_metodologia.md": ("§10 Metodología (Fases 1, 2 y 3)", "Metodología e Ingeniería"),
-        "11_resultados_esperados.md": ("§11 Resultados Esperados (TRL 6)", "Impacto Social, Ética y Territorio"),
+        "11_resultados_esperados.md": ("§11 Resultados Esperados (TRL 6/7)", "Impacto Social, Ética y Territorio"),
         "12_consideraciones_eticas.md": ("§12 Consideraciones Éticas y Consentimiento", "Impacto Social, Ética y Territorio"),
         "13_presupuesto.md": ("§13 Presupuesto por Rubros", "Gobernanza y Operación Presupuestal"),
         "14_cronograma_actividades.md": ("§14 Cronograma de Actividades (Gantt)", "Gobernanza y Operación Presupuestal"),
         "15_productos_esperados.md": ("§15 Productos Esperados (Tabla 4)", "Gobernanza y Operación Presupuestal"),
         "16_bibliografia.md": ("§16 Bibliografía APA Autor-Año", "SOTA y Fundamentación Conceptual"),
-        "17_articulacion_comunidades.md": ("§17 Articulación Comunitaria Eje Cafetero", "Impacto Social, Ética y Territorio"),
+        "17_articulacion_comunidades.md": ("§17 Articulación Comunitaria y Territorial", "Impacto Social, Ética y Territorio"),
         "18_apropiacion_social.md": ("§18 Apropiación Social del Conocimiento", "Impacto Social, Ética y Territorio"),
     }
 

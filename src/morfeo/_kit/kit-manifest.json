@@ -30,6 +30,7 @@
     "AGENTS.md",
     "REQUIREMENTS.md",
     "docs/marco-cli.md",
+    "docs/diagrams/morfeo-pipeline-flow.html",
     "docs/pipeline-flow.md",
     "docs/pipeline-flow.mmd",
     "docs/usage-modes.md",
@@ -54,6 +55,7 @@
     "requirements.txt",
     "scripts/agent-models.json",
     "scripts/apa.csl",
+    "scripts/build_manuscript_graph.py",
     "scripts/check-agent-models.py",
     "scripts/compilar-docx.sh",
     "scripts/compilar-pdf.sh",
@@ -78,6 +80,7 @@
     "proposals/**",
     "DECISIONS.md",
     "journal/**",
+    ".morfeo/config.json",
     ".marco/config.json"
   ],
   "drop_zones": [

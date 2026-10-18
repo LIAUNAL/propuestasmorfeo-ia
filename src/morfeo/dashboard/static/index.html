@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Morfeo IA — Command Center</title>
+  <title>Morfeo IA: Command Center</title>
   <link rel="icon" type="image/png" sizes="128x128" href="/static/favicon.png">
   <link rel="shortcut icon" href="/favicon.ico">
   <link rel="stylesheet" href="/static/vendor/pdf_viewer.min.css">
@@ -2091,16 +2091,16 @@
   <!-- Top bar -->
   <header class="topbar">
     <div class="topbar__brand">
-      <div class="topbar__avatar-wrap" title="Morfeo IA — Orquestador de Formulación Científica en IA">
+      <div class="topbar__avatar-wrap" title="Morfeo IA: Orquestador de Formulación Científica en IA">
         <img src="/static/morfeo-logo.png" alt="Morfeo IA" class="topbar__avatar">
       </div>
       <div class="topbar__title">
-        <h1>Morfeo IA — Command Center</h1>
+        <h1>Morfeo IA: Command Center</h1>
         <p>Laboratorio de Inteligencia Artificial · Universidad Nacional de Colombia</p>
       </div>
     </div>
     <div class="topbar__center">
-      <div class="topbar__lab-badge" title="Laboratorio de Inteligencia Artificial (LabIA) — Universidad Nacional de Colombia">
+      <div class="topbar__lab-badge" title="Laboratorio de Inteligencia Artificial (LabIA) · Universidad Nacional de Colombia">
         <img src="/static/logo_labIA.png" alt="LabIA UNAL" class="topbar__lab-logo">
         <div class="topbar__lab-text">
           <span class="topbar__lab-text-title">Laboratorio de Inteligencia Artificial</span>
@@ -2203,7 +2203,7 @@
       <div class="panel flujo-general-card">
         <div class="panel__header">
           <div class="panel__title">
-            <span>⚡ Flujo General del Pipeline — Estado de Etapas</span>
+            <span>⚡ Flujo General del Pipeline: Estado de Etapas</span>
           </div>
           <div class="flujo-meta-summary">
             <span class="badge badge--lit" id="flujoLitBadge">💡 0 Superadas (Iluminadas)</span>
@@ -2674,7 +2674,7 @@
     </div>
 
     <div class="footer__col footer__col--center">
-      <div class="footer__lab-badge" title="Laboratorio de Inteligencia Artificial (LabIA) — Universidad Nacional de Colombia">
+      <div class="footer__lab-badge" title="Laboratorio de Inteligencia Artificial (LabIA) · Universidad Nacional de Colombia">
         <img src="/static/logo_labIA.png" alt="Laboratorio de Inteligencia Artificial UNAL" class="footer__lab-logo">
       </div>
       <div class="footer__lab-caption">
@@ -2684,7 +2684,7 @@
     </div>
 
     <div class="footer__col footer__col--right">
-      <span>Alianza Eje Cafetero · UNAL Manizales &amp; UTP</span>
+      <span id="footerProjectInfo">Espacio de Trabajo Morfeo</span>
       <span>Transferencia Tecnológica · TRL 6/7</span>
     </div>
   </footer>
@@ -3115,6 +3115,31 @@
     let lastStatusSignature = '';
     let initialArtifactLoaded = false;
 
+    async function changeActiveRun(runId) {
+      try {
+        const res = await fetch('/api/run/select', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ run_id: runId })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          lastStatusSignature = '';
+          initialArtifactLoaded = false;
+          await loadStatus();
+          if (activeTab === 'atlas') {
+            switchGraph(currentGraphKind);
+          } else if (activeTab === 'preview') {
+            initPdfViewer();
+          }
+        } else {
+          alert('Error al cambiar de corrida: ' + (data.error || 'Desconocido'));
+        }
+      } catch (err) {
+        alert('Error de conexión al cambiar de corrida: ' + err.message);
+      }
+    }
+
     async function loadStatus() {
       if (document.hidden) return; // Pausa el sondeo cuando la pestaña está en segundo plano
       try {
@@ -3150,18 +3175,31 @@
         // Populate Runs Selector
         const runSel = document.getElementById('runSelector');
         runSel.innerHTML = '';
-        (data.all_runs || []).forEach(r => {
+        const allRuns = data.all_runs || [];
+        if (allRuns.length === 0) {
           const opt = document.createElement('option');
-          opt.value = r;
-          opt.textContent = r;
-          if (r === data.active_run) opt.selected = true;
+          opt.value = '';
+          opt.textContent = 'Sin corridas (usa /propuesta-init)';
           runSel.appendChild(opt);
-        });
+        } else {
+          allRuns.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = r;
+            if (r === data.active_run) opt.selected = true;
+            runSel.appendChild(opt);
+          });
+        }
 
         // Header Title & Totals
         const details = data.run_details || {};
         const totals = data.totals || {};
-        document.getElementById('metaProposalTitle').textContent = details.title || details.idea || data.active_run || 'Sin propuesta activa';
+        const activeTitle = details.title || details.idea || data.active_run || data.workspace_title || 'Sin propuesta activa';
+        document.getElementById('metaProposalTitle').textContent = activeTitle;
+        const footerInfo = document.getElementById('footerProjectInfo');
+        if (footerInfo) {
+          footerInfo.textContent = data.workspace_title || (details.title ? details.title : (data.active_run ? `Corrida: ${data.active_run}` : 'Espacio de Trabajo Morfeo'));
+        }
 
         // Render Totals Chips
         const totContainer = document.getElementById('totalsContainer');
@@ -3369,7 +3407,7 @@
 
             card.innerHTML = `
               <div class="phase-card__head">
-                <span class="phase-card__name">${g.id} — ${g.name}</span>
+                <span class="phase-card__name">${g.id}: ${g.name}</span>
                 <span class="badge badge--${badgeTone}">${isLit ? '💡 ' : ''}${g.status}</span>
               </div>
               <p class="phase-card__desc">${g.criteria}</p>
@@ -3481,7 +3519,7 @@
         },
         paragraphs: [
           { label: "Bloque de Título", title: "Título oficial (12 a 15 palabras)", desc: "Enunciado conciso y de alto impacto que sintetiza el objeto de estudio, la innovación en IA y el sector beneficiario." },
-          { label: "Identificación", title: "Filiación y consorcio", desc: "Datos institucionales de los grupos y facultades participantes (LabIA, UNAL Manizales, UTP, etc.)." }
+          { label: "Identificación", title: "Filiación y consorcio", desc: "Datos institucionales de las entidades, facultades o grupos de investigación participantes." }
         ],
         rules: {
           allowed: [
@@ -3511,7 +3549,7 @@
         paragraphs: [
           { label: "Párrafo 1", title: "Motivación del proyecto", desc: "Qué vacío, oportunidad o necesidad concreta del sector motiva la propuesta y por qué es relevante abordarla en este momento." },
           { label: "Párrafo 2", title: "Alineación con los ODS", desc: "Identificación de los ODS con número y nombre oficial, explicando concretamente cómo el proyecto contribuye a sus metas." },
-          { label: "Párrafo 3", title: "Alineación con PND y Plan Departamental", desc: "Conexión con los ejes del Plan Nacional de Desarrollo y el anclaje territorial en Caldas y Risaralda (UNAL Manizales y UTP)." },
+          { label: "Párrafo 3", title: "Alineación con PND y Plan Departamental", desc: "Conexión con los ejes del Plan Nacional de Desarrollo y el anclaje territorial de las instituciones participantes." },
           { label: "Párrafo 4", title: "Respaldo en organismos multilaterales", desc: "Hallazgos pertinentes de informes de la OCDE, Banco Mundial, CEPAL o UNESCO sustentando la urgencia del sector." },
           { label: "Párrafo 5", title: "Alineación con TDR y convocatoria", desc: "Respuesta directa a las prioridades temáticas de la convocatoria sin repetir literalmente el texto del TDR." },
           { label: "Párrafo 6", title: "Momentum de la IA y producto TRL 6/7", desc: "Evolución reciente de la IA en la temática, justificación de superioridad frente a métodos tradicionales y definición del producto tangible en TRL 6 o 7." }
@@ -3728,7 +3766,7 @@
         connections: {
           inputs: [
             { code: "§7", id: "07_objetivos_especificos", title: "Objetivos Específicos", rel: "Roles derivados de los OE" },
-            { code: "Insumos", id: "17_articulacion_comunidades", title: "Alianza Institucional", rel: "UNAL Manizales y UTP" }
+            { code: "Insumos", id: "17_articulacion_comunidades", title: "Alianza Institucional", rel: "Alianza interinstitucional" }
           ],
           outputs: [
             { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Personal asignado a fases" },
@@ -3736,7 +3774,7 @@
           ]
         },
         paragraphs: [
-          { label: "Párrafo Introductorio", title: "Alianza interinstitucional", desc: "Descripción de la alianza (UNAL Sede Manizales y UTP), complementariedad de grupos de investigación y liderazgo del proyecto." },
+          { label: "Párrafo Introductorio", title: "Alianza interinstitucional", desc: "Descripción de la alianza institucional, complementariedad de grupos de investigación y liderazgo del proyecto." },
           { label: "Tabla Canónica", title: "Tabla única de equipo (tab:equipo)", desc: "Columnas Integrante | Rol | Sede/Institución | Responsabilidades (vinculadas explícitamente a OE1, OE2 o OE3)." }
         ],
         rules: {
@@ -3832,7 +3870,7 @@
         paragraphs: [
           { label: "Eje 1", title: "Consentimiento informado", desc: "Procedimiento de información, voluntariedad y consentimiento/asentimiento de los participantes." },
           { label: "Eje 2", title: "Protección de datos personales", desc: "Anonimización, almacenamiento seguro y cumplimiento de la Ley 1581 de 2012." },
-          { label: "Eje 3", title: "Aval de comité de ética/bioética", desc: "Trámite formal ante el comité institucional de bioética de la UNAL o UTP." },
+          { label: "Eje 3", title: "Aval de comité de ética/bioética", desc: "Trámite formal ante el comité institucional de bioética de las instituciones participantes." },
           { label: "Eje 4", title: "Uso responsable y explicabilidad de la IA", desc: "Mitigación de sesgos algorítmicos, transparencia y límites de operación clínica o técnica." }
         ],
         rules: {
@@ -3967,7 +4005,7 @@
       "17_articulacion_comunidades": {
         code: "§17",
         title: "Estrategia de articulación con comunidades y actores territoriales",
-        principle: "Estrategia de vinculación territorial y social con los beneficiarios, instituciones aliadas y comunidades de interés en el Eje Cafetero, describiendo el protocolo de campo con la cohorte estudiantil.",
+        principle: "Estrategia de vinculación territorial y social con los beneficiarios, instituciones aliadas y comunidades de interés en el territorio, describiendo los mecanismos de relacionamiento y protocolos de campo con las cohortes o usuarios participantes.",
         connections: {
           inputs: [
             { code: "§2", id: "02_justificacion", title: "Justificación", rel: "Anclaje territorial y actores" },
@@ -3978,14 +4016,14 @@
           ]
         },
         paragraphs: [
-          { label: "Párrafo 1", title: "Contexto y actores territoriales", desc: "Mapeo de comunidades de interés, campus universitarios (UNAL Manizales y UTP) y aliados territoriales." },
-          { label: "Párrafo 2", title: "Cohorte estudiantil y protocolos de campo", desc: "Dinámica de participación de los 80 estudiantes, comités de seguimiento y acompañamiento psicosocial o técnico." },
+          { label: "Párrafo 1", title: "Contexto y actores territoriales", desc: "Mapeo de comunidades de interés, campus o sedes participantes y aliados territoriales." },
+          { label: "Párrafo 2", title: "Cohorte estudiantil y protocolos de campo", desc: "Dinámica de participación de la cohorte o usuarios de prueba, comités de seguimiento y acompañamiento metodológico o técnico." },
           { label: "Párrafo 3", title: "Sostenibilidad y gobernanza comunitaria", desc: "Mecanismos de retroalimentación continua y sostenibilidad del vínculo comunitario post-proyecto." }
         ],
         rules: {
           allowed: [
             "Describir los protocolos de interacción comunitaria respetando consideraciones éticas.",
-            "Reflejar la alianza UNAL y UTP en el territorio del Eje Cafetero."
+            "Reflejar la articulación interinstitucional en el territorio de influencia del proyecto."
           ],
           forbidden: [
             "Prohibido omitir los mecanismos concretos de participación o inventar comunidades ajenas.",
@@ -4164,7 +4202,7 @@
       const bodyEl = document.getElementById('secModalBody');
 
       if (badgeEl) badgeEl.textContent = data.code || '§';
-      if (titleEl) titleEl.textContent = `${data.code} — ${data.title}`;
+      if (titleEl) titleEl.textContent = `${data.code}: ${data.title}`;
 
       if (bodyEl) {
         bodyEl.innerHTML = `

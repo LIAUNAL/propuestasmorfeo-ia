@@ -106,7 +106,9 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = self.path.split("?")[0]
-        if path == "/api/pdf/execute":
+        if path == "/api/run/select":
+            self.handle_run_select()
+        elif path == "/api/pdf/execute":
             self.handle_pdf_execute()
         elif path == "/api/graph/build":
             self.handle_graph_build()
@@ -186,6 +188,60 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         else:
             body = json.dumps({"timestamp": None, "annotations": [], "applied": {}}).encode("utf-8")
 
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def handle_run_select(self) -> None:
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length)
+            payload = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+        except Exception as e:
+            err_body = json.dumps({"ok": False, "error": f"JSON payload inválido: {e}"}).encode("utf-8")
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(err_body)))
+            self.end_headers()
+            self.wfile.write(err_body)
+            return
+
+        run_id = str(payload.get("run_id", "")).strip()
+        proposals_dir = self.workspace_dir / "proposals"
+        current_pointer = proposals_dir / ".current-run"
+
+        if not run_id:
+            if current_pointer.is_file():
+                try:
+                    current_pointer.unlink()
+                except Exception:
+                    pass
+            get_project_status(self.workspace_dir, force_refresh=True)
+            body = json.dumps({"ok": True, "active_run": None}).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        target_run_dir = proposals_dir / run_id
+        if not target_run_dir.is_dir() or not (target_run_dir / "_run.md").is_file():
+            err_body = json.dumps({"ok": False, "error": f"Corrida '{run_id}' no encontrada o sin _run.md"}).encode("utf-8")
+            self.send_response(404)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(err_body)))
+            self.end_headers()
+            self.wfile.write(err_body)
+            return
+
+        proposals_dir.mkdir(parents=True, exist_ok=True)
+        current_pointer.write_text(f"{run_id}\n", encoding="utf-8")
+        get_project_status(self.workspace_dir, force_refresh=True)
+
+        body = json.dumps({"ok": True, "active_run": run_id}).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -312,6 +368,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
     def serve_flow(self) -> None:
         flow_path = self.workspace_dir / "docs" / "diagrams" / "morfeo-pipeline-flow.html"
+        if not flow_path.is_file():
+            flow_path = Path(__file__).resolve().parent / "static" / "morfeo-pipeline-flow.html"
         if not flow_path.is_file():
             self.send_error(404, "Diagrama Archify no encontrado. Genera con: node docs/diagrams/morfeo-flow.build.mjs")
             return
@@ -545,7 +603,14 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
 def run_server(workspace_dir: Path, port: int = 8080, host: str = "127.0.0.1") -> None:
     handler = type("ConfiguredHandler", (MorfeoDashboardHandler,), {"workspace_dir": workspace_dir})
-    server = ThreadingHTTPServer((host, port), handler)
+    try:
+        server = ThreadingHTTPServer((host, port), handler)
+    except OSError as err:
+        if err.errno in (48, 98):
+            print(f"Error: El puerto {port} ya está en uso por otro proceso o tablero Morfeo.")
+            print("Puedes especificar otro puerto usando: morfeo ui --port <nuevo_puerto>")
+            return
+        raise
     print(f"==> Morfeo Command Center UI activo en: http://{host}:{port}/")
     print("    Presiona Ctrl+C para detener el servidor.")
     try:

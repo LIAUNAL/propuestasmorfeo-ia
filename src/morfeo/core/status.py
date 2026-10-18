@@ -326,6 +326,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
             return cached[1]
 
     version = _package_version()
+    workspace_title = None
     marker = target_dir / ".morfeo"
     if not marker.is_dir():
         marker = target_dir / ".marco"
@@ -333,6 +334,13 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
         vfile = marker / "version"
         if vfile.is_file():
             version = vfile.read_text(encoding="utf-8").strip()
+        cfile = marker / "config.json"
+        if cfile.is_file():
+            try:
+                cfg = json.loads(cfile.read_text(encoding="utf-8"))
+                workspace_title = cfg.get("title")
+            except Exception:
+                pass
     elif not ((target_dir / "proposals").is_dir() or (target_dir / "guiaProyectosIA_Agente.md").is_file()):
         raise UserError(f"No es un espacio de trabajo Morfeo válido: {target_dir}")
 
@@ -435,10 +443,15 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
             if item.is_dir() and (item / "_run.md").is_file():
                 all_runs.append(item.name)
 
-    archify_flow_ready = (target_dir / "docs" / "diagrams" / "morfeo-pipeline-flow.html").is_file()
+    archify_flow_ready = (
+        target_dir / "docs" / "diagrams" / "morfeo-pipeline-flow.html"
+    ).is_file() or (
+        Path(__file__).resolve().parent.parent / "dashboard" / "static" / "morfeo-pipeline-flow.html"
+    ).is_file()
 
     result_data = {
         "workspace": str(target_dir),
+        "workspace_title": workspace_title,
         "version": version,
         "active_run": active_run,
         "run_details": run_info,

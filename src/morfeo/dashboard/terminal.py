@@ -288,7 +288,7 @@ def ensure_herdr_workspace(workspace_dir: Path) -> dict[str, Any]:
 
 def launch_external_terminal(workspace_dir: Path) -> dict[str, Any]:
     """Launch or focus external terminal (Ghostty priority over WezTerm) with Herdr at workspace_dir."""
-    tools = detect_terminal_tools()
+    tools = detect_terminal_tools(workspace_dir)
     if not tools["ready"]:
         return {
             "ok": False,
