@@ -911,7 +911,7 @@ TEMPLATE = """<!DOCTYPE html>
         var arcLift = Math.min(dist * 0.45, 180);
         var v1 = mid.clone().add(liftDir.multiplyScalar(arcLift));
 
-        var curve = new THREE.QuadraticBezierCurve3D(v0, v1, v2);
+        var curve = new THREE.QuadraticBezierCurve3(v0, v1, v2);
         var pts = curve.getPoints(ARC_SEGMENTS);
 
         for (var s = 0; s < ARC_SEGMENTS; s++) {

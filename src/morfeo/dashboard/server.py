@@ -106,6 +106,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         path = self.path.split("?")[0]
         if path == "/api/pdf/execute":
             self.handle_pdf_execute()
+        elif path == "/api/graph/build":
+            self.handle_graph_build()
         else:
             self.send_error(404, "Not Found")
 
@@ -223,6 +225,49 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def handle_graph_build(self) -> None:
+        data = get_project_status(self.workspace_dir)
+        active_run = data.get("active_run")
+        if not active_run:
+            body = json.dumps({"ok": False, "error": "No hay una corrida activa seleccionada"}).encode("utf-8")
+            self.send_response(404)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        run_dir = self.workspace_dir / "proposals" / active_run
+        try:
+            scripts_dir = self.workspace_dir / "scripts"
+            if not (scripts_dir / "build_manuscript_graph.py").is_file():
+                repo_root = Path(__file__).resolve().parent.parent.parent.parent
+                scripts_dir = repo_root / "scripts"
+
+            import sys
+            if str(scripts_dir) not in sys.path:
+                sys.path.insert(0, str(scripts_dir))
+            from build_manuscript_graph import build_manuscript_graph
+            payload = build_manuscript_graph(run_dir)
+            body = json.dumps({
+                "ok": True,
+                "nodes": len(payload.get("nodes", [])),
+                "edges": len(payload.get("edges", [])),
+                "corpus": payload.get("corpus", "manuscript")
+            }, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception as exc:
+            body = json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False).encode("utf-8")
+            self.send_response(500)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
 
     def serve_dashboard(self) -> None:
         html_file = Path(__file__).resolve().parent / "static" / "index.html"

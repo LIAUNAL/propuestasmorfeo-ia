@@ -2051,17 +2051,6 @@
           <button type="button" class="btn btn--subtle btn--sm" onclick="document.getElementById('archifyStagePurposePanel').style.display='none'" title="Cerrar descripción">✕</button>
         </div>
       </div>
-
-      <!-- Compuertas de Revisión (Gates) inmersas en el flujo metodológico Archify -->
-      <div class="panel" id="archifyGatesPanel" style="margin-top: 1.25rem;">
-        <div class="panel__header">
-          <div class="panel__title">Compuertas de Revisión y Validación Formal (Gates - Flujo Metodológico)</div>
-          <span class="panel__meta">Criterios de paso y auditoría en cada punto de control del flujo</span>
-        </div>
-        <div class="pipeline-grid" id="archifyGatesGrid">
-          <!-- Rendered by JS -->
-        </div>
-      </div>
     </div>
 
     <!-- TAB 2: PIPELINE Y AVANCE -->
@@ -2213,6 +2202,7 @@
             <button id="btnGraphPapers" class="btn btn--primary" onclick="switchGraph('papers')">Grafo de Literatura SOTA</button>
             <button id="btnGraphVault" class="btn" onclick="switchGraph('vault')">Grafo del Vault Obsidian</button>
             <button id="btnGraphManuscript" class="btn" onclick="switchGraph('manuscript')">Grafo del Manuscrito</button>
+            <button id="btnBuildGraph" class="btn" onclick="triggerBuildManuscriptGraph()" title="Regenerar grafo del manuscrito a partir de los archivos LaTeX actuales">⚡ Regenerar Grafo</button>
             <a id="linkOpenGraph" href="/api/graph/papers" target="_blank" class="btn">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
@@ -2832,6 +2822,33 @@
       document.getElementById('linkOpenGraph').href = `/api/graph/${kind}`;
     }
 
+    async function triggerBuildManuscriptGraph() {
+      const btn = document.getElementById('btnBuildGraph');
+      const originalText = btn ? btn.textContent : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Compilando...';
+      }
+      try {
+        const res = await fetch('/api/graph/build', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          switchGraph('manuscript');
+          const iframe = document.getElementById('graphIframe');
+          if (iframe) iframe.src = '/api/graph/manuscript?t=' + Date.now();
+        } else {
+          alert('Error al compilar el grafo del manuscrito: ' + (data.error || 'Desconocido'));
+        }
+      } catch (err) {
+        alert('Error de conexión al regenerar grafo: ' + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      }
+    }
+
     function openDrawer(phaseIndex) {
       const p = PHASES_INFO[phaseIndex];
       if (!p) return;
@@ -3182,10 +3199,9 @@
           secTbody.appendChild(tr);
         });
 
-        // Render Gates Grid with illuminated vs unlit cards (in both Pipeline and Flow tabs)
+        // Render Gates Grid with illuminated vs unlit cards (in Pipeline tab)
         const gatesContainers = [
-          document.getElementById('gatesGrid'),
-          document.getElementById('archifyGatesGrid')
+          document.getElementById('gatesGrid')
         ].filter(Boolean);
 
         gatesContainers.forEach(container => {
