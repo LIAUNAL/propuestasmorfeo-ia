@@ -463,6 +463,71 @@ class TestPdfAnnotator(unittest.TestCase):
             )
             self.assertEqual(payload["applied"]["replace"], 1)
 
+    def test_comment_with_punctuation_removal_directive(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, sec = self._workspace(tmpdir)
+            # Add a passage with trailing period or punctuation
+            sec.write_text("ante la demanda posdesastre. Frente a este panorama", encoding="utf-8")
+            res = apply_pdf_annotations(run_dir, [{
+                "id": "ann_punct",
+                "type": "comment",
+                "text": "posdesastre.",
+                "comment": "quitar los dos puntos",
+                "page": 1,
+            }])
+            self.assertTrue(res["ok"])
+            content = sec.read_text(encoding="utf-8")
+            self.assertIn("ante la demanda posdesastre Frente a este panorama", content)
+            self.assertNotIn("posdesastre.", content)
+            self.assertIn("redaccion/sections/00_frontmatter.tex", res["summary"]["files_modified"])
+
+    def test_comment_with_humanize_directive(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, sec = self._workspace(tmpdir)
+            sec.write_text("Es importante destacar que el sistema opera con inferencia local.", encoding="utf-8")
+            res = apply_pdf_annotations(run_dir, [{
+                "id": "ann_hum",
+                "type": "comment",
+                "text": "Es importante destacar que el sistema opera con inferencia local.",
+                "comment": "redactar de forma diferente",
+                "page": 1,
+            }])
+            self.assertTrue(res["ok"])
+            content = sec.read_text(encoding="utf-8")
+            self.assertNotIn("Es importante destacar que", content)
+            self.assertIn("El sistema opera con inferencia local.", content)
+
+    def test_comment_with_replace_directive(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, sec = self._workspace(tmpdir)
+            sec.write_text("El prototipo alcanza TRL 4.", encoding="utf-8")
+            res = apply_pdf_annotations(run_dir, [{
+                "id": "ann_repl",
+                "type": "comment",
+                "text": "TRL 4",
+                "comment": "cambiar por TRL 6",
+                "page": 1,
+            }])
+            self.assertTrue(res["ok"])
+            content = sec.read_text(encoding="utf-8")
+            self.assertIn("El prototipo alcanza TRL 6.", content)
+
+    def test_find_text_span_with_punctuation_variance(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, sec = self._workspace(tmpdir)
+            sec.write_text("ante la demanda posdesastre. Frente a este panorama", encoding="utf-8")
+            # User selected "posdesastre. ." with double dot in PDF
+            res = apply_pdf_annotations(run_dir, [{
+                "id": "ann_pvar",
+                "type": "strikethrough",
+                "text": "posdesastre. .",
+                "page": 1,
+            }])
+            self.assertTrue(res["ok"])
+            content = sec.read_text(encoding="utf-8")
+            # Anchor was found and struck out
+            self.assertNotIn("posdesastre.", content)
+
 
 if __name__ == "__main__":
     unittest.main()

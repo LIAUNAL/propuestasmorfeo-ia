@@ -32,10 +32,66 @@ def _normalize_words(text: str) -> list[str]:
 
 def _build_fuzzy_regex(words: list[str]) -> str:
     """Build a regex matching the given sequence of words across arbitrary whitespace and LaTeX formatting."""
-    # Escape each word
     escaped = [re.escape(w) for w in words]
-    # Join with flexible whitespace pattern
-    return r"\s+".join(escaped)
+    return r"(?:\s+|~|\\,|\\citep?\{[^}]*\}|\\cite\{[^}]*\})+".join(escaped)
+
+
+def _find_text_span(content: str, target_text: str) -> tuple[int, int] | None:
+    """Multi-tier resilient search for target_text within LaTeX content.
+
+    Handles exact matches, flexible whitespace, LaTeX citations/tildes,
+    and punctuation variations (such as 'posdesastre. .' vs 'posdesastre.').
+    """
+    if not target_text or not content:
+        return None
+
+    # Tier 1: Exact substring match
+    idx = content.find(target_text)
+    if idx != -1:
+        return (idx, idx + len(target_text))
+
+    # Tier 2: Case-insensitive exact match
+    lower_content = content.lower()
+    lower_target = target_text.lower()
+    idx = lower_content.find(lower_target)
+    if idx != -1:
+        return (idx, idx + len(target_text))
+
+    # Tier 3: Word sequence with flexible whitespace and LaTeX citations
+    words = _normalize_words(target_text)
+    if words:
+        max_len = len(words)
+        min_len = 1 if max_len <= 3 else (max_len - 2 if max_len <= 6 else max(2, max_len // 2))
+        for length in range(max_len, min_len - 1, -1):
+            cur_words = words[:length]
+            regex_pat = _build_fuzzy_regex(cur_words)
+            m = re.search(regex_pat, content, re.IGNORECASE)
+            if m:
+                return m.span()
+
+    # Tier 4: Core alphanumeric words with boundary punctuation expansion
+    alpha_words = re.findall(r"\w+", target_text)
+    if alpha_words:
+        escaped_alpha = [re.escape(w) for w in alpha_words]
+        pat = r"\s*".join(escaped_alpha)
+        for m in re.finditer(pat, content, re.IGNORECASE):
+            s_start, s_end = m.span()
+            if re.search(r"[^\w\s]$", target_text.strip()):
+                punct_m = re.match(r"^[^\w\s]+", content[s_end:])
+                if punct_m:
+                    s_end += punct_m.end()
+            return (s_start, s_end)
+
+    # Tier 5: Pure punctuation search (e.g. '.', '..', '. .')
+    clean_punct = re.sub(r"\s+", "", target_text)
+    if clean_punct and not any(c.isalnum() for c in clean_punct):
+        escaped_punct = [re.escape(c) for c in clean_punct]
+        pat = r"\s*".join(escaped_punct)
+        m = re.search(pat, content)
+        if m:
+            return m.span()
+
+    return None
 
 
 PENDING_INSTRUCTIONS_FILE = "instrucciones_revisor_pdf.md"
@@ -62,15 +118,7 @@ def _instruction_signature(page: Any, anchor: str, comment: str) -> str:
 def register_pending_instructions(
     pipeline_dir: Path, items: list[dict[str, Any]]
 ) -> tuple[Path | None, int]:
-    """Anexa al archivo de pendientes las instrucciones que aún no estaban.
-
-    Devuelve la ruta del archivo y cuántas entradas nuevas se escribieron. El
-    archivo se anexa con `open(..., "a")` en lugar de reescribirse: una
-    instrucción sin ejecutar no se puede recuperar de ningún otro sitio, y
-    `write_text` trunca primero, de modo que un fallo a mitad de la escritura
-    perdería todo lo anterior. Anexar no toca los bytes que ya están, así que
-    tampoco un segundo escritor puede borrar lo que otro ya dejó.
-    """
+    """Anexa al archivo de pendientes las instrucciones que aún no estaban."""
     if not items:
         return None, 0
 
@@ -115,42 +163,161 @@ def register_pending_instructions(
 
 def _humanize_text_span(text: str) -> str:
     """Apply estilo-natural-es academic humanization rules to a span of text.
-    
-    Removes formulaic mechanical boilerplate while preserving 100% of facts,
-    citations, numbers, percentages and technical register.
+
+    Removes formulaic mechanical boilerplate, AI markers, and bureaucratic fillers
+    while strictly preserving 100% of facts, citations, numbers, percentages and technical register.
     """
+    if not text:
+        return ""
+
     polished = text
 
-    # Formulaic bureaucratic opening phrases to eliminate or streamline
-    fillers = [
+    # 1. Prohibición estricta de rayas anglosajonas (—) y dobles guiones (--)
+    polished = re.sub(r"\s*—\s*", ", ", polished)
+    polished = re.sub(r"\s*--\s*", ", ", polished)
+
+    # 2. Erradicación de fórmulas mecánicas y clichés de IA (Catálogo estilo-natural-es)
+    replacements = [
         (r"\bEs importante destacar que\s*", ""),
         (r"\bCabe resaltar que\s*", ""),
         (r"\bEs menester señalar que\s*", ""),
         (r"\bVale la pena mencionar que\s*", ""),
         (r"\bEs necesario subrayar que\s*", ""),
-        (r"\bEn este sentido,\s*", ""),
-        (r"\bPor su parte,\s*", ""),
-        (r"\bDe manera similar,\s*", "Asimismo, "),
-        (r"\bPor consiguiente,\s*", "Así, "),
-        (r"\bEn virtud de lo anterior,\s*", "Por ello, "),
-        (r"\bCon el propósito de\b", "Para"),
-        (r"\bCon el fin de\b", "Para"),
+        (r"\bEs fundamental comprender que\s*", ""),
+        (r"\bFrente a este panorama,?\s*", "Ante este contexto, "),
+        (r"\bEn este sentido,?\s*", ""),
+        (r"\bPor su parte,?\s*", ""),
+        (r"\bDe manera similar,?\s*", "Asimismo, "),
+        (r"\bPor consiguiente,?\s*", "Así, "),
+        (r"\bEn virtud de lo anterior,?\s*", "Por ello, "),
+        (r"\bEn el marco de\b", "en"),
         (r"\ba través de la utilización de\b", "mediante"),
+        (r"\bpor medio de la utilización de\b", "mediante"),
+        (r"\bpor medio de\b", "mediante"),
+        (r"\bcon el propósito de\b", "para"),
+        (r"\bcon el fin de\b", "para"),
         (r"\bcon el objeto de\b", "para"),
+        (r"\ben aras de\b", "para"),
+        (r"\bse erige como\b", "es"),
+        (r"\bse posiciona como\b", "es"),
+        (r"\bjuega un papel fundamental\b", "es central"),
+        (r"\bjuega un papel crucial\b", "es determinante"),
+        (r"\bdesempeña un rol crucial\b", "es determinante"),
+        (r"\bmarca un antes y un después\b", "transforma"),
+        (r"\bun punto de inflexión\b", "un cambio significativo"),
+        (r"\ben el corazón de\b", "en el centro de"),
+        (r"\bun abanico de\b", "diversos"),
+        (r"\ben última instancia,?\s*", "finalmente, "),
+        (r"\bde la mano de\b", "junto con"),
+        (r"\btiene la capacidad de\b", "puede"),
+        (r"\bdebido al hecho de que\b", "dado que"),
+        (r"\ben la era actual,?\s*", "actualmente, "),
+        (r"\bhoy en día,?\s*", "en el presente, "),
+        (r"\ben el mundo actual,?\s*", "en la actualidad, "),
+        (r"\bresulta imperativo\b", "es necesario"),
+        (r"\bresulta indispensable\b", "es indispensable"),
+        (r"\bse hace necesario\b", "se requiere"),
+        (r"\bremover\b", "eliminar"),
+        (r"\bremoviendo\b", "eliminando"),
+        (r"\bhacer sentido\b", "tener sentido"),
+        (r"\bconsistente con\b", "coherente con"),
     ]
 
-    for pat, rep in fillers:
+    for pat, rep in replacements:
         polished = re.sub(pat, rep, polished, flags=re.IGNORECASE)
 
-    # Clean up any resulting double spaces or awkward punctuation
+    # 3. Corrección de anomalías de puntuación
+    polished = re.sub(r"\.\s*\.", ".", polished)
+    polished = re.sub(r",\s*,", ",", polished)
+    polished = re.sub(r",\s+y\b", " y", polished)
     polished = re.sub(r" {2,}", " ", polished)
     polished = re.sub(r"\s+([,\.;:])", r"\1", polished)
+    polished = re.sub(r"([,\.;:])([a-zA-ZáéíóúÁÉÍÓÚñÑ])", r"\1 \2", polished)
 
-    # Capitalize sentence starts if a leading filler was stripped at beginning
+    # 4. Dinamismo sintáctico adicional si no cambió (pule construcciones pasivas verbose)
+    if polished == text:
+        dynamic_subs = [
+            (r"\bpermite llevar a cabo\b", "facilita"),
+            (r"\bcon el fin de lograr\b", "para alcanzar"),
+            (r"\bse propone desarrollar\b", "pretende desarrollar"),
+            (r"\btiene como objetivo\b", "busca"),
+            (r"\ben relación con\b", "respecto a"),
+            (r"\bllevar a cabo\b", "realizar"),
+            (r"\bdar cuenta de\b", "evidenciar"),
+            (r"\bponer de manifiesto\b", "revelar"),
+        ]
+        for pat, rep in dynamic_subs:
+            polished = re.sub(pat, rep, polished, flags=re.IGNORECASE)
+        polished = re.sub(r"\.\s*\.", ".", polished)
+        polished = re.sub(r" {2,}", " ", polished).strip()
+
+    # 5. Capitalización inicial coherente
     if text and text[0].isupper() and polished and polished[0].islower():
         polished = polished[0].upper() + polished[1:]
 
     return polished.strip()
+
+
+def _parse_instruction_action(comment: str, target_text: str, matched_original: str) -> tuple[str, str] | None:
+    """Parse whether a user's comment text is an actionable editorial command on the selected text.
+
+    Returns (action_type, resulting_text) or None if it's purely a general pipeline observation.
+    """
+    if not comment:
+        return None
+
+    raw_c = comment.strip()
+    c_lower = raw_c.lower()
+
+    # 1. Punctuation removal directive (e.g. "quitar los dos puntos", "quitar dobles puntos", "quitar puntos")
+    if re.search(r"\b(?:quitar|eliminar|borrar|suprimir)\b.*\b(?:puntos?|dos puntos|dobles puntos)\b", c_lower) or any(k in c_lower for k in [
+        "dobles puntos", "dos puntos", "quitar los puntos", "quitar el punto", "quitar punto", "eliminar puntos", "eliminar dobles puntos", "esos dos puntos", "quitar .", "quitar .."
+    ]):
+        cleaned = re.sub(r"\.\s*\.", ".", matched_original)
+        if cleaned != matched_original:
+            return ("replace", cleaned)
+        cleaned = re.sub(r"[\.:]+$", "", matched_original).rstrip()
+        if cleaned != matched_original:
+            return ("replace", cleaned)
+        if not any(c.isalnum() for c in matched_original):
+            return ("delete", "")
+        return ("replace", cleaned)
+
+    # 2. Deletion directive: "quitar X", "eliminar X", "borrar X"
+    del_m = re.match(r"^(?:quitar|eliminar|borrar|suprimir)\s+(.+)$", raw_c, re.IGNORECASE)
+    if del_m:
+        phrase = del_m.group(1).strip().strip('"\'«»')
+        phrase_lower = phrase.lower()
+        if phrase_lower in ("este texto", "el texto", "esto", "el fragmento", "este fragmento", "la seleccion", "la selección"):
+            return ("delete", "")
+        if phrase in matched_original:
+            new_text = matched_original.replace(phrase, "")
+            new_text = re.sub(r" {2,}", " ", new_text).strip()
+            return ("replace", new_text)
+        pat = re.compile(re.escape(phrase), re.IGNORECASE)
+        if pat.search(matched_original):
+            new_text = pat.sub("", matched_original)
+            new_text = re.sub(r" {2,}", " ", new_text).strip()
+            return ("replace", new_text)
+
+    # 3. Replacement directive: "cambiar por X", "reemplazar por X", "poner X"
+    repl_m = re.match(r"^(?:cambiar|reemplazar|sustituir)(?:\s+este\s+texto)?\s+por\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
+    if repl_m:
+        return ("replace", repl_m.group(1).strip())
+    poner_m = re.match(r"^poner\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
+    if poner_m:
+        return ("replace", poner_m.group(1).strip())
+
+    # 4. Rephrasing / Humanizing directive (explicit command on this passage)
+    if re.match(
+        r"^(?:por favor\s+)?(?:redactar\s+(?:de\s+forma\s+diferente|diferente|de\s+otra\s+forma)|humanizar|hacer\s+m[aá]s\s+conciso|mejorar\s+redacci[oó]n)(?:\s+(?:este\s+texto|este\s+pasaje|esta\s+frase))?\.?$",
+        raw_c,
+        re.IGNORECASE,
+    ):
+        polished = _humanize_text_span(matched_original)
+        return ("humanize", polished)
+
+    return None
 
 
 def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> dict[str, Any]:
@@ -196,11 +363,7 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         page_num = ann.get("page", 1)
         ann_id = ann.get("id", str(idx + 1))
 
-        words = _normalize_words(target_text)
-        if not words:
-            # Sin texto ancla la anotación no puede nombrar a qué se refiere ni
-            # hay pasaje que buscar. Antes se descartaba en silencio; ahora el
-            # fallo queda a la vista del operador.
+        if not target_text:
             failed_annotations.append({
                 "id": ann_id,
                 "type": ann_type,
@@ -211,26 +374,16 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             continue
 
         # Search for target text in all candidate files
-        # Try progressively smaller subsets of words if exact match fails
         matched_file: Path | None = None
         match_span: tuple[int, int] | None = None
 
-        search_lengths = [len(words)]
-        if len(words) > 8:
-            search_lengths.extend([len(words) - 1, 6])
-
-        for w_len in search_lengths:
-            cur_words = words[:w_len]
-            regex_pat = _build_fuzzy_regex(cur_words)
+        if target_text:
             for tf in tex_files:
-                content = file_contents[tf]
-                m = re.search(regex_pat, content, re.IGNORECASE)
-                if m:
+                span = _find_text_span(file_contents[tf], target_text)
+                if span:
                     matched_file = tf
-                    match_span = m.span()
+                    match_span = span
                     break
-            if matched_file:
-                break
 
         matched_original = (
             file_contents[matched_file][match_span[0]:match_span[1]]
@@ -238,24 +391,83 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             else None
         )
 
-        # Un comentario no reescribe prosa: no toca la fuente y viaja al agente
-        # del pipeline como instrucción pendiente. Se registra aunque el ancla no
-        # se localice, porque una instrucción sigue siendo válida sin ella; lo
-        # que exigía ancla era la línea `%` que se insertaba antes.
+        # Manejo de comentarios / instrucciones del usuario
         if ann_type in ("comment", "comentario"):
-            registered_comments.append({
-                "id": ann.get("id", str(idx + 1)),
-                "file": str(matched_file.relative_to(run_dir)) if matched_file else None,
-                "page": page_num,
-                "target_text": matched_original if matched_original else target_text,
-                "comment": comment_body,
-                "located": bool(matched_file),
-            })
-            continue
+            action = _parse_instruction_action(comment_body, target_text, matched_original or target_text)
+            apply_directly = bool(ann.get("apply_directly"))
+
+            if matched_file and match_span and (action is not None or apply_directly):
+                act_type, new_text = action if action else ("replace", comment_body)
+                content = file_contents[matched_file]
+                start, end = match_span
+
+                if act_type == "delete" or (act_type == "replace" and new_text == ""):
+                    prefix = content[:start]
+                    suffix = content[end:]
+                    if prefix.endswith(" ") and suffix.startswith(" "):
+                        suffix = suffix[1:]
+                    file_contents[matched_file] = prefix + suffix
+                    files_modified.add(matched_file)
+                    applied_strikethroughs.append({
+                        "id": ann_id,
+                        "file": str(matched_file.relative_to(run_dir)),
+                        "page": page_num,
+                        "original_text": matched_original,
+                        "rects": ann.get("rects"),
+                        "via_instruction": comment_body,
+                    })
+                elif act_type == "humanize":
+                    polished = _humanize_text_span(matched_original)
+                    file_contents[matched_file] = content[:start] + polished + content[end:]
+                    files_modified.add(matched_file)
+                    applied_humanize.append({
+                        "id": ann_id,
+                        "file": str(matched_file.relative_to(run_dir)),
+                        "page": page_num,
+                        "original_text": matched_original,
+                        "polished_text": polished,
+                        "rects": ann.get("rects"),
+                        "via_instruction": comment_body,
+                    })
+                else:  # replace
+                    file_contents[matched_file] = content[:start] + new_text + content[end:]
+                    files_modified.add(matched_file)
+                    applied_replace.append({
+                        "id": ann_id,
+                        "file": str(matched_file.relative_to(run_dir)),
+                        "page": page_num,
+                        "original_text": matched_original,
+                        "replacement": new_text,
+                        "rects": ann.get("rects"),
+                        "via_instruction": comment_body,
+                    })
+
+                registered_comments.append({
+                    "id": ann_id,
+                    "file": str(matched_file.relative_to(run_dir)),
+                    "page": page_num,
+                    "target_text": matched_original,
+                    "comment": comment_body,
+                    "located": True,
+                    "rects": ann.get("rects"),
+                    "executed": True,
+                })
+                continue
+            else:
+                registered_comments.append({
+                    "id": ann_id,
+                    "file": str(matched_file.relative_to(run_dir)) if matched_file else None,
+                    "page": page_num,
+                    "target_text": matched_original if matched_original else target_text,
+                    "comment": comment_body,
+                    "located": bool(matched_file),
+                    "rects": ann.get("rects"),
+                })
+                continue
 
         if not matched_file or not match_span:
             failed_annotations.append({
-                "id": ann.get("id", str(idx + 1)),
+                "id": ann_id,
                 "type": ann_type,
                 "text": target_text,
                 "page": page_num,
@@ -267,45 +479,42 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         start, end = match_span
 
         if ann_type in ("strikethrough", "tachar", "delete"):
-            # Quitar únicamente el texto explícitamente tachado sin reescribir ni humanizar el resto
             prefix = content[:start]
             suffix = content[end:]
-            # Limpiar solo el espacio doble en la juntura exacta del corte
             if prefix.endswith(" ") and suffix.startswith(" "):
                 suffix = suffix[1:]
             new_content = prefix + suffix
             file_contents[matched_file] = new_content
             files_modified.add(matched_file)
             applied_strikethroughs.append({
-                "id": ann.get("id", str(idx + 1)),
+                "id": ann_id,
                 "file": str(matched_file.relative_to(run_dir)),
                 "page": page_num,
                 "original_text": matched_original,
+                "rects": ann.get("rects"),
             })
 
         elif ann_type in ("humanize", "humanizar"):
-            # Aplicar pulido con skill estilo-natural-es
             polished_text = _humanize_text_span(matched_original)
             new_content = content[:start] + polished_text + content[end:]
             file_contents[matched_file] = new_content
             files_modified.add(matched_file)
             applied_humanize.append({
-                "id": ann.get("id", str(idx + 1)),
+                "id": ann_id,
                 "file": str(matched_file.relative_to(run_dir)),
                 "page": page_num,
                 "original_text": matched_original,
                 "polished_text": polished_text,
+                "rects": ann.get("rects"),
             })
 
         elif ann_type in ("replace", "reemplazar"):
-            # Reemplazo determinista: el texto literal que escribió el operador
-            # sustituye el pasaje anclado. Ningún modelo interviene aquí.
             raw_replacement = ann.get("replacement")
             replacement = "" if raw_replacement is None else str(raw_replacement)
             delete_intent = bool(ann.get("delete_intent"))
             if replacement.strip() == "" and not delete_intent:
                 failed_annotations.append({
-                    "id": ann.get("id", str(idx + 1)),
+                    "id": ann_id,
                     "type": ann_type,
                     "text": target_text,
                     "page": page_num,
@@ -319,12 +528,13 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             file_contents[matched_file] = new_content
             files_modified.add(matched_file)
             applied_replace.append({
-                "id": ann.get("id", str(idx + 1)),
+                "id": ann_id,
                 "file": str(matched_file.relative_to(run_dir)),
                 "page": page_num,
                 "original_text": matched_original,
                 "replacement": replacement,
                 "deleted": replacement == "",
+                "rects": ann.get("rects"),
             })
 
     # Write all modified files back to disk

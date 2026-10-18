@@ -676,7 +676,7 @@
     .flujo-track {
       display: flex;
       align-items: flex-start;
-      min-width: 1100px;
+      min-width: 1450px;
       gap: 0;
       position: relative;
     }
@@ -750,6 +750,22 @@
       text-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
       margin-bottom: 0.2rem;
     }
+    .flujo-subtitle {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.25;
+      margin-bottom: 0.35rem;
+      max-width: 110px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      font-weight: 500;
+    }
+    .flujo-step--lit .flujo-subtitle {
+      color: #93c5fd;
+    }
     .flujo-step--lit .flujo-badge {
       background: rgba(16, 185, 129, 0.22);
       color: #34d399;
@@ -778,6 +794,9 @@
       font-weight: 500;
       font-size: 0.8rem;
       margin-bottom: 0.2rem;
+    }
+    .flujo-step--unlit .flujo-subtitle {
+      color: var(--text-dim);
     }
     .flujo-step--unlit .flujo-badge {
       background: rgba(31, 41, 55, 0.5);
@@ -1630,7 +1649,6 @@
     <button class="tab-nav__btn active" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
     <button class="tab-nav__btn" onclick="navigateTab('flow')">Flujo Archify</button>
     <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones (§0–§18)</button>
-    <button class="tab-nav__btn" onclick="navigateTab('gates')">Compuertas (Gates)</button>
     <button class="tab-nav__btn" onclick="navigateTab('telemetria')">Telemetría y Costos</button>
     <button class="tab-nav__btn" onclick="navigateTab('atlas')">Atlas de Grafos</button>
     <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
@@ -1691,6 +1709,17 @@
           <!-- Rendered by JS -->
         </div>
       </div>
+
+      <!-- Compuertas de Revisión y Validación Formal (Gates) inmersas en el flujo general -->
+      <div class="panel" id="pipelineGatesPanel" style="margin-top: 1.25rem;">
+        <div class="panel__header">
+          <div class="panel__title">Compuertas de Revisión y Validación Formal (Gates)</div>
+          <span class="panel__meta">Revisión de calidad, consistencia y dependencias cruzadas en cada compuerta</span>
+        </div>
+        <div class="pipeline-grid" id="gatesGrid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
     </div>
 
     <!-- TAB 2: ARCHIFY FLOW -->
@@ -1713,6 +1742,17 @@
         </div>
         <div class="pipeline-grid" id="archifyPhasesGrid">
           <!-- Rendered dynamically by JS with identical 3-line descriptions -->
+        </div>
+      </div>
+
+      <!-- Compuertas de Revisión (Gates) inmersas en el flujo metodológico Archify -->
+      <div class="panel" id="archifyGatesPanel" style="margin-top: 1.25rem;">
+        <div class="panel__header">
+          <div class="panel__title">Compuertas de Revisión y Validación Formal (Gates - Flujo Metodológico)</div>
+          <span class="panel__meta">Criterios de paso y auditoría en cada punto de control del flujo</span>
+        </div>
+        <div class="pipeline-grid" id="archifyGatesGrid">
+          <!-- Rendered by JS -->
         </div>
       </div>
     </div>
@@ -1741,19 +1781,6 @@
               <!-- Rendered by JS -->
             </tbody>
           </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 4: GATES -->
-    <div id="pane-gates" class="tab-pane">
-      <div class="panel">
-        <div class="panel__header">
-          <div class="panel__title">Compuertas de Revisión y Validación Formal (Gates)</div>
-          <span class="panel__meta">Revisión de calidad, consistencia y dependencias cruzadas</span>
-        </div>
-        <div class="pipeline-grid" id="gatesGrid">
-          <!-- Rendered by JS -->
         </div>
       </div>
     </div>
@@ -2212,6 +2239,38 @@
       fase7: "Auditoría final cruzada de dependencias, verificación de consistencia entre secciones, ensamble del documento y compilación del PDF final."
     };
 
+    function formatPhaseNumber(id) {
+      if (!id) return '';
+      if (id === 'g0_5') return 'G0.5';
+      if (id.startsWith('fase')) {
+        const num = id.replace('fase', '').replace('_', '.');
+        return `Fase ${num}`;
+      }
+      return id.toUpperCase();
+    }
+
+    function getShortPhaseName(p) {
+      const SHORT_NAMES = {
+        fase0: "Intake e insumos",
+        g0_5: "Guía al TDR",
+        fase1a: "Scoping y subproblemas",
+        fase1b: "Corpus SOTA y papers",
+        fase1: "Problema y árbol TikZ",
+        fase2: "Estado del arte e hipótesis",
+        fase3: "Justificación y pertinencia",
+        fase4: "Objetivos (gen. y esp.)",
+        fase5: "Marco conceptual y equipo",
+        fase5_5: "Metodología y diagrama",
+        fase6: "Resultados y ética",
+        fase6_4: "Presupuesto financiero",
+        fase6_45: "Cronograma y productos",
+        fase6_46: "Articulación y comunidad",
+        fase6_5: "Front-matter y resumen",
+        fase7: "Auditoría final y ensamble"
+      };
+      return SHORT_NAMES[p.id] || p.name || '';
+    }
+
     function buildPhasesInfo(units) {
       return units.map(u => ({
         id: u.id,
@@ -2291,6 +2350,23 @@
     document.getElementById('themeBtn').textContent = savedTheme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
 
     function navigateTab(tabId) {
+      if (tabId === 'gates') {
+        tabId = 'pipeline';
+        activeTab = 'pipeline';
+        window.location.hash = '#pipeline';
+        document.querySelectorAll('.tab-nav__btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        const targetBtn = Array.from(document.querySelectorAll('.tab-nav__btn')).find(b => b.getAttribute('onclick')?.includes('pipeline'));
+        if (targetBtn) targetBtn.classList.add('active');
+        const targetPane = document.getElementById('pane-pipeline');
+        if (targetPane) targetPane.classList.add('active');
+        setTimeout(() => {
+          const gatesEl = document.getElementById('pipelineGatesPanel');
+          if (gatesEl) gatesEl.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+        return;
+      }
+
       activeTab = tabId;
       window.location.hash = `#${tabId}`;
       document.querySelectorAll('.tab-nav__btn').forEach(b => b.classList.remove('active'));
@@ -2566,12 +2642,16 @@
             }
             const isConnectorLit = isLit && (nextGateStatus === 'PASS');
 
+            const phaseLabel = formatPhaseNumber(p.id);
+            const shortName = getShortPhaseName(p);
+
             stepDiv.innerHTML = `
               ${!isLast ? `<div class="flujo-connector ${isConnectorLit ? 'flujo-connector--lit' : 'flujo-connector--unlit'}"></div>` : ''}
               <div class="flujo-beacon">
                 ${isLit ? '💡' : '⚫'}
               </div>
-              <div class="flujo-title">${p.id}</div>
+              <div class="flujo-title">${phaseLabel}</div>
+              <div class="flujo-subtitle" title="${escapeHtml(p.name || '')}">${escapeHtml(shortName)}</div>
               <div class="flujo-badge">${enCurso ? 'EN CURSO' : (isLit ? 'PASS' : 'SIN LUZ')}</div>
             `;
             flujoTrack.appendChild(stepDiv);
@@ -2664,38 +2744,44 @@
           secTbody.appendChild(tr);
         });
 
-        // Render Gates Grid with illuminated vs unlit cards
-        const gatesGrid = document.getElementById('gatesGrid');
-        gatesGrid.innerHTML = '';
-        (data.gates || []).forEach(g => {
-          const isLit = (g.status === 'PASS');
-          const card = document.createElement('div');
-          card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
-          const badgeTone = isLit ? 'ok' : (g.status === 'BLOCKED' ? 'bad' : 'warn');
-          
-          const pIdx = PHASES_INFO.findIndex(p => 
-            p.gate === g.id || 
-            p.id === g.phase || 
-            (p.gate && g.id.toLowerCase().replace(/[^a-z0-9]/g, '') === p.gate.toLowerCase().replace(/[^a-z0-9]/g, ''))
-          );
-          if (pIdx !== -1) {
-            card.onclick = () => openDrawer(pIdx);
-            card.style.cursor = 'pointer';
-            card.title = 'Clic para ver detalles de la fase y comandos de ejecución';
-          }
+        // Render Gates Grid with illuminated vs unlit cards (in both Pipeline and Flow tabs)
+        const gatesContainers = [
+          document.getElementById('gatesGrid'),
+          document.getElementById('archifyGatesGrid')
+        ].filter(Boolean);
 
-          card.innerHTML = `
-            <div class="phase-card__head">
-              <span class="phase-card__name">${g.id} — ${g.name}</span>
-              <span class="badge badge--${badgeTone}">${isLit ? '💡 ' : ''}${g.status}</span>
-            </div>
-            <p class="phase-card__desc">${g.criteria}</p>
-            <div class="phase-card__foot">
-              <span>Revisor: <strong>${g.reviewer}</strong></span>
-              <span>${g.phase}</span>
-            </div>
-          `;
-          gatesGrid.appendChild(card);
+        gatesContainers.forEach(container => {
+          container.innerHTML = '';
+          (data.gates || []).forEach(g => {
+            const isLit = (g.status === 'PASS');
+            const card = document.createElement('div');
+            card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
+            const badgeTone = isLit ? 'ok' : (g.status === 'BLOCKED' ? 'bad' : 'warn');
+            
+            const pIdx = PHASES_INFO.findIndex(p => 
+              p.gate === g.id || 
+              p.id === g.phase || 
+              (p.gate && g.id.toLowerCase().replace(/[^a-z0-9]/g, '') === p.gate.toLowerCase().replace(/[^a-z0-9]/g, ''))
+            );
+            if (pIdx !== -1) {
+              card.onclick = () => openDrawer(pIdx);
+              card.style.cursor = 'pointer';
+              card.title = 'Clic para ver detalles de la fase y comandos de ejecución';
+            }
+
+            card.innerHTML = `
+              <div class="phase-card__head">
+                <span class="phase-card__name">${g.id} — ${g.name}</span>
+                <span class="badge badge--${badgeTone}">${isLit ? '💡 ' : ''}${g.status}</span>
+              </div>
+              <p class="phase-card__desc">${g.criteria}</p>
+              <div class="phase-card__foot">
+                <span>Revisor: <strong>${g.reviewer}</strong></span>
+                <span>${g.phase}</span>
+              </div>
+            `;
+            container.appendChild(card);
+          });
         });
 
         // Render Telemetry
@@ -4180,19 +4266,45 @@
 
         // Conservar marcas de cambios ejecutados para resaltarlos en el PDF recompilado
         const appliedTypes = ['strikethrough', 'replace', 'humanize'];
-        const newlyExecuted = queuedAnnotations.filter(a => appliedTypes.includes(a.type));
-        newlyExecuted.forEach(item => {
-          executedChangeMarks.push({
-            id: 'exec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-            type: item.type,
-            text: item.text,
-            replacement: item.replacement || '',
-            searchText: (item.type === 'replace' && item.replacement && item.replacement.trim()) ? item.replacement.trim() : (item.text || ''),
-            page: item.page || 1,
-            rects: item.rects || null,
-            timestamp: new Date().toISOString()
+        const details = result.details || {};
+        appliedTypes.forEach(type => {
+          (details[type] || []).forEach(item => {
+            const matchedQueued = queuedAnnotations.find(q =>
+              (q.page === item.page) && (
+                q.text === item.original_text ||
+                (item.original_text && q.text && item.original_text.includes(q.text)) ||
+                (q.text && item.original_text && q.text.includes(item.original_text))
+              )
+            );
+            const rects = item.rects || (matchedQueued ? matchedQueued.rects : null);
+            executedChangeMarks.push({
+              id: 'exec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+              type: type,
+              text: item.original_text || item.text || (matchedQueued ? matchedQueued.text : ''),
+              replacement: item.replacement || item.polished_text || '',
+              searchText: (item.replacement && item.replacement.trim()) ? item.replacement.trim() : (item.original_text || item.text || ''),
+              page: item.page || 1,
+              rects: rects,
+              timestamp: new Date().toISOString()
+            });
           });
         });
+
+        if (executedChangeMarks.length === 0) {
+          const newlyExecuted = queuedAnnotations.filter(a => appliedTypes.includes(a.type));
+          newlyExecuted.forEach(item => {
+            executedChangeMarks.push({
+              id: 'exec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+              type: item.type,
+              text: item.text,
+              replacement: item.replacement || '',
+              searchText: (item.type === 'replace' && item.replacement && item.replacement.trim()) ? item.replacement.trim() : (item.text || ''),
+              page: item.page || 1,
+              rects: item.rects || null,
+              timestamp: new Date().toISOString()
+            });
+          });
+        }
 
         // Execution successful
         queuedAnnotations = [];
@@ -4252,12 +4364,14 @@
           const dt = data.details;
           ['strikethrough', 'replace', 'humanize'].forEach(type => {
             (dt[type] || []).forEach(item => {
+              const text = item.original_text || item.text || '';
+              const repl = item.replacement || item.polished_text || '';
               executedChangeMarks.push({
                 id: 'exec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
                 type: type,
-                text: item.text || '',
-                replacement: item.replacement || '',
-                searchText: (type === 'replace' && item.replacement && item.replacement.trim()) ? item.replacement.trim() : (item.text || ''),
+                text: text,
+                replacement: repl,
+                searchText: (type === 'replace' && repl.trim()) ? repl.trim() : text,
                 page: item.page || 1,
                 rects: item.rects || null,
                 timestamp: data.timestamp || ''
