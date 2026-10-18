@@ -1646,19 +1646,54 @@
 
   <!-- Navigation tabs -->
   <nav class="tabs-nav" aria-label="Navegación del tablero">
-    <button class="tab-nav__btn active" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
-    <button class="tab-nav__btn" onclick="navigateTab('flow')">Flujo Archify</button>
-    <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones (§0–§18)</button>
+    <button class="tab-nav__btn active" onclick="navigateTab('flow')">Flujo general</button>
+    <button class="tab-nav__btn" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
+    <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
     <button class="tab-nav__btn" onclick="navigateTab('telemetria')">Telemetría y Costos</button>
-    <button class="tab-nav__btn" onclick="navigateTab('atlas')">Atlas de Grafos</button>
+    <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
     <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
     <button class="tab-nav__btn" onclick="navigateTab('artifacts')">Artefactos</button>
   </nav>
 
   <!-- Main content area -->
   <main>
-    <!-- TAB 1: PIPELINE -->
-    <div id="pane-pipeline" class="tab-pane active">
+    <!-- TAB 1: FLUJO GENERAL (ARCHIFY) -->
+    <div id="pane-flow" class="tab-pane active">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Diagrama Interactivo de Arquitectura y Flujo (Archify)</div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span class="badge badge--ok">SHOWCASE · PASSED</span>
+            <a href="/api/flow" target="_blank" class="btn btn--primary">Abrir en pestaña nueva ↗</a>
+          </div>
+        </div>
+        <iframe id="flowIframe" class="iframe-viewer" src="/api/flow"></iframe>
+      </div>
+
+      <div class="panel" style="margin-top: 1.25rem;">
+        <div class="panel__header">
+          <div class="panel__title">Fases del Pipeline Metodológico de Redacción (Flujo general)</div>
+          <span class="panel__meta">Descripción de qué se realiza en cada fase del pipeline</span>
+        </div>
+        <div class="pipeline-grid" id="archifyPhasesGrid">
+          <!-- Rendered dynamically by JS with identical 3-line descriptions -->
+        </div>
+      </div>
+
+      <!-- Compuertas de Revisión (Gates) inmersas en el flujo metodológico Archify -->
+      <div class="panel" id="archifyGatesPanel" style="margin-top: 1.25rem;">
+        <div class="panel__header">
+          <div class="panel__title">Compuertas de Revisión y Validación Formal (Gates - Flujo Metodológico)</div>
+          <span class="panel__meta">Criterios de paso y auditoría en cada punto de control del flujo</span>
+        </div>
+        <div class="pipeline-grid" id="archifyGatesGrid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: PIPELINE Y AVANCE -->
+    <div id="pane-pipeline" class="tab-pane">
       <div class="metrics-grid">
         <div class="metric-card">
           <div class="metric-card__label">Corrida Activa</div>
@@ -1717,41 +1752,6 @@
           <span class="panel__meta">Revisión de calidad, consistencia y dependencias cruzadas en cada compuerta</span>
         </div>
         <div class="pipeline-grid" id="gatesGrid">
-          <!-- Rendered by JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 2: ARCHIFY FLOW -->
-    <div id="pane-flow" class="tab-pane">
-      <div class="panel">
-        <div class="panel__header">
-          <div class="panel__title">Diagrama Interactivo de Arquitectura y Flujo (Archify)</div>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <span class="badge badge--ok">SHOWCASE · PASSED</span>
-            <a href="/api/flow" target="_blank" class="btn btn--primary">Abrir en pestaña nueva ↗</a>
-          </div>
-        </div>
-        <iframe id="flowIframe" class="iframe-viewer" src="/api/flow"></iframe>
-      </div>
-
-      <div class="panel" style="margin-top: 1.25rem;">
-        <div class="panel__header">
-          <div class="panel__title">Fases del Pipeline Metodológico de Redacción (Flujo Archify)</div>
-          <span class="panel__meta">Descripción de qué se realiza en cada fase del pipeline</span>
-        </div>
-        <div class="pipeline-grid" id="archifyPhasesGrid">
-          <!-- Rendered dynamically by JS with identical 3-line descriptions -->
-        </div>
-      </div>
-
-      <!-- Compuertas de Revisión (Gates) inmersas en el flujo metodológico Archify -->
-      <div class="panel" id="archifyGatesPanel" style="margin-top: 1.25rem;">
-        <div class="panel__header">
-          <div class="panel__title">Compuertas de Revisión y Validación Formal (Gates - Flujo Metodológico)</div>
-          <span class="panel__meta">Criterios de paso y auditoría en cada punto de control del flujo</span>
-        </div>
-        <div class="pipeline-grid" id="archifyGatesGrid">
           <!-- Rendered by JS -->
         </div>
       </div>
@@ -2334,7 +2334,7 @@
     }
 
     let currentStatus = null;
-    let activeTab = 'pipeline';
+    let activeTab = 'flow';
 
     function toggleTheme() {
       const html = document.documentElement;
