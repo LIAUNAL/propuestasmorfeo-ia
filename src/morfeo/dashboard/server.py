@@ -380,9 +380,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def serve_terminal_tools(self) -> None:
-        from .terminal import detect_terminal_tools
-        tools = detect_terminal_tools()
+        from .terminal import detect_terminal_tools, get_current_agent_pane_id
+        tools = detect_terminal_tools(self.workspace_dir)
         tools["monitored_path"] = str(self.workspace_dir.resolve())
+        tools["active_pane"] = get_current_agent_pane_id(self.workspace_dir)
         body = json.dumps({"ok": True, "tools": tools}, ensure_ascii=False).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -411,7 +412,13 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(400, "Missing Sec-WebSocket-Key")
             return
 
-        from .terminal import run_pty_session, ws_handshake_accept
+        from .terminal import (
+            find_executable,
+            get_current_agent_pane_id,
+            run_pane_mirror_session,
+            run_pty_session,
+            ws_handshake_accept,
+        )
 
         accept_token = ws_handshake_accept(key)
         response = (
@@ -437,6 +444,20 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             rows = 24
 
         self.close_connection = True
+
+        if agent in ("herdr", "current", "mirror"):
+            herdr_bin = find_executable("herdr")
+            active_pane = get_current_agent_pane_id(self.workspace_dir) if herdr_bin else None
+            if herdr_bin and active_pane:
+                run_pane_mirror_session(
+                    sock=self.request,
+                    pane_id=active_pane,
+                    herdr_bin=herdr_bin,
+                    init_rows=rows,
+                    init_cols=cols,
+                )
+                return
+
         run_pty_session(
             sock=self.request,
             workspace_dir=self.workspace_dir,

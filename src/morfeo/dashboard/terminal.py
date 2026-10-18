@@ -20,6 +20,7 @@ import socket
 import struct
 import subprocess
 import termios
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -116,7 +117,69 @@ def find_executable(name: str) -> Optional[str]:
     return None
 
 
-def detect_terminal_tools() -> dict[str, Any]:
+def get_current_agent_pane_id(workspace_dir: Optional[Path] = None) -> Optional[str]:
+    """Find the pane ID of the active agent session currently executing."""
+    herdr_bin = find_executable("herdr")
+    if not herdr_bin:
+        return None
+
+    # 1. Environment variable inherited by server or agent process
+    env_pane = os.environ.get("HERDR_PANE_ID")
+    if env_pane:
+        try:
+            v_res = subprocess.run([herdr_bin, "pane", "get", env_pane.strip()], capture_output=True, text=True, timeout=1.5)
+            if v_res.returncode == 0:
+                return env_pane.strip()
+        except Exception:
+            pass
+
+    # 2. Query herdr pane list
+    try:
+        res = subprocess.run([herdr_bin, "pane", "list"], capture_output=True, text=True, timeout=2.0)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)
+            panes = data.get("result", {}).get("panes", [])
+            if not panes:
+                return None
+
+            resolved_ws = str(workspace_dir.resolve()) if workspace_dir else None
+
+            # Best candidate: matching workspace cwd and active agent
+            if resolved_ws:
+                for p in panes:
+                    p_cwd = p.get("cwd") or p.get("foreground_cwd")
+                    if p_cwd == resolved_ws and p.get("agent_status") == "working":
+                        return p.get("pane_id")
+
+                for p in panes:
+                    p_cwd = p.get("cwd") or p.get("foreground_cwd")
+                    if p_cwd == resolved_ws and p.get("agent"):
+                        return p.get("pane_id")
+
+                for p in panes:
+                    p_cwd = p.get("cwd") or p.get("foreground_cwd")
+                    if p_cwd == resolved_ws:
+                        return p.get("pane_id")
+
+            # Fallback across all panes: active working agent
+            for p in panes:
+                if p.get("agent_status") == "working" and p.get("agent"):
+                    return p.get("pane_id")
+
+            # Fallback: focused pane
+            for p in panes:
+                if p.get("focused"):
+                    return p.get("pane_id")
+
+            # Fallback: first pane
+            return panes[0].get("pane_id")
+    except Exception:
+        pass
+
+    return None
+
+
+def detect_terminal_tools(workspace_dir: Optional[Path] = None) -> dict[str, Any]:
     """Inspect availability of Herdr and terminal emulators (Ghostty priority over WezTerm)."""
     herdr_bin = find_executable("herdr")
     herdr_socket = Path.home() / ".config" / "herdr" / "herdr.sock"
@@ -157,6 +220,8 @@ def detect_terminal_tools() -> dict[str, Any]:
     herdr_installed = herdr_bin is not None
     ready = bool(herdr_installed and preferred_terminal)
 
+    active_pane_id = get_current_agent_pane_id(workspace_dir) if herdr_installed else None
+
     missing = []
     if not herdr_installed:
         missing.append("herdr")
@@ -167,11 +232,13 @@ def detect_terminal_tools() -> dict[str, Any]:
         "ready": ready,
         "preferred_terminal": preferred_terminal,
         "missing": missing,
+        "active_pane": active_pane_id,
         "herdr": {
             "installed": herdr_installed,
             "path": herdr_bin,
             "server_running": herdr_server_running,
             "client_running": herdr_client_running,
+            "active_pane": active_pane_id,
         },
         "ghostty": {
             "installed": ghostty_installed,
@@ -340,6 +407,159 @@ def build_agent_command(agent_id: str) -> tuple[list[str], str, Optional[str]]:
         return [system_shell], "Shell interactivo", None
 
 
+def forward_input_to_pane(herdr_bin: str, pane_id: str, payload: bytes) -> None:
+    """Forward client keyboard input to Herdr pane."""
+    if not payload:
+        return
+
+    # Check common single and control sequences
+    if payload in (b"\r", b"\n"):
+        subprocess.run([herdr_bin, "pane", "send-keys", pane_id, "enter"], capture_output=True, timeout=1.0)
+        return
+    if payload == b"\x1b":
+        subprocess.run([herdr_bin, "pane", "send-keys", pane_id, "esc"], capture_output=True, timeout=1.0)
+        return
+    if payload == b"\x03":
+        subprocess.run([herdr_bin, "pane", "send-keys", pane_id, "ctrl+c"], capture_output=True, timeout=1.0)
+        return
+    if payload in (b"\x7f", b"\x08"):
+        subprocess.run([herdr_bin, "pane", "send-keys", pane_id, "backspace"], capture_output=True, timeout=1.0)
+        return
+    if payload == b"\t":
+        subprocess.run([herdr_bin, "pane", "send-keys", pane_id, "tab"], capture_output=True, timeout=1.0)
+        return
+    if payload == b"\x1b[A":
+        subprocess.run([herdr_bin, "pane", "send-keys", pane_id, "up"], capture_output=True, timeout=1.0)
+        return
+    if payload == b"\x1b[B":
+        subprocess.run([herdr_bin, "pane", "send-keys", pane_id, "down"], capture_output=True, timeout=1.0)
+        return
+    if payload == b"\x1b[C":
+        subprocess.run([herdr_bin, "pane", "send-keys", pane_id, "right"], capture_output=True, timeout=1.0)
+        return
+    if payload == b"\x1b[D":
+        subprocess.run([herdr_bin, "pane", "send-keys", pane_id, "left"], capture_output=True, timeout=1.0)
+        return
+
+    # Decode as UTF-8 text
+    try:
+        text = payload.decode("utf-8")
+        if text.endswith("\r") or text.endswith("\n"):
+            trimmed = text.rstrip("\r\n")
+            if trimmed:
+                subprocess.run([herdr_bin, "pane", "send-text", pane_id, trimmed], capture_output=True, timeout=1.0)
+            subprocess.run([herdr_bin, "pane", "send-keys", pane_id, "enter"], capture_output=True, timeout=1.0)
+        else:
+            subprocess.run([herdr_bin, "pane", "send-text", pane_id, text], capture_output=True, timeout=1.0)
+    except Exception:
+        pass
+
+
+def run_pane_mirror_session(
+    sock: socket.socket,
+    pane_id: str,
+    herdr_bin: str,
+    init_rows: int = 24,
+    init_cols: int = 80,
+) -> None:
+    """Stream a live interactive mirror of an active Herdr pane to a WebSocket client."""
+    sock.setblocking(False)
+
+    # Initial visible screen fetch
+    try:
+        r0 = subprocess.run(
+            [herdr_bin, "pane", "read", pane_id, "--format", "ansi", "--source", "visible"],
+            capture_output=True,
+            text=False,
+            timeout=2.0,
+        )
+        if r0.returncode == 0:
+            initial_screen = b"\x1b[2J\x1b[H" + r0.stdout
+            sock.sendall(encode_ws_frame(initial_screen, 0x1))
+    except Exception:
+        pass
+
+    # Initial revision
+    last_revision = None
+    try:
+        r_get = subprocess.run([herdr_bin, "pane", "get", pane_id], capture_output=True, text=True, timeout=1.5)
+        if r_get.returncode == 0:
+            data = json.loads(r_get.stdout)
+            last_revision = data.get("result", {}).get("pane", {}).get("revision")
+    except Exception:
+        pass
+
+    in_buffer = bytearray()
+    last_check_time = 0.0
+    check_interval = 0.15
+
+    while True:
+        # Check socket for incoming client frames or disconnect
+        try:
+            rlist, _, _ = select.select([sock.fileno()], [], [], 0.05)
+        except (select.error, OSError):
+            break
+
+        if sock.fileno() in rlist:
+            try:
+                raw_data = sock.recv(8192)
+                if not raw_data:
+                    break
+                in_buffer.extend(raw_data)
+
+                while True:
+                    frame_res, consumed = decode_ws_client_frame(in_buffer)
+                    if frame_res is None:
+                        break
+                    del in_buffer[:consumed]
+                    opcode, payload = frame_res
+
+                    if opcode == 0x8:  # WS Close
+                        return
+                    elif opcode == 0x9:  # WS Ping -> Pong
+                        sock.sendall(encode_ws_frame(payload, 0xA))
+                    elif opcode in (0x1, 0x2):
+                        # Control message check
+                        handled_control = False
+                        if payload.startswith(b'{"type"') or payload.startswith(b'{"type "'):
+                            try:
+                                msg = json.loads(payload.decode("utf-8"))
+                                if msg.get("type") in ("resize", "ping"):
+                                    handled_control = True
+                            except Exception:
+                                pass
+
+                        if not handled_control:
+                            forward_input_to_pane(herdr_bin, pane_id, payload)
+            except (BlockingIOError, OSError, socket.error):
+                break
+
+        # Check revision update
+        now = time.time()
+        if now - last_check_time >= check_interval:
+            last_check_time = now
+            try:
+                g_res = subprocess.run([herdr_bin, "pane", "get", pane_id], capture_output=True, text=True, timeout=1.2)
+                if g_res.returncode != 0:
+                    break
+                g_data = json.loads(g_res.stdout)
+                curr_rev = g_data.get("result", {}).get("pane", {}).get("revision")
+                if curr_rev is not None and curr_rev != last_revision:
+                    last_revision = curr_rev
+                    read_res = subprocess.run(
+                        [herdr_bin, "pane", "read", pane_id, "--format", "ansi", "--source", "visible"],
+                        capture_output=True,
+                        text=False,
+                        timeout=1.5,
+                    )
+                    if read_res.returncode == 0:
+                        sock.sendall(encode_ws_frame(b"\x1b[H" + read_res.stdout + b"\x1b[J", 0x1))
+            except (socket.error, OSError):
+                break
+            except Exception:
+                pass
+
+
 def run_pty_session(
     sock: socket.socket,
     workspace_dir: Path,
@@ -348,6 +568,20 @@ def run_pty_session(
     init_cols: int = 80,
 ) -> None:
     """Stream bidirectional I/O between an xterm.js WebSocket and a child process PTY."""
+    # When Herdr is selected, mirror the live active pane directly if available
+    if agent_id in ("herdr", "current", "mirror"):
+        herdr_bin = find_executable("herdr")
+        active_pane = get_current_agent_pane_id(workspace_dir) if herdr_bin else None
+        if herdr_bin and active_pane:
+            run_pane_mirror_session(
+                sock=sock,
+                pane_id=active_pane,
+                herdr_bin=herdr_bin,
+                init_rows=init_rows,
+                init_cols=init_cols,
+            )
+            return
+
     cmd_args, resolved_name, warning_banner = build_agent_command(agent_id)
 
     # Set up child environment

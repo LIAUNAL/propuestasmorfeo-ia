@@ -15,6 +15,8 @@ from src.morfeo.dashboard.terminal import (
     decode_ws_client_frame,
     get_available_agents,
     build_agent_command,
+    get_current_agent_pane_id,
+    forward_input_to_pane,
 )
 
 
@@ -24,6 +26,36 @@ class TestDashboardTerminalBridge(unittest.TestCase):
         key = "dGhlIHNhbXBsZSBub25jZQ=="
         expected = "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
         self.assertEqual(ws_handshake_accept(key), expected)
+
+    def test_get_current_agent_pane_id(self):
+        import os
+        pane = get_current_agent_pane_id()
+        if os.environ.get("HERDR_PANE_ID"):
+            self.assertIsNotNone(pane)
+            self.assertEqual(pane, os.environ.get("HERDR_PANE_ID"))
+
+    def test_forward_input_to_pane(self):
+        from unittest.mock import patch
+        calls = []
+        def fake_run(args, **kwargs):
+            calls.append(args)
+            class Res:
+                returncode = 0
+            return Res()
+
+        with patch("subprocess.run", side_effect=fake_run):
+            forward_input_to_pane("herdr", "w54:p1", b"\r")
+            self.assertEqual(calls[-1], ["herdr", "pane", "send-keys", "w54:p1", "enter"])
+
+            forward_input_to_pane("herdr", "w54:p1", b"\x1b")
+            self.assertEqual(calls[-1], ["herdr", "pane", "send-keys", "w54:p1", "esc"])
+
+            forward_input_to_pane("herdr", "w54:p1", b"\x03")
+            self.assertEqual(calls[-1], ["herdr", "pane", "send-keys", "w54:p1", "ctrl+c"])
+
+            forward_input_to_pane("herdr", "w54:p1", b"ls\n")
+            self.assertEqual(calls[-2], ["herdr", "pane", "send-text", "w54:p1", "ls"])
+            self.assertEqual(calls[-1], ["herdr", "pane", "send-keys", "w54:p1", "enter"])
 
     def test_encode_and_decode_ws_frames(self):
         # Test short payload
@@ -96,6 +128,7 @@ class TestDashboardTerminalBridge(unittest.TestCase):
         self.assertIn("herdr", tools)
         self.assertIn("ghostty", tools)
         self.assertIn("wezterm", tools)
+        self.assertIn("active_pane", tools)
         self.assertIsInstance(tools["ready"], bool)
         self.assertIsInstance(tools["missing"], list)
         if tools["ghostty"]["installed"]:

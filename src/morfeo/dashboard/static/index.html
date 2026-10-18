@@ -6146,6 +6146,7 @@
     let selectedAgent = localStorage.getItem('morfeo_terminal_agent') || 'herdr';
     let cachedTerminalTools = null;
     let monitoredProjectPath = '';
+    let activeAgentPaneId = null;
 
     async function checkTerminalTools() {
       if (typeof fetch === 'undefined') {
@@ -6157,6 +6158,7 @@
         if (data && data.ok && data.tools) {
           cachedTerminalTools = data.tools;
           monitoredProjectPath = data.tools.monitored_path || '';
+          activeAgentPaneId = data.tools.active_pane || null;
           updateTerminalFooterPath();
           updateExternalLaunchButton();
           return data.tools;
@@ -6244,9 +6246,6 @@
           if (tools && !tools.ready) {
             closeMorfeoTerminal();
             showToolsRequiredModal(tools);
-          } else if (tools && tools.herdr && !tools.herdr.client_running) {
-            // Si Herdr no está en ejecución, se lanza en segundo plano
-            fetch('/api/terminal/launch-external', { method: 'POST' }).catch(() => {});
           }
         }).catch(() => {});
       }
@@ -6529,7 +6528,9 @@
         'agy': 'Antigravity (AGY)',
         'shell': 'Shell (Zsh/Bash)'
       };
-      const agentLabel = agentMap[agent] || agent;
+      const agentLabel = (agent === 'herdr' && activeAgentPaneId)
+        ? `Herdr (Espejo: ${activeAgentPaneId})`
+        : (agentMap[agent] || agent);
 
       if (footerAgent) footerAgent.textContent = agentLabel;
       if (footerRun) {
