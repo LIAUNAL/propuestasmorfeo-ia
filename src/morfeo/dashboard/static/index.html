@@ -1716,13 +1716,19 @@
         <iframe id="flowIframe" class="iframe-viewer" src="/api/flow"></iframe>
       </div>
 
-      <div class="panel" style="margin-top: 1.25rem;">
-        <div class="panel__header">
-          <div class="panel__title">Fases del Pipeline Metodológico de Redacción (Flujo general)</div>
-          <span class="panel__meta">Descripción de qué se realiza en cada fase del pipeline</span>
-        </div>
-        <div class="pipeline-grid" id="archifyPhasesGrid">
-          <!-- Rendered dynamically by JS with identical 3-line descriptions -->
+      <!-- Panel de Propósito de la Etapa Seleccionada en el Diagrama Archify -->
+      <div id="archifyStagePurposePanel" class="panel" style="margin-top: 1.25rem; border-left: 3px solid var(--accent, #6366f1); display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge--info" id="archifyStageBadge">ETAPA</span>
+              <strong id="archifyStageTitle" style="font-size: 0.95rem; color: #f8fafc;">Nombre de la etapa</strong>
+            </div>
+            <div id="archifyStagePurpose" style="margin-top: 0.35rem; font-size: 0.85rem; line-height: 1.45; color: #cbd5e1;">
+              <!-- Descripción corta de dos líneas del propósito de la etapa y caja seleccionada -->
+            </div>
+          </div>
+          <button type="button" class="btn btn--subtle btn--sm" onclick="document.getElementById('archifyStagePurposePanel').style.display='none'" title="Cerrar descripción">✕</button>
         </div>
       </div>
 
@@ -2743,31 +2749,25 @@
           pipeGrid.innerHTML = `<div class="annots-empty"><p>Sin inventario de unidades en el sobre de estado.</p><small>Actualiza el paquete de <code>morfeo</code>.</small></div>`;
         }
 
-        // Render Archify Flow Phases Grid with identical descriptions
-        const archGrid = document.getElementById('archifyPhasesGrid');
-        if (archGrid) {
-          archGrid.innerHTML = '';
-          PHASES_INFO.forEach((p, idx) => {
-            const gateStatus = getPhaseVerdict(p);
-            const isLit = (gateStatus === 'PASS');
-            const badgeTone = isLit ? 'ok' : (gateStatus === 'BLOCKED' ? 'bad' : 'warn');
-            const card = document.createElement('div');
-            card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
-            card.onclick = () => openDrawer(idx);
-            card.style.cursor = 'pointer';
-            card.title = `${p.name} · Clic para ver detalles y dependencias`;
-            card.innerHTML = `
-              <div class="phase-card__head">
-                <span class="phase-card__name">${p.name}</span>
-                <span class="badge badge--${badgeTone}">${isLit ? '💡 ' : ''}${p.gateLabel}: ${gateStatus}</span>
-              </div>
-              <p class="phase-card__desc">${p.desc}</p>
-              <div class="phase-card__foot">
-                <span>Agentes: <strong>${p.agents.length ? p.agents.join(', ') : '—'}</strong></span>
-                <span>${p.sections.length} secciones</span>
-              </div>
-            `;
-            archGrid.appendChild(card);
+        // Setup listener for stage selection events from the Archify diagram iframe
+        if (!window.__archifyListenerAttached) {
+          window.__archifyListenerAttached = true;
+          window.addEventListener('message', (ev) => {
+            if (ev.data && ev.data.type === 'archify-node-selected') {
+              const panel = document.getElementById('archifyStagePurposePanel');
+              const titleEl = document.getElementById('archifyStageTitle');
+              const descEl = document.getElementById('archifyStagePurpose');
+              const badgeEl = document.getElementById('archifyStageBadge');
+              if (panel && titleEl && descEl) {
+                titleEl.textContent = ev.data.title || ev.data.id;
+                if (badgeEl) badgeEl.textContent = ev.data.lane || 'ETAPA';
+                const l1 = ev.data.line1 ? `<p style="margin: 0 0 0.25rem 0; font-weight: 500;">${escapeHtml(ev.data.line1)}</p>` : '';
+                const l2 = ev.data.line2 ? `<p style="margin: 0; color: #94a3b8;">${escapeHtml(ev.data.line2)}</p>` : '';
+                descEl.innerHTML = l1 + l2;
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }
           });
         }
 

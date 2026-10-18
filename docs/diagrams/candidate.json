@@ -9,7 +9,7 @@
       "url": "https://github.com/LIAUNAL/propuestasmorfeo-ia",
       "provider": "github",
       "link_mode": "web",
-      "revision": "19211715cbce21ab148fdfd02d91b82f974eaa25"
+      "revision": "45d1c2bce14aaf678e4beac4b94e26503d978735"
     },
     "legend": {
       "mode": "auto",
@@ -228,7 +228,7 @@
         {
           "path": ".claude/agents/investigador.md",
           "line": 1,
-          "end_line": 366
+          "end_line": 377
         }
       ],
       "row": 2,
@@ -342,7 +342,7 @@
         {
           "path": ".claude/agents/investigador.md",
           "line": 1,
-          "end_line": 366
+          "end_line": 377
         }
       ],
       "row": 3,
@@ -399,7 +399,7 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 246
+          "end_line": 259
         }
       ],
       "row": 4,
@@ -418,7 +418,7 @@
         {
           "path": ".claude/agents/grant-flow-auditor.md",
           "line": 1,
-          "end_line": 84
+          "end_line": 86
         }
       ],
       "row": 4,
@@ -456,7 +456,7 @@
         {
           "path": ".claude/agents/investigador.md",
           "line": 1,
-          "end_line": 366
+          "end_line": 377
         }
       ],
       "row": 4,
@@ -494,7 +494,7 @@
         {
           "path": ".claude/agents/investigador.md",
           "line": 1,
-          "end_line": 366
+          "end_line": 377
         }
       ],
       "row": 5,
@@ -513,7 +513,7 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 246
+          "end_line": 259
         }
       ],
       "row": 5,
@@ -551,7 +551,7 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 246
+          "end_line": 259
         }
       ],
       "row": 6,
@@ -589,7 +589,7 @@
         {
           "path": ".claude/agents/grant-flow-auditor.md",
           "line": 1,
-          "end_line": 84
+          "end_line": 86
         }
       ],
       "row": 6,
@@ -627,7 +627,7 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 246
+          "end_line": 259
         }
       ],
       "row": 7,
@@ -646,7 +646,7 @@
         {
           "path": ".claude/agents/presupuestador.md",
           "line": 1,
-          "end_line": 129
+          "end_line": 130
         }
       ],
       "row": 7,
@@ -684,7 +684,7 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 246
+          "end_line": 259
         }
       ],
       "row": 7,
@@ -722,7 +722,7 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 246
+          "end_line": 259
         }
       ],
       "row": 8,
@@ -798,7 +798,7 @@
         {
           "path": ".claude/agents/coordinador-propuesta.md",
           "line": 1,
-          "end_line": 187
+          "end_line": 207
         }
       ],
       "row": 8,
@@ -1361,45 +1361,45 @@
   "cards": [
     {
       "dot": "cyan",
-      "title": "Ecosistema de Agentes y Roles",
+      "title": "Fases Metodológicas: Ingesta, Scoping y Problema",
       "items": [
-        "11 subagentes especializados orquestados sin invocar agentes anidados.",
-        "Investigador: estructura académica (§3, §5, §6, §7, §8).",
-        "Redactor: prosa narrativa rigurosa (§2, §9, §10, §11, §14, §15, front-matter).",
-        "Revisor: validación de coherencia en cada compuerta de aprobación (G0.5–G7).",
-        "Presupuestador: desglose de rubros y cofinanciación con aritmética exacta."
+        "Fase 0: Ingesta, clasificación y extracción de insumos del usuario para estructurar el contexto compartido.",
+        "Fase 1a: Búsqueda bibliográfica de encuadre en el grafo para delimitar alcance y postular tres subproblemas.",
+        "Fase 1b: Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo referencias semilla e indexando.",
+        "Fase 1: Redacción de la descripción del problema (§3), formulación de la pregunta central y árbol TikZ."
       ]
     },
     {
       "dot": "emerald",
-      "title": "Comandos CLI Morfeo",
+      "title": "Fases Metodológicas: Fundamentación, Justificación y Objetivos",
       "items": [
-        "morfeo init <dir> — inicializa workspace reproducible con 67 activos base.",
-        "morfeo status — audita gates aprobados, archivos faltantes y telemetría.",
-        "morfeo compile — compila PDF con build.sh y logos institucionales vía fancyhdr.",
-        "morfeo ui — levanta Command Center web (tablero, telemetría, grafos y visor PDF).",
-        "morfeo audit — detecta deriva de archivos protegidos frente al manifiesto.",
-        "morfeo upgrade — actualiza plantillas preservando insumos y propuestas."
-      ]
-    },
-    {
-      "dot": "amber",
-      "title": "Bucle Determinista de Figuras",
-      "items": [
-        "Diseñador-TikZ genera únicamente la spec JSON (nunca código LaTeX manual).",
-        "python3 scripts/figura.py calcula geometría exacta y audita 17 criterios mecánicos.",
-        "Revisor-Figuras evalúa únicamente criterios visuales sobre el preview PNG.",
-        "Tikz-Optimizer corrige la spec ante cualquier fallo, con un máximo de 4 intentos."
+        "Fase 2: Construcción del estado del arte Q1/Q2 (§4), hipótesis falsable (§5) y mapa visual conceptual.",
+        "Fase 3: Elaboración de justificación y pertinencia (§2), articulando con ODS, PND y madurez TRL 6 o 7.",
+        "Fase 4: Formulación del objetivo general (§6) y los tres objetivos específicos (§7), con mapeo biyectivo 1:1.",
+        "Fase 5: Fundamentos teóricos (§8) y conformación del equipo (§9), con roles derivados de los objetivos."
       ]
     },
     {
       "dot": "violet",
-      "title": "Calidad de Prosa y Vistas de Grafo",
+      "title": "Fases Metodológicas: Metodología, Presupuesto y Ensamble",
       "items": [
+        "Fase 5.5: Metodología (§10) por fases y cadena de valor, con diseño y verificación de diagrama TikZ.",
+        "Fase 6: Resultados esperados (§11) y fundamentación de consideraciones éticas y datos (§12).",
+        "Fase 6.4: Presupuesto (§13) detallando rubros, contrapartidas y cofinanciación con balance exacto.",
+        "Fase 6.45: Cronograma de actividades (§14, Gantt), tabla de productos (§15) y bibliografía APA (§16).",
+        "Fase 6.46: Articulación territorial (§17) y plan de apropiación social del conocimiento (§18).",
+        "Fase 6.5: Resumen técnico, resumen ejecutivo institucional, palabras clave y verificación del título.",
+        "Fase 7: Auditoría cruzada integral de dependencias, verificación de consistencia y compilación final."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Ecosistema de Agentes, Calidad y CLI",
+      "items": [
+        "11 subagentes especializados orquestados sin invocar agentes anidados.",
+        "Bucle determinista de figuras TikZ: Diseñador-TikZ (spec JSON) + figura.py + Revisor-Figuras.",
         "Skill estilo-natural-es: cadencia humana, voz activa y eliminación de fórmulas mecánicas.",
-        "Skill depuracion-redundancias-es: audita duplicidad conceptual y léxica dentro de cada sección.",
-        "Capa de grafo dual vía codebase-memory MCP: índice de papers y espejo vault en Obsidian.",
-        "Visualizador gemelo en HTML generado con scripts/graph_html.py para navegación visual."
+        "morfeo ui: Command Center con visor PDF en tiempo real, grafos interactivos y telemetría."
       ]
     }
   ]
