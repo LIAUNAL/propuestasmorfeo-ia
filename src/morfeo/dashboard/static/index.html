@@ -7,7 +7,10 @@
   <link rel="icon" type="image/png" sizes="128x128" href="/static/favicon.png">
   <link rel="shortcut icon" href="/favicon.ico">
   <link rel="stylesheet" href="/static/vendor/pdf_viewer.min.css">
+  <link rel="stylesheet" href="/static/vendor/xterm.css">
   <script src="/static/vendor/pdf.min.js"></script>
+  <script src="/static/vendor/xterm.js"></script>
+  <script src="/static/vendor/xterm-addon-fit.js"></script>
   <style>
     :root {
       --bg: #0b0f19;
@@ -437,6 +440,72 @@
       color: var(--text-muted);
       font-size: 1.25rem;
       cursor: pointer;
+    }
+
+    /* Estilos del Modal de Estructura Canónica de Secciones */
+    .sec-structure-block {
+      background: var(--surface-2);
+      border-left: 4px solid var(--accent);
+      padding: 1rem 1.15rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .sec-graph-container {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.15rem;
+    }
+    .sec-graph-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 1.25rem;
+      margin-top: 0.85rem;
+    }
+    .sec-node-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.65rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .sec-node-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+    }
+    .sec-node-card--active {
+      border: 2px solid var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+      cursor: default;
+    }
+    .sec-para-item {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.65rem;
+      transition: border-color 0.15s ease;
+    }
+    .sec-para-item:hover {
+      border-color: var(--border-hover, #475569);
+    }
+    .sec-rules-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+    @media (max-width: 768px) {
+      .sec-graph-flow { grid-template-columns: 1fr; }
+      .sec-rules-grid { grid-template-columns: 1fr; }
     }
 
     /* Data Tables */
@@ -1640,8 +1709,259 @@
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    /* ========================================================
+       ASISTENTE FLOTANTE MORFEO (FAB) Y TERMINAL WEB PTY
+       ======================================================== */
+    .morfeo-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 99999;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.45);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+    }
+    .morfeo-fab:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 28px rgba(56, 189, 248, 0.65);
+    }
+    .morfeo-fab:active {
+      transform: scale(0.96);
+    }
+    .morfeo-fab__pulse {
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid rgba(56, 189, 248, 0.6);
+      animation: fabPulse 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+      pointer-events: none;
+    }
+    .morfeo-fab.is-active .morfeo-fab__pulse {
+      display: none;
+    }
+    @keyframes fabPulse {
+      0% { transform: scale(0.95); opacity: 0.9; }
+      50% { transform: scale(1.22); opacity: 0; }
+      100% { transform: scale(1.22); opacity: 0; }
+    }
+    .morfeo-fab__logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      pointer-events: none;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    .morfeo-fab__badge {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      background: #10b981;
+      color: #ffffff;
+      font-size: 0.62rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 8px;
+      border: 2px solid var(--bg);
+      letter-spacing: 0.03em;
+    }
+
+    /* Ventana Flotante del Terminal */
+    .morfeo-terminal-window {
+      position: fixed;
+      bottom: 92px;
+      right: 24px;
+      z-index: 99998;
+      width: 780px;
+      height: 520px;
+      max-width: calc(100vw - 36px);
+      max-height: calc(100vh - 120px);
+      background: #080c14;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(56, 189, 248, 0.15);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(16px) scale(0.98);
+      transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .morfeo-terminal-window.is-open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    .morfeo-terminal-window.is-maximized {
+      bottom: 12px;
+      right: 12px;
+      width: calc(100vw - 24px);
+      height: calc(100vh - 24px);
+      max-width: none;
+      max-height: none;
+      border-radius: 8px;
+    }
+
+    /* Cabecera del Terminal */
+    .morfeo-terminal-header {
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      padding: 0.5rem 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .morfeo-terminal-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .morfeo-terminal-logo {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+    }
+    .terminal-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      display: inline-block;
+      transition: background 0.2s ease;
+    }
+    .terminal-status-dot.is-connected {
+      background: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+    }
+    .terminal-status-dot.is-connecting {
+      background: #f59e0b;
+      box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+    }
+
+    .morfeo-terminal-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .terminal-agent-picker {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .terminal-agent-select {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 0.22rem 0.5rem;
+      font-size: 0.75rem;
+      font-family: var(--font-sans);
+      cursor: pointer;
+    }
+    .terminal-agent-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .terminal-btn-icon {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--text-muted);
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: all 0.15s ease;
+    }
+    .terminal-btn-icon:hover {
+      background: #334155;
+      color: var(--text);
+      border-color: #475569;
+    }
+
+    /* Cuerpo del Terminal */
+    .morfeo-terminal-body {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: #080c14;
+      padding: 6px 8px;
+      overflow: hidden;
+    }
+    .xterm-container {
+      width: 100%;
+      height: 100%;
+    }
+    .xterm-container .xterm {
+      padding: 4px;
+      height: 100%;
+    }
+
+    /* Pie del Terminal con atajos */
+    .morfeo-terminal-footer {
+      background: #0a0f1d;
+      border-top: 1px solid #1e293b;
+      height: 32px;
+      padding: 0 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      user-select: none;
+    }
+    .terminal-footer-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 50%;
+    }
+    .terminal-footer-path {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-dim);
+    }
+    .terminal-footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-term-shortcut {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 0.18rem 0.45rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-term-shortcut:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
     }
   </style>
 </head>
@@ -1822,6 +2142,7 @@
               <tr>
                 <th>Código</th>
                 <th>Sección y Título Oficial</th>
+                <th>Estructura</th>
                 <th>Archivo LaTeX</th>
                 <th>Palabras</th>
                 <th>Citas APA</th>
@@ -2126,6 +2447,22 @@
     </div>
   </div>
 
+  <!-- Modal de Estructura Canónica de Sección -->
+  <div class="drawer-overlay" id="sectionStructureModal" onclick="closeSectionStructureModal(event)">
+    <div class="drawer" style="max-width: 900px; width: 95%; max-height: 90vh;" onclick="event.stopPropagation()">
+      <div class="drawer__header" style="position: sticky; top: -1.5rem; background: var(--surface); z-index: 10; margin: -1.5rem -1.5rem 1.25rem -1.5rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <span class="badge badge--ok" id="secModalBadge" style="font-size: 0.82rem; font-weight: 700;">§</span>
+          <h3 id="secModalTitle" style="font-size: 1.15rem; margin: 0; font-weight: 700; color: var(--text);">Estructura de la Sección</h3>
+        </div>
+        <button class="drawer__close" onclick="closeSectionStructureModal()" title="Cerrar modal">&times;</button>
+      </div>
+      <div id="secModalBody">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- Modal para Agregar Comentario -->
   <div class="drawer-overlay" id="commentModal" onclick="closeCommentModal(event)">
     <div class="drawer" style="max-width: 540px;" onclick="event.stopPropagation()">
@@ -2240,6 +2577,56 @@
       <span>Transferencia Tecnológica · TRL 6/7</span>
     </div>
   </footer>
+
+  <!-- Botón Flotante Asistente Morfeo (FAB) -->
+  <div id="morfeoAssistantFab" class="morfeo-fab" onclick="toggleMorfeoTerminal()" title="Abrir Asistente CLI Morfeo">
+    <div class="morfeo-fab__pulse"></div>
+    <img src="/static/morfeo-logo.png" alt="Morfeo CLI" class="morfeo-fab__logo">
+    <span class="morfeo-fab__badge" id="morfeoFabBadge">CLI</span>
+  </div>
+
+  <!-- Ventana Flotante del Asistente Terminal CLI -->
+  <div id="morfeoTerminalWindow" class="morfeo-terminal-window">
+    <div class="morfeo-terminal-header">
+      <div class="morfeo-terminal-title">
+        <img src="/static/morfeo-logo.png" alt="Morfeo" class="morfeo-terminal-logo">
+        <span>Asistente CLI Morfeo</span>
+        <span class="terminal-status-dot" id="terminalStatusDot" title="Desconectado"></span>
+      </div>
+      <div class="morfeo-terminal-controls">
+        <div class="terminal-agent-picker">
+          <label for="terminalAgentSelect">Agente:</label>
+          <select id="terminalAgentSelect" class="terminal-agent-select" onchange="onTerminalAgentChange()">
+            <option value="claude" selected>Claude Code</option>
+            <option value="opencode">OpenCode</option>
+            <option value="pi">Pi</option>
+            <option value="agy">Antigravity (AGY)</option>
+            <option value="shell">Shell (Zsh / Bash)</option>
+          </select>
+        </div>
+        <button class="terminal-btn-icon" onclick="restartTerminalSession()" title="Reiniciar sesión">⟳</button>
+        <button class="terminal-btn-icon" onclick="toggleMaximizeTerminal()" id="terminalMaximizeBtn" title="Maximizar / Restaurar">⛶</button>
+        <button class="terminal-btn-icon" onclick="closeMorfeoTerminal()" title="Minimizar terminal">✕</button>
+      </div>
+    </div>
+
+    <div class="morfeo-terminal-body" id="morfeoTerminalBody">
+      <div id="xtermContainer" class="xterm-container"></div>
+    </div>
+
+    <div class="morfeo-terminal-footer">
+      <div class="terminal-footer-info" id="terminalFooterInfo">
+        <strong id="terminalFooterAgent">Claude Code</strong>
+        <span>·</span>
+        <span id="terminalFooterRun" class="terminal-footer-path">proposals/activa</span>
+      </div>
+      <div class="terminal-footer-actions">
+        <button class="btn-term-shortcut" onclick="sendTerminalQuickCommand('/propuesta-continuar')">/propuesta-continuar</button>
+        <button class="btn-term-shortcut" onclick="sendTerminalQuickCommand('/compilar-pdf')">/compilar-pdf</button>
+        <button class="btn-term-shortcut" onclick="clearTerminalScreen()">Limpiar</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // El inventario de unidades llega en el sobre de estado (`pipeline_units`).
@@ -2574,6 +2961,10 @@
         if (!res.ok) return;
         const data = await res.json();
         currentStatus = data;
+        if (data.active_run) {
+          const footerRun = document.getElementById('terminalFooterRun');
+          if (footerRun) footerRun.textContent = `proposals/${data.active_run}`;
+        }
 
         // Carga el artefacto inicial únicamente una vez al arrancar
         if (!initialArtifactLoaded && data.artifacts && data.artifacts.length > 0) {
@@ -2781,6 +3172,7 @@
           tr.innerHTML = `
             <td><code>${s.id.split('_')[0]}</code></td>
             <td><strong>${s.title}</strong></td>
+            <td><button class="btn btn--xs btn--primary" onclick="openSectionStructure('${s.id}')" title="Ver estructura canónica, grafo de conexiones y reglas de redacción">👁️ Ver</button></td>
             <td><code>sections/${s.filename}</code></td>
             <td>${s.words.toLocaleString()}</td>
             <td>${s.citations}</td>
@@ -2870,6 +3262,784 @@
 
       } catch (err) {
         console.error("Error cargando estado:", err);
+      }
+    }
+
+    /* =========================================================
+       ESTRUCTURA CANÓNICA DE SECCIONES, GRAFO Y REGLAS (MODAL)
+       ========================================================= */
+    const SECTIONS_STRUCTURE_DATA = {
+      "00_frontmatter": {
+        code: "§0",
+        title: "Front-matter (Resumen, Resumen ejecutivo, Palabras clave)",
+        principle: "Síntesis ejecutiva y técnica de alto nivel que condensa de manera fiel el problema, el objetivo general, el enfoque metodológico de IA y el impacto tecnológico tangible con TRL objetivo (6 o 7). Se redacta en una fase tardía del pipeline (Fase 6.5) cuando todo el cuerpo del documento está consolidado.",
+        connections: {
+          inputs: [
+            { code: "§3", id: "03_descripcion_problema", title: "Problema y Pregunta", rel: "Problema rector y justificación" },
+            { code: "§6", id: "06_objetivo_general", title: "Objetivo General", rel: "Meta global de investigación" },
+            { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Enfoque técnico y algoritmos" },
+            { code: "§11", id: "11_resultados_esperados", title: "Resultados Esperados", rel: "Productos tangibles y TRL 6/7" }
+          ],
+          outputs: [
+            { code: "Doc", id: "02_justificacion", title: "Apertura del Manuscrito", rel: "Lectura previa al cuerpo numerado" }
+          ]
+        },
+        paragraphs: [
+          { label: "Resumen Técnico", title: "Bloque único (máx. 400 palabras)", desc: "Cubre en orden estricto: (1) el problema o contexto del sector, (2) el objetivo general, (3) síntesis del enfoque metodológico en IA, y (4) resultados esperados incluyendo el TRL objetivo (6 o 7)." },
+          { label: "Resumen Ejecutivo · P1", title: "Contexto y problemática", desc: "Planteamiento general de la necesidad y oportunidad que motiva el proyecto en el sector." },
+          { label: "Resumen Ejecutivo · P2", title: "Objetivos en síntesis", desc: "Enunciado del objetivo general articulado con los objetivos específicos." },
+          { label: "Resumen Ejecutivo · P3", title: "Enfoque metodológico de IA", desc: "Síntesis del marco técnico, modelos y tecnologías algorítmicas adoptadas." },
+          { label: "Resumen Ejecutivo · P4", title: "Resultados y TRL alcanzado", desc: "Productos esperados, nivel de madurez tecnológica TRL 6 o 7 y transferibilidad." },
+          { label: "Resumen Ejecutivo · P5", title: "Impacto y transferencia", desc: "Beneficio tangible para los usuarios finales y retorno social o económico." },
+          { label: "Palabras Clave", title: "5 descriptores representativos", desc: "Selección de exactamente 5 palabras clave separadas por comas, en minúscula salvo nombres propios o siglas." }
+        ],
+        rules: {
+          allowed: [
+            "Explicitar el nivel TRL 6 o 7 alcanzado en el resumen técnico y ejecutivo.",
+            "Cuidar una cadencia sintáctica variada aplicando la skill estilo-natural-es.",
+            "Mantener fidelidad estricta con las cifras de exactitud, cohorte y presupuesto del manuscrito."
+          ],
+          forbidden: [
+            "Prohibido dividir el Resumen técnico en subpárrafos rotulados (debe ser un único bloque continuo de máx. 400 palabras).",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones en la prosa.",
+            "Prohibido repetir el título completo de la propuesta dentro del cuerpo del resumen."
+          ]
+        }
+      },
+      "01_titulo_identificacion": {
+        code: "§1",
+        title: "Título e identificación del proyecto",
+        principle: "Identificación institucional e inequívoca del proyecto de investigación en IA. Debe ser conciso (12 a 15 palabras preferiblemente), reflejar la novedad investigativa, el modelo o enfoque de IA y el impacto en el sector. Se compila exclusivamente en la portada de main.tex.",
+        connections: {
+          inputs: [
+            { code: "§3", id: "03_descripcion_problema", title: "Problema", rel: "Problema central y contexto" },
+            { code: "§6", id: "06_objetivo_general", title: "Objetivo General", rel: "Coherencia temática" }
+          ],
+          outputs: [
+            { code: "Doc", id: "02_justificacion", title: "Cuerpo del Documento", rel: "Precede front-matter y §2" }
+          ]
+        },
+        paragraphs: [
+          { label: "Bloque de Título", title: "Título oficial (12 a 15 palabras)", desc: "Enunciado conciso y de alto impacto que sintetiza el objeto de estudio, la innovación en IA y el sector beneficiario." },
+          { label: "Identificación", title: "Filiación y consorcio", desc: "Datos institucionales de los grupos y facultades participantes (LabIA, UNAL Manizales, UTP, etc.)." }
+        ],
+        rules: {
+          allowed: [
+            "Compilar exclusivamente en el bloque de encabezado/portada de main.tex con tipografía Large en negrita.",
+            "Mantener coherencia directa con la pregunta de investigación y el objetivo general."
+          ],
+          forbidden: [
+            "Regla de no inclusión de §1 en el cuerpo: prohibido crear un archivo sections/01_titulo_identificacion.tex incluido en el cuerpo numerado de main.tex.",
+            "Prohibido repetir el título verbatim en los encabezados de las demás secciones del documento.",
+            "Prohibido exceder la extensión recomendada de 12 a 15 palabras."
+          ]
+        }
+      },
+      "02_justificacion": {
+        code: "§2",
+        title: "Justificación y pertinencia",
+        principle: "Demuestra la necesidad, oportunidad, respaldo multilateral y momentum tecnológico de resolver el problema ahora. No se concentra en los subproblemas técnicos internos (eso es §3), sino en argumentar por qué vale la pena financiar el proyecto, para quién y con qué políticas públicas conecta.",
+        connections: {
+          inputs: [
+            { code: "Insumos", id: "00_frontmatter", title: "TDR / ODS / PND", rel: "Prioridades de política pública" }
+          ],
+          outputs: [
+            { code: "§11", id: "11_resultados_esperados", title: "Resultados Esperados", rel: "Consistencia de TRL 6/7 e impacto" },
+            { code: "§17", id: "17_articulacion_comunidades", title: "Articulación Comunitaria", rel: "Anclaje territorial y actores" }
+          ]
+        },
+        paragraphs: [
+          { label: "Párrafo 1", title: "Motivación del proyecto", desc: "Qué vacío, oportunidad o necesidad concreta del sector motiva la propuesta y por qué es relevante abordarla en este momento." },
+          { label: "Párrafo 2", title: "Alineación con los ODS", desc: "Identificación de los ODS con número y nombre oficial, explicando concretamente cómo el proyecto contribuye a sus metas." },
+          { label: "Párrafo 3", title: "Alineación con PND y Plan Departamental", desc: "Conexión con los ejes del Plan Nacional de Desarrollo y el anclaje territorial en Caldas y Risaralda (UNAL Manizales y UTP)." },
+          { label: "Párrafo 4", title: "Respaldo en organismos multilaterales", desc: "Hallazgos pertinentes de informes de la OCDE, Banco Mundial, CEPAL o UNESCO sustentando la urgencia del sector." },
+          { label: "Párrafo 5", title: "Alineación con TDR y convocatoria", desc: "Respuesta directa a las prioridades temáticas de la convocatoria sin repetir literalmente el texto del TDR." },
+          { label: "Párrafo 6", title: "Momentum de la IA y producto TRL 6/7", desc: "Evolución reciente de la IA en la temática, justificación de superioridad frente a métodos tradicionales y definición del producto tangible en TRL 6 o 7." }
+        ],
+        rules: {
+          allowed: [
+            "Extensión mínima obligatoria de al menos 6 párrafos bien articulados.",
+            "Citar al menos 13 referencias Q1/Q2 (densidad de 3 a 4 citas distintas por párrafo).",
+            "Explicitar el nivel TRL 6 o 7 en la justificación técnica del producto esperado.",
+            "Autorreferencia permitida para sustentar la propuesta frente a la convocatoria."
+          ],
+          forbidden: [
+            "Prohibido omitir la alineación territorial o los ODS.",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones en la prosa.",
+            "Prohibido citar la misma clave BibTeX más de una vez dentro de la sección."
+          ]
+        }
+      },
+      "03_descripcion_problema": {
+        code: "§3",
+        title: "Descripción del problema y pregunta de investigación",
+        principle: "Delimita el problema técnico que la propuesta resuelve desde la perspectiva de la IA y el procesamiento de información. Presenta los 3 subproblemas técnicos mutuamente excluyentes (SP1, SP2, SP3) y concluye con la pregunta central de investigación y el árbol de problemas en TikZ.",
+        connections: {
+          inputs: [
+            { code: "SOTA", id: "04_estado_arte", title: "Estado del Arte", rel: "Brechas técnicas de literatura" }
+          ],
+          outputs: [
+            { code: "§7", id: "07_objetivos_especificos", title: "Objetivos Específicos", rel: "Mapeo biyectivo 1:1 estricto (SP ↔ OE)" },
+            { code: "§6", id: "06_objetivo_general", title: "Objetivo General", rel: "Pregunta central ↔ Objetivo General" },
+            { code: "TikZ", id: "10_metodologia", title: "Árbol de problemas", rel: "Diagrama visual de causas y efectos" }
+          ]
+        },
+        paragraphs: [
+          { label: "Párrafo 1", title: "Contexto general de la problemática", desc: "Introduce el problema desde el sector de aplicación, contextualizando desafíos operativos, económicos o sociales." },
+          { label: "Párrafo 2", title: "Desafíos técnicos de IA y lista de subproblemas", desc: "Contexto técnico desde IA/ML, cerrando con la lista en ítems planos de los 3 subproblemas (SP1, SP2, SP3)." },
+          { label: "Párrafo 3", title: "Subproblema 1 (SP1)", desc: "Causas raíz, limitaciones de datos o caracterización fenomenológica del problema." },
+          { label: "Párrafo 4", title: "Subproblema 2 (SP2)", desc: "Limitaciones algorítmicas, modelos o arquitecturas de IA existentes en el sector." },
+          { label: "Párrafo 5", title: "Subproblema 3 (SP3)", desc: "Retos de validación en campo, despliegue operativo y transferencia tecnológica." },
+          { label: "Párrafo 6", title: "Cierre, pregunta central y figura", desc: "Conclusión sustentada en evidencia, formulación de la pregunta de investigación y cita a la figura del árbol de problemas." }
+        ],
+        rules: {
+          allowed: [
+            "Densidad estricta: al menos 3 a 4 referencias Q1/Q2 distintas por cada párrafo.",
+            "Rótulo plano de subproblemas: SP1., SP2., SP3. sin negritas en palabras resumen.",
+            "Citar la figura del árbol de problemas con ref{fig:arbol_problemas}."
+          ],
+          forbidden: [
+            "Regla de autocontención científica: prohibido referenciar otras secciones (ej: 'ver §7', 'en la metodología').",
+            "Prohibido redactar subproblemas como verbos de solución (ej: 'Diseñar...'). Usar fórmulas de carencia ('Falta de...', 'Ausencia de...').",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "04_estado_arte": {
+        code: "§4",
+        title: "Estado del arte",
+        principle: "Revisión sistemática y crítica de la literatura científica global indexada en Q1/Q2 (últimos 3 años). Agrupa los trabajos en 3 a 5 clusters temáticos, identifica las limitaciones no resueltas de cada grupo y sustenta la novedad técnica frente a las brechas identificadas.",
+        connections: {
+          inputs: [
+            { code: "§3", id: "03_descripcion_problema", title: "Descripción del Problema", rel: "Fundamenta los subproblemas" },
+            { code: "SOTA", id: "16_bibliografia", title: "Corpus Bibliográfico", rel: "≥39 referencias Q1/Q2 ≤3 años" }
+          ],
+          outputs: [
+            { code: "§5", id: "05_hipotesis", title: "Hipótesis", rel: "Prepara el terreno conceptual" },
+            { code: "TikZ", id: "08_marco_conceptual", title: "Mapa SOTA TikZ", rel: "Visualización de clusters" }
+          ]
+        },
+        paragraphs: [
+          { label: "Subsección 1", title: "Cluster temático 1 (subsection*)", desc: "Revisión del primer enfoque dominante en literatura (2 a 4 párrafos, 6-10 refs Q1/Q2)." },
+          { label: "Subsección 2", title: "Cluster temático 2 (subsection*)", desc: "Revisión de arquitecturas algorítmicas y enfoques alternativos de IA." },
+          { label: "Subsección 3", title: "Cluster temático 3 (subsection*)", desc: "Revisión de métodos de validación, métricas y transferencia tecnológica." },
+          { label: "Síntesis y Novedad", title: "Brechas y novedad científica", desc: "Punto de partida del equipo, comparación crítica de brechas, posicionamiento de la novedad frente a SOTA y cita a Cref{fig:estado_arte}." }
+        ],
+        rules: {
+          allowed: [
+            "Al menos 39 referencias Q1/Q2 publicadas en los últimos 3 años (piso de 30 en cómputo final).",
+            "Subsecciones con títulos de filosofía del método (ej: 'Andamiaje adaptativo de IA').",
+            "Incluir el diagrama del mapa de estado del arte en TikZ con frases de limitante en rojo."
+          ],
+          forbidden: [
+            "Prohibido nombrar 'SP1', 'SP2' o la palabra 'subproblema' en los títulos de subsección.",
+            "Prohibido violar la autocontención científica (no mencionar la estructura del documento ni objetivos).",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "05_hipotesis": {
+        code: "§5",
+        title: "Hipótesis",
+        principle: "Planteamiento riguroso y falsable de la hipótesis de investigación en un único párrafo. Postula el mecanismo mediante el cual la innovación en IA resolverá las limitantes detectadas, vinculándose con la pregunta de investigación y anticipando el objetivo general.",
+        connections: {
+          inputs: [
+            { code: "§3", id: "03_descripcion_problema", title: "Pregunta de Investigación", rel: "Respuesta hipotética" },
+            { code: "§4", id: "04_estado_arte", title: "Estado del Arte", rel: "Brecha no resuelta" }
+          ],
+          outputs: [
+            { code: "§6", id: "06_objetivo_general", title: "Objetivo General", rel: "Anticipa el fin rector" },
+            { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Diseño experimental de contraste" }
+          ]
+        },
+        paragraphs: [
+          { label: "Párrafo Único", title: "Formulación de la hipótesis falsable", desc: "Enunciación en un solo párrafo denso y claro, articulando variables, intervención algorítmica de IA y resultado cualitativo o direccional esperado." }
+        ],
+        rules: {
+          allowed: [
+            "Redacción en un único párrafo conceptualmente denso y coherente.",
+            "Describir la verificación de forma cualitativa o direccional (ej: 'diferencias estadísticamente significativas')."
+          ],
+          forbidden: [
+            "Regla de metas sin fijar porcentaje: prohibido fijar umbrales numéricos de rendimiento (ej: 'mejora del 20%', 'exactitud >=95%').",
+            "Prohibido nombrar textualmente la sigla TRL o número de nivel.",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "06_objetivo_general": {
+        code: "§6",
+        title: "Objetivo general",
+        principle: "Define el propósito principal y rector de la investigación. Es la respuesta exacta a la pregunta de investigación de §3 y está en completa armonía con la hipótesis de §5.",
+        connections: {
+          inputs: [
+            { code: "§3", id: "03_descripcion_problema", title: "Pregunta de Investigación", rel: "Respuesta directa" },
+            { code: "§5", id: "05_hipotesis", title: "Hipótesis", rel: "Formalización de la meta" }
+          ],
+          outputs: [
+            { code: "§7", id: "07_objetivos_especificos", title: "Objetivos Específicos", rel: "Descomposición técnica secuencial" },
+            { code: "§13", id: "13_presupuesto", title: "Presupuesto", rel: "Coherencia global de recursos" }
+          ]
+        },
+        paragraphs: [
+          { label: "Oración Única", title: "Enunciado rector del proyecto", desc: "Una sola oración continua (máximo 5 renglones / 460 caracteres contando espacios) encabezada por un único verbo rector en infinitivo." }
+        ],
+        rules: {
+          allowed: [
+            "Verbo rector único en infinitivo (Desarrollar, Diseñar, Proponer, Implementar o Validar).",
+            "Describir el alcance tecnológico en términos funcionales ('desplegado en entorno real')."
+          ],
+          forbidden: [
+            "Prohibido terminantemente nombrar TRL: prohibido escribir la sigla TRL o el nivel numérico (6 o 7).",
+            "Prohibido más de una oración (cero puntos seguidos; solo un punto final).",
+            "Prohibido encadenar verbos rectores coordinados (ej: 'desarrollar, implementar y validar').",
+            "Prohibido escribir la forma de validación en el objetivo (se define en Metodología §10).",
+            "Prohibido mencionar la duración del proyecto (ej: 'en 18 meses')."
+          ]
+        }
+      },
+      "07_objetivos_especificos": {
+        code: "§7",
+        title: "Objetivos específicos",
+        principle: "Descomposición secuencial y metodológica del objetivo general en tres o más pasos ordenados. Cada objetivo específico debe mapear de forma biyectiva 1:1 con uno de los subproblemas planteados en §3.",
+        connections: {
+          inputs: [
+            { code: "§3", id: "03_descripcion_problema", title: "Subproblemas SP1, SP2, SP3", rel: "Mapeo biyectivo 1:1 estricto" },
+            { code: "§6", id: "06_objetivo_general", title: "Objetivo General", rel: "Derivación metodológica" }
+          ],
+          outputs: [
+            { code: "§9", id: "09_equipo_trabajo", title: "Equipo de Trabajo", rel: "Los roles se derivan de los OE" },
+            { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Cadena de valor por OE" },
+            { code: "§11", id: "11_resultados_esperados", title: "Resultados Esperados", rel: "Resultados conceptuales por OE" }
+          ]
+        },
+        paragraphs: [
+          { label: "Objetivo Específico 1", title: "Fundamentos y caracterización (OE1)", desc: "Centrado en el levantamiento, curaduría o estructuración de datos; da solución concreta a SP1." },
+          { label: "Objetivo Específico 2", title: "Novedad teórica y metodológica (OE2)", desc: "Diseño, entrenamiento y ajuste del modelo o arquitectura de IA novedosa; da solución a SP2." },
+          { label: "Objetivo Específico 3", title: "Transferencia y despliegue (OE3)", desc: "Integración en entorno real, validación técnica/operativa y transferencia; da solución a SP3." }
+        ],
+        rules: {
+          allowed: [
+            "Presentar la lista directa de objetivos sin párrafo introductorio de apertura.",
+            "Cada objetivo redactado en una sola oración de máximo 5 renglones (<=460 caracteres).",
+            "Verbo rector único en infinitivo por objetivo específico."
+          ],
+          forbidden: [
+            "Prohibido mencionar TRL: prohibido incluir la sigla TRL o niveles numéricos.",
+            "Prohibido citar los rótulos SP1, SP2 en el texto de los objetivos (la alineación es de diseño).",
+            "Prohibido fijar porcentajes numéricos fijos o umbrales de exactitud.",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "08_marco_conceptual": {
+        code: "§8",
+        title: "Marco conceptual",
+        principle: "Establece los fundamentos teóricos, matemáticos y conceptuales de los enfoques de IA empleados en la propuesta. Conecta directamente cada concepto con las limitaciones tecnológicas descritas en §3.",
+        connections: {
+          inputs: [
+            { code: "§3", id: "03_descripcion_problema", title: "Descripción del Problema", rel: "Justifica abordaje de limitantes" }
+          ],
+          outputs: [
+            { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Sustento teórico de algoritmos" }
+          ]
+        },
+        paragraphs: [
+          { label: "Subsección 1", title: "Concepto rector 1 (subsection*)", desc: "Definición precisa y formalización teórica del concepto o paradigma central (2 a 3 párrafos)." },
+          { label: "Subsección 2", title: "Arquitecturas o modelos de IA (subsection*)", desc: "Fundamento matemático y formulación de los algoritmos empleados (2 a 3 párrafos)." },
+          { label: "Subsección 3", title: "Métricas o técnicas de evaluación (subsection*)", desc: "Bases conceptuales para la cuantificación y contraste del desempeño (2 a 3 párrafos)." }
+        ],
+        rules: {
+          allowed: [
+            "Organizado en 3 a 5 subsecciones con títulos concisos que nombren el concepto.",
+            "Cada párrafo debe citar al menos 3 a 4 referencias Q1/Q2 distintas.",
+            "Conectar teóricamente cada concepto con las limitaciones de §3."
+          ],
+          forbidden: [
+            "Prohibido detallar el paso a paso metodológico (eso corresponde a §10).",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones en la prosa."
+          ]
+        }
+      },
+      "09_equipo_trabajo": {
+        code: "§9",
+        title: "Equipo de trabajo (participantes)",
+        principle: "Estructura operativa de las capacidades humanas y la alianza interinstitucional. Presenta a los integrantes y asigna sus roles y responsabilidades derivadas directamente de los objetivos específicos (§7).",
+        connections: {
+          inputs: [
+            { code: "§7", id: "07_objetivos_especificos", title: "Objetivos Específicos", rel: "Roles derivados de los OE" },
+            { code: "Insumos", id: "17_articulacion_comunidades", title: "Alianza Institucional", rel: "UNAL Manizales y UTP" }
+          ],
+          outputs: [
+            { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Personal asignado a fases" },
+            { code: "§14", id: "14_cronograma_actividades", title: "Cronograma", rel: "Responsables de actividades" }
+          ]
+        },
+        paragraphs: [
+          { label: "Párrafo Introductorio", title: "Alianza interinstitucional", desc: "Descripción de la alianza (UNAL Sede Manizales y UTP), complementariedad de grupos de investigación y liderazgo del proyecto." },
+          { label: "Tabla Canónica", title: "Tabla única de equipo (tab:equipo)", desc: "Columnas Integrante | Rol | Sede/Institución | Responsabilidades (vinculadas explícitamente a OE1, OE2 o OE3)." }
+        ],
+        rules: {
+          allowed: [
+            "Vincular cada integrante a al menos uno de los objetivos específicos (§7).",
+            "Marcar con [inferido] cualquier rol o participante no confirmado explícitamente en insumos."
+          ],
+          forbidden: [
+            "Regla dura: prohibido derivar los roles de la Metodología (§10). Los roles derivan exclusivamente de los objetivos específicos (§7).",
+            "Prohibido inventar nombres propios o instituciones no autorizadas por el usuario."
+          ]
+        }
+      },
+      "10_metodologia": {
+        code: "§10",
+        title: "Metodología",
+        principle: "Columna vertebral operativa de la propuesta. Detalla la cadena de valor de I+D por cada objetivo específico: diseño de investigación, datos/cohortes, enfoques algorítmicos con razonamiento causa-efecto, actividades, recursos y diagrama esquemático con progresión de TRL.",
+        connections: {
+          inputs: [
+            { code: "§7", id: "07_objetivos_especificos", title: "Objetivos Específicos", rel: "Cadena de valor 1:1 por OE" },
+            { code: "§8", id: "08_marco_conceptual", title: "Marco Conceptual", rel: "Fundamento teórico de técnicas" },
+            { code: "§9", id: "09_equipo_trabajo", title: "Equipo de Trabajo", rel: "Recursos humanos" }
+          ],
+          outputs: [
+            { code: "§11", id: "11_resultados_esperados", title: "Resultados Esperados", rel: "Resultados conceptuales e impacto" },
+            { code: "§13", id: "13_presupuesto", title: "Presupuesto", rel: "Justificación de cada rubro" },
+            { code: "§14", id: "14_cronograma_actividades", title: "Cronograma", rel: "Actividades ↔ Gantt" },
+            { code: "§15", id: "15_productos_esperados", title: "Productos Esperados", rel: "Productos por fase" }
+          ]
+        },
+        paragraphs: [
+          { label: "Bloque Inicial 1", title: "Enfoque y diseño de investigación", desc: "Tipo de investigación (cuantitativa o híbrida), tamaño muestral, justificación estadística y cohorte definida." },
+          { label: "Bloque Inicial 2", title: "Bases de datos", desc: "Bases de datos disponibles, protocolo de captura/curaduría e inclusión de una base pública de referencia." },
+          { label: "Fase 1 (OE1)", title: "Métodos, recursos y actividades OE1", desc: "Métodos de caracterización, recursos presupuestales, 3 a 5 actividades clave, resultado conceptual y productos." },
+          { label: "Fase 2 (OE2)", title: "Desarrollo y entrenamiento OE2", desc: "Modelo de IA, arquitectura, novedad algorítmica esperada, recursos, actividades clave y resultados." },
+          { label: "Fase 3 (OE3)", title: "Validación y despliegue OE3", desc: "Protocolo experimental en campo, métricas de aceptación, integración tecnológica y transferencia." },
+          { label: "Cierre", title: "Diagrama esquemático metodológico", desc: "Descripción del diagrama TikZ (ref{fig:metodologico}) mostrando fases, cadena de valor y progresión de TRL (hasta TRL 6 o 7)." }
+        ],
+        rules: {
+          allowed: [
+            "Al menos 15 referencias Q1/Q2 distintas en toda la sección respaldando las técnicas nombradas.",
+            "Explicitar el nivel TRL 6 o 7 en la descripción de las fases de despliegue y en el diagrama.",
+            "Relacionar cada recurso con los rubros solicitados en el presupuesto (§13)."
+          ],
+          forbidden: [
+            "Prohibido incluir nombres o roles de personas dentro de los bloques del diagrama metodológico TikZ.",
+            "Prohibido omitir la justificación causa-efecto del algoritmo frente al subproblema que resuelve.",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "11_resultados_esperados": {
+        code: "§11",
+        title: "Resultados esperados",
+        principle: "Consolida los impactos y logros conceptuales de la propuesta a nivel de nuevo conocimiento, desarrollo tecnológico, transferencia y formación de talento humano, precisando el TRL final alcanzado (6 o 7).",
+        connections: {
+          inputs: [
+            { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Resultados conceptuales por fase" },
+            { code: "§2", id: "02_justificacion", title: "Justificación", rel: "Pertinencia e impacto sectorial" }
+          ],
+          outputs: [
+            { code: "§15", id: "15_productos_esperados", title: "Productos Esperados", rel: "Formalización en matriz entregables" }
+          ]
+        },
+        paragraphs: [
+          { label: "Párrafo 1", title: "Nuevo conocimiento y avances teóricos", desc: "Modelos entrenados, avances metodológicos, publicaciones en revistas Q1/Q2 y ponencias." },
+          { label: "Párrafo 2", title: "Desarrollo tecnológico y TRL alcanzado", desc: "Prototipo funcional validado en entorno real alcanzando TRL 6 o 7, código y transferencia." },
+          { label: "Párrafo 3", title: "Formación de talento y apropiación", desc: "Vinculación de estudiantes de posgrado/pregrado, tesis concluidas y beneficio para los usuarios finales." }
+        ],
+        rules: {
+          allowed: [
+            "Explicitar el nivel TRL alcanzado (TRL 6 o 7) y su beneficio concreto en el sector.",
+            "Coherencia total con los resultados conceptuales prometidos en §10."
+          ],
+          forbidden: [
+            "Prohibido confundir resultado (qué se logra y para quién) con producto (la matriz formal de entregables de §15).",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "12_consideraciones_eticas": {
+        code: "§12",
+        title: "Consideraciones éticas, protección de datos y consulta previa",
+        principle: "Fundamenta el compromiso ético, bioético y de gobernanza de la IA del proyecto, articulado en cuatro ejes normativos obligatorios.",
+        connections: {
+          inputs: [
+            { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Manejo de datos de cohorte" }
+          ],
+          outputs: [
+            { code: "Doc", id: "00_frontmatter", title: "Gobernanza del Proyecto", rel: "Viabilidad legal y bioética" }
+          ]
+        },
+        paragraphs: [
+          { label: "Eje 1", title: "Consentimiento informado", desc: "Procedimiento de información, voluntariedad y consentimiento/asentimiento de los participantes." },
+          { label: "Eje 2", title: "Protección de datos personales", desc: "Anonimización, almacenamiento seguro y cumplimiento de la Ley 1581 de 2012." },
+          { label: "Eje 3", title: "Aval de comité de ética/bioética", desc: "Trámite formal ante el comité institucional de bioética de la UNAL o UTP." },
+          { label: "Eje 4", title: "Uso responsable y explicabilidad de la IA", desc: "Mitigación de sesgos algorítmicos, transparencia y límites de operación clínica o técnica." }
+        ],
+        rules: {
+          allowed: [
+            "Declarar explícitamente los 4 ejes normativos requeridos por la guía.",
+            "Marcar como [inferido] cualquier protocolo no confirmado en insumos del usuario."
+          ],
+          forbidden: [
+            "Prohibido omitir en silencio alguno de los 4 ejes si aplica al proyecto.",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "13_presupuesto": {
+        code: "§13",
+        title: "Presupuesto",
+        principle: "Plan económico detallado en tabla única con balance aritmético verificable. Cada rubro se justifica en relación directa con las fases de la metodología (§10) y cronograma (§14), respetando topes y cofinanciación del TDR.",
+        connections: {
+          inputs: [
+            { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Recursos requeridos por fase" },
+            { code: "TDR", id: "00_frontmatter", title: "Marco Presupuestal TDR", rel: "Topes y porcentaje de cofinanciación" }
+          ],
+          outputs: [
+            { code: "§14", id: "14_cronograma_actividades", title: "Cronograma", rel: "Temporalidad del gasto" }
+          ]
+        },
+        paragraphs: [
+          { label: "Tabla Canónica", title: "Tabla única de presupuesto (tab:presupuesto)", desc: "Agrupada por rubros con columnas Ítem | Cantidad | Valor unitario | Valor total | Descripción | Justificación (atada a §10)." },
+          { label: "Párrafo de Cierre", title: "Síntesis financiera y cofinanciación", desc: "Balance financiero, cumplimiento del tope de la convocatoria y desglose de contrapartidas institucionales." }
+        ],
+        rules: {
+          allowed: [
+            "Aritmética exacta verificable: Valor total = Cantidad x Valor unitario; suma de subtotales = Total general.",
+            "Justificación obligatoria en cada ítem enlazada con la Metodología (§10).",
+            "Respetar el porcentaje de cofinanciación y tope del TDR."
+          ],
+          forbidden: [
+            "Prohibido superar el tope presupuestal de la convocatoria.",
+            "Prohibido introducir rubros sin enlace explícito a las actividades o fases de §10.",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "14_cronograma_actividades": {
+        code: "§14",
+        title: "Cronograma de actividades",
+        principle: "Planificación temporal rigurosa mediante diagrama de Gantt (paquete pgfgantt) ajustado estrictamente a la ventana base del TDR. Vincula actividades de la metodología (§10), roles responsables (§9) y momentos de entrega de productos (§15).",
+        connections: {
+          inputs: [
+            { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Fases y actividades clave" },
+            { code: "§9", id: "09_equipo_trabajo", title: "Equipo de Trabajo", rel: "Personal responsable" }
+          ],
+          outputs: [
+            { code: "§15", id: "15_productos_esperados", title: "Productos Esperados", rel: "Hitos temporales de entrega" },
+            { code: "§13", id: "13_presupuesto", title: "Presupuesto", rel: "Cruce de ejecución financiera" }
+          ]
+        },
+        paragraphs: [
+          { label: "Párrafo de Apertura", title: "Organización temporal del proyecto", desc: "Descripción de la duración total del proyecto, distribución temporal por trimestres o meses y coordinación de hitos." },
+          { label: "Diagrama de Gantt", title: "Estructura pgfgantt", desc: "Bloque de Gantt organizado por fase metodológica, hitos de control y entregables comprometidos." }
+        ],
+        rules: {
+          allowed: [
+            "Implementación obligatoria mediante el paquete pgfgantt integrado en la sección.",
+            "Ajuste estricto a la ventana de meses estipulada en el TDR de la convocatoria."
+          ],
+          forbidden: [
+            "Prohibido incluir etapas de prórroga: todas las actividades deben culminar en la ventana base.",
+            "Prohibido inventar una duración si no está en el TDR (debe consultarse al usuario).",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "15_productos_esperados": {
+        code: "§15",
+        title: "Productos esperados",
+        principle: "Matriz contractual de productos tangibles y académicos formalizada con la tipología de la convocatoria (nuevo conocimiento, formación, desarrollo tecnológico, apropiación social). Se implementa con el entorno xltabular para evitar desbordes de página.",
+        connections: {
+          inputs: [
+            { code: "§11", id: "11_resultados_esperados", title: "Resultados Esperados", rel: "Formaliza resultados en productos" },
+            { code: "§14", id: "14_cronograma_actividades", title: "Cronograma", rel: "Momento de entrega de cada producto" }
+          ],
+          outputs: [
+            { code: "Doc", id: "18_apropiacion_social", title: "Evaluación de la Propuesta", rel: "Puntaje de evaluación contractual" }
+          ]
+        },
+        paragraphs: [
+          { label: "Párrafo de Apertura", title: "Compromiso de entregables", desc: "Criterios de tipología institucional de productos y compromiso del consorcio ejecutor." },
+          { label: "Tabla Canónica", title: "Tabla de productos (xltabular)", desc: "Columnas Producto | Subtipo / Categoría | Descripción concreta | Responsable (§9) | Mes de entrega (§14)." }
+        ],
+        rules: {
+          allowed: [
+            "Uso obligatorio del entorno xltabular con firsthead y endhead para multipágina.",
+            "Citar la coherencia con el nivel TRL 6 o 7 para productos tecnológicos (software, aplicativo)."
+          ],
+          forbidden: [
+            "Prohibido usar tablas flotantes rígidas (table/tabularx) que generen error 'Float too large'.",
+            "Prohibido omitir el responsable o el mes de entrega de cada producto.",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "16_bibliografia": {
+        code: "§16",
+        title: "Bibliografía",
+        principle: "Acervo de literatura científica que sustenta toda la propuesta. Exige más de 50 referencias de alta calidad, predominantemente Q1/Q2 de los últimos tres años, en formato APA autor-año estricto.",
+        connections: {
+          inputs: [
+            { code: "Citas", id: "04_estado_arte", title: "Todas las Secciones", rel: "Citas autor-año natbib acumuladas" }
+          ],
+          outputs: [
+            { code: "PDF", id: "00_frontmatter", title: "Ensamble del Manuscrito", rel: "Referencias finales compiladas" }
+          ]
+        },
+        paragraphs: [
+          { label: "Párrafo Introductorio", title: "Síntesis del acervo bibliográfico", desc: "Balance bibliométrico del corpus (cuartiles Q1/Q2, cobertura reciente y representatividad internacional)." },
+          { label: "Lista de Referencias", title: "Entradas BibTeX consolidadas", desc: "Generada mediante natbib con estilo apalike y supresión del comando bibsection." }
+        ],
+        rules: {
+          allowed: [
+            "Formato APA autor-año exclusivo (citet o citep de natbib).",
+            "Anteponer clearpage y renewcommand{bibsection}{} para eliminar el título duplicado 'Referencias'.",
+            "Más de 50 referencias totales con mayoría Q1/Q2 de los últimos 3 años."
+          ],
+          forbidden: [
+            "Prohibido el estilo numérico IEEE ([1]).",
+            "Prohibido citar tesis de grado o preprints de procedencia no comprobada.",
+            "Prohibido superar el tope de 3 reutilizaciones por clave en todo el documento."
+          ]
+        }
+      },
+      "17_articulacion_comunidades": {
+        code: "§17",
+        title: "Estrategia de articulación con comunidades y actores territoriales",
+        principle: "Estrategia de vinculación territorial y social con los beneficiarios, instituciones aliadas y comunidades de interés en el Eje Cafetero, describiendo el protocolo de campo con la cohorte estudiantil.",
+        connections: {
+          inputs: [
+            { code: "§2", id: "02_justificacion", title: "Justificación", rel: "Anclaje territorial y actores" },
+            { code: "§10", id: "10_metodologia", title: "Metodología", rel: "Protocolo de validación con usuarios" }
+          ],
+          outputs: [
+            { code: "§18", id: "18_apropiacion_social", title: "Apropiación Social", rel: "Talleres y transferencia comunitaria" }
+          ]
+        },
+        paragraphs: [
+          { label: "Párrafo 1", title: "Contexto y actores territoriales", desc: "Mapeo de comunidades de interés, campus universitarios (UNAL Manizales y UTP) y aliados territoriales." },
+          { label: "Párrafo 2", title: "Cohorte estudiantil y protocolos de campo", desc: "Dinámica de participación de los 80 estudiantes, comités de seguimiento y acompañamiento psicosocial o técnico." },
+          { label: "Párrafo 3", title: "Sostenibilidad y gobernanza comunitaria", desc: "Mecanismos de retroalimentación continua y sostenibilidad del vínculo comunitario post-proyecto." }
+        ],
+        rules: {
+          allowed: [
+            "Describir los protocolos de interacción comunitaria respetando consideraciones éticas.",
+            "Reflejar la alianza UNAL y UTP en el territorio del Eje Cafetero."
+          ],
+          forbidden: [
+            "Prohibido omitir los mecanismos concretos de participación o inventar comunidades ajenas.",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      },
+      "18_apropiacion_social": {
+        code: "§18",
+        title: "Estrategia de acceso, mediación, divulgación y apropiación social",
+        principle: "Estrategia integral para garantizar el retorno social del conocimiento científico hacia la sociedad civil, las comunidades académicas y los tomadores de decisiones mediante ciencia abierta, talleres participativos y licenciamiento de software.",
+        connections: {
+          inputs: [
+            { code: "§15", id: "15_productos_esperados", title: "Productos Esperados", rel: "Productos de apropiación y divulgación" },
+            { code: "§17", id: "17_articulacion_comunidades", title: "Articulación Comunitaria", rel: "Comunidades beneficiarias" }
+          ],
+          outputs: [
+            { code: "Fin", id: "11_resultados_esperados", title: "Cierre del Manuscrito", rel: "Impacto transformador y transferencia" }
+          ]
+        },
+        paragraphs: [
+          { label: "Párrafo 1", title: "Acceso abierto y repositorios de datos", desc: "Política de ciencia abierta, publicación de código en repositorios institucionales y datasets anonimizados." },
+          { label: "Párrafo 2", title: "Talleres de mediación y co-creación", desc: "Eventos formativos, jornadas de devolución diagnóstica y manuales de apropiación para usuarios finales." },
+          { label: "Párrafo 3", title: "Divulgación científica y política pública", desc: "Elaboración de policy briefs, artículos de divulgación y retorno a tomadores de decisión." }
+        ],
+        rules: {
+          allowed: [
+            "Integrar productos de apropiación alineados con la matriz de productos esperados (§15).",
+            "Fomentar la ciencia abierta y el código reproducible con licenciamiento adecuado."
+          ],
+          forbidden: [
+            "Prohibido limitar la divulgación a ponencias puramente académicas sin retorno social.",
+            "Prohibido el uso de rayas anglosajonas o dobles guiones."
+          ]
+        }
+      }
+    };
+    window.SECTIONS_STRUCTURE_DATA = SECTIONS_STRUCTURE_DATA;
+
+    function renderSectionMiniGraph(data) {
+      const inputs = data.connections?.inputs || [];
+      const outputs = data.connections?.outputs || [];
+
+      const inputsHtml = inputs.length ? inputs.map(inp => `
+        <div class="sec-node-card" onclick="openSectionStructure('${inp.id}')" title="Clic para inspeccionar ${inp.code}: ${escapeHtml(inp.title)}">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span class="badge badge--info" style="font-size: 0.7rem; font-weight: 700;">${inp.code}</span>
+            <span style="font-size: 0.72rem; color: var(--accent); font-weight: 600;">Insumo ➔</span>
+          </div>
+          <strong style="font-size: 0.8rem; color: var(--text);">${escapeHtml(inp.title)}</strong>
+          <span style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.3;">${escapeHtml(inp.rel)}</span>
+        </div>
+      `).join('') : '<div style="font-size: 0.78rem; color: var(--text-dim); font-style: italic; padding: 0.5rem;">Sin insumos previos directos (Apertura o independiente)</div>';
+
+      const outputsHtml = outputs.length ? outputs.map(out => `
+        <div class="sec-node-card" onclick="openSectionStructure('${out.id}')" title="Clic para inspeccionar ${out.code}: ${escapeHtml(out.title)}">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span class="badge badge--ok" style="font-size: 0.7rem; font-weight: 700;">${out.code}</span>
+            <span style="font-size: 0.72rem; color: var(--ok); font-weight: 600;">Depende ➔</span>
+          </div>
+          <strong style="font-size: 0.8rem; color: var(--text);">${escapeHtml(out.title)}</strong>
+          <span style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.3;">${escapeHtml(out.rel)}</span>
+        </div>
+      `).join('') : '<div style="font-size: 0.78rem; color: var(--text-dim); font-style: italic; padding: 0.5rem;">Sin dependencias posteriores directas (Cierre)</div>';
+
+      return `
+        <div class="sec-graph-container" style="margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.1rem;">🕸️</span>
+              <strong style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.03em;">Conexión en el Manuscrito (Grafo de Dependencias)</strong>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Clic en cualquier nodo para navegar a su estructura</span>
+          </div>
+
+          <div class="sec-graph-flow">
+            <!-- Columna Izquierda: Insumos -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--accent); letter-spacing: 0.04em;">⬅ Insumos Directos</div>
+              ${inputsHtml}
+            </div>
+
+            <!-- Columna Central: Nodo Actual -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 0.5rem;">
+              <div class="sec-node-card sec-node-card--active" style="text-align: center; min-width: 170px;">
+                <span class="badge badge--ok" style="align-self: center; font-size: 0.78rem; margin-bottom: 0.25rem;">${data.code} · NODO ACTIVO</span>
+                <strong style="font-size: 0.88rem; color: var(--accent);">${escapeHtml(data.title)}</strong>
+                <span style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem;">Sección en foco</span>
+              </div>
+            </div>
+
+            <!-- Columna Derecha: Salidas / Dependencias -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--ok); letter-spacing: 0.04em;">Dependencias Cruzadas ➔</div>
+              ${outputsHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderParagraphsList(paragraphs) {
+      if (!paragraphs || !paragraphs.length) {
+        return '<div class="annots-empty"><p>Sin descripción de párrafos detallada.</p></div>';
+      }
+      return `
+        <div style="margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.65rem;">
+            <span style="font-size: 1.1rem;">📝</span>
+            <strong style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.03em;">Descripción de la Redacción Párrafo por Párrafo</strong>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+            ${paragraphs.map((p, idx) => `
+              <div class="sec-para-item">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                  <span class="badge badge--info" style="font-size: 0.72rem; font-weight: 700;">${escapeHtml(p.label || `Párrafo ${idx + 1}`)}</span>
+                  <strong style="font-size: 0.84rem; color: var(--text); flex-grow: 1; margin-left: 0.65rem;">${escapeHtml(p.title || '')}</strong>
+                </div>
+                <p style="margin: 0; font-size: 0.83rem; color: var(--text-muted); line-height: 1.5;">${escapeHtml(p.desc || '')}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRulesGrid(rules) {
+      const allowed = rules?.allowed || [];
+      const forbidden = rules?.forbidden || [];
+
+      return `
+        <div style="margin-bottom: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.65rem;">
+            <span style="font-size: 1.1rem;">⚖️</span>
+            <strong style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.03em;">Reglas Permitidas y No Permitidas en la Redacción</strong>
+          </div>
+          <div class="sec-rules-grid">
+            <!-- Columna Permitido / Exigido -->
+            <div style="background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.28); border-radius: var(--radius); padding: 0.95rem 1.15rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--ok); font-weight: 700; font-size: 0.84rem; margin-bottom: 0.65rem; text-transform: uppercase; letter-spacing: 0.03em;">
+                <span>✓</span> Permitido y Exigido (DOs)
+              </div>
+              <ul style="margin: 0; padding-left: 1.15rem; font-size: 0.8rem; color: var(--text); line-height: 1.55; display: flex; flex-direction: column; gap: 0.45rem;">
+                ${allowed.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+              </ul>
+            </div>
+
+            <!-- Columna No Permitido / Prohibido -->
+            <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.28); border-radius: var(--radius); padding: 0.95rem 1.15rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--bad); font-weight: 700; font-size: 0.84rem; margin-bottom: 0.65rem; text-transform: uppercase; letter-spacing: 0.03em;">
+                <span>✕</span> No Permitido y Prohibido (DONTs)
+              </div>
+              <ul style="margin: 0; padding-left: 1.15rem; font-size: 0.8rem; color: var(--text); line-height: 1.55; display: flex; flex-direction: column; gap: 0.45rem;">
+                ${forbidden.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function openSectionStructure(secId) {
+      if (!secId) return;
+      const cleanId = String(secId).trim().toLowerCase().replace('§', '');
+      let key = Object.keys(SECTIONS_STRUCTURE_DATA).find(k => k === cleanId || k.startsWith(cleanId) || cleanId.startsWith(k));
+      if (!key) {
+        const num = cleanId.split('_')[0].padStart(2, '0');
+        key = Object.keys(SECTIONS_STRUCTURE_DATA).find(k => k.startsWith(num));
+      }
+      const data = SECTIONS_STRUCTURE_DATA[key] || SECTIONS_STRUCTURE_DATA["03_descripcion_problema"];
+      if (!data) return;
+
+      const modal = document.getElementById('sectionStructureModal');
+      const badgeEl = document.getElementById('secModalBadge');
+      const titleEl = document.getElementById('secModalTitle');
+      const bodyEl = document.getElementById('secModalBody');
+
+      if (badgeEl) badgeEl.textContent = data.code || '§';
+      if (titleEl) titleEl.textContent = `${data.code} — ${data.title}`;
+
+      if (bodyEl) {
+        bodyEl.innerHTML = `
+          <!-- 1. Principio Básico -->
+          <div class="sec-structure-block" style="margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+              <span style="font-size: 1.15rem;">🎯</span>
+              <h4 style="margin: 0; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent);">Principio Básico y Propósito Rector</h4>
+            </div>
+            <p style="margin: 0; font-size: 0.86rem; line-height: 1.55; color: var(--text);">${escapeHtml(data.principle || '')}</p>
+          </div>
+
+          <!-- 2. Conexión en el Manuscrito (Grafo pequeño) -->
+          ${renderSectionMiniGraph(data)}
+
+          <!-- 3. Descripción Párrafo por Párrafo -->
+          ${renderParagraphsList(data.paragraphs)}
+
+          <!-- 4. Reglas Permitidas y No Permitidas -->
+          ${renderRulesGrid(data.rules)}
+        `;
+      }
+
+      if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+      }
+    }
+
+    function closeSectionStructureModal(e) {
+      if (e && e.target !== e.currentTarget && !e.target.classList.contains('drawer__close')) return;
+      const modal = document.getElementById('sectionStructureModal');
+      if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
       }
     }
 
@@ -4454,8 +5624,9 @@
     }
 
     function confirmAndExecuteChanges() {
-      if (queuedAnnotations.length === 0) {
-        alert("No hay marcas editoriales pendientes para ejecutar. Selecciona texto en el PDF y usa los botones Comentario, Tachar, Humanizar o Reemplazar.");
+      const pendingCount = Number(document.getElementById('pendingQueueCount')?.textContent) || 0;
+      if (queuedAnnotations.length === 0 && pendingCount === 0) {
+        alert("No hay marcas editoriales ni instrucciones pendientes para ejecutar. Selecciona texto en el PDF y usa los botones Comentario, Tachar, Humanizar o Reemplazar.");
         return;
       }
 
@@ -4466,15 +5637,19 @@
       const replaceList = replaces.length
         ? `<ul style="margin: 0.3rem 0 0 1rem; padding: 0;">${replaces.map(a => `<li>«${escapeHtml((a.text || '').slice(0, 60))}» → ${a.replacement ? escapeHtml(a.replacement) : '(borrado)'}</li>`).join('')}</ul>`
         : '';
+      const pendingInfo = pendingCount > 0
+        ? `<div>📥 <strong>${pendingCount}</strong> instrucción(es) pendiente(s) registradas previamente serán procesadas y aplicadas.</div>`
+        : '';
 
       const breakdown = document.getElementById('executeSummaryBreakdown');
       breakdown.innerHTML = `
         <div>✂️ <strong>${strikes}</strong> texto(s) para eliminar del código fuente LaTeX.</div>
-        <div>🔁 <strong>${replaces.length}</strong> reemplazo(s) determinista(s) sobre el pasaje anclado, sin modelo.</div>
+        <div>🔁 <strong>${replaces.length}</strong> reemplazo(s) determinista(s) sobre el pasaje anclado.</div>
         ${replaceList}
-        <div>💬 <strong>${comments}</strong> comentario(s) que quedan como instrucción para el redactor y no reescriben prosa.</div>
+        <div>💬 <strong>${comments}</strong> comentario(s) e instrucciones a ejecutar.</div>
         <div>✨ <strong>${humanizes}</strong> pasaje(s) para humanizar con la skill <code>estilo-natural-es</code>.</div>
-        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--accent);">Total de marcas a ejecutar: ${queuedAnnotations.length}</div>
+        ${pendingInfo}
+        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--accent);">Total de marcas y pendientes a ejecutar: ${queuedAnnotations.length + pendingCount}</div>
       `;
 
       document.getElementById('executeModal').classList.add('active');
@@ -4488,13 +5663,22 @@
       s = s || {};
       details = details || {};
       const pendientes = s.pending_instructions_file
-        ? `<div>📝 Instrucciones registradas para el agente en <code>${escapeHtml(s.pending_instructions_file)}</code>. Las ejecuta el <code>redactor</code> al continuar el pipeline.</div>`
+        ? `<div>📝 Archivo de control de instrucciones: <code>${escapeHtml(s.pending_instructions_file)}</code>.</div>`
         : '';
       const recompilacion = s.pdf_recompile_skipped
         ? `<div>📄 Recompilación de main.pdf: <strong style="color: var(--text-muted);">No hizo falta</strong> · ${escapeHtml(s.pdf_recompile_reason || 'sin cambios en el manuscrito')}</div>`
         : `<div>📄 Recompilación de main.pdf: <strong style="color: ${s.pdf_recompiled ? 'var(--ok)' : 'var(--warn)'}">${s.pdf_recompiled ? '✓ Exitosa' : 'Revisar log'}</strong></div>`;
       const duplicadas = s.comments_duplicated
         ? `<div>🔁 <strong>${s.comments_duplicated}</strong> instrucciones ya registradas (duplicadas): no se escribieron de nuevo.</div>`
+        : '';
+      const consumidasPrevias = s.pending_consumed
+        ? `<div>📥 <strong>${s.pending_consumed}</strong> instrucción(es) pendiente(s) previas consumidas y resueltas por el redactor.</div>`
+        : '';
+      const comentariosAplicados = s.comments_applied !== undefined
+        ? `<div>💬 <strong>${s.comments_applied}</strong> comentario(s) e instrucciones aplicadas directamente al manuscrito.</div>`
+        : '';
+      const comentariosPendientes = s.comments_registered
+        ? `<div>📝 <strong>${s.comments_registered}</strong> instrucción(es) registradas en espera.</div>`
         : '';
       const noAplicadas = details.unmatched || [];
       const fallidas = noAplicadas.length
@@ -4506,9 +5690,11 @@
       return `
           <div style="background: var(--surface-2); padding: 0.85rem; border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem;">
             <div>✂️ <strong>${s.strikethrough_applied || 0}</strong> textos tachados eliminados de las fuentes LaTeX.</div>
-            <div>🔁 <strong>${s.replace_applied || 0}</strong> reemplazos deterministas aplicados sobre el ancla y recompilados, sin modelo.</div>
+            <div>🔁 <strong>${s.replace_applied || 0}</strong> reemplazos deterministas aplicados sobre el ancla y recompilados.</div>
             <div>✨ <strong>${s.humanize_applied || 0}</strong> pasajes humanizados con la skill <code>estilo-natural-es</code>.</div>
-            <div>💬 <strong>${s.comments_registered || 0}</strong> instrucciones de <strong>Comentario</strong> registradas para el agente. Un comentario no reescribe prosa, así que el manuscrito no cambia por sí solo.</div>
+            ${comentariosAplicados}
+            <div>💬 <strong>${s.comments_registered || 0}</strong> instrucciones de <strong>Comentario</strong> registradas para el agente.</div>
+            ${consumidasPrevias}
             ${duplicadas}
             ${fallidas}
             ${pendientes}
@@ -4529,7 +5715,7 @@
         const response = await fetch('/api/pdf/execute', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ annotations: queuedAnnotations })
+          body: JSON.stringify({ annotations: queuedAnnotations, process_pending: true })
         });
 
         const result = await response.json();
@@ -4731,11 +5917,18 @@
       const pend = Number(pending) || 0;
       const tot = Number(total) || 0;
       const consumidas = Math.max(0, tot - pend);
-      const detalle = tot > 0
-        ? ` de ${tot} registradas (${consumidas} ya consumidas)`
-        : '';
-      box.innerHTML = `<span id="pendingQueueCount">${pend}</span> instrucciones pendientes${detalle}. `
-        + `No cambian el manuscrito hasta que el <code>redactor</code> las consuma.`;
+      if (pend === 0) {
+        const msj = tot > 0
+          ? `(${tot} registrada(s), todas resueltas y aplicadas al manuscrito)`
+          : `(sin pendientes)`;
+        box.innerHTML = `<span id="pendingQueueCount" style="color: var(--ok, #10b981); font-weight: bold;">0</span> instrucciones pendientes ${msj}. Manuscrito al día.`;
+      } else {
+        const detalle = tot > 0
+          ? ` de ${tot} registradas (${consumidas} ya consumidas)`
+          : '';
+        box.innerHTML = `<span id="pendingQueueCount" style="color: var(--accent, #f59e0b); font-weight: bold;">${pend}</span> instrucciones pendientes${detalle}. `
+          + `No cambian el manuscrito hasta que el <code>redactor</code> las consuma.`;
+      }
     }
 
     async function loadPendingInstructionsQueue() {
@@ -4782,6 +5975,292 @@
         .replace(/"/g, '&quot;');
     }
 
+    /* ========================================================
+       CONTROLADOR DEL ASISTENTE TERMINAL WEB (XTERM + PTY)
+       ======================================================== */
+    let terminalInstance = null;
+    let fitAddonInstance = null;
+    let terminalSocket = null;
+    let isTerminalOpen = false;
+    let isTerminalMaximized = false;
+    let selectedAgent = localStorage.getItem('morfeo_terminal_agent') || 'claude';
+
+    function initTerminalUI() {
+      const select = document.getElementById('terminalAgentSelect');
+      if (select) {
+        select.value = selectedAgent;
+      }
+      fetch('/api/terminal/agents')
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.ok && Array.isArray(data.agents)) {
+            const selectEl = document.getElementById('terminalAgentSelect');
+            if (selectEl) {
+              const currentVal = selectedAgent || selectEl.value;
+              selectEl.innerHTML = '';
+              data.agents.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.id;
+                opt.textContent = `${a.name}${a.installed ? '' : ' (no instalado)'}`;
+                selectEl.appendChild(opt);
+              });
+              if ([...selectEl.options].some(o => o.value === currentVal)) {
+                selectEl.value = currentVal;
+              } else {
+                selectEl.value = 'claude';
+              }
+            }
+          }
+        })
+        .catch(() => {});
+    }
+
+    function toggleMorfeoTerminal() {
+      if (isTerminalOpen) {
+        closeMorfeoTerminal();
+      } else {
+        openMorfeoTerminal();
+      }
+    }
+
+    function openMorfeoTerminal() {
+      const win = document.getElementById('morfeoTerminalWindow');
+      const fab = document.getElementById('morfeoAssistantFab');
+      if (!win) return;
+      isTerminalOpen = true;
+      win.classList.add('is-open');
+      if (fab) fab.classList.add('is-active');
+
+      if (!terminalInstance) {
+        setupTerminal();
+      } else {
+        setTimeout(() => {
+          if (fitAddonInstance) fitAddonInstance.fit();
+          terminalInstance.focus();
+          sendTerminalResize();
+        }, 120);
+      }
+    }
+
+    function closeMorfeoTerminal() {
+      const win = document.getElementById('morfeoTerminalWindow');
+      const fab = document.getElementById('morfeoAssistantFab');
+      if (!win) return;
+      isTerminalOpen = false;
+      win.classList.remove('is-open');
+      if (fab) fab.classList.remove('is-active');
+    }
+
+    function toggleMaximizeTerminal() {
+      const win = document.getElementById('morfeoTerminalWindow');
+      const btn = document.getElementById('terminalMaximizeBtn');
+      if (!win) return;
+      isTerminalMaximized = !isTerminalMaximized;
+      win.classList.toggle('is-maximized', isTerminalMaximized);
+      if (btn) {
+        btn.textContent = isTerminalMaximized ? '🗗' : '⛶';
+        btn.title = isTerminalMaximized ? 'Restaurar tamaño' : 'Maximizar';
+      }
+      setTimeout(() => {
+        if (fitAddonInstance) fitAddonInstance.fit();
+        sendTerminalResize();
+      }, 150);
+    }
+
+    function setupTerminal() {
+      const container = document.getElementById('xtermContainer');
+      if (!container || typeof Terminal === 'undefined') return;
+
+      terminalInstance = new Terminal({
+        cursorBlink: true,
+        fontSize: 13,
+        lineHeight: 1.25,
+        fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+        theme: {
+          background: '#080c14',
+          foreground: '#f1f5f9',
+          cursor: '#38bdf8',
+          cursorAccent: '#080c14',
+          selectionBackground: 'rgba(56, 189, 248, 0.35)',
+          black: '#0f172a',
+          red: '#ef4444',
+          green: '#10b981',
+          yellow: '#f59e0b',
+          blue: '#38bdf8',
+          magenta: '#d946ef',
+          cyan: '#06b6d4',
+          white: '#f8fafc',
+          brightBlack: '#475569',
+          brightRed: '#f87171',
+          brightGreen: '#34d399',
+          brightYellow: '#fbbf24',
+          brightBlue: '#60a5fa',
+          brightMagenta: '#e879f9',
+          brightCyan: '#22d3ee',
+          brightWhite: '#ffffff'
+        }
+      });
+
+      if (typeof FitAddon !== 'undefined' && FitAddon.FitAddon) {
+        fitAddonInstance = new FitAddon.FitAddon();
+        terminalInstance.loadAddon(fitAddonInstance);
+      }
+
+      terminalInstance.open(container);
+
+      setTimeout(() => {
+        if (fitAddonInstance) fitAddonInstance.fit();
+        connectTerminalWs(selectedAgent);
+        terminalInstance.focus();
+      }, 100);
+
+      terminalInstance.onData(data => {
+        if (terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {
+          terminalSocket.send(data);
+        }
+      });
+
+      terminalInstance.onBinary(data => {
+        if (terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {
+          terminalSocket.send(data);
+        }
+      });
+    }
+
+    function connectTerminalWs(agent) {
+      if (terminalSocket) {
+        try { terminalSocket.close(); } catch(e) {}
+        terminalSocket = null;
+      }
+
+      updateTerminalStatus('connecting', agent);
+
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const cols = terminalInstance ? terminalInstance.cols : 80;
+      const rows = terminalInstance ? terminalInstance.rows : 24;
+      const wsUrl = `${proto}//${window.location.host}/ws/terminal?agent=${encodeURIComponent(agent)}&cols=${cols}&rows=${rows}`;
+
+      try {
+        terminalSocket = new WebSocket(wsUrl);
+      } catch (err) {
+        console.error('Error instanciando WebSocket del terminal:', err);
+        updateTerminalStatus('error', agent);
+        return;
+      }
+
+      terminalSocket.binaryType = 'arraybuffer';
+
+      terminalSocket.onopen = () => {
+        updateTerminalStatus('connected', agent);
+        if (fitAddonInstance) fitAddonInstance.fit();
+        sendTerminalResize();
+      };
+
+      terminalSocket.onmessage = (event) => {
+        if (terminalInstance) {
+          if (event.data instanceof ArrayBuffer) {
+            terminalInstance.write(new Uint8Array(event.data));
+          } else {
+            terminalInstance.write(event.data);
+          }
+        }
+      };
+
+      terminalSocket.onclose = () => {
+        updateTerminalStatus('disconnected', agent);
+      };
+
+      terminalSocket.onerror = (err) => {
+        console.warn('WebSocket terminal error:', err);
+        updateTerminalStatus('disconnected', agent);
+      };
+    }
+
+    function sendTerminalResize() {
+      if (terminalInstance && terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {
+        const resizePayload = JSON.stringify({
+          type: 'resize',
+          cols: terminalInstance.cols,
+          rows: terminalInstance.rows
+        });
+        terminalSocket.send(resizePayload);
+      }
+    }
+
+    function updateTerminalStatus(state, agent) {
+      const dot = document.getElementById('terminalStatusDot');
+      const badge = document.getElementById('morfeoFabBadge');
+      const footerAgent = document.getElementById('terminalFooterAgent');
+      const footerRun = document.getElementById('terminalFooterRun');
+
+      const agentMap = {
+        'claude': 'Claude Code',
+        'opencode': 'OpenCode',
+        'pi': 'Pi',
+        'agy': 'Antigravity (AGY)',
+        'shell': 'Shell (Zsh/Bash)'
+      };
+      const agentLabel = agentMap[agent] || agent;
+
+      if (footerAgent) footerAgent.textContent = agentLabel;
+      if (footerRun && window.LAST_STATUS_PAYLOAD && window.LAST_STATUS_PAYLOAD.active_run) {
+        footerRun.textContent = `proposals/${window.LAST_STATUS_PAYLOAD.active_run}`;
+      }
+
+      if (dot) {
+        dot.className = 'terminal-status-dot';
+        if (state === 'connected') {
+          dot.classList.add('is-connected');
+          dot.title = `Conectado a ${agentLabel}`;
+        } else if (state === 'connecting') {
+          dot.classList.add('is-connecting');
+          dot.title = `Conectando con ${agentLabel}...`;
+        } else {
+          dot.title = `Desconectado (${agentLabel})`;
+        }
+      }
+
+      if (badge) {
+        badge.style.background = state === 'connected' ? '#10b981' : (state === 'connecting' ? '#f59e0b' : '#6b7280');
+      }
+    }
+
+    function onTerminalAgentChange() {
+      const select = document.getElementById('terminalAgentSelect');
+      if (!select) return;
+      selectedAgent = select.value;
+      localStorage.setItem('morfeo_terminal_agent', selectedAgent);
+      if (terminalInstance) {
+        terminalInstance.clear();
+      }
+      connectTerminalWs(selectedAgent);
+      if (terminalInstance) terminalInstance.focus();
+    }
+
+    function restartTerminalSession() {
+      if (terminalInstance) {
+        terminalInstance.clear();
+      }
+      connectTerminalWs(selectedAgent);
+      if (terminalInstance) terminalInstance.focus();
+    }
+
+    function sendTerminalQuickCommand(cmd) {
+      if (!terminalSocket || terminalSocket.readyState !== WebSocket.OPEN) {
+        if (!isTerminalOpen) openMorfeoTerminal();
+        return;
+      }
+      terminalSocket.send(cmd + '\r');
+      if (terminalInstance) terminalInstance.focus();
+    }
+
+    function clearTerminalScreen() {
+      if (terminalInstance) {
+        terminalInstance.clear();
+        terminalInstance.focus();
+      }
+    }
+
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
@@ -4792,6 +6271,7 @@
       loadPendingInstructionsQueue();
       loadExecutionHistory();
       updateUndoRedoUI();
+      initTerminalUI();
       // Polling every 5 seconds for live status
       setInterval(loadStatus, 5000);
     });

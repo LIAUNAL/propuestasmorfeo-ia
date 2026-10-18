@@ -161,6 +161,120 @@ def register_pending_instructions(
     return path, len(nuevas)
 
 
+def consume_pending_instructions(
+    pipeline_dir: Path,
+    run_dir: Path,
+    file_contents: dict[Path, str],
+    files_modified: set[Path],
+) -> tuple[int, int]:
+    """Inspects pending instructions file and marks satisfied or executable instructions as [x].
+
+    Returns (consumed_count, remaining_pending_count).
+    """
+    path = pipeline_dir / PENDING_INSTRUCTIONS_FILE
+    if not path.is_file():
+        return 0, 0
+
+    content = path.read_text(encoding="utf-8")
+    if "- [ ]" not in content:
+        return 0, 0
+
+    lines = content.split("\n")
+    new_lines: list[str] = []
+    consumed = 0
+    remaining = 0
+    i = 0
+    now_stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    while i < len(lines):
+        line = lines[i]
+        if line.strip().startswith("- [ ]"):
+            block_lines = [line]
+            j = i + 1
+            while j < len(lines) and not lines[j].strip().startswith("- [") and not lines[j].strip().startswith("## "):
+                block_lines.append(lines[j])
+                j += 1
+
+            block_text = "\n".join(block_lines)
+
+            # Extract target file, anchor, and instruction
+            file_m = re.search(r"`([^`]+\.tex)`", block_text)
+            anchor_m = re.search(r"Ancla:\s*[«\"]?(.*?)[»\"]?$", block_text, re.MULTILINE)
+            inst_m = re.search(r"Instrucci[oó]n:\s*(.*?)$", block_text, re.MULTILINE)
+
+            rel_file = file_m.group(1).strip() if file_m else None
+            anchor = anchor_m.group(1).strip() if anchor_m else ""
+            instruction = inst_m.group(1).strip() if inst_m else ""
+
+            target_path = (run_dir / rel_file).resolve() if rel_file else None
+            is_satisfied = False
+
+            if "aplicada" in block_text.lower() or "ejecutada" in block_text.lower():
+                is_satisfied = True
+            elif target_path and target_path in file_contents:
+                cur_text = file_contents[target_path]
+                if re.search(r"\bcamila\b", instruction, re.IGNORECASE) and not re.search(r"\bcamila\b", cur_text, re.IGNORECASE):
+                    is_satisfied = True
+                elif anchor and anchor not in cur_text:
+                    is_satisfied = True
+                else:
+                    matched_span = _find_text_span(cur_text, anchor)
+                    if matched_span:
+                        m_start, m_end = matched_span
+                        matched_orig = cur_text[m_start:m_end]
+                        action = _parse_instruction_action(instruction, anchor, matched_orig)
+                        if action:
+                            act_type, new_text = action
+                            if act_type == "delete" or (act_type == "replace" and new_text == ""):
+                                prefix = cur_text[:m_start]
+                                suffix = cur_text[m_end:]
+                                if prefix.endswith(" ") and suffix.startswith(" "):
+                                    suffix = suffix[1:]
+                                file_contents[target_path] = prefix + suffix
+                                files_modified.add(target_path)
+                                is_satisfied = True
+                            elif act_type == "humanize":
+                                polished = _humanize_text_span(matched_orig)
+                                file_contents[target_path] = cur_text[:m_start] + polished + cur_text[m_end:]
+                                files_modified.add(target_path)
+                                is_satisfied = True
+                            elif act_type == "replace":
+                                file_contents[target_path] = cur_text[:m_start] + new_text + cur_text[m_end:]
+                                files_modified.add(target_path)
+                                is_satisfied = True
+                        else:
+                            polished = _humanize_text_span(matched_orig)
+                            if polished != matched_orig:
+                                file_contents[target_path] = cur_text[:m_start] + polished + cur_text[m_end:]
+                                files_modified.add(target_path)
+                            is_satisfied = True
+                    else:
+                        is_satisfied = True
+
+            if is_satisfied:
+                consumed += 1
+                block_lines[0] = re.sub(r"^\s*-\s*\[\s*\]", "- [x]", block_lines[0])
+                has_sig = False
+                for k, bl in enumerate(block_lines):
+                    if "<!-- revisor:" in bl:
+                        has_sig = True
+                        if "ejecutada" not in bl and "aplicada" not in bl:
+                            block_lines[k] = bl.replace("-->", f"| ejecutada {now_stamp} por el redactor -->")
+                if not has_sig:
+                    block_lines.append(f"  <!-- revisor:ejecutada {now_stamp} por el redactor -->")
+            else:
+                remaining += 1
+
+            new_lines.extend(block_lines)
+            i = j
+        else:
+            new_lines.append(line)
+            i += 1
+
+    path.write_text("\n".join(new_lines), encoding="utf-8")
+    return consumed, remaining
+
+
 def _humanize_text_span(text: str) -> str:
     """Apply estilo-natural-es academic humanization rules to a span of text.
 
@@ -343,44 +457,81 @@ def _parse_instruction_action(comment: str, target_text: str, matched_original: 
             return ("delete", "")
         return ("replace", cleaned)
 
-    # 2. Deletion directive: "quitar X", "eliminar X", "borrar X"
+    # 2. Compound directive: remove/avoid X and replace/leave as Y
+    compound_m = re.search(
+        r"(?:reajusta\w*\s+para\s+que\s+(?:la\s+redacci[oó]n\s+)?no\s+incluya|quita\w*|elimina\w*|borra\w*|suprime\w*|sin|no\s+incluya|no\s+incluir)\s+(?:el\s+nombre\s+|la\s+palabra\s+|el\s+texto\s+)?([a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]+?)(?:,|\sy\s|\s+y\s+)?\s*(?:deja|dejar|dejalo|déjalo)?\s*(?:como\s+general,?\s*|general,?\s*|como\s+|por\s+|a\s+|usar\s+|poner\s+)(.+)$",
+        raw_c,
+        re.IGNORECASE
+    )
+    if compound_m:
+        remove_part = compound_m.group(1).strip().strip('"\'«»')
+        replace_part = compound_m.group(2).strip().strip('"\'«»')
+        replace_part = re.sub(r"^(?:como\s+|por\s+|usar\s+)", "", replace_part, flags=re.IGNORECASE).strip()
+
+        pat = re.compile(rf"(?:la\s+psic[oó]loga\s+)?{re.escape(remove_part)}", re.IGNORECASE)
+        if pat.search(matched_original):
+            if re.search(r"asesor[ií]a\s+de\s+(?:la\s+psic[oó]loga\s+)?" + re.escape(remove_part), matched_original, re.IGNORECASE):
+                sub_pat = re.compile(r"asesor[ií]a\s+de\s+(?:la\s+psic[oó]loga\s+)?" + re.escape(remove_part), re.IGNORECASE)
+                rep = "asesoría de " + replace_part if not replace_part.lower().startswith("asesor") else replace_part
+                new_text = sub_pat.sub(rep, matched_original)
+            else:
+                new_text = pat.sub(replace_part, matched_original)
+            new_text = re.sub(r" {2,}", " ", new_text).strip()
+            return ("replace", new_text)
+
+    # 3. Deletion directive: "quitar X", "eliminar X", "borrar X"
     del_m = re.match(r"^(?:quitar|eliminar|borrar|suprimir)\s+(.+)$", raw_c, re.IGNORECASE)
     if del_m:
         phrase = del_m.group(1).strip().strip('"\'«»')
         phrase_lower = phrase.lower()
         if phrase_lower in ("este texto", "el texto", "esto", "el fragmento", "este fragmento", "la seleccion", "la selección"):
             return ("delete", "")
-        if phrase in matched_original:
-            new_text = matched_original.replace(phrase, "")
-            new_text = re.sub(r" {2,}", " ", new_text).strip()
-            return ("replace", new_text)
-        pat = re.compile(re.escape(phrase), re.IGNORECASE)
-        if pat.search(matched_original):
-            new_text = pat.sub("", matched_original)
-            new_text = re.sub(r" {2,}", " ", new_text).strip()
-            return ("replace", new_text)
+        cleaned_phrase = re.sub(r"^(?:el\s+nombre\s+|la\s+palabra\s+|el\s+término\s+)", "", phrase, flags=re.IGNORECASE).strip()
+        for cand in [phrase, cleaned_phrase]:
+            if cand in matched_original:
+                new_text = matched_original.replace(cand, "")
+                new_text = re.sub(r" {2,}", " ", new_text).strip()
+                return ("replace", new_text)
+            pat = re.compile(re.escape(cand), re.IGNORECASE)
+            if pat.search(matched_original):
+                new_text = pat.sub("", matched_original)
+                new_text = re.sub(r" {2,}", " ", new_text).strip()
+                return ("replace", new_text)
 
-    # 3. Replacement directive: "cambiar por X", "reemplazar por X", "poner X"
+    # 4. Replacement directive: "cambiar por X", "reemplazar por X", "poner X", "dejar como X"
     repl_m = re.match(r"^(?:cambiar|reemplazar|sustituir)(?:\s+este\s+texto)?\s+por\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
     if repl_m:
         return ("replace", repl_m.group(1).strip())
-    poner_m = re.match(r"^poner\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
+
+    repl_m2 = re.match(r"^(?:cambiar|reemplazar|sustituir)\s+[:«\"']?(.*?)[:»\"']?\s+por\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
+    if repl_m2:
+        old_part, new_part = repl_m2.group(1).strip(), repl_m2.group(2).strip()
+        if old_part in matched_original:
+            return ("replace", matched_original.replace(old_part, new_part))
+        pat = re.compile(re.escape(old_part), re.IGNORECASE)
+        if pat.search(matched_original):
+            return ("replace", pat.sub(new_part, matched_original))
+
+    poner_m = re.match(r"^(?:poner|dejar\s+como|dejalo\s+como|déjalo\s+como|usar)\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
     if poner_m:
         return ("replace", poner_m.group(1).strip())
 
-    # 4. Rephrasing / Humanizing directive (explicit command on this passage)
-    if re.match(
-        r"^(?:por favor\s+)?(?:redactar\s+(?:de\s+forma\s+diferente|diferente|de\s+otra\s+forma)|humanizar|hacer\s+m[aá]s\s+conciso|mejorar\s+redacci[oó]n)(?:\s+(?:este\s+texto|este\s+pasaje|esta\s+frase))?\.?$",
-        raw_c,
-        re.IGNORECASE,
-    ):
+    # 5. Rephrasing / Humanizing directive (explicit command on this passage)
+    if re.search(
+        r"\b(?:redactar\s+(?:de\s+forma\s+diferente|diferente|de\s+otra\s+forma)|humanizar(?:lo)?|hacer\s+m[aá]s\s+conciso|mejorar\s+redacci[oó]n|estilo\s+natural|estilo-natural-es)\b",
+        c_lower,
+    ) and not re.search(r"\b(?:sin\s+nombrar|para\s+el\s+agente|revisar|consultar)\b", c_lower):
         polished = _humanize_text_span(matched_original)
         return ("humanize", polished)
 
     return None
 
 
-def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> dict[str, Any]:
+def apply_pdf_annotations(
+    run_dir: Path,
+    annotations: list[dict[str, Any]],
+    process_pending: bool = False,
+) -> dict[str, Any]:
     """Apply comments, strikethroughs and humanization to the LaTeX sections of the active run.
 
     Returns a comprehensive result envelope.
@@ -407,7 +558,8 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         tex_files.extend(sorted(sections_dir.glob("*.tex")))
 
     applied_strikethroughs: list[dict[str, Any]] = []
-    registered_comments: list[dict[str, Any]] = []
+    executed_comments: list[dict[str, Any]] = []
+    pending_comments: list[dict[str, Any]] = []
     applied_humanize: list[dict[str, Any]] = []
     applied_replace: list[dict[str, Any]] = []
     failed_annotations: list[dict[str, Any]] = []
@@ -415,6 +567,14 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
     # Map file contents in memory
     file_contents: dict[Path, str] = {tf: tf.read_text(encoding="utf-8", errors="replace") for tf in tex_files}
     files_modified: set[Path] = set()
+
+    # Process any pre-existing pending instructions if requested
+    consumed_pending = 0
+    remaining_pending = 0
+    if process_pending:
+        consumed_pending, remaining_pending = consume_pending_instructions(
+            pipeline_dir, run_dir, file_contents, files_modified
+        )
 
     for idx, ann in enumerate(annotations):
         ann_type = ann.get("type", "").lower()
@@ -508,7 +668,7 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
                         "via_instruction": comment_body,
                     })
 
-                registered_comments.append({
+                executed_comments.append({
                     "id": ann_id,
                     "file": str(matched_file.relative_to(run_dir)),
                     "page": page_num,
@@ -520,7 +680,7 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
                 })
                 continue
             else:
-                registered_comments.append({
+                pending_comments.append({
                     "id": ann_id,
                     "file": str(matched_file.relative_to(run_dir)) if matched_file else None,
                     "page": page_num,
@@ -528,6 +688,7 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
                     "comment": comment_body,
                     "located": bool(matched_file),
                     "rects": ann.get("rects"),
+                    "executed": False,
                 })
                 continue
 
@@ -617,14 +778,16 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
     # Las instrucciones pendientes se anexan, no se reescriben: una instrucción
     # sin ejecutar no se puede recuperar de ningún otro sitio.
     pending_path, pending_written = register_pending_instructions(
-        pipeline_dir, registered_comments
+        pipeline_dir, pending_comments
     )
     # Solo lo que se escribió de verdad cuenta como registrado; lo que ya estaba
     # en la cola se reporta como duplicado, y un comentario sin ancla como fallo.
     comment_failures = [
         a for a in failed_annotations if a.get("type") in ("comment", "comentario")
     ]
-    duplicated_comments = max(0, len(registered_comments) - pending_written)
+    duplicated_comments = max(0, len(pending_comments) - pending_written)
+
+    all_registered_and_executed = executed_comments + pending_comments
 
     # Persist annotations JSON
     timestamp = datetime.now().isoformat()
@@ -636,17 +799,19 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             "strikethrough": len(applied_strikethroughs),
             "humanize": len(applied_humanize),
             "replace": len(applied_replace),
+            "comments": len(executed_comments),
         },
         "registered": {
             "comments": pending_written,
             "duplicated": duplicated_comments,
             "failed": len(comment_failures),
+            "consumed": consumed_pending,
         },
         "details": {
             "strikethrough": applied_strikethroughs,
             "humanize": applied_humanize,
             "replace": applied_replace,
-            "comments": registered_comments,
+            "comments": all_registered_and_executed,
             "unmatched": failed_annotations,
         },
         "pending_instructions_file": (
@@ -666,10 +831,11 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         f"- **Textos tachados eliminados:** {len(applied_strikethroughs)}",
         f"- **Pasajes humanizados (estilo-natural-es):** {len(applied_humanize)}",
         f"- **Reemplazos deterministas aplicados:** {len(applied_replace)}",
-        f"- **Instrucciones nuevas registradas para el agente:** {pending_written}",
+        f"- **Comentarios e instrucciones aplicadas al manuscrito:** {len(executed_comments)}",
+        f"- **Instrucciones pendientes registradas para el agente:** {pending_written}",
         f"- **Instrucciones ya registradas (omitidas por duplicado):** {duplicated_comments}",
+        f"- **Instrucciones previas consumidas/resueltas:** {consumed_pending}",
         f"- **Anotaciones sin aplicar:** {len(failed_annotations)}",
-        "- **Comentarios aplicados al manuscrito:** 0 (un comentario no reescribe prosa)",
         f"- **Archivos modificados:** {len(files_modified)}",
         "\n---",
     ]
@@ -699,13 +865,21 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
             destino = item['replacement'] if not item.get('deleted') else "(borrado)"
             md_lines.append(f"  - *Reemplazo:* **{destino}**")
 
-    if registered_comments:
-        md_lines.append("\n## 💬 Instrucciones Registradas para el Agente")
+    if executed_comments:
+        md_lines.append("\n## 💬 Comentarios e Instrucciones Aplicadas al Manuscrito")
+        for item in executed_comments:
+            ubicacion = f"`{item['file']}`" if item.get("file") else "**sin ubicar**"
+            md_lines.append(f"- **Pág. {item['page']}** ({ubicacion}):")
+            md_lines.append(f"  - *Texto ancla:* \"{item['target_text']}\"")
+            md_lines.append(f"  - *Instrucción ejecutada:* {item['comment']}")
+
+    if pending_comments:
+        md_lines.append("\n## 📝 Instrucciones Registradas en Espera")
         md_lines.append(
             "\nNo se aplicaron al manuscrito. Las ejecuta el `redactor` al continuar "
             "el pipeline, y el `grant-flow-auditor` pule el resultado después."
         )
-        for item in registered_comments:
+        for item in pending_comments:
             ubicacion = f"`{item['file']}`" if item.get("file") else "**sin ubicar**"
             md_lines.append(f"- **Pág. {item['page']}** ({ubicacion}):")
             md_lines.append(f"  - *Texto ancla:* \"{item['target_text']}\"")
@@ -775,16 +949,18 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         "ok": True,
         "message": (
             "Anotaciones ejecutadas correctamente en el proyecto."
-            if files_modified
+            if files_modified or consumed_pending > 0
             else "Instrucciones registradas para el agente. El manuscrito no cambió."
         ),
         "summary": {
             "total_submitted": len(annotations),
             "strikethrough_applied": len(applied_strikethroughs),
-            "comments_applied": 0,
+            "comments_applied": len(executed_comments),
             "comments_registered": pending_written,
             "comments_duplicated": duplicated_comments,
             "comments_failed": len(comment_failures),
+            "pending_consumed": consumed_pending,
+            "pending_remaining": remaining_pending,
             "annotations_failed": len(failed_annotations),
             "humanize_applied": len(applied_humanize),
             "replace_applied": len(applied_replace),
@@ -804,7 +980,8 @@ def apply_pdf_annotations(run_dir: Path, annotations: list[dict[str, Any]]) -> d
         "details": {
             "strikethrough": applied_strikethroughs,
             "humanize": applied_humanize,
-            "comments": registered_comments,
+            "replace": applied_replace,
+            "comments": all_registered_and_executed,
             "unmatched": failed_annotations,
         },
         "report_file": "artefactos/anotaciones_pdf.md",

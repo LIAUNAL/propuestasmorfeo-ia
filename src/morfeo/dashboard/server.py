@@ -83,6 +83,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_favicon(path)
         elif path == "/api/status":
             self.serve_api_status()
+        elif path == "/api/terminal/agents":
+            self.serve_terminal_agents()
+        elif path == "/ws/terminal":
+            self.handle_terminal_ws()
         elif path == "/api/flow":
             self.serve_flow()
         elif path == "/api/pdf":
@@ -197,6 +201,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             return
 
         annotations = payload.get("annotations", [])
+        process_pending = payload.get("process_pending", True)
         data = get_project_status(self.workspace_dir)
         active_run = data.get("active_run")
         if not active_run:
@@ -209,7 +214,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             return
 
         run_dir = self.workspace_dir / "proposals" / active_run
-        result = apply_pdf_annotations(run_dir, annotations)
+        result = apply_pdf_annotations(run_dir, annotations, process_pending=process_pending)
 
         status_code = 200 if result.get("ok") else 500
         body = json.dumps(result, indent=2, ensure_ascii=False).encode("utf-8")
@@ -290,6 +295,61 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def serve_terminal_agents(self) -> None:
+        from .terminal import get_available_agents
+        agents = get_available_agents()
+        body = json.dumps({"ok": True, "agents": agents}, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def handle_terminal_ws(self) -> None:
+        upgrade = self.headers.get("Upgrade", "").strip().lower()
+        if upgrade != "websocket":
+            self.send_error(400, "WebSocket Upgrade required")
+            return
+
+        key = self.headers.get("Sec-WebSocket-Key", "")
+        if not key:
+            self.send_error(400, "Missing Sec-WebSocket-Key")
+            return
+
+        from .terminal import run_pty_session, ws_handshake_accept
+
+        accept_token = ws_handshake_accept(key)
+        response = (
+            "HTTP/1.1 101 Switching Protocols\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            f"Sec-WebSocket-Accept: {accept_token}\r\n\r\n"
+        )
+        self.wfile.write(response.encode("ascii"))
+        self.wfile.flush()
+
+        import urllib.parse
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query)
+        agent = qs.get("agent", ["claude"])[0]
+        try:
+            cols = int(qs.get("cols", [80])[0])
+        except (ValueError, TypeError):
+            cols = 80
+        try:
+            rows = int(qs.get("rows", [24])[0])
+        except (ValueError, TypeError):
+            rows = 24
+
+        self.close_connection = True
+        run_pty_session(
+            sock=self.request,
+            workspace_dir=self.workspace_dir,
+            agent_id=agent,
+            init_rows=rows,
+            init_cols=cols,
+        )
 
     def serve_pdf(self) -> None:
         data = get_project_status(self.workspace_dir)
