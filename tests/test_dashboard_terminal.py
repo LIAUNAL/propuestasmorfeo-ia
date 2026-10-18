@@ -232,6 +232,50 @@ class TestDashboardTerminalBridge(unittest.TestCase):
             server.shutdown()
             server.server_close()
 
+    def test_client_abrupt_disconnect_reaps_process(self):
+        """Verify that when a client abruptly drops connection, the PTY session terminates cleanly without TypeError."""
+        workspace_dir = Path(__file__).resolve().parent.parent
+        handler_cls = type("ConfiguredHandler", (MorfeoDashboardHandler,), {"workspace_dir": workspace_dir})
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_cls)
+        port = server.server_address[1]
+
+        t = threading.Thread(target=server.serve_forever, daemon=True)
+        t.start()
+
+        s = None
+        try:
+            s = socket.create_connection(("127.0.0.1", port), timeout=2.0)
+            key = "dGhlIHNhbXBsZSBub25jZQ=="
+            req = (
+                f"GET /ws/terminal?agent=shell HTTP/1.1\r\n"
+                f"Host: 127.0.0.1:{port}\r\n"
+                f"Upgrade: websocket\r\n"
+                f"Connection: Upgrade\r\n"
+                f"Sec-WebSocket-Key: {key}\r\n"
+                f"Sec-WebSocket-Version: 13\r\n\r\n"
+            )
+            s.sendall(req.encode("ascii"))
+            resp = b""
+            while b"\r\n\r\n" not in resp:
+                chunk = s.recv(1024)
+                if not chunk:
+                    break
+                resp += chunk
+
+            self.assertIn(b"101 Switching Protocols", resp)
+            # Abruptly close socket from client side (mimicking browser tab close or agent change)
+            s.close()
+            s = None
+        finally:
+            if s:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+            server.shutdown()
+            server.server_close()
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -463,7 +463,7 @@ def run_pane_mirror_session(
     init_cols: int = 80,
 ) -> None:
     """Stream a live interactive mirror of an active Herdr pane to a WebSocket client."""
-    sock.setblocking(False)
+    sock.settimeout(2.0)
 
     # Initial visible screen fetch
     try:
@@ -503,6 +503,12 @@ def run_pane_mirror_session(
         if sock.fileno() in rlist:
             try:
                 raw_data = sock.recv(8192)
+            except (BlockingIOError, socket.timeout):
+                raw_data = None
+            except (OSError, socket.error):
+                break
+
+            if raw_data is not None:
                 if not raw_data:
                     break
                 in_buffer.extend(raw_data)
@@ -517,7 +523,10 @@ def run_pane_mirror_session(
                     if opcode == 0x8:  # WS Close
                         return
                     elif opcode == 0x9:  # WS Ping -> Pong
-                        sock.sendall(encode_ws_frame(payload, 0xA))
+                        try:
+                            sock.sendall(encode_ws_frame(payload, 0xA))
+                        except Exception:
+                            pass
                     elif opcode in (0x1, 0x2):
                         # Control message check
                         handled_control = False
@@ -531,8 +540,6 @@ def run_pane_mirror_session(
 
                         if not handled_control:
                             forward_input_to_pane(herdr_bin, pane_id, payload)
-            except (BlockingIOError, OSError, socket.error):
-                break
 
         # Check revision update
         now = time.time()
@@ -616,63 +623,73 @@ def run_pty_session(
     finally:
         os.close(slave_fd)
 
-    # Send startup message banner to client only for plain shell to avoid TUI artifacts
-    if agent_id == "shell":
-        welcome_banner = (
-            f"\r\n\x1b[1;36m┌──────────────────────────────────────────────────────────────┐\x1b[0m\r\n"
-            f"\x1b[1;36m│\x1b[0m  \x1b[1;35mMorfeo Command Center\x1b[0m: Terminal interactivo activo         \x1b[1;36m│\x1b[0m\r\n"
-            f"\x1b[1;36m│\x1b[0m  Agente: \x1b[1;32m{resolved_name:<49}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
-            f"\x1b[1;36m│\x1b[0m  Directorio: \x1b[90m{str(workspace_dir)[-45:]:<45}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
-            f"\x1b[1;36m└──────────────────────────────────────────────────────────────┘\x1b[0m\r\n\r\n"
-        )
+    def send_ws(payload: bytes, opcode: int = 0x1) -> bool:
+        frame = encode_ws_frame(payload, opcode)
         try:
-            sock.sendall(encode_ws_frame(welcome_banner.encode("utf-8"), 0x1))
-        except Exception:
-            pass
-    elif warning_banner:
-        try:
-            sock.sendall(encode_ws_frame(warning_banner.encode("utf-8"), 0x1))
-        except Exception:
-            pass
-
-    sock.setblocking(False)
-    in_buffer = bytearray()
-    should_exit = False
-
-    while not should_exit:
-        # Check child process lifecycle
-        if proc.poll() is not None:
-            # Drain remaining PTY output
+            sock.sendall(frame)
+            return True
+        except (socket.timeout, BlockingIOError):
             try:
-                r, _, _ = select.select([master_fd], [], [], 0.05)
-                if master_fd in r:
-                    leftover = os.read(master_fd, 8192)
-                    if leftover:
-                        sock.sendall(encode_ws_frame(leftover, 0x1))
+                time.sleep(0.005)
+                sock.sendall(frame)
+                return True
             except Exception:
-                pass
+                return False
+        except (OSError, socket.error):
+            return False
 
-            exit_msg = (
-                f"\r\n\x1b[33m[Morfeo] Sesión finalizada (código de salida: {proc.returncode}).\x1b[0m\r\n"
-                f"\x1b[90mPuedes reiniciar la sesión desde el selector de agente o cerrar el panel.\x1b[0m\r\n"
+    sock.settimeout(2.0)
+
+    try:
+        # Send startup message banner to client only for plain shell to avoid TUI artifacts
+        if agent_id == "shell":
+            welcome_banner = (
+                f"\r\n\x1b[1;36m┌──────────────────────────────────────────────────────────────┐\x1b[0m\r\n"
+                f"\x1b[1;36m│\x1b[0m  \x1b[1;35mMorfeo Command Center\x1b[0m: Terminal interactivo activo         \x1b[1;36m│\x1b[0m\r\n"
+                f"\x1b[1;36m│\x1b[0m  Agente: \x1b[1;32m{resolved_name:<49}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
+                f"\x1b[1;36m│\x1b[0m  Directorio: \x1b[90m{str(workspace_dir)[-45:]:<45}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
+                f"\x1b[1;36m└──────────────────────────────────────────────────────────────┘\x1b[0m\r\n\r\n"
             )
-            try:
-                sock.sendall(encode_ws_frame(exit_msg.encode("utf-8"), 0x1))
-                sock.sendall(encode_ws_frame(b"", 0x8))  # WebSocket close
-            except Exception:
-                pass
-            break
+            send_ws(welcome_banner.encode("utf-8"), 0x1)
+        elif warning_banner:
+            send_ws(warning_banner.encode("utf-8"), 0x1)
 
-        # Wait for either PTY output or WebSocket input
-        try:
-            rlist, _, _ = select.select([master_fd, sock.fileno()], [], [], 0.1)
-        except (select.error, OSError):
-            break
+        in_buffer = bytearray()
+        should_exit = False
 
-        # Process PTY output -> send to WebSocket client
-        if master_fd in rlist:
+        while not should_exit:
+            # Check child process lifecycle
+            if proc.poll() is not None:
+                # Drain remaining PTY output
+                try:
+                    r, _, _ = select.select([master_fd], [], [], 0.05)
+                    if master_fd in r:
+                        leftover = os.read(master_fd, 16384)
+                        if leftover:
+                            send_ws(leftover, 0x1)
+                except Exception:
+                    pass
+
+                exit_msg = (
+                    f"\r\n\x1b[33m[Morfeo] Sesión finalizada (código de salida: {proc.returncode}).\x1b[0m\r\n"
+                    f"\x1b[90mPuedes reiniciar la sesión desde el selector de agente o cerrar el panel.\x1b[0m\r\n"
+                )
+                send_ws(exit_msg.encode("utf-8"), 0x1)
+                send_ws(b"", 0x8)  # WebSocket close
+                break
+
+            # Wait for either PTY output or WebSocket input
             try:
-                chunk = os.read(master_fd, 8192)
+                rlist, _, _ = select.select([master_fd, sock.fileno()], [], [], 0.05)
+            except (select.error, OSError):
+                break
+
+            # Process PTY output -> send to WebSocket client
+            if master_fd in rlist:
+                try:
+                    chunk = os.read(master_fd, 16384)
+                except OSError:
+                    break
                 if not chunk:
                     break
 
@@ -682,86 +699,114 @@ def run_pty_session(
                         os.write(master_fd, b"\x1b[?62;c")
                     except Exception:
                         pass
+                    # Strip DA1 query from chunk sent to client so xterm.js doesn't echo duplicate \x1b[?1;2c
+                    chunk = chunk.replace(b"\x1b[c", b"")
+
                 if b"]11;?" in chunk:
                     try:
                         os.write(master_fd, b"\x1b]11;rgb:0808/0c0c/1414\x1b\\")
                     except Exception:
                         pass
+                    chunk = chunk.replace(b"]11;?", b"]11;rgb:0808/0c0c/1414")
+
                 if b"]10;?" in chunk:
                     try:
                         os.write(master_fd, b"\x1b]10;rgb:f1f1/f5f5/f9f9\x1b\\")
                     except Exception:
                         pass
+                    chunk = chunk.replace(b"]10;?", b"]10;rgb:f1f1/f5f5/f9f9")
+
                 if b"[?u" in chunk:
                     try:
                         os.write(master_fd, b"\x1b[?0u")
                     except Exception:
                         pass
 
-                sock.sendall(encode_ws_frame(chunk, 0x1))
-            except (OSError, socket.error):
-                break
-
-        # Process WebSocket input from client -> write to PTY
-        if sock.fileno() in rlist:
-            try:
-                raw_data = sock.recv(8192)
-                if not raw_data:
-                    break
-                in_buffer.extend(raw_data)
-
-                while True:
-                    frame_res, consumed = decode_ws_client_frame(in_buffer)
-                    if frame_res is None:
+                if chunk:
+                    if not send_ws(chunk, 0x1):
                         break
-                    del in_buffer[:consumed]
-                    opcode, payload = frame_res
 
-                    if opcode == 0x8:  # WS Close
-                        should_exit = True
-                        break
-                    elif opcode == 0x9:  # WS Ping -> Pong
-                        sock.sendall(encode_ws_frame(payload, 0xA))
-                    elif opcode in (0x1, 0x2):
-                        # Inspect for control JSON (resize / switch)
-                        handled_control = False
-                        if payload.startswith(b'{"type"') or payload.startswith(b'{"type "'):
-                            try:
-                                msg = json.loads(payload.decode("utf-8"))
-                                mtype = msg.get("type")
-                                if mtype == "resize":
-                                    cols = int(msg.get("cols", 80))
-                                    rows = int(msg.get("rows", 24))
-                                    set_terminal_size(master_fd, rows=rows, cols=cols)
-                                    handled_control = True
-                            except Exception:
-                                pass
-
-                        if not handled_control:
-                            os.write(master_fd, payload)
-            except (BlockingIOError, ssl_error if "ssl_error" in locals() else ()):
-                pass
-            except (OSError, socket.error):
-                break
-
-    # Cleanup subprocess and descriptors
-    try:
-        if proc.poll() is None:
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-            except (ProcessLookupError, PermissionError):
-                pass
-            try:
-                proc.wait(timeout=1.0)
-            except Exception:
+            # Process WebSocket input from client -> write to PTY
+            if sock.fileno() in rlist:
                 try:
-                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-                except Exception:
-                    pass
-    except Exception:
-        pass
+                    raw_data = sock.recv(8192)
+                except (BlockingIOError, socket.timeout):
+                    raw_data = None
+                except (OSError, socket.error):
+                    break
 
-    try:
-        os.close(master_fd)
-    except OSError:
-        pass
+                if raw_data is not None:
+                    if not raw_data:
+                        # Client disconnected
+                        break
+                    in_buffer.extend(raw_data)
+
+                    while True:
+                        frame_res, consumed = decode_ws_client_frame(in_buffer)
+                        if frame_res is None:
+                            break
+                        del in_buffer[:consumed]
+                        opcode, payload = frame_res
+
+                        if opcode == 0x8:  # WS Close
+                            should_exit = True
+                            break
+                        elif opcode == 0x9:  # WS Ping -> Pong
+                            send_ws(payload, 0xA)
+                        elif opcode in (0x1, 0x2):
+                            # Inspect for control JSON (resize / switch)
+                            handled_control = False
+                            if payload.startswith(b'{"type"') or payload.startswith(b'{"type "'):
+                                try:
+                                    msg = json.loads(payload.decode("utf-8"))
+                                    mtype = msg.get("type")
+                                    if mtype == "resize":
+                                        cols = int(msg.get("cols", 80))
+                                        rows = int(msg.get("rows", 24))
+                                        set_terminal_size(master_fd, rows=rows, cols=cols)
+                                        handled_control = True
+                                except Exception:
+                                    pass
+
+                            # Filter out terminal capability echoes from xterm.js
+                            # so that Herdr and other TUIs don't misinterpret them as keypresses
+                            if not handled_control:
+                                if payload.startswith(b"\x1b[?") and payload.endswith(b"c"):
+                                    handled_control = True
+                                elif (
+                                    payload.startswith(b"\x1b]>")
+                                    or payload.startswith(b"\x1b]11;")
+                                    or payload.startswith(b"\x1b]10;")
+                                    or payload.startswith(b"\x1b]4;")
+                                ):
+                                    handled_control = True
+
+                            if not handled_control:
+                                try:
+                                    os.write(master_fd, payload)
+                                except OSError:
+                                    should_exit = True
+                                    break
+    finally:
+        # Cleanup subprocess and descriptors unconditionally
+        try:
+            if proc.poll() is None:
+                try:
+                    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                except (ProcessLookupError, PermissionError):
+                    pass
+                try:
+                    proc.wait(timeout=1.0)
+                except Exception:
+                    try:
+                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        try:
+            os.close(master_fd)
+        except OSError:
+            pass
+

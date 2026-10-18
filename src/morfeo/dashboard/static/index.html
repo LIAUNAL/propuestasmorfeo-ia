@@ -6614,6 +6614,17 @@
       localStorage.setItem('morfeo_terminal_agent', selectedAgent);
       if (terminalInstance) {
         terminalInstance.reset();
+        terminalInstance.clear();
+        const agentMap = {
+          'herdr': 'Herdr (Workspace Manager)',
+          'claude': 'Claude Code',
+          'opencode': 'OpenCode',
+          'pi': 'Pi',
+          'agy': 'Antigravity (AGY)',
+          'shell': 'Shell (Zsh/Bash)'
+        };
+        const agentLabel = agentMap[selectedAgent] || selectedAgent;
+        terminalInstance.write(`\r\n\x1b[36m⚡ Conectando terminal con ${agentLabel}...\x1b[0m\r\n`);
       }
       connectTerminalWs(selectedAgent);
       if (terminalInstance) terminalInstance.focus();
@@ -6622,6 +6633,8 @@
     function restartTerminalSession() {
       if (terminalInstance) {
         terminalInstance.reset();
+        terminalInstance.clear();
+        terminalInstance.write('\r\n\x1b[36m⚡ Reiniciando sesión de terminal...\x1b[0m\r\n');
       }
       connectTerminalWs(selectedAgent);
       if (terminalInstance) terminalInstance.focus();
