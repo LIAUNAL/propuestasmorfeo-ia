@@ -2015,10 +2015,10 @@
     <button class="tab-nav__btn active" onclick="navigateTab('flow')">Flujo general</button>
     <button class="tab-nav__btn" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
     <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
-    <button class="tab-nav__btn" onclick="navigateTab('telemetria')">Telemetría y Costos</button>
     <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
     <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
     <button class="tab-nav__btn" onclick="navigateTab('artifacts')">Artefactos</button>
+    <button class="tab-nav__btn" onclick="navigateTab('telemetria')">Telemetría y Costos</button>
   </nav>
 
   <!-- Main content area -->
@@ -2140,52 +2140,6 @@
               </tr>
             </thead>
             <tbody id="sectionsTableBody">
-              <!-- Rendered by JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 5: TELEMETRÍA -->
-    <div id="pane-telemetria" class="tab-pane">
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-card__label">Tokens Acumulados</div>
-          <div id="teleTotalTokens" class="metric-card__val">—</div>
-          <div class="metric-card__sub">Prompt + Completion medidos</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-card__label">Tool-Uses Totales</div>
-          <div id="teleTotalTools" class="metric-card__val">—</div>
-          <div class="metric-card__sub">Llamadas a herramientas registradas</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-card__label">Fases Medidas</div>
-          <div id="telePhasesMeasured" class="metric-card__val">—</div>
-          <div class="metric-card__sub">Registro auditado en artefactos/pipeline</div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel__header">
-          <div class="panel__title">Desglose de Costo y Duración por Fase</div>
-          <span class="panel__meta">Persistido en artefactos/pipeline/_estado.md</span>
-        </div>
-        <div class="table-responsive">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Fase</th>
-                <th>Gate</th>
-                <th>Veredicto</th>
-                <th>Fecha</th>
-                <th>Tokens</th>
-                <th>Tool-Uses</th>
-                <th>Duración</th>
-              </tr>
-            </thead>
-            <tbody id="telemetryTableBody">
               <!-- Rendered by JS -->
             </tbody>
           </table>
@@ -2419,6 +2373,52 @@
           <div class="artifact-viewer" id="artifactContent">
             Selecciona un artefacto de la lista para inspeccionar su contenido.
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 7: TELEMETRÍA Y COSTOS -->
+    <div id="pane-telemetria" class="tab-pane">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-card__label">Tokens Acumulados</div>
+          <div id="teleTotalTokens" class="metric-card__val">—</div>
+          <div class="metric-card__sub">Prompt + Completion medidos</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card__label">Tool-Uses Totales</div>
+          <div id="teleTotalTools" class="metric-card__val">—</div>
+          <div class="metric-card__sub">Llamadas a herramientas registradas</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card__label">Fases Medidas</div>
+          <div id="telePhasesMeasured" class="metric-card__val">—</div>
+          <div class="metric-card__sub">Registro auditado en artefactos/pipeline</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Desglose de Costo y Duración por Fase</div>
+          <span class="panel__meta">Persistido en artefactos/pipeline/_estado.md</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Fase</th>
+                <th>Gate</th>
+                <th>Veredicto</th>
+                <th>Fecha</th>
+                <th>Tokens</th>
+                <th>Tool-Uses</th>
+                <th>Duración</th>
+              </tr>
+            </thead>
+            <tbody id="telemetryTableBody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
