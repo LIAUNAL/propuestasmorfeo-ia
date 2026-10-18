@@ -445,19 +445,6 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
         self.close_connection = True
 
-        if agent in ("herdr", "current", "mirror"):
-            herdr_bin = find_executable("herdr")
-            active_pane = get_current_agent_pane_id(self.workspace_dir) if herdr_bin else None
-            if herdr_bin and active_pane:
-                run_pane_mirror_session(
-                    sock=self.request,
-                    pane_id=active_pane,
-                    herdr_bin=herdr_bin,
-                    init_rows=rows,
-                    init_cols=cols,
-                )
-                return
-
         run_pty_session(
             sock=self.request,
             workspace_dir=self.workspace_dir,

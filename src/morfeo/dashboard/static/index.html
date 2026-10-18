@@ -2728,7 +2728,7 @@
         <div class="terminal-agent-picker">
           <label for="terminalAgentSelect">Agente:</label>
           <select id="terminalAgentSelect" class="terminal-agent-select" onchange="onTerminalAgentChange()">
-            <option value="herdr" selected>Herdr (Espejo en Vivo)</option>
+            <option value="herdr" selected>Herdr (Workspace Manager)</option>
             <option value="claude">Claude Code</option>
             <option value="opencode">OpenCode</option>
             <option value="pi">Pi</option>
@@ -6456,8 +6456,13 @@
 
     function connectTerminalWs(agent) {
       if (terminalSocket) {
-        try { terminalSocket.close(); } catch(e) {}
+        const oldSock = terminalSocket;
         terminalSocket = null;
+        oldSock.onopen = null;
+        oldSock.onclose = null;
+        oldSock.onerror = null;
+        oldSock.onmessage = null;
+        try { oldSock.close(); } catch(e) {}
       }
 
       updateTerminalStatus('connecting', agent);
@@ -6467,39 +6472,45 @@
       const rows = terminalInstance ? terminalInstance.rows : 24;
       const wsUrl = `${proto}//${window.location.host}/ws/terminal?agent=${encodeURIComponent(agent)}&cols=${cols}&rows=${rows}`;
 
+      let ws = null;
       try {
-        terminalSocket = new WebSocket(wsUrl);
+        ws = new WebSocket(wsUrl);
+        terminalSocket = ws;
       } catch (err) {
         console.error('Error instanciando WebSocket del terminal:', err);
         updateTerminalStatus('error', agent);
         return;
       }
 
-      terminalSocket.binaryType = 'arraybuffer';
+      ws.binaryType = 'arraybuffer';
 
-      terminalSocket.onopen = () => {
+      ws.onopen = () => {
+        if (terminalSocket !== ws) return;
         updateTerminalStatus('connected', agent);
         if (fitAddonInstance) fitAddonInstance.fit();
         sendTerminalResize();
       };
 
-      terminalSocket.onmessage = (event) => {
-        if (terminalInstance) {
-          if (event.data instanceof ArrayBuffer) {
-            terminalInstance.write(new Uint8Array(event.data));
-          } else {
-            terminalInstance.write(event.data);
-          }
+      ws.onmessage = (event) => {
+        if (terminalSocket !== ws || !terminalInstance) return;
+        if (event.data instanceof ArrayBuffer) {
+          terminalInstance.write(new Uint8Array(event.data));
+        } else {
+          terminalInstance.write(event.data);
         }
       };
 
-      terminalSocket.onclose = () => {
-        updateTerminalStatus('disconnected', agent);
+      ws.onclose = () => {
+        if (terminalSocket === ws) {
+          updateTerminalStatus('disconnected', agent);
+        }
       };
 
-      terminalSocket.onerror = (err) => {
-        console.warn('WebSocket terminal error:', err);
-        updateTerminalStatus('disconnected', agent);
+      ws.onerror = (err) => {
+        if (terminalSocket === ws) {
+          console.warn('WebSocket terminal error:', err);
+          updateTerminalStatus('disconnected', agent);
+        }
       };
     }
 
@@ -6521,16 +6532,14 @@
       const footerRun = document.getElementById('terminalFooterRun');
 
       const agentMap = {
-        'herdr': 'Herdr (Espejo en Vivo)',
+        'herdr': 'Herdr (Workspace Manager)',
         'claude': 'Claude Code',
         'opencode': 'OpenCode',
         'pi': 'Pi',
         'agy': 'Antigravity (AGY)',
         'shell': 'Shell (Zsh/Bash)'
       };
-      const agentLabel = (agent === 'herdr' && activeAgentPaneId)
-        ? `Herdr (Espejo: ${activeAgentPaneId})`
-        : (agentMap[agent] || agent);
+      const agentLabel = agentMap[agent] || agent;
 
       if (footerAgent) footerAgent.textContent = agentLabel;
       if (footerRun) {
@@ -6566,7 +6575,7 @@
       selectedAgent = select.value;
       localStorage.setItem('morfeo_terminal_agent', selectedAgent);
       if (terminalInstance) {
-        terminalInstance.clear();
+        terminalInstance.reset();
       }
       connectTerminalWs(selectedAgent);
       if (terminalInstance) terminalInstance.focus();
@@ -6574,7 +6583,7 @@
 
     function restartTerminalSession() {
       if (terminalInstance) {
-        terminalInstance.clear();
+        terminalInstance.reset();
       }
       connectTerminalWs(selectedAgent);
       if (terminalInstance) terminalInstance.focus();

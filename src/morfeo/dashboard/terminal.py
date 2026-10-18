@@ -339,7 +339,7 @@ def launch_external_terminal(workspace_dir: Path) -> dict[str, Any]:
 def get_available_agents() -> list[dict[str, Any]]:
     """Inspect and return the status of all supported CLI coding agents."""
     agents_spec = [
-        {"id": "herdr", "name": "Herdr (Espejo en Vivo)", "bin": "herdr", "desc": "Terminal Workspace Manager: Espejo interactivo de Herdr"},
+        {"id": "herdr", "name": "Herdr (Workspace Manager)", "bin": "herdr", "desc": "Terminal Workspace Manager con Spaces y Agents"},
         {"id": "claude", "name": "Claude Code", "bin": "claude", "desc": "Asistente primario canónico"},
         {"id": "opencode", "name": "OpenCode", "bin": "opencode", "desc": "Agente CLI multi-modelo OpenCode"},
         {"id": "pi", "name": "Pi", "desc": "Agente autónomo Pi CLI", "bin": "pi"},
@@ -375,7 +375,7 @@ def build_agent_command(agent_id: str) -> tuple[list[str], str, Optional[str]]:
     if agent_id == "herdr":
         path = find_executable("herdr")
         if path:
-            return [path], "Herdr (Espejo en Vivo)", None
+            return [path], "Herdr (Workspace Manager)", None
         return [system_shell], "Shell (Herdr no instalado)", "\r\n\x1b[33m[Morfeo] Herdr ('herdr') no se encontró en el PATH. Iniciando shell interactivo...\x1b[0m\r\n"
 
     elif agent_id == "claude":
@@ -399,7 +399,7 @@ def build_agent_command(agent_id: str) -> tuple[list[str], str, Optional[str]]:
     elif agent_id in ("agy", "antigravity"):
         path = find_executable("agy") or find_executable("antigravity")
         if path:
-            return [path], "Antigravity CLI", None
+            return [path, "--dangerously-skip-permissions"], "Antigravity CLI", None
         return [system_shell], "Shell (Antigravity no instalado)", "\r\n\x1b[33m[Morfeo] Antigravity CLI ('agy') no se encontró en el PATH. Iniciando shell interactivo...\x1b[0m\r\n"
 
     else:
@@ -568,20 +568,6 @@ def run_pty_session(
     init_cols: int = 80,
 ) -> None:
     """Stream bidirectional I/O between an xterm.js WebSocket and a child process PTY."""
-    # When Herdr is selected, mirror the live active pane directly if available
-    if agent_id in ("herdr", "current", "mirror"):
-        herdr_bin = find_executable("herdr")
-        active_pane = get_current_agent_pane_id(workspace_dir) if herdr_bin else None
-        if herdr_bin and active_pane:
-            run_pane_mirror_session(
-                sock=sock,
-                pane_id=active_pane,
-                herdr_bin=herdr_bin,
-                init_rows=init_rows,
-                init_cols=init_cols,
-            )
-            return
-
     cmd_args, resolved_name, warning_banner = build_agent_command(agent_id)
 
     # Set up child environment
@@ -630,8 +616,8 @@ def run_pty_session(
     finally:
         os.close(slave_fd)
 
-    # Send startup message / banner to client (only for non-Herdr agents to avoid TUI artifacts)
-    if agent_id != "herdr":
+    # Send startup message banner to client only for plain shell to avoid TUI artifacts
+    if agent_id == "shell":
         welcome_banner = (
             f"\r\n\x1b[1;36m┌──────────────────────────────────────────────────────────────┐\x1b[0m\r\n"
             f"\x1b[1;36m│\x1b[0m  \x1b[1;35mMorfeo Command Center\x1b[0m: Terminal interactivo activo         \x1b[1;36m│\x1b[0m\r\n"
@@ -641,8 +627,11 @@ def run_pty_session(
         )
         try:
             sock.sendall(encode_ws_frame(welcome_banner.encode("utf-8"), 0x1))
-            if warning_banner:
-                sock.sendall(encode_ws_frame(warning_banner.encode("utf-8"), 0x1))
+        except Exception:
+            pass
+    elif warning_banner:
+        try:
+            sock.sendall(encode_ws_frame(warning_banner.encode("utf-8"), 0x1))
         except Exception:
             pass
 
@@ -686,6 +675,29 @@ def run_pty_session(
                 chunk = os.read(master_fd, 8192)
                 if not chunk:
                     break
+
+                # Automatic terminal capability responses for crossterm and ratatui full-screen TUIs
+                if b"\x1b[c" in chunk:
+                    try:
+                        os.write(master_fd, b"\x1b[?62;c")
+                    except Exception:
+                        pass
+                if b"]11;?" in chunk:
+                    try:
+                        os.write(master_fd, b"\x1b]11;rgb:0808/0c0c/1414\x1b\\")
+                    except Exception:
+                        pass
+                if b"]10;?" in chunk:
+                    try:
+                        os.write(master_fd, b"\x1b]10;rgb:f1f1/f5f5/f9f9\x1b\\")
+                    except Exception:
+                        pass
+                if b"[?u" in chunk:
+                    try:
+                        os.write(master_fd, b"\x1b[?0u")
+                    except Exception:
+                        pass
+
                 sock.sendall(encode_ws_frame(chunk, 0x1))
             except (OSError, socket.error):
                 break
