@@ -2811,7 +2811,10 @@
       }
     }
 
+    let currentGraphKind = 'papers';
+
     function switchGraph(kind) {
+      currentGraphKind = kind;
       const btnPapers = document.getElementById('btnGraphPapers');
       const btnVault = document.getElementById('btnGraphVault');
       const btnManuscript = document.getElementById('btnGraphManuscript');
@@ -2830,14 +2833,13 @@
         btn.textContent = '⏳ Compilando...';
       }
       try {
-        const res = await fetch('/api/graph/build', { method: 'POST' });
+        const res = await fetch(`/api/graph/build?corpus=${currentGraphKind}`, { method: 'POST' });
         const data = await res.json();
         if (data.ok) {
-          switchGraph('manuscript');
           const iframe = document.getElementById('graphIframe');
-          if (iframe) iframe.src = '/api/graph/manuscript?t=' + Date.now();
+          if (iframe) iframe.src = `/api/graph/${currentGraphKind}?t=` + Date.now();
         } else {
-          alert('Error al compilar el grafo del manuscrito: ' + (data.error || 'Desconocido'));
+          alert('Error al compilar el grafo: ' + (data.error || 'Desconocido'));
         }
       } catch (err) {
         alert('Error de conexión al regenerar grafo: ' + err.message);

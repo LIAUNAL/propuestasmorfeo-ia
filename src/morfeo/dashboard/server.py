@@ -246,15 +246,39 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
                 scripts_dir = repo_root / "scripts"
 
             import sys
+            import urllib.parse
             if str(scripts_dir) not in sys.path:
                 sys.path.insert(0, str(scripts_dir))
-            from build_manuscript_graph import build_manuscript_graph
-            payload = build_manuscript_graph(run_dir)
+            from build_manuscript_graph import (
+                build_manuscript_graph,
+                build_papers_graph,
+                build_vault_graph,
+                build_all_graphs,
+            )
+
+            parsed = urllib.parse.urlparse(self.path)
+            qs = urllib.parse.parse_qs(parsed.query)
+            corpus = qs.get("corpus", ["all"])[0].lower()
+
+            if corpus == "papers":
+                payload = build_papers_graph(run_dir)
+            elif corpus == "vault":
+                payload = build_vault_graph(run_dir)
+            elif corpus == "manuscript":
+                payload = build_manuscript_graph(run_dir)
+            else:
+                all_res = build_all_graphs(run_dir)
+                payload = {
+                    "corpus": "all",
+                    "nodes": sum(len(p.get("nodes", [])) for p in all_res.values()),
+                    "edges": sum(len(p.get("edges", [])) for p in all_res.values()),
+                }
+
             body = json.dumps({
                 "ok": True,
-                "nodes": len(payload.get("nodes", [])),
-                "edges": len(payload.get("edges", [])),
-                "corpus": payload.get("corpus", "manuscript")
+                "nodes": len(payload.get("nodes", [])) if isinstance(payload.get("nodes"), list) else payload.get("nodes", 0),
+                "edges": len(payload.get("edges", [])) if isinstance(payload.get("edges"), list) else payload.get("edges", 0),
+                "corpus": payload.get("corpus", corpus)
             }, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
