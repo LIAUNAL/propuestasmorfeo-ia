@@ -16,6 +16,7 @@ from typing import Any
 
 from ..core.pdf_annotator import apply_pdf_annotations
 from ..core.status import get_project_status
+from ..core.trees import approve_tree, load_trees, record_feedback
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -101,6 +102,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_graph(filename)
         elif path == "/api/artifact":
             self.serve_artifact()
+        elif path == "/api/trees":
+            self.serve_trees()
         else:
             self.send_error(404, "Not Found")
 
@@ -114,6 +117,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_graph_build()
         elif path == "/api/terminal/launch-external":
             self.handle_launch_external_terminal()
+        elif path == "/api/trees/feedback":
+            self.handle_trees_feedback()
+        elif path == "/api/trees/approve":
+            self.handle_trees_approve()
         else:
             self.send_error(404, "Not Found")
 
@@ -460,6 +467,64 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
+
+    # --- Árboles de problemas y objetivos -----------------------------------
+
+    def _send_json(self, status_code: int, payload: dict[str, Any]) -> None:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _active_run_dir(self) -> Path | None:
+        active_run = get_project_status(self.workspace_dir, force_refresh=True).get("active_run")
+        run_dir = self.workspace_dir / "proposals" / active_run if active_run else None
+        return run_dir if run_dir and run_dir.is_dir() else None
+
+    def _read_json_body(self) -> dict[str, Any] | None:
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            payload = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+        except Exception:
+            return None
+        return payload if isinstance(payload, dict) else None
+
+    def serve_trees(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_trees(run_dir)})
+
+    def handle_trees_feedback(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = record_feedback(
+            run_dir, str(payload.get("tree") or ""), payload.get("comments") or [], str(payload.get("general") or "")
+        )
+        self._send_json(200 if result.get("ok") else 400, result)
+
+    def handle_trees_approve(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = approve_tree(run_dir, str(payload.get("tree") or ""))
+        # 409: el flujo todavía no permite aprobar (falta el árbol previo o textos).
+        self._send_json(200 if result.get("ok") else 409, result)
 
     def serve_api_status(self) -> None:
         response_data = get_project_status(self.workspace_dir)
