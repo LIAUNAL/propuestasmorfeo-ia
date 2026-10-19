@@ -218,7 +218,12 @@ def check_main(report: Report, red: Path, final: bool) -> None:
 
 def check_cover(report: Report, red: Path, final: bool) -> None:
     datos = red / "datos_proyecto.tex"
-    if datos.is_file() and "[Por definir" in datos.read_text(encoding="utf-8", errors="replace"):
+    if not datos.is_file():
+        return
+    # Only the \newcommand values count: the seeded file explains the
+    # placeholder in a comment, which must not keep the cover "incomplete".
+    values = "\n".join(strip_comment(l) for l in datos.read_text(encoding="utf-8", errors="replace").splitlines())
+    if "[Por definir" in values:
         report.add("error" if final else "warning", "portada-sin-completar",
                    "datos_proyecto.tex conserva campos [Por definir: ...].", datos)
 

@@ -161,6 +161,22 @@ class TemplateRunTest(unittest.TestCase):
             self.assertEqual(code, 0)
 
 
+class CoverCheckTest(unittest.TestCase):
+    def test_a_filled_template_cover_passes_even_with_its_explanatory_comment(self) -> None:
+        # The seeded datos_proyecto.tex explains "[Por definir: ...]" in a comment;
+        # only the \newcommand values decide whether the cover is complete.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _clean_run(Path(tmp))
+            template = (REPO / "plantilla" / "datos_proyecto.tex").read_text(encoding="utf-8")
+            filled = template.replace("[Por definir: título del proyecto]", "Sistema de prueba") \
+                .replace("[Por definir: investigador principal]", "Ana Demo") \
+                .replace("[Por definir: grupo, laboratorio, facultad y sede]", "Grupo de prueba")
+            self.assertIn("[Por definir", filled, "the template comment is part of what this test covers")
+            (root / "redaccion" / "datos_proyecto.tex").write_text(filled, encoding="utf-8")
+            _, findings = _run(root, "--final")
+            self.assertNotIn("portada-sin-completar", _codes(findings), findings)
+
+
 class SpecAgreesWithCheckerTest(unittest.TestCase):
     """The floors and the section count are stated once per file and must agree."""
 
