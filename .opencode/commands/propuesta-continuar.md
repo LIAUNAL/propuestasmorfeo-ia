@@ -12,6 +12,19 @@ actualizá el control de ejecución e imprimí la tarjeta del siguiente comando.
 Recetas completas de cada fase: bloques **Fase …** en
 `.opencode/commands/propuesta.md` (misma autoridad que el modo auto).
 
+**Leé solo lo que la unidad usa, no el archivo entero** (son unos 26 k
+tokens y cada unidad necesita una fracción). Ubicá los límites corriendo
+`grep -n '^Fase \|^## '` sobre `.opencode/commands/propuesta.md` y leé por
+rangos de líneas:
+- el bloque de la unidad, desde la línea que empieza con `Fase <n>` hasta la
+  siguiente que empieza con `Fase ` (o con `## `);
+- siempre, las secciones `## Raíz de corrida`, `## Reglas de gate` y
+  `## Telemetría de uso por fase`;
+- `## Bucle de figuras (canónico)` solo si la unidad dibuja un diagrama
+  (Fases 1, 2 y 5.5), y `## Cómo usar codebase-memory` solo si la unidad
+  indexa o consulta un grafo.
+Si el bloque remite a otra sección por su nombre, leé esa sección y nada más.
+
 Entrada:
 
 $ARGUMENTS

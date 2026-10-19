@@ -180,8 +180,8 @@ El marco cuenta con **11 subagentes especializados** con roles no solapados:
 | `revisor` | Sonnet | Validación formal en cada puerta de revisión (*gate* PASS/FAIL). |
 | `presupuestador` | Sonnet | Desglose financiero (§13): tabla de rubros, cofinanciación y aritmética exacta. |
 | `disenador-tikz` | Sonnet | Autoría de la especificación JSON de los diagramas (nunca escribe LaTeX directo). |
-| `revisor-figuras` | Sonnet | Juicio visual (escala, legibilidad, armonía) sobre el render PNG de las figuras. |
-| `tikz-optimizer` | Sonnet | Corrección asistida de especificaciones JSON cuando falla la compilación o la auditoría. |
+| `revisor-figuras` | Haiku | Juicio visual (escala, legibilidad, armonía) sobre el render PNG de las figuras. |
+| `tikz-optimizer` | Haiku | Corrección asistida de especificaciones JSON cuando falla la compilación o la auditoría. |
 
 ---
 

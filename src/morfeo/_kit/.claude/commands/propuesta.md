@@ -1580,7 +1580,14 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
   al `revisor` en el prompt: no tiene que volver a contar esas reglas y se
   concentra en coherencia y calidad.
 - En FAIL, vuelve a despachar con `Task` al agente responsable de la sección
-  con las correcciones exactas del revisor, y repite el gate.
+  con las correcciones exactas del revisor, y repite el gate. **El auditor
+  corre una sola vez por unidad**, antes del primer `revisor`: en los
+  re-despachos por FAIL el autor aplica `estilo-natural-es` a lo que corrige
+  y se repiten solo `check_run.py` y el `revisor`. Volvé a despachar
+  `grant-flow-auditor` únicamente si el autor reescribió una sección completa.
+  Así un PASS no queda invalidado por un pulido posterior (en la corrida de
+  referencia, la Fase 3 necesitó tres `revisor` y la Fase 4 cuatro
+  auditorías por ese ciclo).
 - No reescribas contenido de sección tú mismo; ese trabajo es de los
   subagentes especialistas.
 - Tras el veredicto PASS de cada gate, actualiza tú (el dispatcher) el campo

@@ -236,6 +236,16 @@ _Applies only to MODE=deliverable (Fase 4). MODE=explore is exempt — see
 2. Consolidate ≥65 total references for §16 (floor raised 30% over the
    original 50, permanent rule, to leave enough fresh citation budget for
    §8's new subsections and the other post-§4 sections).
+2b. **Search budget (every mode, every dispatch).** At most **25 search
+   calls** (any literature MCP or web search) per dispatch. Stop searching as
+   soon as the floors the dispatch asked for are met with a ~10% margin
+   (e.g. 72 total for the 65 floor, 15 for the §2 floor of 13); more
+   references do not improve the proposal and the reference run spent 31.8%
+   of its tokens here (one dispatch: 79 tool calls, 8.3M tokens). If the
+   budget runs out first, stop and return the exact remaining gap (which
+   floor, how many keys, which claims lack support) so the dispatcher decides
+   whether to re-dispatch; never keep searching past the budget.
+   `scripts/check_run.py` counts the floors, so do not spend calls re-counting.
 3. Format: **APA author-year only** (natbib `\citet`/`\citep`, `\bibliographystyle{apalike}`), per `guiaProyectosIA_Agente.md` §16 item 1. Do NOT use IEEE numeric `[1]` style.
 4. **No theses.** Preprints (arXiv) only from recognized labs/leaders/universities.
 5. Group state-of-the-art strategies by approach philosophy or limitation type,
