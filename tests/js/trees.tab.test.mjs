@@ -50,7 +50,7 @@ function json(payload, status = 200) {
   return { ok: status < 400, status, json: async () => payload, text: async () => JSON.stringify(payload) };
 }
 
-async function harness(t, payload, posts = []) {
+async function harness(t, payload, posts = [], { stubPrompt = true } = {}) {
   const viewer = await createViewerHarness({ numPages: 1 });
   t.after(() => viewer.dispose());
   viewer.window.fetch = async (url, init) => {
@@ -66,7 +66,7 @@ async function harness(t, payload, posts = []) {
     if (u.includes('/api/trees')) return json(payload);
     return json({}, 503);
   };
-  viewer.window.eval(`window.__prompts = []; sendTerminalPrompt = (cmd) => window.__prompts.push(cmd);`);
+  if (stubPrompt) viewer.window.eval(`window.__prompts = []; sendTerminalPrompt = (cmd) => window.__prompts.push(cmd);`);
   await viewer.viewer('loadTrees');
   await flush();
   return viewer;
@@ -173,4 +173,69 @@ test('aprobar el árbol de problemas pasa a objetivos sin perder la confirmació
   await flush();
   assert.equal(viewer.window.eval('TREES_STATE.view'), 'objetivos');
   assert.match(viewer.document.getElementById('treeMessage').textContent, /Árbol de problemas aprobado/);
+});
+
+// El tablero corre con el reloj manual del arnés: se avanza hasta que la
+// promesa de la acción se resuelva.
+async function settle(viewer, promise) {
+  let done = false;
+  promise.then(() => { done = true; }, () => { done = true; });
+  for (let i = 0; i < 50 && !done; i += 1) {
+    await flush();
+    await viewer.advance(100);
+  }
+  await promise;
+  await flush();
+}
+
+// Terminal doble: nunca conecta hasta que la prueba la abre, y registra lo enviado.
+function fakeTerminal(viewer) {
+  viewer.window.eval(`
+    window.__sent = [];
+    TERMINAL_READY_TIMEOUT_MS = 60;
+    TERMINAL_BOOT_DELAY_MS = 0;
+    selectedAgent = 'claude';
+    terminalSocket = null;
+    openMorfeoTerminal = () => {};
+    ensureTerminalConnected = () => {};
+    onTerminalAgentChange = () => {};
+    window.__openTerminal = () => { terminalSocket = { readyState: 1, send: (d) => window.__sent.push(d) }; };
+  `);
+}
+
+test('si la terminal no conecta, el tablero no dice que el agente recibió el ajuste y permite reintentar', async (t) => {
+  const viewer = await harness(t, treesPayload(), [], { stubPrompt: false });
+  fakeTerminal(viewer);
+  viewer.document.getElementById('treeGeneralInput').value = 'Ajustar';
+  await settle(viewer, viewer.viewer('submitTreeFeedback'));
+
+  const msg = viewer.document.getElementById('treeMessage');
+  assert.ok(msg.classList.contains('is-error'));
+  assert.match(msg.textContent, /el agente no la recibió/);
+  assert.doesNotMatch(msg.textContent, /enviada al agente/);
+  const retry = viewer.document.getElementById('treeRetryBtn');
+  assert.notEqual(retry.style.display, 'none');
+
+  viewer.window.eval('window.__openTerminal()');
+  await settle(viewer, viewer.viewer('retryTreePrompt'));
+  assert.deepEqual(Array.from(viewer.window.__sent), ['Ajusta el árbol de problemas según X', '\r']);
+  assert.match(msg.textContent, /enviada al agente/);
+  assert.equal(retry.style.display, 'none');
+});
+
+test('con la terminal conectada el ajuste se envía y se confirma', async (t) => {
+  const viewer = await harness(t, treesPayload(), [], { stubPrompt: false });
+  fakeTerminal(viewer);
+  viewer.window.eval('window.__openTerminal()');
+  viewer.document.getElementById('treeGeneralInput').value = 'Ajustar';
+  await settle(viewer, viewer.viewer('submitTreeFeedback'));
+  assert.deepEqual(Array.from(viewer.window.__sent), ['Ajusta el árbol de problemas según X', '\r']);
+  assert.match(viewer.document.getElementById('treeMessage').textContent, /enviada al agente/);
+});
+
+test('un revision.json dañado se muestra en la pestaña', async (t) => {
+  const payload = treesPayload();
+  payload.review_error = 'artefactos/arboles/revision.json está dañado y no se puede leer';
+  const viewer = await harness(t, payload);
+  assert.match(viewer.document.getElementById('treeBanner').textContent, /revision\.json está dañado/);
 });

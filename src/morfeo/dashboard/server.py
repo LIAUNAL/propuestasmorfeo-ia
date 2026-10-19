@@ -480,9 +480,17 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def _active_run_dir(self) -> Path | None:
-        active_run = get_project_status(self.workspace_dir, force_refresh=True).get("active_run")
-        run_dir = self.workspace_dir / "proposals" / active_run if active_run else None
-        return run_dir if run_dir and run_dir.is_dir() else None
+        # Solo hace falta el nombre de la corrida: se lee el puntero en lugar de
+        # reconstruir el estado completo, porque la pestaña sondea cada 4 s.
+        proposals = self.workspace_dir / "proposals"
+        try:
+            active_run = (proposals / ".current-run").read_text(encoding="utf-8").strip()
+        except OSError:
+            return None
+        if not active_run or "/" in active_run or active_run in (".", ".."):
+            return None
+        run_dir = proposals / active_run
+        return run_dir if run_dir.is_dir() else None
 
     def _read_json_body(self) -> dict[str, Any] | None:
         try:

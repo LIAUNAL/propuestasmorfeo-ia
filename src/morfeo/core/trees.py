@@ -18,7 +18,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import tempfile
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -27,6 +30,15 @@ PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
 OBJECTIVES_FILE = Path("artefactos") / "arboles" / "arbol_objetivos.json"
 REVIEW_FILE = Path("artefactos") / "arboles" / "revision.json"
 TREE_KEYS = ("problemas", "objetivos")
+
+# El tablero sirve con un servidor multihilo: leer, numerar y reescribir la
+# revisión es una sola sección crítica, o dos solicitudes simultáneas toman el
+# mismo número de iteración y una de las dos se pierde.
+_REVIEW_LOCK = threading.Lock()
+
+
+class ReviewFileError(Exception):
+    """`revision.json` existe pero no se puede leer: nunca se sobrescribe."""
 
 
 def _read_json(path: Path) -> dict[str, Any] | None:
@@ -132,14 +144,50 @@ def _missing_objective_texts(tree: dict[str, Any]) -> list[str]:
 
 
 def _read_review(run_dir: Path) -> dict[str, Any]:
-    data = _read_json(run_dir / REVIEW_FILE) or {}
+    """Lee la revisión. Un archivo dañado levanta ReviewFileError en lugar de
+    leerse como vacío: tratarlo como vacío borraría en la siguiente escritura
+    todas las aprobaciones e iteraciones."""
+    path = run_dir / REVIEW_FILE
+    data: dict[str, Any] = {}
+    if path.is_file():
+        data = _read_json(path)
+        if data is None:
+            raise ReviewFileError(
+                f"{REVIEW_FILE.as_posix()} está dañado y no se puede leer; restáuralo o bórralo para reiniciar la revisión."
+            )
     return {k: data.get(k) or {"iterations": []} for k in TREE_KEYS}
 
 
 def _write_review(run_dir: Path, review: dict[str, Any]) -> None:
+    """Escritura atómica: archivo temporal en la misma carpeta y `os.replace`,
+    de modo que un corte a mitad de escritura nunca deja el JSON a medias."""
     path = run_dir / REVIEW_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(review, indent=2, ensure_ascii=False), encoding="utf-8")
+    fd, tmp = tempfile.mkstemp(prefix=".revision.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(review, indent=2, ensure_ascii=False))
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
+def _validate_comments(comments: Any) -> list[dict[str, str]] | None:
+    """Comentarios por nodo: lista de objetos con `node` y `text` de texto."""
+    if comments is None:
+        return []
+    if not isinstance(comments, list):
+        return None
+    valid = []
+    for c in comments:
+        if not isinstance(c, dict) or not isinstance(c.get("text"), str) or not isinstance(c.get("node", ""), str):
+            return None
+        if c["text"].strip():
+            valid.append({"node": c.get("node") or "", "text": c["text"]})
+    return valid
 
 
 def _review_status(entry: dict[str, Any], current_hash: str | None) -> dict[str, Any]:
@@ -158,7 +206,12 @@ def _review_status(entry: dict[str, Any], current_hash: str | None) -> dict[str,
 
 
 def load_trees(run_dir: Path) -> dict[str, Any]:
-    review = _read_review(run_dir)
+    review_error = None
+    try:
+        review = _read_review(run_dir)
+    except ReviewFileError as err:
+        review_error = str(err)
+        review = {k: {"iterations": []} for k in TREE_KEYS}
     spec = _read_json(run_dir / PROBLEM_SPEC)
 
     if spec is None:
@@ -180,7 +233,7 @@ def load_trees(run_dir: Path) -> dict[str, Any]:
             "missing": [],
             "review": _review_status(review["objetivos"], None),
         }
-        return {"problem": problem, "objectives": objectives, "stage": "sin_arbol"}
+        return {"problem": problem, "objectives": objectives, "stage": "sin_arbol", "review_error": review_error}
 
     ptree = _problem_tree(spec)
     phash = _hash(ptree)
@@ -214,7 +267,7 @@ def load_trees(run_dir: Path) -> dict[str, Any]:
         stage = "objetivos"
     else:
         stage = "aprobados"
-    return {"problem": problem, "objectives": objectives, "stage": stage}
+    return {"problem": problem, "objectives": objectives, "stage": stage, "review_error": review_error}
 
 
 def _node_text(tree: dict[str, Any] | None, node_id: str) -> str | None:
@@ -242,17 +295,32 @@ def _workspace_path(run_dir: Path, rel: Path) -> str:
     return rel.as_posix()
 
 
-def record_feedback(run_dir: Path, tree: str, comments: list[dict[str, Any]], general: str = "") -> dict[str, Any]:
+def record_feedback(run_dir: Path, tree: str, comments: Any, general: Any = "") -> dict[str, Any]:
     if tree not in TREE_KEYS:
         return {"ok": False, "error": f"Árbol desconocido: {tree}"}
-    comments = [c for c in comments or [] if str(c.get("text") or "").strip()]
-    general = (general or "").strip()
+    comments = _validate_comments(comments)
+    if comments is None:
+        return {"ok": False, "error": "Los comentarios deben ser una lista de objetos con «node» y «text» de texto."}
+    if not isinstance(general, str):
+        return {"ok": False, "error": "La indicación general debe ser texto."}
+    general = general.strip()
     if not comments and not general:
         return {"ok": False, "error": "La solicitud de ajuste está vacía: comenta un nodo o escribe una indicación general."}
 
-    trees = load_trees(run_dir)
-    current = trees["problem"] if tree == "problemas" else trees["objectives"]
-    review = _read_review(run_dir)
+    with _REVIEW_LOCK:
+        try:
+            review = _read_review(run_dir)
+        except ReviewFileError as err:
+            return {"ok": False, "error": str(err)}
+        trees = load_trees(run_dir)
+        current = trees["problem"] if tree == "problemas" else trees["objectives"]
+        return _record_feedback_locked(run_dir, tree, comments, general, current, review)
+
+
+def _record_feedback_locked(
+    run_dir: Path, tree: str, comments: list[dict[str, str]], general: str,
+    current: dict[str, Any], review: dict[str, Any],
+) -> dict[str, Any]:
     entry = review[tree]
     n = len(entry.get("iterations") or []) + 1
     now = datetime.now().isoformat(timespec="seconds")
@@ -309,6 +377,15 @@ def record_feedback(run_dir: Path, tree: str, comments: list[dict[str, Any]], ge
 def approve_tree(run_dir: Path, tree: str) -> dict[str, Any]:
     if tree not in TREE_KEYS:
         return {"ok": False, "error": f"Árbol desconocido: {tree}"}
+    with _REVIEW_LOCK:
+        try:
+            review = _read_review(run_dir)
+        except ReviewFileError as err:
+            return {"ok": False, "error": str(err)}
+        return _approve_tree_locked(run_dir, tree, review)
+
+
+def _approve_tree_locked(run_dir: Path, tree: str, review: dict[str, Any]) -> dict[str, Any]:
     trees = load_trees(run_dir)
     current = trees["problem"] if tree == "problemas" else trees["objectives"]
     if not current["available"]:
@@ -319,7 +396,6 @@ def approve_tree(run_dir: Path, tree: str) -> dict[str, Any]:
         if current["missing"]:
             return {"ok": False, "error": "Faltan textos por redactar (" + ", ".join(current["missing"]) + "); pide al agente que complete los medios y los fines."}
 
-    review = _read_review(run_dir)
     review[tree]["approved_hash"] = current["hash"]
     review[tree]["approved_at"] = datetime.now().isoformat(timespec="seconds")
     _write_review(run_dir, review)

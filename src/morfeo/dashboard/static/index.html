@@ -2328,6 +2328,7 @@
             <div class="tree-actions">
               <button class="btn btn--sm btn--primary" id="treeSendBtn" onclick="submitTreeFeedback()">🤖 Enviar ajuste al agente</button>
               <button class="btn btn--sm tree-approve" id="treeApproveBtn" onclick="approveCurrentTree()">✅ Aprobar árbol</button>
+              <button class="btn btn--sm" id="treeRetryBtn" onclick="retryTreePrompt()" style="display: none;">↻ Reintentar envío</button>
             </div>
             <p class="tree-message" id="treeMessage" role="status"></p>
             <h4 class="tree-label">Iteraciones</h4>
@@ -3186,7 +3187,13 @@
         sendTerminalQuickCommand(cmd);
         return;
       }
-      withCommandAgentReady(() => sendTerminalQuickCommand(cmd));
+      withCommandAgentReady(() => sendTerminalQuickCommand(cmd), () => {
+        document.getElementById('phaseExecModalTitle').textContent = 'No se pudo ejecutar';
+        document.getElementById('phaseExecModalIcon').textContent = '⚠️';
+        document.getElementById('phaseExecModalBody').innerHTML = `<p>La terminal del asistente no conectó a tiempo, así que <code>${escapeHtml(cmd)}</code> no se envió. Abre el asistente y vuelve a ejecutar la etapa.</p>`;
+        document.getElementById('phaseExecConfirmBtn').style.display = 'none';
+        document.getElementById('phaseExecModal').classList.add('is-open');
+      });
     }
 
     // --- Árbol de problemas y objetivos ---------------------------------------
@@ -3194,7 +3201,7 @@
     // espejo (marco lógico). El operador comenta nodos, el tablero escribe la
     // solicitud en artefactos/arboles/ y se la pasa al agente por la terminal;
     // cuando el agente reescribe el árbol, el sondeo lo trae de vuelta aquí.
-    const TREES_STATE = { data: null, view: null, selected: null, comments: { problemas: [], objetivos: [] }, sig: null, timer: null };
+    const TREES_STATE = { data: null, view: null, selected: null, comments: { problemas: [], objetivos: [] }, sig: null, timer: null, pendingPrompt: null };
     const TREE_STATUS = {
       pendiente: ['Propuesto · sin revisar', 'warn'],
       en_ajuste: ['En ajuste por el agente', 'info'],
@@ -3235,7 +3242,7 @@
         TREES_STATE.view = (data.stage === 'objetivos' || data.stage === 'aprobados') ? 'objetivos' : 'problemas';
       }
       const r = t => [t.hash, t.review.status, (t.review.iterations || []).length];
-      const sig = JSON.stringify([data.run, r(data.problem), r(data.objectives)]);
+      const sig = JSON.stringify([data.run, data.review_error || null, r(data.problem), r(data.objectives)]);
       if (sig !== TREES_STATE.sig) {
         TREES_STATE.sig = sig;
         renderTrees();
@@ -3374,6 +3381,7 @@
         else if (entry.derived) banner = `${entry.hint} Toma §6 y §7 cuando ya existen.`;
       }
       if (entry.review.status === 'por_revisar') banner = '🔔 El agente entregó una nueva versión de este árbol: revísala y apruébala o pide otro ajuste.';
+      if (d.review_error) banner = `⚠️ ${d.review_error}`;
       document.getElementById('treeBanner').textContent = banner;
 
       const canvas = document.getElementById('treeCanvas');
@@ -3481,12 +3489,33 @@
         return;
       }
       if (!result.ok) { treeMessage(result.error || 'No se pudo registrar el ajuste.', 'error'); return; }
-      sendTerminalPrompt(result.prompt);
       TREES_STATE.comments[view] = [];
       generalEl.value = '';
-      treeMessage(`Solicitud ${result.request} enviada al agente. El árbol se actualiza aquí cuando el agente lo reescriba.`, 'ok');
       renderTreeReview();
+      await deliverTreePrompt(result);
       await loadTrees();
+    }
+
+    // La solicitud ya quedó registrada en el servidor; aquí solo se entrega a la
+    // terminal. Si no llega, se dice y se ofrece reintentar el mismo prompt.
+    async function deliverTreePrompt(result) {
+      const retry = document.getElementById('treeRetryBtn');
+      TREES_STATE.pendingPrompt = result;
+      treeMessage(`Solicitud ${result.request} registrada; enviándola al agente…`);
+      const delivered = await sendTerminalPrompt(result.prompt);
+      if (delivered === false) {
+        if (retry) retry.style.display = '';
+        treeMessage(`La solicitud ${result.request} quedó registrada, pero el agente no la recibió: la terminal no conectó en ${Math.round(TERMINAL_READY_TIMEOUT_MS / 1000)} s. Abre el asistente y pulsa «Reintentar envío».`, 'error');
+        return false;
+      }
+      TREES_STATE.pendingPrompt = null;
+      if (retry) retry.style.display = 'none';
+      treeMessage(`Solicitud ${result.request} enviada al agente. El árbol se actualiza aquí cuando el agente lo reescriba.`, 'ok');
+      return true;
+    }
+
+    async function retryTreePrompt() {
+      if (TREES_STATE.pendingPrompt) await deliverTreePrompt(TREES_STATE.pendingPrompt);
     }
 
     async function requestTreeProposal() {
@@ -3494,8 +3523,7 @@
       if (gate) { treeMessage(gate, 'error'); return; }
       const result = await postTreeFeedback('problemas', [], 'Proponer el árbol de problemas a partir de los subproblemas de §3: tres grupos de causas (uno por subproblema), el problema central, los efectos y la solución.');
       if (!result.ok) { treeMessage(result.error || 'No se pudo registrar la solicitud.', 'error'); return; }
-      sendTerminalPrompt(result.prompt);
-      treeMessage(`Solicitud ${result.request} enviada al agente.`, 'ok');
+      await deliverTreePrompt(result);
       await loadTrees();
     }
 
@@ -3522,10 +3550,16 @@
         : 'Árbol de objetivos aprobado.', 'ok');
     }
 
+    // Cuánto se espera a que la terminal conecte y a que el agente arranque.
+    let TERMINAL_READY_TIMEOUT_MS = 10000;
+    let TERMINAL_BOOT_DELAY_MS = 2500;
+
     // Asegura una terminal con un agente que entienda los slash commands y el
     // texto libre; en Shell o AGY cambia a Claude Code y espera a que arranque.
-    function withCommandAgentReady(fn) {
-      const isOpen = () => terminalSocket && terminalSocket.readyState === WebSocket.OPEN;
+    // Si la terminal no conecta a tiempo llama a `onFail`: quien envía tiene que
+    // saber que el agente no recibió nada.
+    function withCommandAgentReady(fn, onFail) {
+      const isOpen = () => terminalSocket && terminalSocket.readyState === 1;
       const capable = ['claude', 'opencode', 'pi', 'herdr'].includes(selectedAgent);
       if (capable && isOpen()) { fn(); return; }
       if (!capable) {
@@ -3535,23 +3569,34 @@
       if (!isTerminalOpen) openMorfeoTerminal();
       if (!capable) onTerminalAgentChange();
       else if (!isOpen()) ensureTerminalConnected(true);
-      const started = Date.now();
+      // Se cuentan ticks en lugar de leer el reloj de pared: mismo plazo en el
+      // navegador y determinista bajo el reloj manual de las pruebas.
+      const tick = Math.min(200, TERMINAL_READY_TIMEOUT_MS);
+      let ticks = Math.ceil(TERMINAL_READY_TIMEOUT_MS / tick);
       const wait = setInterval(() => {
-        if (!isOpen() && Date.now() - started < 10000) return;
+        ticks -= 1;
+        if (!isOpen() && ticks > 0) return;
         clearInterval(wait);
-        if (isOpen()) setTimeout(fn, 2500);
-      }, 200);
+        if (isOpen()) setTimeout(fn, TERMINAL_BOOT_DELAY_MS);
+        else if (onFail) onFail();
+      }, tick);
     }
 
     // Un prompt largo se escribe y se confirma por separado: enviado junto con
     // el retorno, el agente puede tomarlo como texto pegado y no enviarlo.
+    // Devuelve una promesa: true cuando el prompt llegó a la terminal, false si
+    // la terminal no conectó a tiempo.
     function sendTerminalPrompt(text) {
-      withCommandAgentReady(() => {
-        terminalSocket.send(text);
-        setTimeout(() => {
-          if (terminalSocket && terminalSocket.readyState === WebSocket.OPEN) terminalSocket.send('\r');
-          if (terminalInstance) terminalInstance.focus();
-        }, 200);
+      return new Promise(resolve => {
+        withCommandAgentReady(() => {
+          terminalSocket.send(text);
+          setTimeout(() => {
+            const open = terminalSocket && terminalSocket.readyState === 1;
+            if (open) terminalSocket.send('\r');
+            if (terminalInstance) terminalInstance.focus();
+            resolve(!!open);
+          }, 200);
+        }, () => resolve(false));
       });
     }
 

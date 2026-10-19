@@ -217,6 +217,66 @@ class TestReviewCycle(unittest.TestCase):
             self.assertEqual(load_trees(run)["stage"], "aprobados")
 
 
+class TestReviewFileRobustness(unittest.TestCase):
+    def test_concurrent_feedback_keeps_every_iteration(self):
+        """El servidor es multihilo: dos solicitudes simultáneas no pueden tomar
+        el mismo número de iteración ni perder una entrada."""
+        import threading
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp))
+            results = []
+            barrier = threading.Barrier(8)
+
+            def send(i: int) -> None:
+                barrier.wait()
+                results.append(record_feedback(run, "problemas", [], f"ajuste {i}"))
+
+            threads = [threading.Thread(target=send, args=(i,)) for i in range(8)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+            self.assertTrue(all(r["ok"] for r in results))
+            self.assertEqual(sorted(r["iteration"] for r in results), list(range(1, 9)))
+            iterations = load_trees(run)["problem"]["review"]["iterations"]
+            self.assertEqual(sorted(it["n"] for it in iterations), list(range(1, 9)))
+            self.assertEqual(len(list((run / "artefactos" / "arboles").glob("ajuste_problemas_*.md"))), 8)
+
+    def test_a_corrupt_review_file_is_not_silently_reset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp))
+            approve_tree(run, "problemas")
+            review = run / "artefactos" / "arboles" / "revision.json"
+            review.write_text('{"problemas": {"approved_hash": ', encoding="utf-8")
+
+            result = approve_tree(run, "problemas")
+            self.assertFalse(result["ok"])
+            self.assertIn("revision.json", result["error"])
+            self.assertFalse(record_feedback(run, "problemas", [], "x")["ok"])
+            self.assertEqual(review.read_text(encoding="utf-8"), '{"problemas": {"approved_hash": ')
+            self.assertIn("revision.json", load_trees(run)["review_error"])
+
+    def test_writes_leave_no_temporary_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp))
+            approve_tree(run, "problemas")
+            names = sorted(p.name for p in (run / "artefactos" / "arboles").iterdir())
+            self.assertEqual(names, ["revision.json"])
+
+
+class TestFeedbackValidation(unittest.TestCase):
+    def test_malformed_comments_are_rejected_with_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp))
+            for bad in ("texto suelto", ["texto suelto"], {"node": "r1"}, [{"node": "r1", "text": 3}]):
+                result = record_feedback(run, "problemas", bad, "")
+                self.assertFalse(result["ok"], bad)
+                self.assertIn("comentarios", result["error"])
+            self.assertFalse((run / "artefactos" / "arboles" / "revision.json").exists())
+
+
 class TestTreesHttpApi(unittest.TestCase):
     def test_get_feedback_and_approve_over_http(self):
         import threading
@@ -264,6 +324,18 @@ class TestTreesHttpApi(unittest.TestCase):
                 code, ok = post("/api/trees/approve", {"tree": "problemas"})
                 self.assertEqual(code, 200)
                 self.assertTrue(ok["ok"])
+
+                code, bad = post("/api/trees/feedback", {"tree": "problemas", "comments": "texto suelto"})
+                self.assertEqual(code, 400)
+                self.assertFalse(bad["ok"])
+                self.assertIn("comentarios", bad["error"])
+
+                # El sondeo de la pestaña no reconstruye el estado completo del proyecto.
+                from unittest import mock
+                with mock.patch("morfeo.dashboard.server.get_project_status", side_effect=AssertionError("estado completo")):
+                    with urllib.request.urlopen(base + "/api/trees") as resp:
+                        self.assertEqual(resp.status, 200)
+                        self.assertTrue(json.loads(resp.read())["ok"])
             finally:
                 server.shutdown()
                 server.server_close()
