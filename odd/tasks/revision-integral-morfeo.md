@@ -141,3 +141,29 @@ L6 (2026-10-19). T6 cerrada.
   pestañas.
 - Evaluación RDD de la rama: riesgo alto (`high_risk`). Se lanza un
   verificador independiente antes de la revisión.
+
+L7 (2026-10-19). Verificación independiente y revisión RDD.
+- El verificador encontró 3 bloqueos en la costura entre la plantilla, el
+  build, el verificador y el tablero (PDF desactualizado sin `--clean`,
+  error de logo UTP en toda corrida y figuras en 0). Ninguno aparecía en la
+  corrida de referencia. Se corrigieron en un solo lote (3f6c54e) con
+  pruebas que crean corridas desde la plantilla, y la recomprobación dio PASS
+  en los tres.
+- RDD sobre la rama completa: `lens_context_budget_exceeded` (99 archivos,
+  4.671 líneas, buena parte copias regeneradas). Por decisión del operador
+  se revisó un tramo de riesgo en `review/riesgo` (T1 a T3, la corrección y
+  el kit reconstruido; 29 archivos, 1.534 líneas).
+- Un primer tramo sin kit dio un hallazgo artificial que no cabía en la
+  corrección; se abandonó con autorización del operador.
+- Hallazgo real de esa revisión: `check_cover` leía el comentario de la
+  plantilla. Corregido en 2e59ddc con prueba RED y GREEN.
+- Segundo tramo: aprobado y reconocido (lineage review-74a8dad008a01e1b,
+  autoridad consumida).
+
+Seguimiento no bloqueante que dejó la revisión:
+- docstring de `cite_calls`;
+- doble escritura del manifest en `build-kit.py`;
+- búsqueda TRL de §10 sin el filtro de prosa;
+- entrada del manifest sin archivo en el tramo;
+- §7 cuenta solo el primer `enumerate`;
+- `pdftotext` sin timeout.
