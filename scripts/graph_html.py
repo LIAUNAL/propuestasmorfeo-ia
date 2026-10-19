@@ -272,6 +272,7 @@ TEMPLATE = """<!DOCTYPE html>
     position: relative;
     cursor: grab;
     overflow: hidden;
+    touch-action: none;
   }
   #stage3d.dragging { cursor: grabbing; }
   #stage3d canvas { display: block; width: 100%; height: 100%; }
@@ -279,33 +280,79 @@ TEMPLATE = """<!DOCTYPE html>
   /* 3D HUD overlay */
   .hud-overlay {
     position: absolute;
-    top: 14px;
-    left: 14px;
+    top: 12px;
+    left: 12px;
+    max-width: min(440px, calc(100% - 24px));
+    max-height: calc(100% - 24px);
     display: flex;
     flex-direction: column;
-    gap: 8px;
     pointer-events: none;
-    z-index: 5;
+    z-index: 16;
   }
-  .hud-pill {
+  /* Collapsed by default so the legend never covers nodes until asked for */
+  .hud-legend {
     pointer-events: auto;
     background: var(--panel-bg);
     backdrop-filter: blur(8px);
     border: 1px solid var(--panel-border);
-    padding: 6px 12px;
     border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: 100%;
+  }
+  .hud-legend > summary.hud-legend__toggle {
+    list-style: none;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink);
+    padding: 6px 10px;
+    gap: 7px;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .hud-legend > summary.hud-legend__toggle::-webkit-details-marker { display: none; }
+  .hud-legend__toggle::after {
+    content: "▸";
+    color: var(--muted);
+    margin-left: 2px;
+    transition: transform 0.15s;
+  }
+  .hud-legend[open] .hud-legend__toggle::after { transform: rotate(90deg); }
+  .hud-legend__filter {
+    color: var(--cyan);
+    font-weight: 500;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hud-legend__body {
+    border-top: 1px solid var(--line);
+    padding: 8px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  .hud-legend__hint, .hud-legend__controls {
     font-size: 11px;
     color: var(--muted);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    line-height: 1.45;
+  }
+  .hud-legend__controls kbd {
+    font-family: inherit;
+    font-size: 10px;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0 4px;
   }
   .hud-cluster-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    max-width: 480px;
     pointer-events: auto;
   }
   .cluster-tag {
@@ -321,6 +368,7 @@ TEMPLATE = """<!DOCTYPE html>
     align-items: center;
     gap: 5px;
   }
+  .hud-cluster-tags.filtering .cluster-tag:not(.active) { opacity: 0.45; }
   .cluster-tag:hover, .cluster-tag.active {
     color: #fff;
     border-color: var(--cyan);
@@ -332,8 +380,9 @@ TEMPLATE = """<!DOCTYPE html>
     position: absolute;
     bottom: 20px;
     left: 20px;
-    width: 380px;
-    max-height: 480px;
+    width: min(380px, calc(100% - 40px));
+    max-height: min(480px, calc(100% - 76px));
+    overflow-y: auto;
     background: rgba(11, 15, 28, 0.92);
     backdrop-filter: blur(16px);
     border: 1px solid var(--cyan);
@@ -583,13 +632,21 @@ TEMPLATE = """<!DOCTYPE html>
 <div class="viewport-wrap">
   <div id="stage3d">
     <div class="hud-overlay">
-      <div class="hud-pill">
-        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 6px var(--cyan);"></span>
-        <span>Pasa el cursor o haz clic en un nodo para ver su <strong>etiqueta principal y resumen</strong>. Arrastra para orbitar en 3D.</span>
-      </div>
-      <div class="hud-cluster-tags" id="clusterFilterTags">
-        <!-- Rendered by JS -->
-      </div>
+      <details class="hud-legend" id="hudLegend">
+        <summary class="hud-legend__toggle" title="Mostrar u ocultar la leyenda y los controles">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 6px var(--cyan);"></span>
+          <span>Leyenda y controles</span>
+          <span class="hud-legend__filter" id="hudLegendFilter"></span>
+        </summary>
+        <div class="hud-legend__body">
+          <div class="hud-legend__hint">Pasa el cursor o haz clic en un nodo para ver su <strong>etiqueta principal y resumen</strong>. Haz clic en las comunidades para encenderlas o apagarlas; puedes combinar varias.</div>
+          <div class="hud-legend__controls"><kbd>Arrastrar</kbd> orbitar · <kbd>Clic derecho</kbd> o <kbd>Shift</kbd>+arrastrar desplazar · <kbd>Rueda</kbd> o pellizco zoom · <kbd>Doble clic</kbd> enfocar nodo</div>
+          <div class="hud-cluster-tags" id="clusterFilterTags">
+            <!-- Rendered by JS -->
+          </div>
+          <button type="button" class="btn-hud" id="btnClearClusters" onclick="clearClusterFilters()" style="display:none; align-self:flex-start;">Mostrar todas las comunidades</button>
+        </div>
+      </details>
     </div>
 
     <!-- Inspector HUD Card -->
@@ -813,7 +870,10 @@ TEMPLATE = """<!DOCTYPE html>
   var selectedNode = null;
   var hoveredNode = null;
   var autoRotate = true;
-  var activeClusterFilter = null;
+  // Communities lit by the legend filters; empty means no filter (all lit)
+  var activeClusters = new Set();
+  function clusterFilterOn() { return activeClusters.size > 0; }
+  function clusterLit(g) { return activeClusters.has(g); }
 
   // DOM Elements
   var stageEl = document.getElementById("stage3d");
@@ -828,20 +888,39 @@ TEMPLATE = """<!DOCTYPE html>
       var tag = document.createElement("div");
       tag.className = "cluster-tag";
       tag.innerHTML = '<span style="width:7px; height:7px; border-radius:50%; background:' + col + '; box-shadow:0 0 6px ' + col + '"></span>' + g;
+      tag.dataset.group = g;
+      tag.title = "Clic para encender o apagar esta comunidad";
+      // Each click toggles only this community, so any combination can be lit
       tag.onclick = function() {
-        if (activeClusterFilter === g) {
-          activeClusterFilter = null;
-          tag.classList.remove("active");
-        } else {
-          document.querySelectorAll(".cluster-tag").forEach(function(t) { t.classList.remove("active"); });
-          activeClusterFilter = g;
-          tag.classList.add("active");
-        }
+        if (activeClusters.has(g)) activeClusters.delete(g);
+        else activeClusters.add(g);
+        tag.classList.toggle("active", activeClusters.has(g));
+        refreshClusterFilterUi();
         updateVisualStates();
       };
       clusterTagsEl.appendChild(tag);
     });
   }
+
+  function refreshClusterFilterUi() {
+    // A collapsed legend still has to say a filter is dimming nodes
+    var label = document.getElementById("hudLegendFilter");
+    if (label) {
+      if (activeClusters.size === 1) label.textContent = "· " + Array.from(activeClusters)[0];
+      else if (activeClusters.size > 1) label.textContent = "· " + activeClusters.size + " comunidades";
+      else label.textContent = "";
+    }
+    if (clusterTagsEl) clusterTagsEl.classList.toggle("filtering", clusterFilterOn());
+    var clearBtn = document.getElementById("btnClearClusters");
+    if (clearBtn) clearBtn.style.display = clusterFilterOn() ? "" : "none";
+  }
+
+  window.clearClusterFilters = function() {
+    activeClusters.clear();
+    document.querySelectorAll(".cluster-tag").forEach(function(t) { t.classList.remove("active"); });
+    refreshClusterFilterUi();
+    updateVisualStates();
+  };
 
   // --- THREE.JS 3D SCENE SETUP (SOTA ATLAS CELESTIAL SKY) ---
   var scene, camera, renderer;
@@ -926,8 +1005,8 @@ TEMPLATE = """<!DOCTYPE html>
           var activeEdge = true;
           if (selectedNode) {
             activeEdge = (e.source === selectedNode || e.target === selectedNode);
-          } else if (activeClusterFilter) {
-            activeEdge = (e.source.group === activeClusterFilter && e.target.group === activeClusterFilter);
+          } else if (clusterFilterOn()) {
+            activeEdge = (clusterLit(e.source.group) && clusterLit(e.target.group));
           }
           ctx.globalAlpha = selectedNode ? (activeEdge ? 0.85 : 0.08) : (activeEdge ? 0.35 : 0.08);
           ctx.strokeStyle = (selectedNode && activeEdge) ? "#38bdf8" : e.source.color;
@@ -951,7 +1030,7 @@ TEMPLATE = """<!DOCTYPE html>
           var isTarget = (selectedNode === n);
           var isHovered = (hoveredNode === n);
           var isConn = !selectedNode
-            ? (!activeClusterFilter || n.group === activeClusterFilter)
+            ? (!clusterFilterOn() || clusterLit(n.group))
             : (isTarget || selectedNode.neighbors.has(n.id));
           var alpha = (isTarget || isHovered) ? 1.0 : (isConn ? 0.92 : 0.14);
           var r = Math.max(4.0, n.size * (isTarget ? 2.1 : (isHovered ? 1.75 : (isConn ? 1.35 : 0.85))));
@@ -1249,8 +1328,8 @@ TEMPLATE = """<!DOCTYPE html>
 
       if (selectedNode) {
         isConnected = isTarget || selectedNode.neighbors.has(n.id);
-      } else if (activeClusterFilter) {
-        isConnected = (n.group === activeClusterFilter);
+      } else if (clusterFilterOn()) {
+        isConnected = clusterLit(n.group);
       } else {
         isConnected = true;
       }
@@ -1277,7 +1356,7 @@ TEMPLATE = """<!DOCTYPE html>
           n.sprite.material.opacity = 0.05;
           n.sprite.scale.setScalar(n.size * 2.0);
         }
-      } else if (activeClusterFilter) {
+      } else if (clusterFilterOn()) {
         if (isConnected || isHovered) {
           n.mesh.material.opacity = 1.0;
           n.mesh.scale.setScalar(n.size * (isHovered ? 1.4 : 1.25));
@@ -1309,8 +1388,8 @@ TEMPLATE = """<!DOCTYPE html>
 
         if (selectedNode) {
           activeEdge = (e.source === selectedNode || e.target === selectedNode);
-        } else if (activeClusterFilter) {
-          activeEdge = (e.source.group === activeClusterFilter && e.target.group === activeClusterFilter);
+        } else if (clusterFilterOn()) {
+          activeEdge = (clusterLit(e.source.group) && clusterLit(e.target.group));
         } else {
           activeEdge = true;
         }
@@ -1326,7 +1405,7 @@ TEMPLATE = """<!DOCTYPE html>
             colSrc = new THREE.Color(0x0a0f1d); // Dimmed into space
             colTgt = new THREE.Color(0x0a0f1d);
           }
-        } else if (activeClusterFilter) {
+        } else if (clusterFilterOn()) {
           if (!activeEdge) {
             colSrc = new THREE.Color(0x0a0f1d);
             colTgt = new THREE.Color(0x0a0f1d);
@@ -1408,38 +1487,117 @@ TEMPLATE = """<!DOCTYPE html>
 
   window.focusCameraOnSelected = function() {
     if (!selectedNode || !camera) return;
-    targetCamPos = {
-      x: selectedNode.x * 1.2,
-      y: selectedNode.y * 1.2 + 30,
-      z: selectedNode.z + 280
-    };
-    targetOrbitCenter = {
-      x: selectedNode.x,
-      y: selectedNode.y,
-      z: selectedNode.z
-    };
+    cameraTouched = true;
+    targetOrbitCenter = { x: selectedNode.x, y: selectedNode.y, z: selectedNode.z };
+    targetRadius = Math.max(fitRadius * 0.3, 140);
   };
 
-  // 3D Camera Controls (Orbit & Pan)
+  // 3D Camera Controls (Orbit & Pan). The camera always sits on a sphere
+  // around orbitCenter; focus, reset and fit animate radius and center only,
+  // so orbit, zoom and auto-rotate keep working after any of them.
   var isDragging = false;
   var isRightDrag = false;
   var dragDistancePx = 0;
   var previousMousePos = { x: 0, y: 0 };
-  var spherical = { radius: 680, theta: 0, phi: Math.PI / 2 };
+  var spherical = { radius: 680, theta: 0, phi: Math.PI / 2 - 0.15 };
   var orbitCenter = { x: 0, y: 0, z: 0 };
-  var targetCamPos = null;
   var targetOrbitCenter = null;
+  var targetRadius = null;
+  var fitRadius = 680;
+  var cameraTouched = false;
 
-  stageEl.addEventListener("mousedown", function(e) {
-    if (e.target.closest("#inspectorCard") || e.target.closest(".hud-overlay")) return;
+  function isOverHud(target) {
+    return Boolean(target && target.closest && (target.closest("#inspectorCard") || target.closest(".hud-overlay")));
+  }
+
+  // Frame the graph, whatever its size or the iframe shape: the smallest
+  // orbit distance at which nodes project inside the view, checked at eight
+  // orbit angles so auto-rotate does not carry them out. It frames the 95th
+  // percentile, so a couple of isolated notes cannot shrink the whole graph.
+  function fitCameraToGraph() {
+    if (!camera || !nodes.length) return;
+    var cx = 0, cy = 0, cz = 0;
+    nodes.forEach(function(n) { cx += n.x; cy += n.y; cz += n.z; });
+    cx /= nodes.length; cy /= nodes.length; cz /= nodes.length;
+    var tanV = Math.tan(camera.fov * Math.PI / 360);
+    var tanH = tanV * camera.aspect;
+    var phi = spherical.phi;
+    var need = nodes.map(function() { return 60; });
+    for (var k = 0; k < 8; k++) {
+      var th = spherical.theta + k * Math.PI / 4;
+      // Unit vector from the orbit center to the camera, and the screen axes
+      var d = { x: Math.sin(phi) * Math.sin(th), y: Math.cos(phi), z: Math.sin(phi) * Math.cos(th) };
+      var right = { x: Math.cos(th), y: 0, z: -Math.sin(th) };
+      var up = {
+        x: d.y * right.z - d.z * right.y,
+        y: d.z * right.x - d.x * right.z,
+        z: d.x * right.y - d.y * right.x
+      };
+      nodes.forEach(function(n, i) {
+        var px = n.x - cx, py = n.y - cy, pz = n.z - cz;
+        var pad = (n.size || 4) * 2;
+        var toward = px * d.x + py * d.y + pz * d.z;
+        var sx = Math.abs(px * right.x + py * right.y + pz * right.z) + pad;
+        var sy = Math.abs(px * up.x + py * up.y + pz * up.z) + pad;
+        need[i] = Math.max(need[i], toward + sx / tanH, toward + sy / tanV);
+      });
+    }
+    need.sort(function(a, b) { return a - b; });
+    var dist = need[Math.min(need.length - 1, Math.floor(need.length * 0.95))] * 1.08;
+    fitRadius = dist;
+    camera.far = Math.max(4500, dist * 4);
+    camera.updateProjectionMatrix();
+    if (scene && scene.fog) scene.fog.density = 0.35 / dist;
+    targetOrbitCenter = { x: cx, y: cy, z: cz };
+    targetRadius = dist;
+  }
+
+  function clampRadius(r) {
+    return Math.max(fitRadius * 0.08, Math.min(fitRadius * 3, r));
+  }
+
+  function endDrag(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    stageEl.classList.remove("dragging");
+    if (e && e.pointerId !== undefined && stageEl.hasPointerCapture && stageEl.hasPointerCapture(e.pointerId)) {
+      try { stageEl.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+  }
+
+  function hideHover() {
+    if (!hoveredNode) return;
+    hoveredNode = null;
+    if (selectedNode) {
+      var sp = projectNodeToScreen(selectedNode);
+      if (sp) renderTooltipForNode(selectedNode, sp.sx, sp.sy, true);
+    } else if (tooltipEl) {
+      tooltipEl.style.opacity = 0;
+    }
+    updateVisualStates();
+  }
+
+  stageEl.addEventListener("pointerdown", function(e) {
+    if (isOverHud(e.target)) return;
+    if (e.pointerType === "mouse" && e.button !== 0 && e.button !== 2) return;
     isDragging = true;
     dragDistancePx = 0;
     isRightDrag = (e.button === 2 || e.shiftKey);
     previousMousePos = { x: e.clientX, y: e.clientY };
     stageEl.classList.add("dragging");
+    // Capture keeps the drag alive, and lets it end, when the pointer is
+    // released outside the stage or outside the dashboard iframe.
+    try { stageEl.setPointerCapture(e.pointerId); } catch (_) {}
   });
 
-  window.addEventListener("mousemove", function(e) {
+  stageEl.addEventListener("pointerup", endDrag);
+  stageEl.addEventListener("pointercancel", endDrag);
+  stageEl.addEventListener("lostpointercapture", endDrag);
+  stageEl.addEventListener("pointerleave", function() {
+    if (!isDragging) hideHover();
+  });
+
+  stageEl.addEventListener("pointermove", function(e) {
     var rect = stageEl.getBoundingClientRect();
     var mouseX = e.clientX - rect.left;
     var mouseY = e.clientY - rect.top;
@@ -1460,7 +1618,18 @@ TEMPLATE = """<!DOCTYPE html>
         spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi + deltaY * 0.006));
       }
       previousMousePos = { x: e.clientX, y: e.clientY };
-      targetCamPos = null;
+      if (dragDistancePx > 2) {
+        cameraTouched = true;
+        targetOrbitCenter = null;
+        targetRadius = null;
+      }
+      return;
+    }
+
+    // Nodes behind the legend or the inspector are not hoverable through them
+    if (isOverHud(e.target)) {
+      hideHover();
+      stageEl.style.cursor = "";
       return;
     }
 
@@ -1488,18 +1657,28 @@ TEMPLATE = """<!DOCTYPE html>
     }
   });
 
-  window.addEventListener("mouseup", function() {
-    isDragging = false;
-    stageEl.classList.remove("dragging");
-  });
-
   stageEl.addEventListener("contextmenu", function(e) { e.preventDefault(); });
 
   stageEl.addEventListener("wheel", function(e) {
+    if (isOverHud(e.target)) return;
     e.preventDefault();
-    spherical.radius = Math.max(100, Math.min(1800, spherical.radius + e.deltaY * 0.7));
-    targetCamPos = null;
+    cameraTouched = true;
+    // Exponential steps feel the same at any distance; trackpad pinch
+    // arrives as ctrl+wheel with small deltas, so it gets a larger gain.
+    var gain = e.ctrlKey ? 0.01 : 0.0015;
+    var base = targetRadius !== null ? targetRadius : spherical.radius;
+    targetRadius = clampRadius(base * Math.exp(e.deltaY * gain));
   }, { passive: false });
+
+  stageEl.addEventListener("dblclick", function(e) {
+    if (isOverHud(e.target)) return;
+    var rect = stageEl.getBoundingClientRect();
+    var hitNode = pickNodeAt(e.clientX - rect.left, e.clientY - rect.top);
+    if (hitNode) {
+      showInspector(hitNode);
+      focusCameraOnSelected();
+    }
+  });
 
   stageEl.addEventListener("click", function(e) {
     if (e.target.closest("#inspectorCard") || e.target.closest(".hud-overlay") || e.target.closest("header")) return;
@@ -1523,10 +1702,10 @@ TEMPLATE = """<!DOCTYPE html>
   };
 
   window.resetCamera = function() {
-    targetCamPos = { x: 0, y: 80, z: 680 };
-    targetOrbitCenter = { x: 0, y: 0, z: 0 };
-    spherical = { radius: 680, theta: 0, phi: Math.PI / 2 };
+    cameraTouched = false;
+    spherical.phi = Math.PI / 2 - 0.15;
     clearSelection();
+    fitCameraToGraph();
   };
 
   window.handleSearch = function(query) {
@@ -1569,6 +1748,9 @@ TEMPLATE = """<!DOCTYPE html>
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+    // The dashboard iframe changes shape with the tab and the side panel;
+    // keep the whole graph framed until the user takes the camera.
+    if (!cameraTouched) fitCameraToGraph();
   }
 
   window.addEventListener("resize", onWindowResize);
@@ -1596,29 +1778,36 @@ TEMPLATE = """<!DOCTYPE html>
     var delta = clock.getDelta();
     var time = clock.getElapsedTime();
 
-    if (autoRotate && !isDragging && !selectedNode) {
+    // Pause the spin while a node is hovered so it stays under the cursor
+    if (autoRotate && !isDragging && !selectedNode && !hoveredNode) {
       spherical.theta += 0.0035;
     }
 
-    // Camera smoothing
-    if (targetCamPos && targetOrbitCenter) {
-      camera.position.x += (targetCamPos.x - camera.position.x) * 0.08;
-      camera.position.y += (targetCamPos.y - camera.position.y) * 0.08;
-      camera.position.z += (targetCamPos.z - camera.position.z) * 0.08;
-      orbitCenter.x += (targetOrbitCenter.x - orbitCenter.x) * 0.08;
-      orbitCenter.y += (targetOrbitCenter.y - orbitCenter.y) * 0.08;
-      orbitCenter.z += (targetOrbitCenter.z - orbitCenter.z) * 0.08;
-      camera.lookAt(orbitCenter.x, orbitCenter.y, orbitCenter.z);
-    } else {
-      var cx = orbitCenter.x + spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
-      var cy = orbitCenter.y + spherical.radius * Math.cos(spherical.phi);
-      var cz = orbitCenter.z + spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
-
-      camera.position.x += (cx - camera.position.x) * 0.12;
-      camera.position.y += (cy - camera.position.y) * 0.12;
-      camera.position.z += (cz - camera.position.z) * 0.12;
-      camera.lookAt(orbitCenter.x, orbitCenter.y, orbitCenter.z);
+    // Camera smoothing toward focus / fit targets
+    if (targetOrbitCenter) {
+      orbitCenter.x += (targetOrbitCenter.x - orbitCenter.x) * 0.1;
+      orbitCenter.y += (targetOrbitCenter.y - orbitCenter.y) * 0.1;
+      orbitCenter.z += (targetOrbitCenter.z - orbitCenter.z) * 0.1;
+      if (Math.abs(targetOrbitCenter.x - orbitCenter.x) + Math.abs(targetOrbitCenter.y - orbitCenter.y) + Math.abs(targetOrbitCenter.z - orbitCenter.z) < 0.5) {
+        targetOrbitCenter = null;
+      }
     }
+    if (targetRadius !== null) {
+      spherical.radius += (targetRadius - spherical.radius) * 0.12;
+      if (Math.abs(targetRadius - spherical.radius) < 0.5) {
+        spherical.radius = targetRadius;
+        targetRadius = null;
+      }
+    }
+
+    var cx = orbitCenter.x + spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+    var cy = orbitCenter.y + spherical.radius * Math.cos(spherical.phi);
+    var cz = orbitCenter.z + spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+
+    camera.position.x += (cx - camera.position.x) * 0.2;
+    camera.position.y += (cy - camera.position.y) * 0.2;
+    camera.position.z += (cz - camera.position.z) * 0.2;
+    camera.lookAt(orbitCenter.x, orbitCenter.y, orbitCenter.z);
 
     // Luminous Breathing Effect for Nodes
     nodes.forEach(function(n) {
@@ -1643,6 +1832,10 @@ TEMPLATE = """<!DOCTYPE html>
   // Initialize
   if (typeof THREE !== "undefined") {
     initThree();
+    fitCameraToGraph();
+    // Start framed instead of flying in from a fixed distance
+    if (targetOrbitCenter) { orbitCenter = targetOrbitCenter; targetOrbitCenter = null; }
+    if (targetRadius !== null) { spherical.radius = targetRadius; targetRadius = null; }
     animate();
     document.getElementById("btnAutoRotate").classList.add("active");
   } else {

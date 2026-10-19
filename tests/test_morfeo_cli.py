@@ -22,7 +22,7 @@ from morfeo.kit import get_kit_root, load_kit_manifest
 
 class TestMorfeoCLI(unittest.TestCase):
     def test_version(self):
-        self.assertEqual(morfeo.__version__, "0.5.4")
+        self.assertEqual(morfeo.__version__, "0.5.5")
 
     def test_status_without_a_version_marker_reports_the_package_version(self):
         """A workspace with no `.morfeo/version` marker (this framework
@@ -150,7 +150,7 @@ class TestMorfeoCLI(unittest.TestCase):
 
             # 2. status
             status_dict = get_project_status(target)
-            self.assertEqual(status_dict["version"], "0.5.4")
+            self.assertEqual(status_dict["version"], "0.5.5")
             self.assertIsNone(status_dict["active_run"])
 
             # 3. audit clean
