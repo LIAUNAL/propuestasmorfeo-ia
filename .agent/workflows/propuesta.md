@@ -1573,6 +1573,17 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
   sigue siendo la autoridad del veredicto PASS/FAIL; el auditor no lo
   reemplaza ni lo bloquea. No aplica a unidades sin prosa nueva (bucles de
   figura, presupuesto, bibliografía).
+- **Verificación determinista antes del `revisor` (todas las compuertas).**
+  Corré `python3 scripts/check_run.py <RUN_ROOT>` (en la Fase 7, con
+  `--final`). Cubre lo que una expresión regular puede probar: rayas y dobles
+  guiones en prosa, `\cite{}` genérico, más de 3 claves por cita, claves
+  sobreusadas o repetidas en una sección, pisos de referencias, TRL fuera de
+  §6/§7 y presente en §2/§11, 3 objetivos específicos, archivo de §1,
+  `\setcounter`, `\bibsection`, logos inexistentes, captions de diagrama y
+  «Cuadro» en el PDF. Si reporta errores, devolvé la unidad a su autor con
+  esa salida antes de gastar un `revisor`. Si sale limpio, pasale la salida
+  al `revisor` en el prompt: no tiene que volver a contar esas reglas y se
+  concentra en coherencia y calidad.
 - En FAIL, vuelve a despachar con `Task` al agente responsable de la sección
   con las correcciones exactas del revisor, y repite el gate.
 - No reescribas contenido de sección tú mismo; ese trabajo es de los
@@ -1592,12 +1603,12 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
   pipeline, no solo Fase 7), el dispatcher ensambla y compila un PDF ANTES
   de presentar el veredicto, para que la aprobación se dé sobre un documento
   real, no solo sobre fragmentos `.tex` o un resumen de texto. Mecánica:
-  genera/actualiza `redaccion/main.tex` incluyendo el bloque de título en la portada,
-  luego `\input{sections/00_frontmatter}`, luego `\setcounter{section}{1}`, y luego
-  `\input{}` únicamente de las secciones que YA existen en disco en `redaccion/sections/`
-  en ese punto de la corrida (mismo orden documentado en la Fase 7, "Orden del cuerpo" —
-  nunca stubs ni placeholders de secciones no escritas todavía; nunca incluir
-  `01_titulo_identificacion` ni párrafos de sección 1 en el cuerpo de `main.tex`), luego
+  `redaccion/main.tex` sale de `plantilla/main.tex` al crear la corrida e
+  incluye cada sección y cada diagrama solo si su archivo ya existe, así que
+  **no se reescribe en cada compuerta**: basta con que el autor haya dejado
+  el archivo en `redaccion/sections/` (y el caption de cada diagrama en
+  `sections/diag_<nombre>_caption.tex`). Los datos de portada van en
+  `redaccion/datos_proyecto.tex`. Luego
   ejecuta `./build.sh` (nunca `./build.sh --docx` en estas compuertas
   intermedias) para producir `redaccion/main.pdf`. Comparte con el usuario la
   ruta del PDF junto con el veredicto del revisor (usa `pixelshot` si quieres

@@ -60,6 +60,7 @@
     "scripts/apa.csl",
     "scripts/build_manuscript_graph.py",
     "scripts/check-agent-models.py",
+    "scripts/check_run.py",
     "scripts/compilar-docx.sh",
     "scripts/compilar-pdf.sh",
     "scripts/assets/THIRD_PARTY_NOTICES.md",

@@ -71,10 +71,14 @@ you) before reporting a FAIL for a missing artifact.
    ≥10 additional Q1/Q2 refs for §2 Justificación; ≥50 total for §16
    Bibliografía; APA author-year format (no IEEE numeric); no theses;
    preprints only from recognized labs/leaders.
-   Mechanical citation audit (multi-line aware): a single `\citep{}`/`\citet{}`
-   may span several physical lines — count keys per LOGICAL call, not per
-   line. Flag any call with >3 keys, any key reused >3 times or reused twice
-   within one section, and any IEEE numeric `[n]` marker.
+   Mechanical checks are deterministic: the dispatcher runs
+   `scripts/check_run.py` before every gate and pastes its output into your
+   prompt. Treat that output as authoritative for keys per call, key reuse,
+   reference floors, dashes, `\cite{}`, TRL placement, the 3 objectives, the
+   §1 file, `\setcounter`, `\bibsection`, logos and "Cuadro"; do not recount
+   them line by line. Cite its errors in your verdict. Only if the prompt
+   carries no checker output, audit citations yourself (keys per LOGICAL
+   call, >3 keys, a key reused >3 times or twice in one section, IEEE `[n]`).
    No-orphan check (forward-only, Read/Grep/Glob only): every `\citep`/
    `\citet` cite key must resolve to a `artefactos/scoping/papers/paper-N.md`
    (or `artefactos/vault/insumos/<key>.md`) containing a `## Verificación` block with a
