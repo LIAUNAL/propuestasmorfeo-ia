@@ -341,6 +341,64 @@
       border-color: var(--accent);
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
+    /* Árbol de problemas y objetivos */
+    .tree-stepper { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; padding: 0.25rem 0 0.75rem; }
+    .tree-step { display: flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); font-size: 0.8rem; color: var(--text-muted); }
+    .tree-step.is-current { border-color: var(--accent); color: var(--text); box-shadow: 0 0 0 2px var(--accent-dim); }
+    .tree-step.is-done { border-color: var(--ok); color: var(--ok); }
+    .tree-step__arrow { color: var(--text-dim); }
+    .tree-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+    .tree-switch { display: flex; gap: 0.4rem; }
+    .tree-legend { font-size: 0.75rem; color: var(--text-dim); }
+    .tree-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1rem; margin-top: 1rem; align-items: start; }
+    @media (max-width: 1100px) { .tree-layout { grid-template-columns: 1fr; } }
+    .tree-banner:empty { display: none; }
+    .tree-banner { font-size: 0.82rem; padding: 0.6rem 0.8rem; border-radius: var(--radius); background: var(--accent-dim); border: 1px solid var(--accent); margin-bottom: 0.9rem; color: var(--text); }
+    .tree-canvas { display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 0.5rem; }
+    .tree-row { display: flex; justify-content: center; gap: 0.6rem; flex-wrap: nowrap; }
+    .tree-link { width: 2px; height: 22px; margin: 0 auto; background: var(--border); }
+    .tree-tier { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); text-align: center; margin: 0.15rem 0 0.35rem; }
+    .tree-node { position: relative; flex: 1 1 0; min-width: 150px; max-width: 320px; padding: 0.55rem 0.7rem; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface-2); font-size: 0.78rem; line-height: 1.4; cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease; }
+    .tree-node:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); }
+    .tree-node.is-selected { box-shadow: 0 0 0 2px var(--accent); }
+    .tree-node__id { display: inline-block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-dim); margin-right: 0.3rem; }
+    .tree-node__count { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--warn); color: #111; font-size: 0.68rem; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+    .tree-node--pending { border-style: dashed; color: var(--text-muted); font-style: italic; background: transparent; }
+    .tree-node--crown { max-width: 640px; text-align: center; }
+    .tree-node--trunk { max-width: 760px; text-align: center; font-weight: 600; font-size: 0.86rem; padding: 0.8rem 1rem; }
+    .tree-groups { display: flex; gap: 0.75rem; justify-content: center; align-items: stretch; }
+    .tree-group { flex: 1 1 0; min-width: 190px; max-width: 340px; display: flex; flex-direction: column; gap: 0.45rem; padding: 0.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); }
+    .tree-group .tree-node { max-width: none; }
+    .tree-group__head { font-weight: 600; }
+    /* Paleta: problemas en tonos de alerta, objetivos en tonos de logro. */
+    .tree--problemas .tree-node--crown { border-color: var(--accent); background: var(--accent-dim); }
+    .tree--problemas .tree-node--branch { border-color: var(--warn); background: var(--warn-dim); }
+    .tree--problemas .tree-node--trunk { border-color: var(--bad); background: var(--bad-dim); }
+    .tree--problemas .tree-group__head { border-color: var(--bad); }
+    .tree--objetivos .tree-node--crown { border-color: var(--accent); background: var(--accent-dim); }
+    .tree--objetivos .tree-node--branch:not(.tree-node--pending) { border-color: var(--ok); background: var(--ok-dim); }
+    .tree--objetivos .tree-node--trunk:not(.tree-node--pending) { border-color: var(--ok); background: var(--ok-dim); }
+    .tree--objetivos .tree-group__head:not(.tree-node--pending) { border-color: var(--ok); }
+    .tree-empty { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 0.88rem; }
+    .tree-empty p { margin-bottom: 0.9rem; }
+    .tree-review__body { display: flex; flex-direction: column; gap: 0.55rem; }
+    .tree-selected { font-size: 0.8rem; color: var(--text-muted); padding: 0.55rem 0.65rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); }
+    .tree-textarea { width: 100%; resize: vertical; font: inherit; font-size: 0.82rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem; }
+    .tree-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-top: 0.35rem; }
+    .tree-comments, .tree-history { list-style: none; display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.78rem; }
+    .tree-comments li { display: flex; gap: 0.4rem; align-items: flex-start; padding: 0.4rem 0.5rem; border-radius: var(--radius); background: var(--warn-dim); border: 1px solid var(--warn); }
+    .tree-comments li span { flex: 1; }
+    .tree-comments button { background: none; border: none; color: var(--text-muted); cursor: pointer; }
+    .tree-history li { color: var(--text-muted); }
+    .tree-history a { color: var(--accent); cursor: pointer; }
+    .tree-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .tree-actions .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .tree-approve { border-color: var(--ok); color: var(--ok); }
+    .tree-gate-note:empty, .tree-message:empty { display: none; }
+    .tree-gate-note { font-size: 0.78rem; color: var(--warn); }
+    .tree-message { font-size: 0.8rem; color: var(--text); padding: 0.45rem 0.6rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); }
+    .tree-message.is-error { border-color: var(--bad); color: var(--bad); }
+    .tree-message.is-ok { border-color: var(--ok); color: var(--ok); }
     .phase-card { position: relative; }
     .phase-card__run {
       position: absolute;
@@ -2126,6 +2184,7 @@
   <nav class="tabs-nav" aria-label="Navegación del tablero">
     <button class="tab-nav__btn active" onclick="navigateTab('flow')">Flujo general</button>
     <button class="tab-nav__btn" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
+    <button class="tab-nav__btn" onclick="navigateTab('trees')">Árbol de problemas y objetivos</button>
     <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
     <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
     <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
@@ -2227,6 +2286,54 @@
         <div class="pipeline-grid" id="gatesGrid">
           <!-- Rendered by JS -->
         </div>
+      </div>
+    </div>
+
+    <!-- TAB: ÁRBOL DE PROBLEMAS Y OBJETIVOS -->
+    <div id="pane-trees" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Árbol de problemas y objetivos</div>
+          <span class="panel__meta" id="treeRunMeta">—</span>
+        </div>
+        <div class="tree-stepper" id="treeStepper"></div>
+        <div class="tree-toolbar">
+          <div class="tree-switch" role="tablist">
+            <button class="btn btn--sm" id="treeViewProblemas" onclick="setTreeView('problemas')">🌳 Árbol de problemas</button>
+            <button class="btn btn--sm" id="treeViewObjetivos" onclick="setTreeView('objetivos')">🎯 Árbol de objetivos</button>
+          </div>
+          <span class="tree-legend" id="treeLegend"></span>
+        </div>
+      </div>
+
+      <div class="tree-layout">
+        <div class="panel tree-stage">
+          <div class="tree-banner" id="treeBanner"></div>
+          <div class="tree-canvas" id="treeCanvas"></div>
+        </div>
+
+        <aside class="panel tree-review">
+          <div class="panel__header">
+            <div class="panel__title">Revisión con el agente</div>
+            <span class="badge" id="treeStatusBadge">—</span>
+          </div>
+          <div class="tree-review__body">
+            <div class="tree-selected" id="treeSelected">Haz clic en un nodo del árbol para comentarlo.</div>
+            <textarea id="treeCommentInput" class="tree-textarea" rows="3" placeholder="Qué cambiar en el nodo seleccionado…"></textarea>
+            <button class="btn btn--sm" id="treeAddCommentBtn" onclick="addTreeComment()">＋ Agregar comentario</button>
+            <ul class="tree-comments" id="treeCommentList"></ul>
+            <label class="tree-label" for="treeGeneralInput">Indicación general</label>
+            <textarea id="treeGeneralInput" class="tree-textarea" rows="2" placeholder="Ej.: equilibrar el número de causas por subproblema"></textarea>
+            <p class="tree-gate-note" id="treeGateNote"></p>
+            <div class="tree-actions">
+              <button class="btn btn--sm btn--primary" id="treeSendBtn" onclick="submitTreeFeedback()">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="treeApproveBtn" onclick="approveCurrentTree()">✅ Aprobar árbol</button>
+            </div>
+            <p class="tree-message" id="treeMessage" role="status"></p>
+            <h4 class="tree-label">Iteraciones</h4>
+            <ol class="tree-history" id="treeHistory"></ol>
+          </div>
+        </aside>
       </div>
     </div>
 
@@ -3079,17 +3186,372 @@
         sendTerminalQuickCommand(cmd);
         return;
       }
-      const select = document.getElementById('terminalAgentSelect');
-      if (select) select.value = 'claude';
+      withCommandAgentReady(() => sendTerminalQuickCommand(cmd));
+    }
+
+    // --- Árbol de problemas y objetivos ---------------------------------------
+    // El árbol de problemas sale de la spec de Fase 1 y el de objetivos es su
+    // espejo (marco lógico). El operador comenta nodos, el tablero escribe la
+    // solicitud en artefactos/arboles/ y se la pasa al agente por la terminal;
+    // cuando el agente reescribe el árbol, el sondeo lo trae de vuelta aquí.
+    const TREES_STATE = { data: null, view: null, selected: null, comments: { problemas: [], objetivos: [] }, sig: null, timer: null };
+    const TREE_STATUS = {
+      pendiente: ['Propuesto · sin revisar', 'warn'],
+      en_ajuste: ['En ajuste por el agente', 'info'],
+      por_revisar: ['Nueva versión por revisar', 'warn'],
+      aprobado: ['Aprobado', 'ok'],
+      desactualizado: ['Cambió después de aprobarse', 'bad'],
+    };
+
+    function currentTreeEntry() {
+      const d = TREES_STATE.data;
+      if (!d) return null;
+      return TREES_STATE.view === 'objetivos' ? d.objectives : d.problem;
+    }
+
+    function treeMessage(text, tone) {
+      const el = document.getElementById('treeMessage');
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = `tree-message${tone ? ' is-' + tone : ''}`;
+    }
+
+    async function loadTrees() {
+      let data = null;
+      try {
+        const res = await fetch('/api/trees', { cache: 'no-store' });
+        data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      } catch (err) {
+        TREES_STATE.data = null;
+        TREES_STATE.sig = null;
+        const canvas = document.getElementById('treeCanvas');
+        if (canvas) canvas.innerHTML = `<div class="tree-empty"><p>No se pudieron leer los árboles de la corrida activa.</p><small>${escapeHtml(err.message || String(err))}</small></div>`;
+        return;
+      }
+      const first = !TREES_STATE.data;
+      TREES_STATE.data = data;
+      if (first || !TREES_STATE.view) {
+        TREES_STATE.view = (data.stage === 'objetivos' || data.stage === 'aprobados') ? 'objetivos' : 'problemas';
+      }
+      const r = t => [t.hash, t.review.status, (t.review.iterations || []).length];
+      const sig = JSON.stringify([data.run, r(data.problem), r(data.objectives)]);
+      if (sig !== TREES_STATE.sig) {
+        TREES_STATE.sig = sig;
+        renderTrees();
+      }
+    }
+
+    function startTreesPolling() {
+      loadTrees();
+      if (TREES_STATE.timer) return;
+      TREES_STATE.timer = setInterval(() => {
+        if (activeTab === 'trees' && !document.hidden) loadTrees();
+      }, 4000);
+    }
+
+    function stopTreesPolling() {
+      if (TREES_STATE.timer) clearInterval(TREES_STATE.timer);
+      TREES_STATE.timer = null;
+    }
+
+    function setTreeView(view) {
+      TREES_STATE.view = view === 'objetivos' ? 'objetivos' : 'problemas';
+      TREES_STATE.selected = null;
+      treeMessage('');
+      renderTrees();
+    }
+
+    // Texto de un nodo del árbol de problemas: los medios y fines pendientes
+    // muestran de qué causa o efecto salen.
+    function problemNodeText(id) {
+      const t = TREES_STATE.data && TREES_STATE.data.problem && TREES_STATE.data.problem.tree;
+      if (!t || !id) return null;
+      const b = (t.branches || []).find(x => x.id === id);
+      if (b) return b.text;
+      for (const g of t.groups || []) {
+        if (g.id === id) return g.title;
+        const c = (g.causes || []).find(x => x.id === id);
+        if (c) return c.text;
+      }
+      return null;
+    }
+
+    function treeNodeHtml(id, text, kind, from) {
+      const pending = !text;
+      const count = (TREES_STATE.comments[TREES_STATE.view] || []).filter(c => c.node === id).length;
+      const origin = from ? problemNodeText(from) : null;
+      const body = pending
+        ? `Pendiente: lo redacta el agente${origin ? ` a partir de «${escapeHtml(origin)}»` : ''}.`
+        : escapeHtml(text).replace(/\n/g, '<br>');
+      return `<div class="tree-node tree-node--${kind}${pending ? ' tree-node--pending' : ''}${TREES_STATE.selected === id ? ' is-selected' : ''}" data-node="${escapeHtml(id)}" tabindex="0">
+        <span class="tree-node__id">${escapeHtml(id)}</span>${body}${count ? `<span class="tree-node__count">${count}</span>` : ''}
+      </div>`;
+    }
+
+    function treeHtml(tree, view) {
+      const objetivos = view === 'objetivos';
+      const tiers = objetivos
+        ? ['Impacto (copa)', 'Fines (ramas)', 'Objetivo general (tronco)', 'Medios por objetivo específico (raíces)']
+        : ['Solución (copa)', 'Efectos (ramas)', 'Problema central (tronco)', 'Causas por subproblema (raíces)'];
+      const groups = (tree.groups || []).map(g => {
+        const leaves = objetivos ? (g.means || []) : (g.causes || []);
+        const head = objetivos
+          ? treeNodeHtml(g.id, g.objective ? `${g.title || g.id} · ${g.objective}` : null, 'group tree-group__head', g.from)
+          : treeNodeHtml(g.id, g.title, 'group tree-group__head');
+        return `<div class="tree-group">${head}${leaves.map(n => treeNodeHtml(n.id, n.text, 'leaf', n.from)).join('')}</div>`;
+      }).join('');
+      return `<div class="tree tree--${view}">
+        <div class="tree-tier">${tiers[0]}</div>
+        <div class="tree-row">${treeNodeHtml('crown', (tree.crown || {}).text, 'crown')}</div>
+        <div class="tree-link"></div>
+        <div class="tree-tier">${tiers[1]}</div>
+        <div class="tree-row">${(tree.branches || []).map(b => treeNodeHtml(b.id, b.text, 'branch', b.from)).join('')}</div>
+        <div class="tree-link"></div>
+        <div class="tree-tier">${tiers[2]}</div>
+        <div class="tree-row">${treeNodeHtml('trunk', (tree.trunk || {}).text, 'trunk')}</div>
+        <div class="tree-link"></div>
+        <div class="tree-tier">${tiers[3]}</div>
+        <div class="tree-groups">${groups}</div>
+      </div>`;
+    }
+
+    // Los subproblemas que el árbol de problemas organiza salen de la Fase 1a.
+    function treeProposalGate() {
+      const data = currentStatus || {};
+      const units = data.pipeline_units || [];
+      const fase1a = units.find(u => u.id === 'fase1a');
+      if (fase1a && resolvePhaseVerdict(fase1a, data) === 'PASS') return null;
+      const c = data.control;
+      if (c && c.intake_complete && c.next_step && !['fase1a', 'fase1b'].includes(c.next_step)) return null;
+      return 'Los subproblemas se definen en la Fase 1a (scoping). Avanza el pipeline con /propuesta-continuar hasta superar G1a para proponer el árbol.';
+    }
+
+    function treeGate() {
+      const d = TREES_STATE.data;
+      const entry = currentTreeEntry();
+      if (!d || !entry) return { send: 'Sin datos del árbol.', approve: 'Sin datos del árbol.' };
+      if (TREES_STATE.view === 'problemas') {
+        if (!entry.available) return { send: null, approve: entry.hint };
+        return { send: null, approve: entry.review.status === 'aprobado' ? 'Esta versión ya está aprobada.' : null };
+      }
+      if (d.problem.review.status !== 'aprobado') {
+        const msg = 'Primero hay que aprobar el árbol de problemas: el de objetivos es su espejo y se itera después.';
+        return { send: msg, approve: msg };
+      }
+      if (entry.review.status === 'aprobado') return { send: null, approve: 'Esta versión ya está aprobada.' };
+      if ((entry.missing || []).length) {
+        return { send: null, approve: `Faltan textos por redactar (${entry.missing.length}): pide al agente que complete los medios y los fines.` };
+      }
+      return { send: null, approve: null };
+    }
+
+    function renderTrees() {
+      const d = TREES_STATE.data;
+      if (!d) return;
+      const view = TREES_STATE.view;
+      const entry = currentTreeEntry();
+
+      document.getElementById('treeRunMeta').textContent = `Corrida ${d.run}`;
+      const step = (label, t, current) => {
+        const s = t.review.status;
+        return `<span class="tree-step${s === 'aprobado' ? ' is-done' : ''}${current ? ' is-current' : ''}">${s === 'aprobado' ? '✓' : '○'} ${label} · ${TREE_STATUS[s] ? TREE_STATUS[s][0] : s}</span>`;
+      };
+      document.getElementById('treeStepper').innerHTML = [
+        step('1. Árbol de problemas', d.problem, d.stage === 'problemas' || d.stage === 'sin_arbol'),
+        '<span class="tree-step__arrow">→</span>',
+        step('2. Árbol de objetivos', d.objectives, d.stage === 'objetivos'),
+        '<span class="tree-step__arrow">→</span>',
+        `<span class="tree-step${d.stage === 'aprobados' ? ' is-done is-current' : ''}">${d.stage === 'aprobados' ? '✓' : '○'} 3. Árboles aprobados</span>`,
+      ].join('');
+      document.getElementById('treeViewProblemas').classList.toggle('btn--primary', view === 'problemas');
+      document.getElementById('treeViewObjetivos').classList.toggle('btn--primary', view === 'objetivos');
+      document.getElementById('treeLegend').textContent = entry && entry.source ? `Fuente: ${entry.source}` : '';
+
+      let banner = '';
+      if (view === 'objetivos' && entry.available) {
+        if (d.problem.review.status !== 'aprobado') banner = 'Propuesta preliminar en espejo del árbol de problemas: se itera y aprueba cuando el árbol de problemas esté aprobado.';
+        else if (entry.derived) banner = `${entry.hint} Toma §6 y §7 cuando ya existen.`;
+      }
+      if (entry.review.status === 'por_revisar') banner = '🔔 El agente entregó una nueva versión de este árbol: revísala y apruébala o pide otro ajuste.';
+      document.getElementById('treeBanner').textContent = banner;
+
+      const canvas = document.getElementById('treeCanvas');
+      if (!entry.available) {
+        const gate = view === 'problemas' ? treeProposalGate() : null;
+        canvas.innerHTML = `<div class="tree-empty">
+          <p>${escapeHtml(entry.hint || 'Árbol no disponible todavía.')}</p>
+          ${view === 'problemas'
+            ? `<button class="btn btn--primary" onclick="requestTreeProposal()" ${gate ? 'disabled' : ''}>🤖 Pedir al agente que proponga el árbol de problemas</button>
+               ${gate ? `<p class="tree-gate-note" style="margin-top: 0.75rem;">${escapeHtml(gate)}</p>` : ''}`
+            : ''}
+        </div>`;
+      } else {
+        canvas.innerHTML = treeHtml(entry.tree, view);
+        canvas.querySelectorAll('[data-node]').forEach(el => {
+          el.addEventListener('click', () => selectTreeNode(el.dataset.node));
+        });
+      }
+      renderTreeReview();
+    }
+
+    function renderTreeReview() {
+      const entry = currentTreeEntry();
+      if (!entry) return;
+      const [label, tone] = TREE_STATUS[entry.review.status] || [entry.review.status, 'info'];
+      const badge = document.getElementById('treeStatusBadge');
+      badge.textContent = label;
+      badge.className = `badge badge--${tone}`;
+
+      const gate = treeGate();
+      const send = document.getElementById('treeSendBtn');
+      const approve = document.getElementById('treeApproveBtn');
+      send.disabled = !!gate.send || !entry.available;
+      approve.disabled = !!gate.approve;
+      approve.title = gate.approve || 'Aprobar esta versión del árbol';
+      document.getElementById('treeGateNote').textContent = gate.send || (entry.available ? (gate.approve && entry.review.status !== 'aprobado' ? gate.approve : '') : '');
+
+      const sel = document.getElementById('treeSelected');
+      if (TREES_STATE.selected) {
+        const node = Array.from(document.querySelectorAll('#treeCanvas [data-node]')).find(el => el.dataset.node === TREES_STATE.selected);
+        sel.innerHTML = `<strong>${escapeHtml(TREES_STATE.selected)}</strong> · ${escapeHtml(node ? node.textContent.replace(TREES_STATE.selected, '').trim() : '')}`;
+      } else {
+        sel.textContent = 'Haz clic en un nodo del árbol para comentarlo.';
+      }
+
+      const list = document.getElementById('treeCommentList');
+      list.innerHTML = (TREES_STATE.comments[TREES_STATE.view] || []).map((c, i) =>
+        `<li><span><strong>${escapeHtml(c.node)}</strong>: ${escapeHtml(c.text)}</span><button title="Quitar" onclick="removeTreeComment(${i})">✕</button></li>`
+      ).join('');
+
+      document.getElementById('treeHistory').innerHTML = (entry.review.iterations || []).slice().reverse().map(it =>
+        `<li>#${String(it.n).padStart(2, '0')} · ${escapeHtml(String(it.at || '').replace('T', ' '))} · ${it.comments} comentario${it.comments === 1 ? '' : 's'} · <a onclick="navigateTab('artifacts'); loadArtifact('${escapeHtml(it.request)}');">ver solicitud</a></li>`
+      ).join('') || '<li>Sin iteraciones todavía.</li>';
+    }
+
+    function selectTreeNode(id) {
+      TREES_STATE.selected = id;
+      document.querySelectorAll('#treeCanvas [data-node]').forEach(el => el.classList.toggle('is-selected', el.dataset.node === id));
+      renderTreeReview();
+      const input = document.getElementById('treeCommentInput');
+      if (input) input.focus();
+    }
+
+    function addTreeComment() {
+      const input = document.getElementById('treeCommentInput');
+      const text = (input.value || '').trim();
+      if (!TREES_STATE.selected) { treeMessage('Selecciona primero un nodo del árbol.', 'error'); return; }
+      if (!text) { treeMessage('Escribe qué cambiar en el nodo seleccionado.', 'error'); return; }
+      TREES_STATE.comments[TREES_STATE.view].push({ node: TREES_STATE.selected, text });
+      input.value = '';
+      treeMessage('');
+      renderTrees();
+    }
+
+    function removeTreeComment(i) {
+      TREES_STATE.comments[TREES_STATE.view].splice(i, 1);
+      renderTrees();
+    }
+
+    async function postTreeFeedback(tree, comments, general) {
+      const res = await fetch('/api/trees/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tree, comments, general }),
+      });
+      return res.json();
+    }
+
+    async function submitTreeFeedback() {
+      const view = TREES_STATE.view;
+      const gate = treeGate();
+      if (gate.send) { treeMessage(gate.send, 'error'); return; }
+      const comments = TREES_STATE.comments[view].slice();
+      const generalEl = document.getElementById('treeGeneralInput');
+      const general = (generalEl.value || '').trim();
+      if (!comments.length && !general) {
+        treeMessage('Comenta un nodo o escribe una indicación general antes de enviar.', 'error');
+        return;
+      }
+      let result;
+      try {
+        result = await postTreeFeedback(view, comments, general);
+      } catch (err) {
+        treeMessage(`No se pudo registrar el ajuste: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { treeMessage(result.error || 'No se pudo registrar el ajuste.', 'error'); return; }
+      sendTerminalPrompt(result.prompt);
+      TREES_STATE.comments[view] = [];
+      generalEl.value = '';
+      treeMessage(`Solicitud ${result.request} enviada al agente. El árbol se actualiza aquí cuando el agente lo reescriba.`, 'ok');
+      renderTreeReview();
+      await loadTrees();
+    }
+
+    async function requestTreeProposal() {
+      const gate = treeProposalGate();
+      if (gate) { treeMessage(gate, 'error'); return; }
+      const result = await postTreeFeedback('problemas', [], 'Proponer el árbol de problemas a partir de los subproblemas de §3: tres grupos de causas (uno por subproblema), el problema central, los efectos y la solución.');
+      if (!result.ok) { treeMessage(result.error || 'No se pudo registrar la solicitud.', 'error'); return; }
+      sendTerminalPrompt(result.prompt);
+      treeMessage(`Solicitud ${result.request} enviada al agente.`, 'ok');
+      await loadTrees();
+    }
+
+    async function approveCurrentTree() {
+      const view = TREES_STATE.view;
+      let result;
+      try {
+        const res = await fetch('/api/trees/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tree: view }),
+        });
+        result = await res.json();
+      } catch (err) {
+        treeMessage(`No se pudo aprobar: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { treeMessage(result.error || 'No se pudo aprobar.', 'error'); return; }
+      treeMessage(view === 'problemas'
+        ? 'Árbol de problemas aprobado. Sigue el árbol de objetivos.'
+        : 'Árbol de objetivos aprobado.', 'ok');
+      await loadTrees();
+      if (view === 'problemas' && TREES_STATE.data && TREES_STATE.data.stage === 'objetivos') setTreeView('objetivos');
+    }
+
+    // Asegura una terminal con un agente que entienda los slash commands y el
+    // texto libre; en Shell o AGY cambia a Claude Code y espera a que arranque.
+    function withCommandAgentReady(fn) {
+      const isOpen = () => terminalSocket && terminalSocket.readyState === WebSocket.OPEN;
+      const capable = ['claude', 'opencode', 'pi', 'herdr'].includes(selectedAgent);
+      if (capable && isOpen()) { fn(); return; }
+      if (!capable) {
+        const select = document.getElementById('terminalAgentSelect');
+        if (select) select.value = 'claude';
+      }
       if (!isTerminalOpen) openMorfeoTerminal();
-      onTerminalAgentChange();
+      if (!capable) onTerminalAgentChange();
+      else if (!isOpen()) ensureTerminalConnected(true);
       const started = Date.now();
-      const waitOpen = setInterval(() => {
-        const open = terminalSocket && terminalSocket.readyState === WebSocket.OPEN;
-        if (!open && Date.now() - started < 10000) return;
-        clearInterval(waitOpen);
-        if (open) setTimeout(() => sendTerminalQuickCommand(cmd), 2500);
+      const wait = setInterval(() => {
+        if (!isOpen() && Date.now() - started < 10000) return;
+        clearInterval(wait);
+        if (isOpen()) setTimeout(fn, 2500);
       }, 200);
+    }
+
+    // Un prompt largo se escribe y se confirma por separado: enviado junto con
+    // el retorno, el agente puede tomarlo como texto pegado y no enviarlo.
+    function sendTerminalPrompt(text) {
+      withCommandAgentReady(() => {
+        terminalSocket.send(text);
+        setTimeout(() => {
+          if (terminalSocket && terminalSocket.readyState === WebSocket.OPEN) terminalSocket.send('\r');
+          if (terminalInstance) terminalInstance.focus();
+        }, 200);
+      });
     }
 
     let currentStatus = null;
@@ -3135,6 +3597,9 @@
       if (targetBtn) targetBtn.classList.add('active');
       const targetPane = document.getElementById(`pane-${tabId}`);
       if (targetPane) targetPane.classList.add('active');
+
+      if (tabId === 'trees') startTreesPolling();
+      else stopTreesPolling();
 
       if (tabId === 'preview') {
         initPdfViewer();

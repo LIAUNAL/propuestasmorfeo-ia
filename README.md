@@ -140,6 +140,7 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
    - Visualización gráfica de las 13 etapas metodológicas del pipeline y sus compuertas.
    - Las fases completadas y aprobadas se iluminan con borde activo, resplandor esmeralda/cian y badge de verificación.
    - Las fases pendientes permanecen en reposo visual sutil, evitando sobrecarga cognitiva.
+   - Cada caja de fase trae un botón **«Ejecutar»**. Solo queda activo en la unidad que el flujo va a correr (`next_step` del control de ejecución) o en el intake mientras siga abierto, y envía `/propuesta-continuar` o `/propuesta-analizar` a la terminal del asistente. En cualquier otra fase explica qué etapas, compuertas y secciones faltan para habilitarla.
 
 2. **Visor PDF Integrado de Alto Rendimiento:**
    - Motor de previsualización basado en PDF.js con renderizado asíncrono no bloqueante.
@@ -161,6 +162,12 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
 5. **Telemetría y Grafos de Conocimiento:**
    - Monitor de consumo acumulado de tokens, tool-uses y duración por fase.
    - Visores interactivos embebidos para explorar el grafo de literatura científica (`papers-graph`) y el mapa conceptual del vault Obsidian (`vault-graph`).
+
+6. **Árbol de problemas y objetivos:**
+   - Pestaña propia, entre «Pipeline y Avance» y «Secciones». Dibuja el árbol de problemas a partir de `redaccion/specs/arbol_problemas.spec.json` (copa, efectos, problema central y causas agrupadas por subproblema).
+   - Propone el árbol de objetivos como espejo del anterior: cada causa da un medio, cada subproblema su objetivo específico, el problema central el objetivo general y cada efecto un fin. Toma §6 y §7 cuando ya existen y deja en línea punteada lo que el agente aún debe redactar. Si el agente escribe `artefactos/arboles/arbol_objetivos.json`, esa versión reemplaza la derivada.
+   - Se itera nodo por nodo: un clic selecciona el nodo, se escribe el comentario y **«Enviar ajuste al agente»** guarda la solicitud en `artefactos/arboles/ajuste_<árbol>_NN.md` y se la pasa a la terminal (`disenador-tikz` para el de problemas, `investigador` para el de objetivos). La pestaña se refresca sola y avisa cuando llega una versión nueva.
+   - La aprobación queda en `artefactos/arboles/revision.json`, atada al contenido aprobado: si el árbol cambia después, la aprobación caduca. El de objetivos solo se itera y se aprueba con el de problemas aprobado y sin textos pendientes.
 
 ---
 
