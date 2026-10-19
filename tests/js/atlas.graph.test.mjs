@@ -14,12 +14,14 @@ const __dirname = dirname(__filename);
 const HTML_PATH = resolve(__dirname, '../../src/morfeo/dashboard/static/index.html');
 const htmlSource = readFileSync(HTML_PATH, 'utf-8');
 
-test('el panel de Grafos Proyecto incluye los 3 botones de grafos y el botón de manuscrito funciona', () => {
+test('el panel de Grafos Proyecto incluye los 3 botones de grafos y el botón de manuscrito funciona', (t) => {
   const dom = new JSDOM(htmlSource, {
     runScripts: 'dangerously',
     url: 'http://localhost:8080/'
   });
 
+  // Cerrar la ventana aun si una aserción falla: sus timers colgarían `npm test`.
+  t.after(() => dom.window.close());
   const { window } = dom;
   const doc = window.document;
 
@@ -49,8 +51,7 @@ test('el panel de Grafos Proyecto incluye los 3 botones de grafos y el botón de
   assert.ok(btnManuscript.classList.contains('btn--primary'), 'El botón de manuscrito debe estar activo');
   assert.ok(!btnPapers.classList.contains('btn--primary'), 'El botón de papers debe quedar inactivo');
   assert.ok(!btnVault.classList.contains('btn--primary'), 'El botón de vault debe quedar inactivo');
-  assert.equal(iframe.src, 'http://localhost:8080/api/graph/manuscript');
+  // El iframe lleva `?t=<marca>` para saltarse la caché del navegador.
+  assert.match(iframe.src, /^http:\/\/localhost:8080\/api\/graph\/manuscript\?t=\d+$/);
   assert.equal(linkOpen.href, 'http://localhost:8080/api/graph/manuscript');
-
-  dom.window.close();
 });

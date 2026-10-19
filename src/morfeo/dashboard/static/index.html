@@ -341,6 +341,40 @@
       border-color: var(--accent);
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
+    .phase-card { position: relative; }
+    .phase-card__run {
+      position: absolute;
+      top: 0.55rem;
+      right: 0.6rem;
+      z-index: 2;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-muted);
+    }
+    .phase-card__run.is-ready {
+      border-color: var(--ok);
+      color: var(--ok);
+    }
+    .phase-card__run.is-ready:hover { background: var(--ok); color: #fff; }
+    .phase-card__run.is-blocked { opacity: 0.75; }
+    .phase-card__run.is-blocked:hover { opacity: 1; color: var(--text-normal); }
+    .phase-card__head { padding-right: 5.5rem; }
+    .phase-exec-cmd {
+      display: inline-block;
+      margin-top: 0.35rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      background: #060913;
+      border: 1px solid #1e293b;
+    }
+    .phase-exec-note { margin-top: 0.6rem; font-size: 0.8rem; color: #94a3b8; }
+    .phase-exec-missing { margin: 0.35rem 0 0 1.1rem; }
+    .phase-exec-missing li { margin-bottom: 0.3rem; }
     .phase-card__head {
       display: flex;
       justify-content: space-between;
@@ -2675,6 +2709,23 @@
     </div>
   </div>
 
+  <div id="phaseExecModal" class="morfeo-tools-modal-overlay" onclick="if (event.target === this) closePhaseExecModal()">
+    <div class="morfeo-tools-modal">
+      <div class="morfeo-tools-modal__header">
+        <div class="morfeo-tools-modal__title">
+          <span id="phaseExecModalIcon">▶</span>
+          <span id="phaseExecModalTitle">Ejecutar etapa</span>
+        </div>
+        <button class="morfeo-tools-modal__close" onclick="closePhaseExecModal()" title="Cerrar">✕</button>
+      </div>
+      <div class="morfeo-tools-modal__body" id="phaseExecModalBody"></div>
+      <div class="morfeo-tools-modal__footer">
+        <button class="btn-secondary" onclick="closePhaseExecModal()">Cerrar</button>
+        <button class="btn-primary" id="phaseExecConfirmBtn" onclick="confirmPhaseExecution()">▶ Ejecutar en terminal</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Ventana Flotante del Asistente Terminal CLI -->
   <div id="morfeoTerminalWindow" class="morfeo-terminal-window">
     <div class="morfeo-terminal-header">
@@ -2862,6 +2913,183 @@
 
     function copyNextCommand(btn) {
       copyCommand('/propuesta-continuar', btn);
+    }
+
+    // Veredicto de una unidad a partir del sobre de estado: la compuerta manda y,
+    // sin compuerta, la fila de telemetría de la unidad.
+    function resolvePhaseVerdict(p, data) {
+      const gateMatch = (data.gates || []).find(g =>
+        g.id === p.gate ||
+        g.phase === p.id ||
+        (p.gate && String(g.id || '').toLowerCase().replace(/[^a-z0-9]/g, '') === p.gate.toLowerCase().replace(/[^a-z0-9]/g, ''))
+      );
+      if (gateMatch && gateMatch.status) return gateMatch.status;
+
+      const telemMatch = (data.telemetria || []).find(t => {
+        const tf = String(t.fase || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const pf = String(p.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return tf === pf || tf === pf.replace('fase', 'fase_');
+      });
+      if (telemMatch && telemMatch.veredicto) {
+        return telemMatch.veredicto.toUpperCase().includes('PASS') ? 'PASS' : telemMatch.veredicto;
+      }
+      return 'PENDING';
+    }
+
+    // Qué falta para que una unidad pase: su compuerta y las secciones que produce.
+    function describePendingUnit(u, data) {
+      const parts = [`${formatPhaseNumber(u.id)} · ${u.name}`];
+      if (u.gate) parts.push(`compuerta ${u.gate} en PASS`);
+      const secs = (u.sections || []).map(num => {
+        const s = (data.sections || []).find(x => String(x.id || '').split('_')[0] === num);
+        return s ? `§${num} (sections/${s.filename}: ${s.status})` : `§${num} (sin redactar)`;
+      });
+      if (secs.length) parts.push(`secciones ${secs.join(', ')}`);
+      return parts.join(' · ');
+    }
+
+    // Regla del botón «Ejecutar» de cada caja. El flujo es lineal: solo se
+    // ejecuta la unidad que `/propuesta-continuar` va a correr (`next_step` del
+    // control de ejecución) o el intake mientras no esté cerrado. Cualquier otro
+    // caso devuelve qué etapas, artefactos o procesos faltan.
+    function evaluatePhaseExecution(unitId, data) {
+      data = data || {};
+      const units = Array.isArray(data.pipeline_units) ? data.pipeline_units : [];
+      const p = units.find(u => u.id === unitId);
+      const blocked = (reason, missing = [], missingLabel = 'Falta para habilitarla:') => ({ allowed: false, command: null, reason, missing, missingLabel, note: null });
+      if (!p) return blocked('La unidad no figura en el inventario del pipeline.');
+
+      if (!data.active_run) {
+        return blocked('No hay una corrida activa sobre la cual ejecutar el pipeline.', [
+          'Crear y activar la corrida con /propuesta-init <idea>',
+          'Depositar los insumos (TDR, borradores, papers) en insumos/ con /propuesta-insumos',
+        ]);
+      }
+
+      const enCurso = data.en_curso;
+      if (enCurso && enCurso.fase) {
+        const actual = units.find(u => u.id === enCurso.fase);
+        const nombre = actual ? `${formatPhaseNumber(actual.id)} · ${actual.name}` : enCurso.fase;
+        if (enCurso.fase === p.id) {
+          return blocked(`Esta unidad ya está en ejecución (${(enCurso.agentes || []).join(', ') || 'agentes sin registrar'}).`, [
+            'Esperar a que la unidad termine y borre su latido artefactos/pipeline/_en_curso.json',
+            'Si la sesión se interrumpió, retomar con /propuesta-continuar desde Claude Code',
+          ], 'Qué hacer:');
+        }
+        return blocked(`Hay otra unidad en ejecución: ${nombre}. El pipeline corre una unidad a la vez.`, [
+          `Terminar ${nombre} (su latido sigue en artefactos/pipeline/_en_curso.json)`,
+        ]);
+      }
+
+      const verdict = u => resolvePhaseVerdict(u, data);
+      const control = data.control || null;
+      const fase0 = units.find(u => u.id === 'fase0');
+      const intakeDone = control ? !!control.intake_complete : !!(fase0 && verdict(fase0) === 'PASS');
+
+      if (p.kind === 'pre') {
+        if (intakeDone) {
+          return blocked('El intake ya se completó para esta corrida; el flujo avanza ahora con /propuesta-continuar.');
+        }
+        const res = { allowed: true, command: '/propuesta-analizar', reason: p.id === 'g0_5'
+          ? 'La guía ajustada al TDR se ofrece dentro de /propuesta-analizar cuando hay un TDR en insumos/tdr/.'
+          : 'El intake está pendiente: /propuesta-analizar clasifica los insumos y deja listo el control de ejecución.', missing: [], note: null };
+        if (!(data.run_details && data.run_details.insumos_count)) {
+          res.note = 'insumos/ está vacío: /propuesta-analizar tomará la idea de los argumentos o de insumos/ideas/.';
+        }
+        return res;
+      }
+
+      if (!intakeDone) {
+        return blocked('El intake de la corrida no se ha completado; ninguna unidad del pipeline puede correr antes.', [
+          `${fase0 ? formatPhaseNumber(fase0.id) + ' · ' + fase0.name : 'Fase 0 · Intake'}: ejecutar /propuesta-analizar`,
+          'Opcional: G0.5 · guía ajustada al TDR si la convocatoria trae TDR',
+        ]);
+      }
+
+      const steps = units.filter(u => u.kind !== 'pre');
+      let nextId = control && control.next_step ? control.next_step : null;
+      if (!nextId) nextId = (steps.find(u => verdict(u) !== 'PASS') || {}).id || 'done';
+
+      if (nextId === 'done') {
+        return blocked('El pipeline ya está completo: todas las unidades se ejecutaron.', [
+          'Compilar el documento con /compilar-pdf o /compilar-docx',
+        ], 'Siguiente paso:');
+      }
+      if (nextId === p.id) {
+        return { allowed: true, command: '/propuesta-continuar', reason: `Esta es la unidad que sigue en el flujo (next_step: ${p.id}).`, missing: [], note: null };
+      }
+
+      const idxTarget = steps.findIndex(u => u.id === p.id);
+      const idxNext = steps.findIndex(u => u.id === nextId);
+      if (idxNext === -1) {
+        return blocked(`El control de ejecución apunta a «${nextId}», que no está en el inventario de unidades.`, [
+          'Revisar el bloque «Control de ejecución» de artefactos/estado_propuesta.md',
+        ], 'Qué hacer:');
+      }
+      const next = steps[idxNext];
+      if (idxTarget < idxNext) {
+        return blocked(`Esta unidad ya se completó; el flujo sigue en ${formatPhaseNumber(next.id)} · ${next.name}. Para rehacerla, despacha su agente directamente desde Claude Code.`);
+      }
+      return blocked(
+        `El flujo todavía no llega a esta unidad: sigue ${formatPhaseNumber(next.id)} · ${next.name}.`,
+        steps.slice(idxNext, idxTarget).map(u => describePendingUnit(u, data))
+      );
+    }
+
+    let PHASE_EXEC_PENDING = null;
+
+    function runPhaseExecution(unitId) {
+      const data = currentStatus || {};
+      const p = (PHASES_INFO || []).find(u => u.id === unitId) || { id: unitId, name: unitId };
+      const v = evaluatePhaseExecution(unitId, data);
+      PHASE_EXEC_PENDING = v.allowed ? v.command : null;
+
+      document.getElementById('phaseExecModalTitle').textContent = `${formatPhaseNumber(p.id)} · ${p.name}`;
+      const icon = document.getElementById('phaseExecModalIcon');
+      icon.textContent = v.allowed ? '▶' : '⛔';
+      const body = v.allowed
+        ? `<p>${escapeHtml(v.reason)}</p>
+           <p style="margin-top: 0.65rem;">Se enviará a la terminal del asistente (Claude Code por defecto):</p>
+           <code class="phase-exec-cmd">${escapeHtml(v.command)}</code>
+           ${v.note ? `<p class="phase-exec-note">${escapeHtml(v.note)}</p>` : ''}
+           <p class="phase-exec-note">Las compuertas siguen deteniendo el flujo hasta tu aprobación.</p>`
+        : `<p><strong>Aún no se puede ejecutar esta etapa.</strong> ${escapeHtml(v.reason)}</p>
+           ${v.missing.length
+             ? `<p style="margin-top: 0.65rem;">${escapeHtml(v.missingLabel || 'Falta para habilitarla:')}</p>
+                <ul class="phase-exec-missing">${v.missing.map(m => `<li>${escapeHtml(m)}</li>`).join('')}</ul>`
+             : ''}`;
+      document.getElementById('phaseExecModalBody').innerHTML = body;
+      document.getElementById('phaseExecConfirmBtn').style.display = v.allowed ? '' : 'none';
+      document.getElementById('phaseExecModal').classList.add('is-open');
+    }
+
+    function closePhaseExecModal() {
+      PHASE_EXEC_PENDING = null;
+      document.getElementById('phaseExecModal').classList.remove('is-open');
+    }
+
+    // Los slash commands del marco existen en Claude Code, OpenCode y Pi; Herdr
+    // refleja el panel del agente. En Shell o AGY se cambia a Claude Code, el
+    // runtime canónico, y se espera a que arranque antes de escribir.
+    function confirmPhaseExecution() {
+      const cmd = PHASE_EXEC_PENDING;
+      closePhaseExecModal();
+      if (!cmd) return;
+      if (['claude', 'opencode', 'pi', 'herdr'].includes(selectedAgent)) {
+        sendTerminalQuickCommand(cmd);
+        return;
+      }
+      const select = document.getElementById('terminalAgentSelect');
+      if (select) select.value = 'claude';
+      if (!isTerminalOpen) openMorfeoTerminal();
+      onTerminalAgentChange();
+      const started = Date.now();
+      const waitOpen = setInterval(() => {
+        const open = terminalSocket && terminalSocket.readyState === WebSocket.OPEN;
+        if (!open && Date.now() - started < 10000) return;
+        clearInterval(waitOpen);
+        if (open) setTimeout(() => sendTerminalQuickCommand(cmd), 2500);
+      }, 200);
     }
 
     let currentStatus = null;
@@ -3263,22 +3491,7 @@
 
         // Helper para resolver el estado exacto de cualquier fase
         function getPhaseVerdict(p) {
-          const gateMatch = (data.gates || []).find(g => 
-            g.id === p.gate || 
-            g.phase === p.id ||
-            (p.gate && g.id.toLowerCase().replace(/[^a-z0-9]/g, '') === p.gate.toLowerCase().replace(/[^a-z0-9]/g, ''))
-          );
-          if (gateMatch && gateMatch.status) return gateMatch.status;
-          
-          const telemMatch = (data.telemetria || []).find(t => {
-            const tf = t.fase.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const pf = p.id.toLowerCase().replace(/[^a-z0-9]/g, '');
-            return tf === pf || tf === pf.replace('fase', 'fase_');
-          });
-          if (telemMatch && telemMatch.veredicto) {
-            return telemMatch.veredicto.toUpperCase().includes('PASS') ? 'PASS' : telemMatch.veredicto;
-          }
-          return 'PENDING';
+          return resolvePhaseVerdict(p, data);
         }
 
         // Render Illuminated vs Unlit Flujo General
@@ -3354,7 +3567,10 @@
           const enCurso = !!(EN_CURSO && EN_CURSO.fase === p.id);
           card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
           card.onclick = () => openDrawer(idx);
+          const exec = evaluatePhaseExecution(p.id, data);
           card.innerHTML = `
+            <button type="button" class="phase-card__run ${exec.allowed ? 'is-ready' : 'is-blocked'}" data-unit="${escapeHtml(p.id)}"
+              title="${exec.allowed ? `Ejecutar ${exec.command}` : 'Aún no ejecutable: clic para ver qué falta'}">▶ Ejecutar</button>
             <div class="phase-card__head">
               <span class="phase-card__name">${p.name}</span>
               <span class="badge badge--${enCurso ? 'info' : badgeTone}">${enCurso ? '⏳ EN CURSO' : `${isLit ? '💡 ' : ''}${p.gateLabel}: ${gateStatus}`}</span>
@@ -3365,6 +3581,10 @@
               <span>${p.sections.length} secciones</span>
             </div>
           `;
+          card.querySelector('.phase-card__run').addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            runPhaseExecution(p.id);
+          });
           pipeGrid.appendChild(card);
         });
 

@@ -287,6 +287,49 @@ def parse_in_progress(run_dir: Path) -> dict[str, Any] | None:
     }
 
 
+def parse_execution_control(run_dir: Path) -> dict[str, Any] | None:
+    """Bloque «Control de ejecución» de `artefactos/estado_propuesta.md`.
+
+    `next_step` es la unidad que `/propuesta-continuar` va a correr; el tablero
+    lo usa para habilitar su botón «Ejecutar» solo sobre esa unidad. Sin bloque
+    (corrida recién creada o limpiada) devuelve None.
+    """
+    estado = run_dir / "artefactos" / "estado_propuesta.md"
+    if not estado.is_file():
+        return None
+    text = estado.read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"^##\s*Control de ejecuci[oó]n\s*$(.*?)(?=^##\s|\Z)", text, re.M | re.S)
+    if not match:
+        return None
+    fields: dict[str, str] = {}
+    for line in match.group(1).splitlines():
+        item = re.match(r"^\s*[-*]\s*([a-z_]+)\s*:\s*(.*?)\s*$", line)
+        if item:
+            fields[item.group(1)] = item.group(2)
+    if not fields:
+        return None
+    return {
+        "mode": fields.get("mode") or None,
+        "next_step": fields.get("next_step") or None,
+        "next_command": fields.get("next_command") or None,
+        "last_completed": fields.get("last_completed") or None,
+        "intake_complete": fields.get("intake_complete", "").lower() == "true",
+    }
+
+
+def count_user_inputs(run_dir: Path) -> int:
+    """Archivos que el usuario dejó en `insumos/`, sin el README que siembra
+    `/propuesta-insumos` ni archivos ocultos."""
+    insumos = run_dir / "insumos"
+    if not insumos.is_dir():
+        return 0
+    return sum(
+        1
+        for f in insumos.rglob("*")
+        if f.is_file() and not f.name.startswith(".") and f.name != "README.md"
+    )
+
+
 def list_artifacts_info(run_dir: Path) -> list[dict[str, Any]]:
     art_dir = run_dir / "artefactos"
     if not art_dir.is_dir():
@@ -355,6 +398,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
     telemetria: list[dict[str, Any]] = []
     artifacts: list[dict[str, Any]] = []
     en_curso: dict[str, Any] | None = None
+    control: dict[str, Any] | None = None
     totals: dict[str, Any] = {
         "sections_count": 0,
         "total_words": 0,
@@ -378,6 +422,8 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
             run_info["created"] = run_meta["created"]
             run_info["status"] = run_meta["status"]
             en_curso = parse_in_progress(run_dir)
+            control = parse_execution_control(run_dir)
+            run_info["insumos_count"] = count_user_inputs(run_dir)
             run_info["run_md"] = (run_dir / "_run.md").is_file()
 
             # Files
@@ -463,6 +509,8 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
         "artifacts": artifacts,
         # El latido de la unidad en curso, cuando el dispatcher lo ha escrito.
         "en_curso": en_curso,
+        # Control de ejecución: `next_step` decide qué unidad puede ejecutarse.
+        "control": control,
         # El inventario de unidades viaja en el sobre para que el tablero deje de
         # mantener su propia lista de fases y derive de aquí.
         "pipeline_units": PIPELINE_UNITS,

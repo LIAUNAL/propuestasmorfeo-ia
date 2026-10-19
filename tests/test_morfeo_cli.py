@@ -63,6 +63,47 @@ class TestMorfeoCLI(unittest.TestCase):
             self.assertEqual(status["en_curso"]["agentes"], ["redactor"])
             self.assertEqual(status["en_curso"]["skill"], "estilo-natural-es")
 
+    def test_status_reports_the_execution_control_block(self):
+        """El botón «Ejecutar» del tablero solo habilita la unidad que
+        `/propuesta-continuar` va a correr; esa unidad es `next_step` del bloque
+        de control, no la que el tablero deduzca de los veredictos."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo = Path(tmpdir)
+            run = repo / "proposals" / "2026-01-demo"
+            (run / "artefactos").mkdir(parents=True)
+            (run / "insumos" / "tdr").mkdir(parents=True)
+            (run / "insumos" / "README.md").write_text("zonas", encoding="utf-8")
+            (run / "insumos" / "tdr" / "tdr.pdf").write_bytes(b"%PDF")
+            (repo / "proposals" / ".current-run").write_text(
+                "2026-01-demo\n", encoding="utf-8"
+            )
+            (run / "artefactos" / "estado_propuesta.md").write_text(
+                "# Estado\n\n## Control de ejecución\n\n"
+                "- mode: stepped\n- next_step: fase2\n"
+                "- next_command: /propuesta-continuar\n"
+                "- last_completed: fase1\n- intake_complete: true\n",
+                encoding="utf-8",
+            )
+
+            status = get_project_status(repo, force_refresh=True)
+            self.assertEqual(status["control"]["next_step"], "fase2")
+            self.assertEqual(status["control"]["last_completed"], "fase1")
+            self.assertIs(status["control"]["intake_complete"], True)
+            # README.md lo siembra /propuesta-insumos: no es un insumo del usuario.
+            self.assertEqual(status["run_details"]["insumos_count"], 1)
+
+    def test_status_without_a_control_block_reports_none(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo = Path(tmpdir)
+            run = repo / "proposals" / "2026-01-demo"
+            (run / "artefactos").mkdir(parents=True)
+            (repo / "proposals" / ".current-run").write_text(
+                "2026-01-demo\n", encoding="utf-8"
+            )
+            status = get_project_status(repo, force_refresh=True)
+            self.assertIsNone(status["control"])
+            self.assertEqual(status["run_details"]["insumos_count"], 0)
+
     def test_status_without_a_heartbeat_reports_none(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo = Path(tmpdir)
