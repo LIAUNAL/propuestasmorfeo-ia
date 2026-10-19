@@ -275,6 +275,21 @@ class TestDashboardTerminalBridge(unittest.TestCase):
             server.shutdown()
             server.server_close()
 
+    def test_split_complete_utf8_boundary(self):
+        from src.morfeo.dashboard.terminal import split_complete_utf8
+
+        # Box drawing char '─' is \xe2\x94\x80 (3 bytes)
+        data = b"spaces \xe2\x94"
+        prefix, rem = split_complete_utf8(data)
+        self.assertEqual(prefix, b"spaces ")
+        self.assertEqual(rem, b"\xe2\x94")
+
+        next_chunk = rem + b"\x80 agents"
+        prefix2, rem2 = split_complete_utf8(next_chunk)
+        self.assertEqual(prefix2, "─ agents".encode("utf-8"))
+        self.assertEqual(prefix + prefix2, "spaces ─ agents".encode("utf-8"))
+        self.assertEqual(rem2, b"")
+
 
 if __name__ == "__main__":
     unittest.main()

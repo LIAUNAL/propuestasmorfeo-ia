@@ -2951,6 +2951,9 @@
       if (tabId === 'preview') {
         initPdfViewer();
       }
+      if (typeof isTerminalOpen !== 'undefined' && isTerminalOpen && typeof ensureTerminalConnected === 'function') {
+        setTimeout(() => ensureTerminalConnected(false), 60);
+      }
     }
 
     let currentGraphKind = 'papers';
@@ -3149,7 +3152,10 @@
         currentStatus = data;
         if (data.active_run) {
           const footerRun = document.getElementById('terminalFooterRun');
-          if (footerRun) footerRun.textContent = `proposals/${data.active_run}`;
+          if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;
+        }
+        if (typeof isTerminalOpen !== 'undefined' && isTerminalOpen && typeof ensureTerminalConnected === 'function') {
+          ensureTerminalConnected(false);
         }
 
         // Carga el artefacto inicial únicamente una vez al arrancar
@@ -6388,6 +6394,30 @@
       }
     }
 
+    let terminalPingTimer = null;
+    let terminalReconnectTimer = null;
+    let terminalProcessExited = false;
+
+    function ensureTerminalConnected(forceRedraw = false) {
+      if (!isTerminalOpen) return;
+      if (!terminalInstance) {
+        setupTerminal();
+        return;
+      }
+      const sockDead = !terminalSocket || (
+        terminalSocket.readyState !== WebSocket.OPEN &&
+        terminalSocket.readyState !== WebSocket.CONNECTING
+      );
+      if (sockDead) {
+        terminalProcessExited = false;
+        connectTerminalWs(selectedAgent);
+      } else if (terminalSocket.readyState === WebSocket.OPEN) {
+        if (fitAddonInstance) fitAddonInstance.fit();
+        sendTerminalResize(forceRedraw);
+      }
+      terminalInstance.focus();
+    }
+
     function openMorfeoTerminal() {
       const win = document.getElementById('morfeoTerminalWindow');
       const fab = document.getElementById('morfeoAssistantFab');
@@ -6400,10 +6430,8 @@
         setupTerminal();
       } else {
         setTimeout(() => {
-          if (fitAddonInstance) fitAddonInstance.fit();
-          terminalInstance.focus();
-          sendTerminalResize();
-        }, 120);
+          ensureTerminalConnected(true);
+        }, 80);
       }
     }
 
@@ -6428,7 +6456,8 @@
       }
       setTimeout(() => {
         if (fitAddonInstance) fitAddonInstance.fit();
-        sendTerminalResize();
+        sendTerminalResize(true);
+        if (terminalInstance) terminalInstance.focus();
       }, 150);
     }
 
@@ -6473,6 +6502,10 @@
 
       terminalInstance.open(container);
 
+      container.addEventListener('mousedown', () => {
+        if (terminalInstance) terminalInstance.focus();
+      });
+
       setTimeout(() => {
         if (fitAddonInstance) fitAddonInstance.fit();
         connectTerminalWs(selectedAgent);
@@ -6482,6 +6515,8 @@
       terminalInstance.onData(data => {
         if (terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {
           terminalSocket.send(data);
+        } else if (isTerminalOpen) {
+          ensureTerminalConnected(true);
         }
       });
 
@@ -6493,6 +6528,14 @@
     }
 
     function connectTerminalWs(agent) {
+      if (terminalReconnectTimer) {
+        clearTimeout(terminalReconnectTimer);
+        terminalReconnectTimer = null;
+      }
+      if (terminalPingTimer) {
+        clearInterval(terminalPingTimer);
+        terminalPingTimer = null;
+      }
       if (terminalSocket) {
         const oldSock = terminalSocket;
         terminalSocket = null;
@@ -6503,6 +6546,7 @@
         try { oldSock.close(); } catch(e) {}
       }
 
+      terminalProcessExited = false;
       updateTerminalStatus('connecting', agent);
 
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -6526,21 +6570,52 @@
         if (terminalSocket !== ws) return;
         updateTerminalStatus('connected', agent);
         if (fitAddonInstance) fitAddonInstance.fit();
-        sendTerminalResize();
+        sendTerminalResize(true);
+        if (isTerminalOpen && terminalInstance) {
+          terminalInstance.focus();
+        }
+        terminalPingTimer = setInterval(() => {
+          if (terminalSocket === ws && ws.readyState === WebSocket.OPEN) {
+            try {
+              ws.send(JSON.stringify({ type: 'ping' }));
+            } catch (_) {}
+          }
+        }, 15000);
       };
 
       ws.onmessage = (event) => {
         if (terminalSocket !== ws || !terminalInstance) return;
         if (event.data instanceof ArrayBuffer) {
-          terminalInstance.write(new Uint8Array(event.data));
+          const bytes = new Uint8Array(event.data);
+          try {
+            const textSample = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+            if (textSample.includes('[Morfeo] Sesión finalizada')) {
+              terminalProcessExited = true;
+            }
+          } catch (_) {}
+          terminalInstance.write(bytes);
         } else {
+          if (typeof event.data === 'string' && event.data.includes('[Morfeo] Sesión finalizada')) {
+            terminalProcessExited = true;
+          }
           terminalInstance.write(event.data);
         }
       };
 
       ws.onclose = () => {
         if (terminalSocket === ws) {
+          if (terminalPingTimer) {
+            clearInterval(terminalPingTimer);
+            terminalPingTimer = null;
+          }
           updateTerminalStatus('disconnected', agent);
+          if (isTerminalOpen && !terminalProcessExited && !document.hidden) {
+            terminalReconnectTimer = setTimeout(() => {
+              if (isTerminalOpen && terminalSocket === ws) {
+                connectTerminalWs(selectedAgent);
+              }
+            }, 600);
+          }
         }
       };
 
@@ -6552,12 +6627,13 @@
       };
     }
 
-    function sendTerminalResize() {
+    function sendTerminalResize(forceRedraw = false) {
       if (terminalInstance && terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {
         const resizePayload = JSON.stringify({
           type: 'resize',
           cols: terminalInstance.cols,
-          rows: terminalInstance.rows
+          rows: terminalInstance.rows,
+          redraw: Boolean(forceRedraw)
         });
         terminalSocket.send(resizePayload);
       }
@@ -6642,7 +6718,17 @@
 
     function sendTerminalQuickCommand(cmd) {
       if (!terminalSocket || terminalSocket.readyState !== WebSocket.OPEN) {
-        if (!isTerminalOpen) openMorfeoTerminal();
+        if (!isTerminalOpen) {
+          openMorfeoTerminal();
+        } else {
+          ensureTerminalConnected(true);
+        }
+        setTimeout(() => {
+          if (terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {
+            terminalSocket.send(cmd + '\r');
+            if (terminalInstance) terminalInstance.focus();
+          }
+        }, 250);
         return;
       }
       terminalSocket.send(cmd + '\r');
@@ -6674,6 +6760,22 @@
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         loadStatus();
+        if (isTerminalOpen) {
+          ensureTerminalConnected(true);
+        }
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      if (isTerminalOpen) {
+        ensureTerminalConnected(true);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (isTerminalOpen && terminalInstance) {
+        if (fitAddonInstance) fitAddonInstance.fit();
+        sendTerminalResize(false);
       }
     });
 

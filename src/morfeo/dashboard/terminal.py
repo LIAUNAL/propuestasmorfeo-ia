@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import pty
+import re
 import select
 import shutil
 import signal
@@ -26,6 +27,41 @@ from typing import Any, Optional
 
 
 WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+# Strip terminal capability queries that the server answers directly on master_fd
+# so xterm.js does not echo 256 palette/color reports or mutate theme colors.
+_ANSI_QUERY_STRIP_RE = re.compile(
+    rb"\x1b\]1[01];\?(?:\x1b\\|\x07)"
+    rb"|\x1b\]4;\d+;\?(?:\x1b\\|\x07)"
+    rb"|\x1b\[\?u"
+    rb"|\x1b\[\?996n"
+    rb"|\x1b\[1[468]t"
+)
+
+
+def split_complete_utf8(data: bytes) -> tuple[bytes, bytes]:
+    """Split a byte chunk into (valid_utf8_prefix, incomplete_trailing_bytes)."""
+    if not data:
+        return b"", b""
+    n = len(data)
+    for i in range(1, min(4, n + 1)):
+        b = data[n - i]
+        if (b & 0xC0) == 0x80:
+            continue
+        if b < 0x80:
+            return data, b""
+        if (b & 0xE0) == 0xC0:
+            expected = 2
+        elif (b & 0xF0) == 0xE0:
+            expected = 3
+        elif (b & 0xF8) == 0xF0:
+            expected = 4
+        else:
+            return data, b""
+        if i < expected:
+            return data[: n - i], data[n - i :]
+        return data, b""
+    return data, b""
 
 # Standard paths where user CLI tools are typically installed
 CLI_SEARCH_DIRS = [
@@ -475,7 +511,7 @@ def run_pane_mirror_session(
         )
         if r0.returncode == 0:
             initial_screen = b"\x1b[2J\x1b[H" + r0.stdout
-            sock.sendall(encode_ws_frame(initial_screen, 0x1))
+            sock.sendall(encode_ws_frame(initial_screen, 0x2))
     except Exception:
         pass
 
@@ -533,7 +569,14 @@ def run_pane_mirror_session(
                         if payload.startswith(b'{"type"') or payload.startswith(b'{"type "'):
                             try:
                                 msg = json.loads(payload.decode("utf-8"))
-                                if msg.get("type") in ("resize", "ping"):
+                                mtype = msg.get("type")
+                                if mtype == "ping":
+                                    try:
+                                        sock.sendall(encode_ws_frame(b"pong", 0xA))
+                                    except Exception:
+                                        pass
+                                    handled_control = True
+                                elif mtype == "resize":
                                     handled_control = True
                             except Exception:
                                 pass
@@ -560,7 +603,7 @@ def run_pane_mirror_session(
                         timeout=1.5,
                     )
                     if read_res.returncode == 0:
-                        sock.sendall(encode_ws_frame(b"\x1b[H" + read_res.stdout + b"\x1b[J", 0x1))
+                        sock.sendall(encode_ws_frame(b"\x1b[H" + read_res.stdout + b"\x1b[J", 0x2))
             except (socket.error, OSError):
                 break
             except Exception:
@@ -607,7 +650,9 @@ def run_pty_session(
             env["ACTIVE_RUN"] = active_run
 
     master_fd, slave_fd = pty.openpty()
-    set_terminal_size(master_fd, rows=init_rows, cols=init_cols)
+    current_rows = max(1, init_rows)
+    current_cols = max(2, init_cols)
+    set_terminal_size(master_fd, rows=current_rows, cols=current_cols)
 
     try:
         proc = subprocess.Popen(
@@ -623,7 +668,7 @@ def run_pty_session(
     finally:
         os.close(slave_fd)
 
-    def send_ws(payload: bytes, opcode: int = 0x1) -> bool:
+    def send_ws(payload: bytes, opcode: int = 0x2) -> bool:
         frame = encode_ws_frame(payload, opcode)
         try:
             sock.sendall(frame)
@@ -650,11 +695,12 @@ def run_pty_session(
                 f"\x1b[1;36m│\x1b[0m  Directorio: \x1b[90m{str(workspace_dir)[-45:]:<45}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
                 f"\x1b[1;36m└──────────────────────────────────────────────────────────────┘\x1b[0m\r\n\r\n"
             )
-            send_ws(welcome_banner.encode("utf-8"), 0x1)
+            send_ws(welcome_banner.encode("utf-8"), 0x2)
         elif warning_banner:
-            send_ws(warning_banner.encode("utf-8"), 0x1)
+            send_ws(warning_banner.encode("utf-8"), 0x2)
 
         in_buffer = bytearray()
+        utf8_remainder = b""
         should_exit = False
 
         while not should_exit:
@@ -666,15 +712,20 @@ def run_pty_session(
                     if master_fd in r:
                         leftover = os.read(master_fd, 16384)
                         if leftover:
-                            send_ws(leftover, 0x1)
+                            send_ws(utf8_remainder + leftover, 0x2)
+                            utf8_remainder = b""
                 except Exception:
                     pass
+
+                if utf8_remainder:
+                    send_ws(utf8_remainder, 0x2)
+                    utf8_remainder = b""
 
                 exit_msg = (
                     f"\r\n\x1b[33m[Morfeo] Sesión finalizada (código de salida: {proc.returncode}).\x1b[0m\r\n"
                     f"\x1b[90mPuedes reiniciar la sesión desde el selector de agente o cerrar el panel.\x1b[0m\r\n"
                 )
-                send_ws(exit_msg.encode("utf-8"), 0x1)
+                send_ws(exit_msg.encode("utf-8"), 0x2)
                 send_ws(b"", 0x8)  # WebSocket close
                 break
 
@@ -687,19 +738,20 @@ def run_pty_session(
             # Process PTY output -> send to WebSocket client
             if master_fd in rlist:
                 try:
-                    chunk = os.read(master_fd, 16384)
+                    raw_chunk = os.read(master_fd, 16384)
                 except OSError:
                     break
-                if not chunk:
+                if not raw_chunk:
                     break
+
+                chunk = utf8_remainder + raw_chunk
 
                 # Automatic terminal capability responses for crossterm and ratatui full-screen TUIs
                 if b"\x1b[c" in chunk:
                     try:
-                        os.write(master_fd, b"\x1b[?62;c")
+                        os.write(master_fd, b"\x1b[?62;22c")
                     except Exception:
                         pass
-                    # Strip DA1 query from chunk sent to client so xterm.js doesn't echo duplicate \x1b[?1;2c
                     chunk = chunk.replace(b"\x1b[c", b"")
 
                 if b"]11;?" in chunk:
@@ -707,14 +759,12 @@ def run_pty_session(
                         os.write(master_fd, b"\x1b]11;rgb:0808/0c0c/1414\x1b\\")
                     except Exception:
                         pass
-                    chunk = chunk.replace(b"]11;?", b"]11;rgb:0808/0c0c/1414")
 
                 if b"]10;?" in chunk:
                     try:
                         os.write(master_fd, b"\x1b]10;rgb:f1f1/f5f5/f9f9\x1b\\")
                     except Exception:
                         pass
-                    chunk = chunk.replace(b"]10;?", b"]10;rgb:f1f1/f5f5/f9f9")
 
                 if b"[?u" in chunk:
                     try:
@@ -722,8 +772,24 @@ def run_pty_session(
                     except Exception:
                         pass
 
-                if chunk:
-                    if not send_ws(chunk, 0x1):
+                if b"[?996n" in chunk:
+                    try:
+                        os.write(master_fd, b"\x1b[?996;1n")
+                    except Exception:
+                        pass
+
+                if b"[16t" in chunk:
+                    try:
+                        os.write(master_fd, b"\x1b[6;16;8t")
+                    except Exception:
+                        pass
+
+                if b"\x1b" in chunk:
+                    chunk = _ANSI_QUERY_STRIP_RE.sub(b"", chunk)
+
+                chunk_to_send, utf8_remainder = split_complete_utf8(chunk)
+                if chunk_to_send:
+                    if not send_ws(chunk_to_send, 0x2):
                         break
 
             # Process WebSocket input from client -> write to PTY
@@ -754,16 +820,27 @@ def run_pty_session(
                         elif opcode == 0x9:  # WS Ping -> Pong
                             send_ws(payload, 0xA)
                         elif opcode in (0x1, 0x2):
-                            # Inspect for control JSON (resize / switch)
+                            # Inspect for control JSON (resize / ping)
                             handled_control = False
                             if payload.startswith(b'{"type"') or payload.startswith(b'{"type "'):
                                 try:
                                     msg = json.loads(payload.decode("utf-8"))
                                     mtype = msg.get("type")
                                     if mtype == "resize":
-                                        cols = int(msg.get("cols", 80))
-                                        rows = int(msg.get("rows", 24))
+                                        cols = max(2, int(msg.get("cols", 80)))
+                                        rows = max(1, int(msg.get("rows", 24)))
+                                        force_redraw = bool(msg.get("redraw"))
+                                        size_changed = (rows != current_rows or cols != current_cols)
+                                        current_rows, current_cols = rows, cols
                                         set_terminal_size(master_fd, rows=rows, cols=cols)
+                                        if force_redraw and not size_changed and proc.poll() is None:
+                                            try:
+                                                os.killpg(os.getpgid(proc.pid), signal.SIGWINCH)
+                                            except Exception:
+                                                pass
+                                        handled_control = True
+                                    elif mtype == "ping":
+                                        send_ws(b"pong", 0xA)
                                         handled_control = True
                                 except Exception:
                                     pass
@@ -771,7 +848,13 @@ def run_pty_session(
                             # Filter out terminal capability echoes from xterm.js
                             # so that Herdr and other TUIs don't misinterpret them as keypresses
                             if not handled_control:
-                                if payload.startswith(b"\x1b[?") and payload.endswith(b"c"):
+                                if payload.startswith(b"\x1b[?") and (
+                                    payload.endswith(b"c") or payload.endswith(b"u") or payload.endswith(b"n")
+                                ):
+                                    handled_control = True
+                                elif (
+                                    payload.startswith(b"\x1b[6;") or payload.startswith(b"\x1b[4;")
+                                ) and payload.endswith(b"t"):
                                     handled_control = True
                                 elif (
                                     payload.startswith(b"\x1b]>")
