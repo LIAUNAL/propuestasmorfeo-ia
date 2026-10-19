@@ -4380,13 +4380,18 @@
           disconnectPageObserver();
           cancelAllPageRenders();
           await settleWithinBound(Array.from(pdfPendingRenders.values()), PDF_RELOAD_SETTLE_MS);
+          Array.from(pdfRenderedPages).forEach(n => releasePage(n));
           const strip = document.getElementById('pdfPagesStrip');
           if (strip) strip.innerHTML = '';
+          const oldDoc = pdfDoc;
           pdfPageCache.clear();
           pdfTextContentCache.clear();
           pdfRenderedPages.clear();
           pdfRenderedCanvases.clear();
           pdfPendingRenders.clear();
+          if (oldDoc && typeof oldDoc.destroy === 'function') {
+            try { oldDoc.destroy(); } catch (_) {}
+          }
         }
 
         const url = `/api/pdf?t=${forceReload ? Date.now() : 'doc'}`;
@@ -4692,13 +4697,24 @@
       // vieja borraba el canvas recién pintado por la nueva.
       if (paintedCanvas && paintedCanvas !== canvas) return;
       if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx && canvas.width > 0 && canvas.height > 0) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
         canvas.width = 0;
         canvas.height = 0;
       }
       const textLayer = getPageTextLayer(n);
-      if (textLayer) textLayer.innerHTML = '';
+      if (textLayer) {
+        textLayer._spanIndexCache = null;
+        textLayer.innerHTML = '';
+      }
       const annotLayer = getPageAnnotLayer(n);
       if (annotLayer) annotLayer.innerHTML = '';
+      const cachedPage = pdfPageCache.get(n);
+      if (cachedPage && typeof cachedPage.cleanup === 'function') {
+        try { cachedPage.cleanup(); } catch (_) {}
+      }
       pdfRenderedPages.delete(n);
       pdfRenderedCanvases.delete(n);
     }
@@ -5151,29 +5167,39 @@
       const containerRect = pageContainer.getBoundingClientRect();
       if (containerRect.width === 0 || containerRect.height === 0) return null;
 
-      const spans = Array.from(textLayer.querySelectorAll('span'));
-      if (spans.length === 0) return null;
-
       const cleanTarget = targetText.replace(/\s+/g, ' ').trim().toLowerCase();
       if (!cleanTarget) return null;
 
-      // 1. Mapeo continuo de spans y offsets de caracteres sobre el texto de la página
-      let pageText = '';
-      const spanOffsets = [];
-      for (let i = 0; i < spans.length; i++) {
-        const span = spans[i];
-        const txt = (span.textContent || '').replace(/\s+/g, ' ');
-        const startOffset = pageText.length;
-        pageText += (i > 0 ? ' ' : '') + txt;
-        spanOffsets.push({
-          span: span,
-          start: startOffset + (i > 0 ? 1 : 0),
-          end: pageText.length,
-          text: txt
-        });
+      let cache = textLayer._spanIndexCache;
+      if (!cache || cache.count !== textLayer.childElementCount) {
+        const spans = Array.from(textLayer.querySelectorAll('span'));
+        if (spans.length === 0) return null;
+        let pageText = '';
+        const spanOffsets = [];
+        for (let i = 0; i < spans.length; i++) {
+          const span = spans[i];
+          const txt = (span.textContent || '').replace(/\s+/g, ' ');
+          const startOffset = pageText.length;
+          pageText += (i > 0 ? ' ' : '') + txt;
+          spanOffsets.push({
+            span: span,
+            start: startOffset + (i > 0 ? 1 : 0),
+            end: pageText.length,
+            text: txt
+          });
+        }
+        const lowerPage = pageText.toLowerCase();
+        cache = {
+          count: textLayer.childElementCount,
+          spans,
+          spanOffsets,
+          lowerPage,
+          normPage: lowerPage.replace(/[.,;:()¿?¡!«»"']/g, ' ')
+        };
+        textLayer._spanIndexCache = cache;
       }
 
-      const lowerPage = pageText.toLowerCase();
+      const { spans, spanOffsets, lowerPage, normPage } = cache;
 
       // Búsqueda de subcadena directa o normalizada
       let matchIdx = lowerPage.indexOf(cleanTarget);
@@ -5182,7 +5208,6 @@
       if (matchIdx === -1) {
         // Normalización sin signos de puntuación comunes
         const normTarget = cleanTarget.replace(/[.,;:()¿?¡!«»"']/g, '').replace(/\s+/g, ' ').trim();
-        const normPage = lowerPage.replace(/[.,;:()¿?¡!«»"']/g, ' ');
         if (normTarget.length >= 8) {
           matchIdx = normPage.indexOf(normTarget);
           matchLen = normTarget.length;
@@ -5679,11 +5704,24 @@
       const pageExecuted = executedChangeMarks.filter(e => e.page === pageNumber);
       pageExecuted.forEach(exec => {
         let rects = null;
-        if (exec.searchText) {
-          rects = findTextRectsInPage(pageNumber, exec.searchText);
-        }
-        if (!rects || rects.length === 0) {
-          rects = exec.rects;
+        if (
+          exec._cachedRects &&
+          exec._cachedScale === pdfScale &&
+          exec._cachedDocId === pdfDocIdentity
+        ) {
+          rects = exec._cachedRects;
+        } else {
+          if (exec.searchText) {
+            rects = findTextRectsInPage(pageNumber, exec.searchText);
+          }
+          if (!rects || rects.length === 0) {
+            rects = exec.rects;
+          }
+          if (rects && rects.length > 0) {
+            exec._cachedRects = rects;
+            exec._cachedScale = pdfScale;
+            exec._cachedDocId = pdfDocIdentity;
+          }
         }
         if (rects && rects.length > 0) {
           rects.forEach((rect) => {
@@ -5850,7 +5888,7 @@
         <div>✂️ <strong>${strikes}</strong> texto(s) para eliminar del código fuente LaTeX.</div>
         <div>🔁 <strong>${replaces.length}</strong> reemplazo(s) determinista(s) sobre el pasaje anclado.</div>
         ${replaceList}
-        <div>💬 <strong>${comments}</strong> comentario(s) e instrucciones a ejecutar.</div>
+        <div>💬 <strong>${comments}</strong> comentario(s) e instrucciones a ejecutar por <code>redactor</code> + <code>grant-flow-auditor</code>.</div>
         <div>✨ <strong>${humanizes}</strong> pasaje(s) para humanizar con la skill <code>estilo-natural-es</code>.</div>
         ${pendingInfo}
         <div style="margin-top: 0.35rem; font-weight: 700; color: var(--accent);">Total de marcas y pendientes a ejecutar: ${queuedAnnotations.length + pendingCount}</div>
@@ -5871,7 +5909,10 @@
         : '';
       const recompilacion = s.pdf_recompile_skipped
         ? `<div>📄 Recompilación de main.pdf: <strong style="color: var(--text-muted);">No hizo falta</strong> · ${escapeHtml(s.pdf_recompile_reason || 'sin cambios en el manuscrito')}</div>`
-        : `<div>📄 Recompilación de main.pdf: <strong style="color: ${s.pdf_recompiled ? 'var(--ok)' : 'var(--warn)'}">${s.pdf_recompiled ? '✓ Exitosa' : 'Revisar log'}</strong></div>`;
+        : `<div>📄 Recompilación de main.pdf: <strong style="color: ${s.pdf_recompiled ? 'var(--ok)' : 'var(--warn)'}">${s.pdf_recompiled ? '✓ Exitosa' : 'Revisar log'}</strong>${s.compile_ms !== undefined ? ` <span style="color: var(--text-muted); font-size: 0.78rem;">(${s.compile_ms} ms)</span>` : ''}</div>`;
+      const agentes = (s.agents_invoked && s.agents_invoked.length > 0)
+        ? `<div>🤖 Agentes ejecutores: <code>${s.agents_invoked.map(a => escapeHtml(a)).join('</code>, <code>')}</code>${s.total_ms !== undefined ? ` · <span style="color: var(--text-muted);">Tiempo total: ${s.total_ms} ms</span>` : ''}</div>`
+        : '';
       const duplicadas = s.comments_duplicated
         ? `<div>🔁 <strong>${s.comments_duplicated}</strong> instrucciones ya registradas (duplicadas): no se escribieron de nuevo.</div>`
         : '';
@@ -5893,6 +5934,7 @@
         : '';
       return `
           <div style="background: var(--surface-2); padding: 0.85rem; border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem;">
+            ${agentes}
             <div>✂️ <strong>${s.strikethrough_applied || 0}</strong> textos tachados eliminados de las fuentes LaTeX.</div>
             <div>🔁 <strong>${s.replace_applied || 0}</strong> reemplazos deterministas aplicados sobre el ancla y recompilados.</div>
             <div>✨ <strong>${s.humanize_applied || 0}</strong> pasajes humanizados con la skill <code>estilo-natural-es</code>.</div>
@@ -5902,7 +5944,7 @@
             ${duplicadas}
             ${fallidas}
             ${pendientes}
-            <div>📁 <strong>${(s.files_modified || []).length}</strong> archivo(s) modificados: <code>${(s.files_modified || []).join(', ') || 'Ninguno'}</code></div>
+            <div>📁 <strong>${(s.files_modified || []).length}</strong> archivo(s) modificados (aislamiento estricto por sección): <code>${(s.files_modified || []).join(', ') || 'Ninguno'}</code></div>
             ${recompilacion}
           </div>
           <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">

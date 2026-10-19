@@ -550,7 +550,94 @@ class TestPdfAnnotator(unittest.TestCase):
             self.assertIn("La primera oración introduce el problema", applied[0]["context_before"])
             self.assertIn("La tercera oración concluye el argumento", applied[0]["context_after"])
 
+    def test_execute_button_applies_comments_humanize_and_strikethrough_with_strict_section_isolation(self):
+        """Al pulsar 'Ejecutar cambios' (process_pending=True), el redactor y grant-flow-auditor
+        aplican comentarios, tachados y humanización únicamente sobre los fragmentos pedidos
+        sin alterar otras oraciones, otras secciones ni el preámbulo de main.tex.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, sec0 = self._workspace(tmpdir)
+            sections_dir = run_dir / "redaccion" / "sections"
+            main_tex = run_dir / "redaccion" / "main.tex"
+            main_original = (
+                "\\documentclass[11pt,a4paper]{article}\n"
+                "\\usepackage{natbib}\n"
+                "\\begin{document}\n"
+                "\\input{sections/00_frontmatter.tex}\n"
+                "\\input{sections/02_justificacion_pertinencia.tex}\n"
+                "\\input{sections/03_descripcion_problema.tex}\n"
+                "\\end{document}\n"
+            )
+            main_tex.write_text(main_original, encoding="utf-8")
+
+            sec0_original = sec0.read_text(encoding="utf-8")
+            sec2 = sections_dir / "02_justificacion_pertinencia.tex"
+            sec2_original = (
+                "\\section{Justificación y pertinencia}\n"
+                "Este párrafo de justificación permanece intacto de principio a fin.\n"
+            )
+            sec2.write_text(sec2_original, encoding="utf-8")
+
+            sec3 = sections_dir / "03_descripcion_problema.tex"
+            sec3.write_text(
+                "\\section{Descripción del problema}\n"
+                "Párrafo uno intacto sobre el contexto cafetero.\n\n"
+                "El protocolo cuenta con el apoyo de la psicóloga Camila para las entrevistas.\n\n"
+                "Es importante destacar que el módulo procesa señales con \\textbf{inferencia local} en campo.\n\n"
+                "Esta frase redundante debe tacharse sin afectar el cierre. El cierre del capítulo permanece igual.\n",
+                encoding="utf-8",
+            )
+
+            res = apply_pdf_annotations(
+                run_dir,
+                [
+                    {
+                        "id": "c_gen",
+                        "type": "comment",
+                        "text": "El protocolo cuenta con el apoyo de la psicóloga Camila para las entrevistas.",
+                        "comment": "reescribir en general, sin nombrar a la psicóloga Camila",
+                        "page": 3,
+                    },
+                    {
+                        "id": "h_span",
+                        "type": "humanize",
+                        "text": "Es importante destacar que el módulo procesa señales con inferencia local en campo.",
+                        "page": 3,
+                    },
+                    {
+                        "id": "s_span",
+                        "type": "strikethrough",
+                        "text": "Esta frase redundante debe tacharse sin afectar el cierre.",
+                        "page": 3,
+                    },
+                ],
+                process_pending=True,
+            )
+
+            self.assertTrue(res["ok"])
+            self.assertEqual(res["summary"]["comments_applied"], 1)
+            self.assertEqual(res["summary"]["humanize_applied"], 1)
+            self.assertEqual(res["summary"]["strikethrough_applied"], 1)
+            self.assertIn("redactor", res["summary"]["agents_invoked"])
+            self.assertIn("grant-flow-auditor", res["summary"]["agents_invoked"])
+            self.assertEqual(res["summary"]["files_modified"], ["redaccion/sections/03_descripcion_problema.tex"])
+
+            # Otras secciones y main.tex quedan 100% intactos byte a byte
+            self.assertEqual(main_tex.read_text(encoding="utf-8"), main_original)
+            self.assertEqual(sec0.read_text(encoding="utf-8"), sec0_original)
+            self.assertEqual(sec2.read_text(encoding="utf-8"), sec2_original)
+
+            # En la sección 03, solo cambiaron los fragmentos seleccionados
+            updated_sec3 = sec3.read_text(encoding="utf-8")
+            self.assertIn("Párrafo uno intacto sobre el contexto cafetero.", updated_sec3)
+            self.assertNotIn("Camila", updated_sec3)
+            self.assertNotIn("Es importante destacar que", updated_sec3)
+            self.assertIn("\\textbf{inferencia local}", updated_sec3)
+            self.assertNotIn("Esta frase redundante debe tacharse sin afectar el cierre.", updated_sec3)
+            self.assertIn("El cierre del capítulo permanece igual.", updated_sec3)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
