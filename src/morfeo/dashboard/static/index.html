@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Morfeo IA: Command Center</title>
+  <title>Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo</title>
   <link rel="icon" type="image/png" sizes="128x128" href="/static/favicon.png">
   <link rel="shortcut icon" href="/favicon.ico">
   <link rel="stylesheet" href="/static/vendor/pdf_viewer.min.css">
@@ -85,6 +85,10 @@
       align-items: center;
       gap: 0.85rem;
       justify-self: start;
+      min-width: 0;
+    }
+    .topbar__title {
+      min-width: 0;
     }
     .topbar__avatar-wrap {
       position: relative;
@@ -108,9 +112,13 @@
       background: #0b0f19;
     }
     .topbar__title h1 {
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       font-weight: 700;
       letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 480px;
     }
     .topbar__title p {
       font-size: 0.75rem;
@@ -2095,7 +2103,7 @@
         <img src="/static/morfeo-logo.png" alt="Morfeo IA" class="topbar__avatar">
       </div>
       <div class="topbar__title">
-        <h1>Morfeo IA: Command Center</h1>
+        <h1 id="topbarProjectTitle" title="Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo">Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo</h1>
         <p>Laboratorio de Inteligencia Artificial · Universidad Nacional de Colombia</p>
       </div>
     </div>
@@ -3200,8 +3208,15 @@
         // Header Title & Totals
         const details = data.run_details || {};
         const totals = data.totals || {};
-        const activeTitle = details.title || details.idea || data.active_run || data.workspace_title || 'Sin propuesta activa';
+        const activeTitle = details.title || details.idea || data.workspace_title || data.active_run || 'Sin propuesta activa';
         document.getElementById('metaProposalTitle').textContent = activeTitle;
+        const brandProjectHeading = `Morfeo IA: ${activeTitle}`;
+        document.title = brandProjectHeading;
+        const topbarTitleEl = document.getElementById('topbarProjectTitle');
+        if (topbarTitleEl) {
+          topbarTitleEl.textContent = brandProjectHeading;
+          topbarTitleEl.title = brandProjectHeading;
+        }
         const footerInfo = document.getElementById('footerProjectInfo');
         if (footerInfo) {
           footerInfo.textContent = data.workspace_title || (details.title ? details.title : (data.active_run ? `Corrida: ${data.active_run}` : 'Espacio de Trabajo Morfeo'));

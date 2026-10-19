@@ -356,7 +356,35 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
     def serve_dashboard(self) -> None:
         html_file = Path(__file__).resolve().parent / "static" / "index.html"
         if html_file.is_file():
-            content = html_file.read_bytes()
+            raw_html = html_file.read_text(encoding="utf-8", errors="replace")
+            try:
+                import html as _html
+                status = get_project_status(self.workspace_dir)
+                details = status.get("run_details") or {}
+                project_name = (
+                    details.get("title")
+                    or details.get("idea")
+                    or status.get("workspace_title")
+                    or status.get("active_run")
+                    or self.workspace_dir.name
+                )
+                if project_name:
+                    safe_title = _html.escape(f"Morfeo IA: {project_name}")
+                    raw_html = re.sub(
+                        r"<title>.*?</title>",
+                        f"<title>{safe_title}</title>",
+                        raw_html,
+                        count=1,
+                    )
+                    raw_html = re.sub(
+                        r'<h1 id="topbarProjectTitle"[^>]*>.*?</h1>',
+                        f'<h1 id="topbarProjectTitle" title="{safe_title}">{safe_title}</h1>',
+                        raw_html,
+                        count=1,
+                    )
+            except Exception:
+                pass
+            content = raw_html.encode("utf-8")
         else:
             content = b"<h1>Morfeo Dashboard</h1>"
 
