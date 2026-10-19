@@ -286,6 +286,18 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _resolve_scripts_dir(self) -> Path:
+        scripts_dir = self.workspace_dir / "scripts"
+        if not (scripts_dir / "build_manuscript_graph.py").is_file():
+            repo_root = Path(__file__).resolve().parent.parent.parent.parent
+            if (repo_root / "scripts" / "build_manuscript_graph.py").is_file():
+                scripts_dir = repo_root / "scripts"
+            else:
+                kit_scripts = Path(__file__).resolve().parent.parent / "_kit" / "scripts"
+                if (kit_scripts / "build_manuscript_graph.py").is_file():
+                    scripts_dir = kit_scripts
+        return scripts_dir
+
     def handle_graph_build(self) -> None:
         data = get_project_status(self.workspace_dir)
         active_run = data.get("active_run")
@@ -300,10 +312,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
         run_dir = self.workspace_dir / "proposals" / active_run
         try:
-            scripts_dir = self.workspace_dir / "scripts"
-            if not (scripts_dir / "build_manuscript_graph.py").is_file():
-                repo_root = Path(__file__).resolve().parent.parent.parent.parent
-                scripts_dir = repo_root / "scripts"
+            scripts_dir = self._resolve_scripts_dir()
 
             import sys
             import urllib.parse
@@ -320,28 +329,34 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             qs = urllib.parse.parse_qs(parsed.query)
             corpus = qs.get("corpus", ["all"])[0].lower()
 
-            if corpus == "papers":
-                payload = build_papers_graph(run_dir)
-            elif corpus == "vault":
-                payload = build_vault_graph(run_dir)
-            elif corpus == "manuscript":
-                payload = build_manuscript_graph(run_dir)
-            else:
-                all_res = build_all_graphs(run_dir)
-                payload = {
-                    "corpus": "all",
-                    "nodes": sum(len(p.get("nodes", [])) for p in all_res.values()),
-                    "edges": sum(len(p.get("edges", [])) for p in all_res.values()),
+            all_res = build_all_graphs(run_dir)
+            corpora_stats = {
+                k: {
+                    "nodes": len(v.get("nodes", [])),
+                    "edges": len(v.get("edges", [])),
                 }
+                for k, v in all_res.items()
+            }
+
+            if corpus in all_res:
+                target_payload = all_res[corpus]
+                nodes_count = len(target_payload.get("nodes", []))
+                edges_count = len(target_payload.get("edges", []))
+            else:
+                nodes_count = sum(s["nodes"] for s in corpora_stats.values())
+                edges_count = sum(s["edges"] for s in corpora_stats.values())
 
             body = json.dumps({
                 "ok": True,
-                "nodes": len(payload.get("nodes", [])) if isinstance(payload.get("nodes"), list) else payload.get("nodes", 0),
-                "edges": len(payload.get("edges", [])) if isinstance(payload.get("edges"), list) else payload.get("edges", 0),
-                "corpus": payload.get("corpus", corpus)
+                "nodes": nodes_count,
+                "edges": edges_count,
+                "corpus": corpus,
+                "corpora": corpora_stats,
+                "active_run": active_run,
             }, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
@@ -600,7 +615,19 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(404, "No active run")
             return
 
-        graph_path = self.workspace_dir / "proposals" / active_run / "grafos" / filename
+        run_dir = self.workspace_dir / "proposals" / active_run
+        graph_path = run_dir / "grafos" / filename
+        if not graph_path.is_file():
+            try:
+                scripts_dir = self._resolve_scripts_dir()
+                import sys
+                if str(scripts_dir) not in sys.path:
+                    sys.path.insert(0, str(scripts_dir))
+                from build_manuscript_graph import build_all_graphs
+                build_all_graphs(run_dir)
+            except Exception:
+                pass
+
         if not graph_path.is_file():
             fallback = f"""<!DOCTYPE html>
 <html lang="es">
@@ -610,12 +637,13 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
     <div style="font-size:2.5rem;margin-bottom:0.75rem;">🌌</div>
     <h3 style="color:#38bdf8;margin:0 0 0.5rem 0;font-size:1.25rem;">Grafo no disponible para esta corrida</h3>
     <p style="font-size:0.9rem;line-height:1.5;margin:0 0 1rem 0;">El reporte <code>{filename}</code> aún no ha sido generado en el directorio <code>grafos/</code> de la corrida activa.</p>
-    <p style="font-size:0.8rem;color:#64748b;margin:0;">Se compila automáticamente durante el pipeline con la herramienta <code>codebase-memory</code> o con <code>scripts/graph_html.py</code>.</p>
+    <p style="font-size:0.8rem;color:#64748b;margin:0;">Pulsa <strong>⚡ Regenerar Grafo</strong> arriba a la derecha para construirlo.</p>
   </div>
 </body>
 </html>""".encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
             self.send_header("Content-Length", str(len(fallback)))
             self.end_headers()
             self.wfile.write(fallback)
@@ -624,6 +652,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         content = graph_path.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)

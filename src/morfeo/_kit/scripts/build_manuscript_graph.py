@@ -57,9 +57,22 @@ def extract_citations(text: str) -> list[str]:
     return keys
 
 
+def strip_latex_comments_and_headers(text: str) -> str:
+    """Remove LaTeX comments and section/label commands before regex extraction."""
+    lines = []
+    for line in text.splitlines():
+        clean_line = re.sub(r"(?<!\\)%.*", "", line).strip()
+        if clean_line:
+            lines.append(clean_line)
+    joined = "\n".join(lines)
+    joined = re.sub(r"\\(?:section|subsection|subsubsection|label)\*?(?:\[[^\]]*\])?\{[^}]*\}", "", joined)
+    return joined
+
+
 def clean_latex_str(text: str) -> str:
     """Strip basic LaTeX formatting commands and comments from text."""
-    t = re.sub(r"%.*", "", text)
+    t = re.sub(r"(?<!\\)%.*", "", text)
+    t = re.sub(r"\\(?:section|subsection|subsubsection|label|cite|citep|citet|ref)\*?(?:\[[^\]]*\])?\{[^}]*\}", "", t)
     t = re.sub(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?\{([^}]*)\}", r"\1", t)
     t = re.sub(r"\\[a-zA-Z]+", " ", t)
     t = re.sub(r"[\{\}\$]", "", t)
@@ -80,12 +93,12 @@ def parse_scientific_architecture(run_dir: Path) -> dict[str, Any]:
 
     sec3_file = sections_dir / "03_descripcion_problema.tex"
     if sec3_file.is_file():
-        sec3_raw = sec3_file.read_text(encoding="utf-8", errors="replace")
+        sec3_raw = strip_latex_comments_and_headers(sec3_file.read_text(encoding="utf-8", errors="replace"))
         sp_matches = re.findall(r"(?:\\textbf\{)?(?:Subproblema\s*(\d)|SP(\d))[:\.\s\}]+([^\.\n]+)", sec3_raw, re.IGNORECASE)
         parsed_sps = []
         for m in sp_matches:
             num = m[0] or m[1]
-            title = clean_latex_str(m[2])[:60]
+            title = clean_latex_str(m[2]).lstrip(":.- ")[:60]
             if title and not any(p[0] == f"sci:sp{num}" for p in parsed_sps):
                 parsed_sps.append((f"sci:sp{num}", f"SP{num}: {title}"))
         if len(parsed_sps) >= 3:
@@ -100,7 +113,7 @@ def parse_scientific_architecture(run_dir: Path) -> dict[str, Any]:
     og_label = "OG: Objetivo General del Proyecto"
     sec6_file = sections_dir / "06_objetivo_general.tex"
     if sec6_file.is_file():
-        sec6_raw = sec6_file.read_text(encoding="utf-8", errors="replace")
+        sec6_raw = strip_latex_comments_and_headers(sec6_file.read_text(encoding="utf-8", errors="replace"))
         cleaned_og = clean_latex_str(sec6_raw)
         if cleaned_og:
             short_og = cleaned_og[:65]
@@ -116,11 +129,11 @@ def parse_scientific_architecture(run_dir: Path) -> dict[str, Any]:
     ]
     sec7_file = sections_dir / "07_objetivos_especificos.tex"
     if sec7_file.is_file():
-        sec7_raw = sec7_file.read_text(encoding="utf-8", errors="replace")
-        items = re.findall(r"\\item\s+([^\n\\]+)", sec7_raw)
+        sec7_raw = strip_latex_comments_and_headers(sec7_file.read_text(encoding="utf-8", errors="replace"))
+        items = re.findall(r"\\item\s+([^\n]+)", sec7_raw)
         parsed_oes = []
         for idx, it in enumerate(items[:3]):
-            clean_it = clean_latex_str(it)[:60]
+            clean_it = re.sub(r"^(?:OE\s*\d+|Objetivo\s+espec[íi]fico\s*\d+)[:\.\s-]*", "", clean_latex_str(it), flags=re.IGNORECASE)[:60]
             parsed_oes.append((f"sci:oe{idx+1}", f"OE{idx+1}: {clean_it}"))
         if len(parsed_oes) >= 3:
             oe_nodes = parsed_oes[:3]
@@ -129,7 +142,7 @@ def parse_scientific_architecture(run_dir: Path) -> dict[str, Any]:
     h1_label = "H1: Hipótesis de Investigación"
     sec5_file = sections_dir / "05_hipotesis.tex"
     if sec5_file.is_file():
-        sec5_raw = sec5_file.read_text(encoding="utf-8", errors="replace")
+        sec5_raw = strip_latex_comments_and_headers(sec5_file.read_text(encoding="utf-8", errors="replace"))
         clean_h = clean_latex_str(sec5_raw)
         if clean_h:
             short_h = clean_h[:65]
@@ -146,10 +159,12 @@ def parse_scientific_architecture(run_dir: Path) -> dict[str, Any]:
     sec10_file = sections_dir / "10_metodologia.tex"
     if sec10_file.is_file():
         sec10_raw = sec10_file.read_text(encoding="utf-8", errors="replace")
-        subsecs = re.findall(r"\\(?:sub)?section\*?\{([^}]+)\}", sec10_raw)
+        subsecs = re.findall(r"\\subsection\*?\{([^}]+)\}", sec10_raw)
+        oe_or_fase_subsecs = [s for s in subsecs if re.match(r"^(?:Fase|OE|Etapa)\s*\d+", clean_latex_str(s), re.IGNORECASE)]
+        chosen_subsecs = oe_or_fase_subsecs if len(oe_or_fase_subsecs) >= 3 else subsecs
         parsed_fases = []
-        for idx, sub in enumerate(subsecs[:3]):
-            clean_sub = clean_latex_str(sub)[:55]
+        for idx, sub in enumerate(chosen_subsecs[:3]):
+            clean_sub = re.sub(r"^(?:Fase|OE|Etapa)\s*\d+[:\.\s-]*", "", clean_latex_str(sub), flags=re.IGNORECASE)[:55]
             parsed_fases.append((f"met:fase{idx+1}", f"Fase {idx+1}: {clean_sub}"))
         if len(parsed_fases) >= 3:
             fase_nodes = parsed_fases[:3]
@@ -162,15 +177,17 @@ def parse_scientific_architecture(run_dir: Path) -> dict[str, Any]:
     ]
     sec15_file = sections_dir / "15_productos_esperados.tex"
     if sec15_file.is_file():
-        sec15_raw = sec15_file.read_text(encoding="utf-8", errors="replace")
-        items = re.findall(r"\\item\s+([^\n\\]+)", sec15_raw)
+        sec15_raw = strip_latex_comments_and_headers(sec15_file.read_text(encoding="utf-8", errors="replace"))
+        items = re.findall(r"\\item\s+([^\n]+)", sec15_raw)
         if not items:
-            items = [re.sub(r"&.*", "", line).strip() for line in sec15_raw.splitlines() if "&" in line and not line.strip().startswith("%")]
+            # Parse numbered table rows: e.g., "1 & Aplicativo prototipo..."
+            row_matches = re.findall(r"(?:^|\n)\s*\d+\s*&\s*([^&]+?)&", sec15_raw)
+            items = [clean_latex_str(m).split(":")[0].split(".")[0].strip() for m in row_matches if clean_latex_str(m)]
         parsed_prods = []
         for idx, it in enumerate(items[:3]):
             clean_it = clean_latex_str(it)[:55]
-            if clean_it and not clean_it.startswith("---") and not clean_it.lower().startswith("producto"):
-                parsed_prods.append((f"prod:prod_{idx+1}", f"Entregable: {clean_it}"))
+            if clean_it and not clean_it.startswith("---") and not clean_it.lower().startswith("producto") and clean_it not in ("#", "\\#"):
+                parsed_prods.append((f"prod:prod_{idx+1}", f"Entregable {idx+1}: {clean_it}"))
         if len(parsed_prods) >= 3:
             prod_nodes = parsed_prods[:3]
 

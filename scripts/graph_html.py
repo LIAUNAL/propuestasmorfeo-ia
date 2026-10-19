@@ -147,8 +147,13 @@ TEMPLATE = """<!DOCTYPE html>
     --line: rgba(255, 255, 255, 0.1);
   }
   * { box-sizing: border-box; }
-  body {
+  html, body {
     margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+  body {
     font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "JetBrains Mono", monospace, sans-serif;
     color: var(--ink);
     background: var(--bg);
@@ -251,21 +256,25 @@ TEMPLATE = """<!DOCTYPE html>
   /* Main viewport layout */
   .viewport-wrap {
     display: flex;
-    flex: 1;
+    flex: 1 1 0%;
+    min-height: 0;
     position: relative;
     overflow: hidden;
     width: 100%;
-    height: 100%;
+    height: calc(100vh - 58px);
   }
   #stage3d {
     flex: 1 1 0%;
     min-width: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 420px;
     position: relative;
     cursor: grab;
     overflow: hidden;
   }
   #stage3d.dragging { cursor: grabbing; }
-  #stage3d canvas { display: block; }
+  #stage3d canvas { display: block; width: 100%; height: 100%; }
 
   /* 3D HUD overlay */
   .hud-overlay {
@@ -791,9 +800,135 @@ TEMPLATE = """<!DOCTYPE html>
   var linePositions, lineColors;
   var edgeSegmentMeta = [];
 
+  function getStageSize() {
+    var w = stageEl ? stageEl.clientWidth : 0;
+    var h = stageEl ? stageEl.clientHeight : 0;
+    if (w <= 0) {
+      var drawer = document.getElementById("sideDrawer");
+      var dw = (drawer && !drawer.classList.contains("collapsed")) ? 360 : 0;
+      w = Math.max((window.innerWidth || 1280) - dw, 640);
+    }
+    if (h <= 0) {
+      h = Math.max((window.innerHeight || 720) - 58, 480);
+    }
+    return { width: w, height: h };
+  }
+
+  function createCanvas3DRenderer(initW, initH) {
+    var cvs = document.createElement("canvas");
+    var ctx = cvs.getContext("2d");
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var cw = initW, ch = initH;
+    var projVec = new THREE.Vector3();
+
+    function setSize(w, h) {
+      cw = Math.max(w, 1);
+      ch = Math.max(h, 1);
+      cvs.width = Math.round(cw * dpr);
+      cvs.height = Math.round(ch * dpr);
+      cvs.style.width = cw + "px";
+      cvs.style.height = ch + "px";
+    }
+    setSize(initW, initH);
+
+    function projectPoint(x, y, z, cam) {
+      projVec.set(x, y, z);
+      projVec.project(cam);
+      if (projVec.z < -1 || projVec.z > 1) return null;
+      return {
+        sx: (projVec.x * 0.5 + 0.5) * cw,
+        sy: (-projVec.y * 0.5 + 0.5) * ch,
+        depth: projVec.z
+      };
+    }
+
+    return {
+      domElement: cvs,
+      setPixelRatio: function(p) { dpr = Math.min(p || 1, 2); setSize(cw, ch); },
+      setSize: setSize,
+      render: function(scn, cam) {
+        if (!ctx) return;
+        cam.updateMatrixWorld();
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        ctx.fillStyle = "#070a13";
+        ctx.fillRect(0, 0, cw, ch);
+
+        // Project nodes
+        var projectedNodes = [];
+        var projById = {};
+        nodes.forEach(function(n) {
+          var p = projectPoint(n.x, n.y, n.z, cam);
+          if (p) {
+            var item = { node: n, sx: p.sx, sy: p.sy, depth: p.depth };
+            projectedNodes.push(item);
+            projById[n.id] = item;
+          }
+        });
+
+        // Draw edges
+        ctx.lineWidth = selectedNode ? 1.5 : 1.0;
+        edges.forEach(function(e) {
+          var pa = projById[e.source.id];
+          var pb = projById[e.target.id];
+          if (!pa || !pb) return;
+          var activeEdge = true;
+          if (selectedNode) {
+            activeEdge = (e.source === selectedNode || e.target === selectedNode);
+          } else if (activeClusterFilter) {
+            activeEdge = (e.source.group === activeClusterFilter && e.target.group === activeClusterFilter);
+          }
+          ctx.globalAlpha = selectedNode ? (activeEdge ? 0.85 : 0.08) : (activeEdge ? 0.35 : 0.08);
+          ctx.strokeStyle = (selectedNode && activeEdge) ? "#38bdf8" : e.source.color;
+          ctx.beginPath();
+          ctx.moveTo(pa.sx, pa.sy);
+          if (e.isInter) {
+            var mx = (pa.sx + pb.sx) * 0.5;
+            var my = (pa.sy + pb.sy) * 0.5 - 24;
+            ctx.quadraticCurveTo(mx, my, pb.sx, pb.sy);
+          } else {
+            ctx.lineTo(pb.sx, pb.sy);
+          }
+          ctx.stroke();
+        });
+
+        // Sort back-to-front
+        projectedNodes.sort(function(a, b) { return b.depth - a.depth; });
+
+        projectedNodes.forEach(function(item) {
+          var n = item.node;
+          var isTarget = (selectedNode === n);
+          var isConn = !selectedNode
+            ? (!activeClusterFilter || n.group === activeClusterFilter)
+            : (isTarget || selectedNode.neighbors.has(n.id));
+          var alpha = isTarget ? 1.0 : (isConn ? 0.92 : 0.14);
+          var r = Math.max(3.5, n.size * (isTarget ? 2.1 : (isConn ? 1.35 : 0.85)));
+
+          ctx.globalAlpha = alpha * 0.45;
+          var grad = ctx.createRadialGradient(item.sx, item.sy, 0, item.sx, item.sy, r * 3.2);
+          grad.addColorStop(0, n.color);
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(item.sx, item.sy, r * 3.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = isTarget ? "#ffffff" : n.color;
+          ctx.beginPath();
+          ctx.arc(item.sx, item.sy, r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.restore();
+      }
+    };
+  }
+
   function initThree() {
-    var width = stageEl.clientWidth || window.innerWidth - 360;
-    var height = stageEl.clientHeight || window.innerHeight - 60;
+    var sz = getStageSize();
+    var width = sz.width;
+    var height = sz.height;
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x070a13);
@@ -802,9 +937,13 @@ TEMPLATE = """<!DOCTYPE html>
     camera = new THREE.PerspectiveCamera(52, width / height, 1, 4500);
     camera.position.set(0, 120, 750);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    } catch (webglErr) {
+      renderer = createCanvas3DRenderer(width, height);
+    }
     stageEl.appendChild(renderer.domElement);
 
     // Subtle 3D Starfield particles (celestial dust)
@@ -1253,23 +1392,43 @@ TEMPLATE = """<!DOCTYPE html>
     setTimeout(onWindowResize, 300);
   };
 
+  var lastRenderWidth = 0;
+  var lastRenderHeight = 0;
+
   function onWindowResize() {
     if (!camera || !renderer || !stageEl) return;
     var width = stageEl.clientWidth;
     var height = stageEl.clientHeight;
     if (width <= 0 || height <= 0) return;
+    if (width === lastRenderWidth && height === lastRenderHeight) return;
+    lastRenderWidth = width;
+    lastRenderHeight = height;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
   }
 
   window.addEventListener("resize", onWindowResize);
+  if (typeof ResizeObserver !== "undefined" && stageEl) {
+    try {
+      var stageObserver = new ResizeObserver(function() {
+        onWindowResize();
+      });
+      stageObserver.observe(stageEl);
+    } catch (_) {}
+  }
 
   // Animation Loop with Smooth Damping and Pulse
   var clock = new THREE.Clock();
 
   function animate() {
     requestAnimationFrame(animate);
+
+    if (stageEl && stageEl.clientWidth > 0 && stageEl.clientHeight > 0) {
+      if (stageEl.clientWidth !== lastRenderWidth || stageEl.clientHeight !== lastRenderHeight) {
+        onWindowResize();
+      }
+    }
 
     var delta = clock.getDelta();
     var time = clock.getElapsedTime();

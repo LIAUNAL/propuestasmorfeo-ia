@@ -73,7 +73,7 @@
       border-bottom: 1px solid var(--border);
       padding: 0.65rem 1.75rem;
       display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      grid-template-columns: 1fr auto;
       align-items: center;
       position: sticky;
       top: 0;
@@ -84,11 +84,14 @@
       display: flex;
       align-items: center;
       gap: 0.85rem;
-      justify-self: start;
+      justify-self: stretch;
       min-width: 0;
+      overflow: hidden;
     }
     .topbar__title {
       min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
     }
     .topbar__avatar-wrap {
       position: relative;
@@ -118,56 +121,11 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 480px;
+      max-width: 100%;
     }
     .topbar__title p {
       font-size: 0.75rem;
       color: var(--text-muted);
-    }
-    .topbar__center {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      justify-self: center;
-    }
-    .topbar__lab-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.75rem;
-      background: rgba(255, 255, 255, 0.96);
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      padding: 0.3rem 0.95rem;
-      border-radius: 9999px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      cursor: default;
-    }
-    .topbar__lab-badge:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-    }
-    .topbar__lab-logo {
-      height: 34px;
-      width: auto;
-      display: block;
-      object-fit: contain;
-    }
-    .topbar__lab-text {
-      display: flex;
-      flex-direction: column;
-      text-align: left;
-      line-height: 1.15;
-    }
-    .topbar__lab-text-title {
-      font-size: 0.72rem;
-      font-weight: 800;
-      color: #0b1f3a;
-      letter-spacing: -0.01em;
-    }
-    .topbar__lab-text-sub {
-      font-size: 0.62rem;
-      font-weight: 600;
-      color: #4b5563;
     }
     .topbar__actions {
       display: flex;
@@ -2107,15 +2065,6 @@
         <p>Laboratorio de Inteligencia Artificial · Universidad Nacional de Colombia</p>
       </div>
     </div>
-    <div class="topbar__center">
-      <div class="topbar__lab-badge" title="Laboratorio de Inteligencia Artificial (LabIA) · Universidad Nacional de Colombia">
-        <img src="/static/logo_labIA.png" alt="LabIA UNAL" class="topbar__lab-logo">
-        <div class="topbar__lab-text">
-          <span class="topbar__lab-text-title">Laboratorio de Inteligencia Artificial</span>
-          <span class="topbar__lab-text-sub">Universidad Nacional de Colombia · Sede Manizales</span>
-        </div>
-      </div>
-    </div>
     <div class="topbar__actions">
       <span class="badge badge--live">LIVE</span>
       <select id="runSelector" class="btn" onchange="changeActiveRun(this.value)">
@@ -2280,12 +2229,15 @@
     <div id="pane-atlas" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Atlas de Conocimiento y Mapeo Conceptual (Codebase-Memory MCP)</div>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <div class="panel__title">Atlas de Conocimiento y Mapeo Conceptual (Codebase-Memory MCP)</div>
+            <span id="graphStatusBadge" class="badge badge--ok" style="font-size: 0.72rem; text-transform: none;">✓ Grafos 3D activos (Literatura · Vault · Manuscrito)</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
             <button id="btnGraphPapers" class="btn btn--primary" onclick="switchGraph('papers')">Grafo de Literatura SOTA</button>
             <button id="btnGraphVault" class="btn" onclick="switchGraph('vault')">Grafo del Vault Obsidian</button>
             <button id="btnGraphManuscript" class="btn" onclick="switchGraph('manuscript')">Grafo del Manuscrito</button>
-            <button id="btnBuildGraph" class="btn" onclick="triggerBuildManuscriptGraph()" title="Regenerar grafo del manuscrito a partir de los archivos LaTeX actuales">⚡ Regenerar Grafo</button>
+            <button id="btnBuildGraph" class="btn" onclick="triggerBuildManuscriptGraph()" title="Regenerar los 3 grafos del proyecto (Literatura SOTA, Vault Obsidian y Manuscrito LaTeX)">⚡ Regenerar Grafo</button>
             <a id="linkOpenGraph" href="/api/graph/papers" target="_blank" class="btn">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
@@ -2958,6 +2910,22 @@
 
       if (tabId === 'preview') {
         initPdfViewer();
+      } else if (tabId === 'atlas') {
+        setTimeout(() => {
+          const iframe = document.getElementById('graphIframe');
+          if (!iframe) return;
+          try {
+            if (iframe.contentWindow) {
+              iframe.contentWindow.dispatchEvent(new Event('resize'));
+              const stage = iframe.contentDocument && iframe.contentDocument.getElementById('stage3d');
+              if (!stage || stage.clientWidth < 100) {
+                iframe.src = `/api/graph/${currentGraphKind}?t=${Date.now()}`;
+              }
+            }
+          } catch (_) {
+            iframe.src = `/api/graph/${currentGraphKind}?t=${Date.now()}`;
+          }
+        }, 60);
       }
       if (typeof isTerminalOpen !== 'undefined' && isTerminalOpen && typeof ensureTerminalConnected === 'function') {
         setTimeout(() => ensureTerminalConnected(false), 60);
@@ -2965,6 +2933,11 @@
     }
 
     let currentGraphKind = 'papers';
+    const GRAPH_LABELS = {
+      papers: 'Literatura SOTA',
+      vault: 'Vault Obsidian',
+      manuscript: 'Manuscrito LaTeX'
+    };
 
     function switchGraph(kind) {
       currentGraphKind = kind;
@@ -2974,33 +2947,72 @@
       if (btnPapers) btnPapers.className = kind === 'papers' ? 'btn btn--primary' : 'btn';
       if (btnVault) btnVault.className = kind === 'vault' ? 'btn btn--primary' : 'btn';
       if (btnManuscript) btnManuscript.className = kind === 'manuscript' ? 'btn btn--primary' : 'btn';
-      document.getElementById('graphIframe').src = `/api/graph/${kind}`;
-      document.getElementById('linkOpenGraph').href = `/api/graph/${kind}`;
+      const iframe = document.getElementById('graphIframe');
+      if (iframe) iframe.src = `/api/graph/${kind}?t=${Date.now()}`;
+      const link = document.getElementById('linkOpenGraph');
+      if (link) link.href = `/api/graph/${kind}`;
+      const badge = document.getElementById('graphStatusBadge');
+      if (badge) {
+        badge.className = 'badge badge--ok';
+        badge.textContent = `✓ Vista activa: Grafo de ${GRAPH_LABELS[kind] || kind}`;
+      }
     }
 
     async function triggerBuildManuscriptGraph() {
       const btn = document.getElementById('btnBuildGraph');
-      const originalText = btn ? btn.textContent : '';
+      const badge = document.getElementById('graphStatusBadge');
+      const originalText = '⚡ Regenerar Grafo';
       if (btn) {
         btn.disabled = true;
-        btn.textContent = '⏳ Compilando...';
+        btn.textContent = '⏳ Regenerando grafos...';
+      }
+      if (badge) {
+        badge.className = 'badge badge--warn';
+        badge.textContent = '⏳ Compilando los 3 grafos (Literatura, Vault y Manuscrito)...';
       }
       try {
         const res = await fetch(`/api/graph/build?corpus=${currentGraphKind}`, { method: 'POST' });
         const data = await res.json();
         if (data.ok) {
           const iframe = document.getElementById('graphIframe');
-          if (iframe) iframe.src = `/api/graph/${currentGraphKind}?t=` + Date.now();
+          if (iframe) iframe.src = `/api/graph/${currentGraphKind}?t=${Date.now()}`;
+          const corpora = data.corpora || {};
+          const pStats = corpora.papers ? `SOTA (${corpora.papers.nodes}N/${corpora.papers.edges}E)` : '';
+          const vStats = corpora.vault ? `Vault (${corpora.vault.nodes}N/${corpora.vault.edges}E)` : '';
+          const mStats = corpora.manuscript ? `Manuscrito (${corpora.manuscript.nodes}N/${corpora.manuscript.edges}E)` : '';
+          const summaryParts = [pStats, vStats, mStats].filter(Boolean).join(' · ');
+          const nowStr = new Date().toLocaleTimeString();
+          if (badge) {
+            badge.className = 'badge badge--ok';
+            badge.textContent = summaryParts
+              ? `✓ Grafos regenerados (${nowStr}): ${summaryParts}`
+              : `✓ Grafo regenerado (${nowStr}): ${data.nodes || 0} nodos · ${data.edges || 0} enlaces`;
+          }
+          if (btn) {
+            btn.textContent = '✓ Grafos regenerados';
+            setTimeout(() => {
+              btn.disabled = false;
+              btn.textContent = originalText;
+            }, 1800);
+            return;
+          }
         } else {
+          if (badge) {
+            badge.className = 'badge badge--bad';
+            badge.textContent = `✕ Error al regenerar: ${data.error || 'Desconocido'}`;
+          }
           alert('Error al compilar el grafo: ' + (data.error || 'Desconocido'));
         }
       } catch (err) {
-        alert('Error de conexión al regenerar grafo: ' + err.message);
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = originalText;
+        if (badge) {
+          badge.className = 'badge badge--bad';
+          badge.textContent = `✕ Error de conexión: ${err.message}`;
         }
+        alert('Error de conexión al regenerar grafo: ' + err.message);
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = originalText;
       }
     }
 
@@ -4917,6 +4929,32 @@
 
     let savedSelectedRangeRects = null;
 
+    function isSelectionInsidePdf(selection) {
+      if (!selection || selection.rangeCount === 0) return false;
+      try {
+        const range = selection.getRangeAt(0);
+        let node = range.startContainer;
+        if (node && node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+        if (!node || !node.closest) return true;
+        if (node.closest('#pdfPagesStrip') || node.closest('.pdf-page-slot') || node.closest('.textLayer')) {
+          return true;
+        }
+        if (
+          node.closest('.topbar') ||
+          node.closest('#pdfControlPanel') ||
+          node.closest('.drawer-overlay') ||
+          node.closest('.pdf-toolbar') ||
+          node.closest('.tabs') ||
+          node.closest('#pdfInteractionBar')
+        ) {
+          return false;
+        }
+      } catch (_e) {
+        return true;
+      }
+      return true;
+    }
+
     function pageNumberFromSelection(selection) {
       if (!selection || selection.rangeCount === 0) return pdfCurrentPage;
       const range = selection.getRangeAt(0);
@@ -4929,6 +4967,7 @@
 
     function handleTextSelection() {
       const selection = window.getSelection();
+      if (!isSelectionInsidePdf(selection)) return;
       const text = selection ? selection.toString().trim() : '';
       if (text.length > 0) {
         currentSelectedText = text;
@@ -5001,7 +5040,7 @@
         if (selectionDebounceTimer) clearTimeout(selectionDebounceTimer);
         selectionDebounceTimer = setTimeout(() => {
           const sel = window.getSelection();
-          const str = sel ? sel.toString().trim() : '';
+          const str = (sel && isSelectionInsidePdf(sel)) ? sel.toString().trim() : '';
           if (str) {
             handleTextSelection();
           } else {
@@ -5238,7 +5277,7 @@
           if (rect.width > 1 && rect.height > 1) {
             matchedRects.push({
               xPct: (rect.left - containerRect.left) / containerRect.width,
-              yPct: (rect.top - containerRect.top) / containerRect.height,
+              yPct: (r => (r.top - containerRect.top) / containerRect.height)(rect),
               wPct: rect.width / containerRect.width,
               hPct: rect.height / containerRect.height
             });
@@ -5275,9 +5314,14 @@
       return findTextRectsInPage(currentSelectedPage, targetText);
     }
 
+    function getActivePdfSelectionText() {
+      const selObj = window.getSelection ? window.getSelection() : null;
+      const selStr = (selObj && isSelectionInsidePdf(selObj)) ? selObj.toString().trim() : '';
+      return selStr || currentSelectedText;
+    }
+
     function triggerAddComment() {
-      const sel = window.getSelection().toString().trim();
-      const targetText = sel || currentSelectedText;
+      const targetText = getActivePdfSelectionText();
       if (!targetText) {
         // Enfoque Acrobat Reader: clic en comentario sin texto activa modo pin para ubicarlo con el mouse
         toggleCommentPinPlacementMode();
@@ -5299,8 +5343,7 @@
     }
 
     function triggerReplace() {
-      const sel = window.getSelection().toString().trim();
-      const targetText = sel || currentSelectedText;
+      const targetText = getActivePdfSelectionText();
       if (!targetText) {
         alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para reemplazar.");
         return;
@@ -5420,8 +5463,7 @@
     }
 
     function triggerStrikethrough() {
-      const sel = window.getSelection().toString().trim();
-      const targetText = sel || currentSelectedText;
+      const targetText = getActivePdfSelectionText();
       if (!targetText) {
         alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para tacharlo (marcarlo para eliminar).");
         return;
@@ -5448,10 +5490,9 @@
     }
 
     function triggerHumanize() {
-      const sel = window.getSelection().toString().trim();
-      const targetText = sel || currentSelectedText;
+      const targetText = getActivePdfSelectionText();
       if (!targetText) {
-        alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para marcarlo a humanizar con la skill estilo-natural-es.");
+        alert("Por favor selecciona primero un fragmento de texto en el visor del PDF para marcarlo a humanizar (revisión de ortografía, puntuación, gramática y estilo-natural-es).");
         return;
       }
       const rects = (savedSelectedRangeRects && savedSelectedRangeRects.length > 0)

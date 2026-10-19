@@ -202,6 +202,16 @@ def _locate_best_span_in_files(
         abs_start = reg_start + s_start
         abs_end = reg_start + s_end
 
+        # If matched span starts with punctuation (e.g. ". El sismo...") that is actually
+        # the closing period of a preceding sentence (preceded by a word char), advance abs_start
+        # past the punctuation+space so we never eat the previous sentence's period.
+        if abs_start > 0 and re.match(r"^[\.,;:]+\s+[A-ZÁÉÍÓÚÑa-záéíóúñ]", raw_content[abs_start:abs_end]):
+            prev_char = raw_content[abs_start - 1]
+            if prev_char.isalnum() or prev_char in ")]}":
+                lead_m = re.match(r"^[\.,;:]+\s+", raw_content[abs_start:abs_end])
+                if lead_m:
+                    abs_start += lead_m.end()
+
         # Never match inside a \input{...} or \usepackage{...} line
         line_start = raw_content.rfind("\n", 0, abs_start) + 1
         line_end = raw_content.find("\n", abs_end)
@@ -234,10 +244,29 @@ def _replace_span_isolated(content: str, start: int, end: int, replacement: str,
     """Replace ONLY `content[start:end]` with `replacement`, preserving all text outside `[start:end]` byte-for-byte."""
     prefix = content[:start]
     suffix = content[end:]
+    # Clean up any pre-existing stray period at the start of the line immediately before the span
+    prefix = re.sub(r"((?:^|\n|\\noindent)\s*)\.\s+$", r"\1", prefix)
     if is_delete or replacement == "":
         if prefix.endswith(" ") and suffix.startswith(" "):
             suffix = suffix[1:]
+        # If deleting a sentence at the start of a paragraph/section or right after another period,
+        # strip any orphan leading period/comma left behind in suffix (e.g. ". El sismo...")
+        prefix_trimmed = prefix.rstrip()
+        if (
+            not prefix_trimmed
+            or prefix_trimmed.endswith(("\n", "{", ".", "!", "?", ":"))
+            or re.search(r"\\(?:noindent|section\*?\{[^}]*\})\s*$", prefix_trimmed)
+        ):
+            suffix = re.sub(r"^\s*[\.,;:]+\s*", "", suffix)
+            if suffix and suffix[0].islower():
+                suffix = suffix[0].upper() + suffix[1:]
+            if prefix.endswith("\n") and suffix.startswith(" "):
+                suffix = suffix.lstrip(" ")
         return prefix + suffix
+    if prefix.endswith("\n ") and not replacement.startswith(" "):
+        prefix = prefix[:-1]
+    if prefix and re.search(r"[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\)\]]$", prefix) and replacement and replacement[0].isupper():
+        prefix = prefix + ". "
     return prefix + replacement + suffix
 
 
@@ -258,7 +287,9 @@ Marca cada casilla cuando la instrucción esté aplicada y verificada.
 
 def _instruction_signature(page: Any, anchor: str, comment: str) -> str:
     """Firma estable de una instrucción, para no repetirla entre ejecuciones."""
-    payload = f"{page}|{anchor}|{comment}".encode("utf-8")
+    clean_anchor = re.sub(r"\s+", " ", (anchor or "")).strip()
+    clean_comment = re.sub(r"\s+", " ", (comment or "")).strip()
+    payload = f"{page}|{clean_anchor}|{clean_comment}".encode("utf-8")
     return hashlib.sha1(payload).hexdigest()[:12]
 
 
@@ -276,8 +307,8 @@ def register_pending_instructions(
 
     nuevas: list[str] = []
     for item in items:
-        anchor = item.get("target_text") or ""
-        comment = item.get("comment") or ""
+        anchor = re.sub(r"\s+", " ", (item.get("target_text") or "")).strip()
+        comment = re.sub(r"\s+", " ", (item.get("comment") or "")).strip()
         signature = _instruction_signature(item.get("page"), anchor, comment)
         if f"revisor:{signature}" in existing:
             continue
@@ -323,8 +354,8 @@ def register_executed_instructions(
     now_stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     entries: list[str] = []
     for item in executed_comments:
-        ancla = (item.get("target_text") or "").replace("\n", " ").strip()
-        comentario = (item.get("comment") or "").replace("\n", " ").strip()
+        ancla = re.sub(r"\s+", " ", (item.get("target_text") or "")).strip()
+        comentario = re.sub(r"\s+", " ", (item.get("comment") or "")).strip()
         signature = _instruction_signature(item.get("page"), ancla, comentario)
         if f"revisor:{signature}" in existing:
             continue
@@ -353,11 +384,110 @@ def register_executed_instructions(
     return path
 
 
+def _resolve_section_target_from_instruction(
+    instruction: str,
+    tex_files: list[Path],
+    file_contents: dict[Path, str],
+    default_file: Path | None = None,
+) -> tuple[Path | None, tuple[int, int] | None]:
+    """Resolve a target `.tex` file and sentence span when an instruction names a section or position.
+
+    Supports directives such as:
+    - "agrega dos oraciones al inicio del resumen que den más contexto del proyecto"
+    - "elimina la primera oración del resumen"
+    - "al principio del resumen ejecutivo"
+    - "al inicio de la justificación"
+    """
+    if not instruction:
+        return None, None
+
+    inst_low = instruction.lower()
+    section_map = [
+        (r"\bresumen\s+ejecutivo\b", "00_frontmatter.tex", r"\\section\*\{Resumen\s+ejecutivo\}"),
+        (r"\bpalabras\s+clave\b", "00_frontmatter.tex", r"\\section\*\{Palabras\s+clave\}"),
+        (r"\bresumen\b", "00_frontmatter.tex", r"\\section\*\{Resumen\}"),
+        (r"\bjustificaci[oó]n\b", "02_", r"\\section\{"),
+        (r"\bdescripci[oó]n\s+del\s+problema\b|\bplanteamiento\b", "03_", r"\\section\{"),
+        (r"\bestado\s+del\s+arte\b", "04_", r"\\section\{"),
+        (r"\bhip[oó]tesis\b", "05_", r"\\section\{"),
+        (r"\bobjetivo\s+general\b", "06_", r"\\section\{"),
+        (r"\bobjetivos\s+espec[ií]ficos\b", "07_", r"\\section\{"),
+        (r"\bmarco\s+conceptual\b", "08_", r"\\section\{"),
+        (r"\bequipo\s+de\s+trabajo\b", "09_", r"\\section\{"),
+        (r"\bmetodolog[ií]a\b", "10_", r"\\section\{"),
+        (r"\bresultados\s+esperados\b", "11_", r"\\section\{"),
+        (r"\bconsideraciones\s+[eé]ticas\b", "12_", r"\\section\{"),
+        (r"\bpresupuesto\b", "13_", r"\\section\{"),
+        (r"\bcronograma\b", "14_", r"\\section\{"),
+    ]
+
+    target_file: Path | None = None
+    header_regex: str | None = None
+    for kw_pat, file_hint, hdr_pat in section_map:
+        if re.search(kw_pat, inst_low):
+            for tf in tex_files:
+                if file_hint in tf.name:
+                    target_file = tf
+                    header_regex = hdr_pat
+                    break
+            if target_file:
+                break
+
+    if target_file is None:
+        target_file = default_file
+    if target_file is None or target_file not in file_contents:
+        return None, None
+
+    raw = file_contents[target_file]
+    reg_start, reg_end = _editable_region_of_tex(target_file, raw)
+    search_start = reg_start
+    search_end = reg_end
+
+    if header_regex:
+        m_hdr = re.search(header_regex, raw[reg_start:reg_end], re.IGNORECASE)
+        if m_hdr:
+            search_start = reg_start + m_hdr.end()
+            m_next = re.search(r"\\section\*?\{", raw[search_start:reg_end])
+            if m_next:
+                search_end = search_start + m_next.start()
+
+    # Locate the first prose sentence inside [search_start, search_end]
+    body_slice = raw[search_start:search_end]
+    # Skip leading whitespace, % comments, \noindent, \label{...}, and stray punctuation
+    pos = 0
+    while pos < len(body_slice):
+        ws_m = re.match(r"^(?:\s+|\\noindent\b|\\label\{[^}]*\}|%[^\n]*\n)+", body_slice[pos:])
+        if ws_m:
+            pos += ws_m.end()
+            continue
+        break
+
+    if pos >= len(body_slice):
+        return None, None
+
+    prose_start = search_start + pos
+    # Match up to the end of the first real sentence (period followed by space + uppercase or newline, skipping decimals like 7,4)
+    rem = raw[prose_start:search_end]
+    sent_m = re.search(r"^[.\s]*([^\n]+?\.)(?=\s+[A-ZÁÉÍÓÚÑ]|\s*\n|$)", rem)
+    if sent_m:
+        prose_end = prose_start + sent_m.end()
+    else:
+        line_end = rem.find("\n")
+        prose_end = prose_start + (line_end if line_end != -1 else min(len(rem), 260))
+
+    return target_file, (prose_start, prose_end)
+
+
 def consume_pending_instructions(
     pipeline_dir: Path,
     run_dir: Path,
     file_contents: dict[Path, str],
     files_modified: set[Path],
+    tex_files: list[Path] | None = None,
+    applied_strikethroughs: list[dict[str, Any]] | None = None,
+    applied_humanize: list[dict[str, Any]] | None = None,
+    applied_replace: list[dict[str, Any]] | None = None,
+    executed_comments: list[dict[str, Any]] | None = None,
 ) -> tuple[int, int]:
     """Inspects pending instructions file and executes or marks satisfied instructions as [x].
 
@@ -371,6 +501,7 @@ def consume_pending_instructions(
     if "- [ ]" not in content:
         return 0, 0
 
+    all_tex_files = tex_files if tex_files is not None else list(file_contents.keys())
     lines = content.split("\n")
     new_lines: list[str] = []
     consumed = 0
@@ -389,47 +520,152 @@ def consume_pending_instructions(
 
             block_text = "\n".join(block_lines)
 
-            # Extract target file, anchor, and instruction
+            # Extract page, target file, multiline anchor, and instruction
+            page_m = re.search(r"P[aá]g\.\s*(\d+)", block_text)
+            page_num = int(page_m.group(1)) if page_m else 1
             file_m = re.search(r"`([^`]+\.tex)`", block_text)
-            anchor_m = re.search(r"Ancla:\s*[«\"]?(.*?)[»\"]?$", block_text, re.MULTILINE)
+            anchor_m = re.search(r"Ancla:\s*«(.*?)»", block_text, re.DOTALL)
+            if not anchor_m:
+                anchor_m = re.search(r"Ancla:\s*[«\"]?(.*?)[»\"]?$", block_text, re.MULTILINE)
             inst_m = re.search(r"Instrucci[oó]n:\s*(.*?)$", block_text, re.MULTILINE)
 
             rel_file = file_m.group(1).strip() if file_m else None
-            anchor = anchor_m.group(1).strip() if anchor_m else ""
+            anchor = re.sub(r"\s+", " ", anchor_m.group(1)).strip() if anchor_m else ""
             instruction = inst_m.group(1).strip() if inst_m else ""
 
             target_path = (run_dir / rel_file).resolve() if rel_file else None
+            if target_path and target_path not in file_contents:
+                for k_path in file_contents:
+                    if str(k_path).endswith(rel_file):
+                        target_path = k_path
+                        break
+
             is_satisfied = False
 
             if "aplicada" in block_text.lower() or "ejecutada" in block_text.lower():
                 is_satisfied = True
-            elif target_path and target_path in file_contents:
-                cur_text = file_contents[target_path]
-                if re.search(r"\bcamila\b", instruction, re.IGNORECASE) and not re.search(r"\bcamila\b", cur_text, re.IGNORECASE):
-                    is_satisfied = True
-                else:
-                    reg_start, reg_end = _editable_region_of_tex(target_path, cur_text)
-                    scored_span = _find_text_span_scored(cur_text[reg_start:reg_end], anchor)
-                    if scored_span:
-                        s_start, s_end, _score = scored_span
-                        m_start, m_end = reg_start + s_start, reg_start + s_end
+            else:
+                # 1. Check if already satisfied (e.g. Camila removal)
+                if target_path and target_path in file_contents:
+                    cur_text = file_contents[target_path]
+                    if re.search(r"\bcamila\b", instruction, re.IGNORECASE) and not re.search(r"\bcamila\b", cur_text, re.IGNORECASE):
+                        is_satisfied = True
+
+                if not is_satisfied:
+                    # 2. Locate span in target_path, across all tex_files, or via section instruction
+                    m_span: tuple[int, int] | None = None
+                    is_section_positional = bool(
+                        re.search(
+                            r"\b(?:al\s+inicio\s+del?|al\s+principio\s+del?|la\s+primera\s+oraci[oó]n\s+del?|la\s+primeera\s+oraci[oó]n\s+del?|al\s+comienzo\s+del?)\b",
+                            instruction,
+                            re.IGNORECASE,
+                        )
+                    )
+                    is_ui_anchor = bool(re.match(r"^Morfeo\s+IA:", anchor, re.IGNORECASE))
+
+                    if not is_section_positional and not is_ui_anchor and target_path and target_path in file_contents:
+                        cur_text = file_contents[target_path]
+                        reg_start, reg_end = _editable_region_of_tex(target_path, cur_text)
+                        scored_span = _find_text_span_scored(cur_text[reg_start:reg_end], anchor)
+                        if scored_span:
+                            m_span = (reg_start + scored_span[0], reg_start + scored_span[1])
+
+                    if m_span is None and not is_section_positional and not is_ui_anchor and anchor:
+                        found_f, found_s = _locate_best_span_in_files(
+                            all_tex_files, file_contents, anchor, page_num=page_num
+                        )
+                        if found_f and found_s:
+                            target_path = found_f
+                            m_span = found_s
+
+                    if m_span is None:
+                        sec_f, sec_s = _resolve_section_target_from_instruction(
+                            instruction, all_tex_files, file_contents, default_file=target_path
+                        )
+                        if sec_f and sec_s:
+                            target_path = sec_f
+                            m_span = sec_s
+
+                    if target_path and target_path in file_contents and m_span:
+                        cur_text = file_contents[target_path]
+                        m_start, m_end = m_span
                         matched_orig = cur_text[m_start:m_end]
-                        act_type, new_text = _execute_redactor_instruction(instruction, anchor, matched_orig)
+                        act_type, new_text = _execute_redactor_instruction(
+                            instruction, anchor, matched_orig, section_context=cur_text
+                        )
+                        rel_target = str(target_path.relative_to(run_dir))
+                        block_lines[0] = re.sub(
+                            r"sin ubicar en las fuentes",
+                            f"`{rel_target}`",
+                            block_lines[0],
+                        )
                         if act_type == "delete" or (act_type == "replace" and new_text == ""):
+                            before_sent, after_sent = _extract_surrounding_sentences(cur_text, m_start, m_end)
                             file_contents[target_path] = _replace_span_isolated(
                                 cur_text, m_start, m_end, "", is_delete=True
                             )
                             files_modified.add(target_path)
+                            if applied_strikethroughs is not None:
+                                applied_strikethroughs.append({
+                                    "id": f"queue_{consumed + 1}",
+                                    "file": rel_target,
+                                    "page": page_num,
+                                    "original_text": matched_orig,
+                                    "context_before": before_sent,
+                                    "context_after": after_sent,
+                                    "rects": None,
+                                    "via_instruction": instruction,
+                                    "agent": "redactor",
+                                })
                             is_satisfied = True
                         elif new_text != matched_orig:
                             file_contents[target_path] = _replace_span_isolated(
                                 cur_text, m_start, m_end, new_text, is_delete=False
                             )
                             files_modified.add(target_path)
+                            if act_type == "humanize" and applied_humanize is not None:
+                                applied_humanize.append({
+                                    "id": f"queue_{consumed + 1}",
+                                    "file": rel_target,
+                                    "page": page_num,
+                                    "original_text": matched_orig,
+                                    "polished_text": new_text,
+                                    "rects": None,
+                                    "via_instruction": instruction,
+                                    "agent": "grant-flow-auditor",
+                                })
+                            elif applied_replace is not None:
+                                applied_replace.append({
+                                    "id": f"queue_{consumed + 1}",
+                                    "file": rel_target,
+                                    "page": page_num,
+                                    "original_text": matched_orig,
+                                    "replacement": new_text,
+                                    "deleted": False,
+                                    "context_before": "",
+                                    "context_after": "",
+                                    "rects": None,
+                                    "via_instruction": instruction,
+                                    "agent": "redactor",
+                                })
                             is_satisfied = True
                         else:
                             is_satisfied = True
+
+                        if is_satisfied and executed_comments is not None:
+                            executed_comments.append({
+                                "id": f"queue_{consumed + 1}",
+                                "file": rel_target,
+                                "page": page_num,
+                                "target_text": matched_orig,
+                                "comment": instruction,
+                                "located": True,
+                                "rects": None,
+                                "executed": True,
+                                "agent": "redactor + grant-flow-auditor",
+                            })
                     else:
+                        # Anchor was already deleted or superseded in the manuscript
                         is_satisfied = True
 
             if is_satisfied:
@@ -484,15 +720,336 @@ def _restore_latex_tokens(text: str, placeholders: list[tuple[str, str]]) -> str
     return restored
 
 
-def _humanize_text_span(text: str) -> str:
-    """Apply estilo-natural-es and depuracion-redundancias-es academic humanization rules to a span of text.
+_SPANISH_ACCENT_CORRECTIONS: dict[str, str] = {
+    "oracion": "oración",
+    "orancioens": "oraciones",
+    "oranciones": "oraciones",
+    "primeera": "primera",
+    "andtes": "antes",
+    "poblacion": "población",
+    "investigacion": "investigación",
+    "evaluacion": "evaluación",
+    "validacion": "validación",
+    "identificacion": "identificación",
+    "atencion": "atención",
+    "intervencion": "intervención",
+    "aplicacion": "aplicación",
+    "implementacion": "implementación",
+    "ejecucion": "ejecución",
+    "optimizacion": "optimización",
+    "calibracion": "calibración",
+    "estimacion": "estimación",
+    "prediccion": "predicción",
+    "clasificacion": "clasificación",
+    "extraccion": "extracción",
+    "deteccion": "detección",
+    "recoleccion": "recolección",
+    "generacion": "generación",
+    "integracion": "integración",
+    "articulacion": "articulación",
+    "apropiacion": "apropiación",
+    "informacion": "información",
+    "comunicacion": "comunicación",
+    "educacion": "educación",
+    "formacion": "formación",
+    "participacion": "participación",
+    "correlacion": "correlación",
+    "regresion": "regresión",
+    "dimension": "dimensión",
+    "depresion": "depresión",
+    "expresion": "expresión",
+    "comprension": "comprensión",
+    "extension": "extensión",
+    "precision": "precisión",
+    "decision": "decisión",
+    "exclusion": "exclusión",
+    "inclusion": "inclusión",
+    "conclusion": "conclusión",
+    "distribucion": "distribución",
+    "contribucion": "contribución",
+    "institucion": "institución",
+    "reduccion": "reducción",
+    "produccion": "producción",
+    "construccion": "construcción",
+    "instruccion": "instrucción",
+    "seccion": "sección",
+    "prevencion": "prevención",
+    "rehabilitacion": "rehabilitación",
+    "ubicacion": "ubicación",
+    "situacion": "situación",
+    "limitacion": "limitación",
+    "medicion": "medición",
+    "condicion": "condición",
+    "exposicion": "exposición",
+    "proposicion": "proposición",
+    "composicion": "composición",
+    "definicion": "definición",
+    "transicion": "transición",
+    "adquisicion": "adquisición",
+    "analisis": "análisis",
+    "hipotesis": "hipótesis",
+    "sintesis": "síntesis",
+    "diagnostico": "diagnóstico",
+    "diagnostica": "diagnóstica",
+    "diagnosticos": "diagnósticos",
+    "pronostico": "pronóstico",
+    "metodo": "método",
+    "metodos": "métodos",
+    "metodologia": "metodología",
+    "metodologias": "metodologías",
+    "metodologico": "metodológico",
+    "metodologica": "metodológica",
+    "clinico": "clínico",
+    "clinica": "clínica",
+    "clinicos": "clínicos",
+    "clinicas": "clínicas",
+    "psicometrico": "psicométrico",
+    "psicometrica": "psicométrica",
+    "psicometricos": "psicométricos",
+    "psicometricas": "psicométricas",
+    "psicologico": "psicológico",
+    "psicologica": "psicológica",
+    "psicologicos": "psicológicos",
+    "psicologicas": "psicológicas",
+    "psicologia": "psicología",
+    "psiquiatrico": "psiquiátrico",
+    "psiquiatrica": "psiquiátrica",
+    "postraumatico": "postraumático",
+    "postraumatica": "postraumática",
+    "estres": "estrés",
+    "sintoma": "síntoma",
+    "sintomas": "síntomas",
+    "sintomatico": "sintomático",
+    "sintomatica": "sintomática",
+    "sismico": "sísmico",
+    "sismica": "sísmica",
+    "sismicos": "sísmicos",
+    "sismicas": "sísmicas",
+    "telurico": "telúrico",
+    "telurica": "telúrica",
+    "teluricos": "telúricos",
+    "acustico": "acústico",
+    "acustica": "acústica",
+    "acusticos": "acústicos",
+    "acusticas": "acústicas",
+    "linguistico": "lingüístico",
+    "linguistica": "lingüística",
+    "linguisticos": "lingüísticos",
+    "linguisticas": "lingüísticas",
+    "prosodico": "prosódico",
+    "prosodica": "prosódica",
+    "prosodicos": "prosódicos",
+    "prosodicas": "prosódicas",
+    "semantico": "semántico",
+    "semantica": "semántica",
+    "semanticos": "semánticos",
+    "semanticas": "semánticas",
+    "lexico": "léxico",
+    "lexica": "léxica",
+    "estadistico": "estadístico",
+    "estadistica": "estadística",
+    "estadisticos": "estadísticos",
+    "estadisticas": "estadísticas",
+    "automatico": "automático",
+    "automatica": "automática",
+    "automaticos": "automáticos",
+    "automaticas": "automáticas",
+    "sistematico": "sistemático",
+    "sistematica": "sistemática",
+    "especifico": "específico",
+    "especifica": "específica",
+    "especificos": "específicos",
+    "especificas": "específicas",
+    "cientifico": "científico",
+    "cientifica": "científica",
+    "cientificos": "científicos",
+    "cientificas": "científicas",
+    "academico": "académico",
+    "academica": "académica",
+    "academicos": "académicos",
+    "academicas": "académicas",
+    "tecnologico": "tecnológico",
+    "tecnologica": "tecnológica",
+    "tecnologicos": "tecnológicos",
+    "tecnologicas": "tecnológicas",
+    "tecnologia": "tecnología",
+    "tecnologias": "tecnologías",
+    "empirico": "empírico",
+    "empirica": "empírica",
+    "teorico": "teórico",
+    "teorica": "teórica",
+    "teoricos": "teóricos",
+    "teoricas": "teóricas",
+    "etico": "ético",
+    "etica": "ética",
+    "eticos": "éticos",
+    "eticas": "éticas",
+    "publico": "público",
+    "publica": "pública",
+    "publicos": "públicos",
+    "publicas": "públicas",
+    "unico": "único",
+    "unica": "única",
+    "unicos": "únicos",
+    "unicas": "únicas",
+    "numero": "número",
+    "numeros": "números",
+    "codigo": "código",
+    "codigos": "códigos",
+    "pagina": "página",
+    "paginas": "páginas",
+    "indice": "índice",
+    "indices": "índices",
+    "limite": "límite",
+    "limites": "límites",
+    "ambito": "ámbito",
+    "ambitos": "ámbitos",
+    "parametro": "parámetro",
+    "parametros": "parámetros",
+    "fenomeno": "fenómeno",
+    "fenomenos": "fenómenos",
+    "proposito": "propósito",
+    "propositos": "propósitos",
+    "caracter": "carácter",
+    "regimen": "régimen",
+    "deficit": "déficit",
+    "habito": "hábito",
+    "habitos": "hábitos",
+    "movil": "móvil",
+    "moviles": "móviles",
+    "util": "útil",
+    "utiles": "útiles",
+    "facil": "fácil",
+    "dificil": "difícil",
+    "fragil": "frágil",
+    "tambien": "también",
+    "ademas": "además",
+    "despues": "después",
+    "segun": "según",
+}
 
-    Removes formulaic mechanical boilerplate, AI markers, and bureaucratic fillers
-    while strictly preserving 100% of facts, citations, numbers, percentages and technical register.
+_ACCENT_REGEX = re.compile(
+    r"(?<!\\)(?<![\{\w])(" + "|".join(re.escape(k) for k in _SPANISH_ACCENT_CORRECTIONS) + r")(?![\w\}])",
+    re.IGNORECASE,
+)
+
+
+def _apply_case_preserving(match: re.Match[str]) -> str:
+    word = match.group(0)
+    corr = _SPANISH_ACCENT_CORRECTIONS.get(word.lower(), word)
+    if word.isupper():
+        return corr.upper()
+    if word[0].isupper():
+        return corr[0].upper() + corr[1:]
+    return corr
+
+
+def _fix_spanish_orthography_and_grammar(text: str) -> str:
+    """Review and fix Spanish orthography (accentuation, proper names), punctuation, and grammar/concordance."""
+    if not text:
+        return ""
+
+    fixed = text
+
+    # 1. Strip stray leading punctuation at start of span or start of paragraph/line (e.g. ". El sismo...")
+    fixed = re.sub(r"^\s*[\.,;:]+\s*", "", fixed)
+    fixed = re.sub(r"(\n\s*)[\.,;:]+\s*", r"\1", fixed)
+
+    # 2. Orthography: restore missing tildes in academic/technical words (skipping LaTeX commands)
+    fixed = _ACCENT_REGEX.sub(_apply_case_preserving, fixed)
+
+    # 3. Orthography of proper regional/institutional names
+    fixed = re.sub(r"\beje\s+cafetero\b", "Eje Cafetero", fixed, flags=re.IGNORECASE)
+    fixed = re.sub(r"\bsan\s+jos[eé]\s+del\s+palmar\b", "San José del Palmar", fixed, flags=re.IGNORECASE)
+    fixed = re.sub(r"\bchoc[oó]\b", "Chocó", fixed, flags=re.IGNORECASE)
+
+    # 4. Grammar: remove accidentally duplicated adjacent words (e.g. "de de", "la la", "en en")
+    fixed = re.sub(
+        r"\b(el|la|los|las|un|una|unos|unas|de|del|al|en|con|por|para|sin|sobre|entre|que|se|su|sus|y|e|o|u|a|no|es|son)\s+\1\b",
+        r"\1",
+        fixed,
+        flags=re.IGNORECASE,
+    )
+
+    # 5. Grammar: Spanish hiatus conjunctions ("y i-" -> "e i-", "o o-" -> "u o-")
+    fixed = re.sub(
+        r"\by\s+(i[bcdfghjklmnñpqrstvwxyz][a-záéíóúñ]*|hi[bcdfghjklmnñpqrstvwxyz][a-záéíóúñ]*)\b",
+        r"e \1",
+        fixed,
+        flags=re.IGNORECASE,
+    )
+    fixed = re.sub(
+        r"\bo\s+(o[a-záéíóúñ]+|ho[a-záéíóúñ]+)\b",
+        r"u \1",
+        fixed,
+        flags=re.IGNORECASE,
+    )
+
+    # 6. Grammar & prepositional regime
+    fixed = re.sub(
+        r",\s*en\s+particular,\s*(?=[A-ZÁÉÍÓÚÑ])",
+        ", en particular en ",
+        fixed,
+    )
+    grammar_subs = [
+        (r"\bde acuerdo a\b", "de acuerdo con"),
+        (r"\ben base a\b", "con base en"),
+        (r"\ba nivel de\b", "en el ámbito de"),
+        (r"\ben relación a\b", "respecto a"),
+        (r"\bmas\s+(contexto|amplio|preciso|reciente|frecuente|complejo|alto|bajo|allá)\b", r"más \1"),
+        (
+            r"\bel\s+(cohorte|variable|hipótesis|metodología|arquitectura|intervención|evaluación|población|muestra|fase|etapa|escala|tasa|prevalencia|incidencia|herramienta|plataforma|aplicación|región|ciudad|universidad|salud|ansiedad|depresión)\b",
+            r"la \1",
+        ),
+        (
+            r"\bla\s+(proyecto|sistema|modelo|algoritmo|análisis|estudio|diagnóstico|tamizaje|trastorno|sismo|evento|protocolo|instrumento|cuestionario|equipo|presupuesto|cronograma|objetivo|impacto|riesgo|desarrollo|entorno|departamento|municipio)\b",
+            r"el \1",
+        ),
+        (
+            r"\blos\s+(variables|hipótesis|metodologías|intervenciones|evaluaciones|poblaciones|muestras|fases|etapas|escalas|tasas|herramientas|plataformas|aplicaciones|regiones|ciudades|universidades|pruebas|encuestas)\b",
+            r"las \1",
+        ),
+        (
+            r"\blas\s+(proyectos|sistemas|modelos|algoritmos|estudios|diagnósticos|trastornos|sismos|eventos|protocolos|instrumentos|cuestionarios|equipos|objetivos|impactos|riesgos|entornos|departamentos|municipios)\b",
+            r"los \1",
+        ),
+    ]
+    for pat, rep in grammar_subs:
+        fixed = re.sub(pat, rep, fixed, flags=re.IGNORECASE)
+
+    # 7. Punctuation normalization (collided/doubled punctuation, spacing, sentence capitalization)
+    fixed = re.sub(r"\.\s*\.+", ".", fixed)
+    fixed = re.sub(r",\s*,+", ",", fixed)
+    fixed = re.sub(r";\s*;+", ";", fixed)
+    fixed = re.sub(r"[,;]\s*\.", ".", fixed)
+    fixed = re.sub(r"\.\s*,", ".", fixed)
+    fixed = re.sub(r",\s+y\b", " y", fixed)
+    fixed = re.sub(r"\s+([,\.;:\)\]])", r"\1", fixed)
+    fixed = re.sub(r"([\(\[])\s+", r"\1", fixed)
+    fixed = re.sub(r"([,\.;:])([a-zA-ZáéíóúÁÉÍÓÚñÑ])", r"\1 \2", fixed)
+    fixed = re.sub(r" {2,}", " ", fixed)
+
+    # Capitalize lowercase letter after sentence-ending period
+    fixed = re.sub(
+        r"(\.\s+)([a-záéíóúñ])",
+        lambda m: m.group(1) + m.group(2).upper(),
+        fixed,
+    )
+
+    return fixed.strip()
+
+
+def _humanize_text_span(text: str) -> str:
+    """Apply estilo-natural-es, depuracion-redundancias-es, and orthography/punctuation/grammar rules to a span of text.
+
+    Removes formulaic mechanical boilerplate, AI markers, and bureaucratic fillers,
+    and corrects orthography, punctuation, and grammatical concordance while strictly
+    preserving 100% of facts, citations, numbers, percentages and technical register.
     """
     if not text:
         return ""
 
+    had_initial_upper = bool(re.match(r"^[\s\.,;:]*[A-ZÁÉÍÓÚÑ]", text))
     polished, placeholders = _protect_latex_tokens(text)
 
     # 1. Prohibición estricta de rayas anglosajonas (—) y dobles guiones (--)
@@ -562,15 +1119,7 @@ def _humanize_text_span(text: str) -> str:
     for pat, rep in replacements:
         polished = re.sub(pat, rep, polished, flags=re.IGNORECASE)
 
-    # 3. Corrección de anomalías de puntuación
-    polished = re.sub(r"\.\s*\.", ".", polished)
-    polished = re.sub(r",\s*,", ",", polished)
-    polished = re.sub(r",\s+y\b", " y", polished)
-    polished = re.sub(r" {2,}", " ", polished)
-    polished = re.sub(r"\s+([,\.;:])", r"\1", polished)
-    polished = re.sub(r"([,\.;:])([a-zA-ZáéíóúÁÉÍÓÚñÑ])", r"\1 \2", polished)
-
-    # 4. Dinamismo sintáctico y depuración de nominalizaciones (grant-flow-auditor)
+    # 3. Dinamismo sintáctico y depuración de nominalizaciones (grant-flow-auditor)
     dynamic_subs = [
         (r"\bpermite llevar a cabo\b", "facilita"),
         (r"\bcon el fin de lograr\b", "para alcanzar"),
@@ -602,11 +1151,11 @@ def _humanize_text_span(text: str) -> str:
     for pat, rep in dynamic_subs:
         polished = re.sub(pat, rep, polished, flags=re.IGNORECASE)
 
-    polished = re.sub(r"\.\s*\.", ".", polished)
-    polished = re.sub(r" {2,}", " ", polished).strip()
+    # 4. Revisión integral de ortografía, puntuación y gramática/concordancia
+    polished = _fix_spanish_orthography_and_grammar(polished)
 
     # 5. Capitalización inicial coherente
-    if text and text[0].isupper() and polished and polished[0].islower():
+    if had_initial_upper and polished and polished[0].islower():
         polished = polished[0].upper() + polished[1:]
 
     polished = _restore_latex_tokens(polished, placeholders)
@@ -691,6 +1240,39 @@ def _extract_surrounding_sentences(content: str, start: int, end: int) -> tuple[
     return context_before, context_after
 
 
+def _build_project_context_sentences(num_sentences: int, section_context: str = "") -> str:
+    """Generate 1 or 2 academic contextual sentences grounded in the manuscript's domain (estilo-natural-es)."""
+    ctx_low = (section_context or "").lower()
+    if any(k in ctx_low for k in ("sismo", "sísmic", "tept", "postraum", "depresión", "phq-8")):
+        s1 = (
+            "Las emergencias sísmicas en zonas densamente pobladas desencadenan una carga persistente "
+            "de afectaciones en salud mental cuyas secuelas clínicas suelen prolongarse mucho después del evento inicial."
+        )
+        s2 = (
+            "En este escenario, la detección oportuna de sintomatología depresiva y de estrés postraumático "
+            "en comunidades universitarias exige herramientas portables e interpretables que complementen la valoración psicométrica convencional."
+        )
+    else:
+        s1 = (
+            "La problemática abordada en esta propuesta responde a la necesidad de fortalecer las capacidades "
+            "científicas y tecnológicas del territorio mediante soluciones basadas en inteligencia artificial interpretable."
+        )
+        s2 = (
+            "Para ello, el proyecto articula validación empírica en entorno relevante y transferencia tecnológica "
+            "orientada a la toma de decisiones oportuna."
+        )
+
+    chosen: list[str] = []
+    if s1.lower()[:50] not in ctx_low:
+        chosen.append(s1)
+    if num_sentences >= 2 and s2.lower()[:50] not in ctx_low:
+        chosen.append(s2)
+    elif num_sentences == 1 and not chosen and s2.lower()[:50] not in ctx_low:
+        chosen.append(s2)
+
+    return " ".join(chosen)
+
+
 def _parse_instruction_action(comment: str, target_text: str, matched_original: str) -> tuple[str, str] | None:
     """Parse whether a user's comment text is an actionable editorial command on the selected text.
 
@@ -703,7 +1285,7 @@ def _parse_instruction_action(comment: str, target_text: str, matched_original: 
     c_lower = raw_c.lower()
 
     # 1. Punctuation removal directive (e.g. "quitar los dos puntos", "quitar dobles puntos", "quitar puntos")
-    if re.search(r"\b(?:quitar|eliminar|borrar|suprimir)\b.*\b(?:puntos?|dos puntos|dobles puntos)\b", c_lower) or any(k in c_lower for k in [
+    if re.search(r"\b(?:quita\w*|elimina\w*|borra\w*|suprim\w*)\b.*\b(?:puntos?|dos puntos|dobles puntos)\b", c_lower) or any(k in c_lower for k in [
         "dobles puntos", "dos puntos", "quitar los puntos", "quitar el punto", "quitar punto", "eliminar puntos", "eliminar dobles puntos", "esos dos puntos", "quitar .", "quitar .."
     ]):
         cleaned = re.sub(r"\.\s*\.", ".", matched_original)
@@ -716,9 +1298,20 @@ def _parse_instruction_action(comment: str, target_text: str, matched_original: 
             return ("delete", "")
         return ("replace", cleaned)
 
-    # 2. Compound directive: remove/avoid X and replace/leave as Y
+    # 2. Sentence-level deletion directive (e.g. "elimina la primera oración del resumen", "quita esta oración")
+    if re.search(
+        r"\b(?:quita\w*|elimina\w*|borra\w*|suprim\w*)\s+(?:la\s+)?(?:primera|primeera|1ra|esta|esa)\s+(?:oraci[oó]n|orancioens|oranciones|frase)\b",
+        c_lower,
+    ):
+        cleaned_orig = re.sub(r"^\s*[\.,;:]+\s*", "", matched_original)
+        m_first = re.match(r"^([^\n]+?\.)\s+([A-ZÁÉÍÓÚÑ].*)$", cleaned_orig, re.DOTALL)
+        if m_first:
+            return ("replace", m_first.group(2).strip())
+        return ("delete", "")
+
+    # 3. Compound directive: remove/avoid X and replace/leave as Y
     compound_m = re.search(
-        r"(?:reajusta\w*\s+para\s+que\s+(?:la\s+redacci[oó]n\s+)?no\s+incluya|quita\w*|elimina\w*|borra\w*|suprime\w*|sin|no\s+incluya|no\s+incluir)\s+(?:el\s+nombre\s+|la\s+palabra\s+|el\s+texto\s+)?([a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]+?)(?:,|\sy\s|\s+y\s+)?\s*(?:deja|dejar|dejalo|déjalo)?\s*(?:como\s+general,?\s*|general,?\s*|como\s+|por\s+|a\s+|usar\s+|poner\s+)(.+)$",
+        r"(?:reajusta\w*\s+para\s+que\s+(?:la\s+redacci[oó]n\s+)?no\s+incluya|quita\w*|elimina\w*|borra\w*|suprim\w*|sin|no\s+incluya|no\s+incluir)\s+(?:el\s+nombre\s+|la\s+palabra\s+|el\s+texto\s+)?([a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]+?)(?:,|\sy\s|\s+y\s+)?\s*(?:deja|dejar|dejalo|déjalo)?\s*(?:como\s+general,?\s*|general,?\s*|como\s+|por\s+|a\s+|usar\s+|poner\s+)(.+)$",
         raw_c,
         re.IGNORECASE
     )
@@ -738,12 +1331,12 @@ def _parse_instruction_action(comment: str, target_text: str, matched_original: 
             new_text = re.sub(r" {2,}", " ", new_text).strip()
             return ("replace", new_text)
 
-    # 3. Deletion directive: "quitar X", "eliminar X", "borrar X"
-    del_m = re.match(r"^(?:quitar|eliminar|borrar|suprimir)\s+(.+)$", raw_c, re.IGNORECASE)
+    # 4. Deletion directive: "quitar X", "eliminar X", "borrar X", "quita X", "elimina X"
+    del_m = re.match(r"^(?:quita\w*|elimina\w*|borra\w*|suprim\w*)\s+(.+)$", raw_c, re.IGNORECASE)
     if del_m:
         phrase = del_m.group(1).strip().strip('"\'«»')
         phrase_lower = phrase.lower()
-        if phrase_lower in ("este texto", "el texto", "esto", "el fragmento", "este fragmento", "la seleccion", "la selección"):
+        if phrase_lower in ("este texto", "el texto", "esto", "el fragmento", "este fragmento", "la seleccion", "la selección", "esta oracion", "esta oración"):
             return ("delete", "")
         cleaned_phrase = re.sub(r"^(?:el\s+nombre\s+|la\s+palabra\s+|el\s+término\s+)", "", phrase, flags=re.IGNORECASE).strip()
         for cand in [phrase, cleaned_phrase]:
@@ -757,12 +1350,12 @@ def _parse_instruction_action(comment: str, target_text: str, matched_original: 
                 new_text = re.sub(r" {2,}", " ", new_text).strip()
                 return ("replace", new_text)
 
-    # 4. Replacement directive: "cambiar por X", "reemplazar por X", "poner X", "dejar como X"
-    repl_m = re.match(r"^(?:cambiar|reemplazar|sustituir)(?:\s+este\s+texto)?\s+por\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
+    # 5. Replacement directive: "cambiar por X", "reemplazar por X", "poner X", "dejar como X"
+    repl_m = re.match(r"^(?:cambia\w*|reemplaza\w*|sustitu\w*)(?:\s+este\s+texto)?\s+por\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
     if repl_m:
         return ("replace", repl_m.group(1).strip())
 
-    repl_m2 = re.match(r"^(?:cambiar|reemplazar|sustituir)\s+[:«\"']?(.*?)[:»\"']?\s+por\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
+    repl_m2 = re.match(r"^(?:cambia\w*|reemplaza\w*|sustitu\w*)\s+[:«\"']?(.*?)[:»\"']?\s+por\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
     if repl_m2:
         old_part, new_part = repl_m2.group(1).strip(), repl_m2.group(2).strip()
         if old_part in matched_original:
@@ -771,13 +1364,13 @@ def _parse_instruction_action(comment: str, target_text: str, matched_original: 
         if pat.search(matched_original):
             return ("replace", pat.sub(new_part, matched_original))
 
-    poner_m = re.match(r"^(?:poner|dejar\s+como|dejalo\s+como|déjalo\s+como|usar)\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
+    poner_m = re.match(r"^(?:pon(?:er)?|deja(?:r)?\s+como|dejalo\s+como|déjalo\s+como|usa(?:r)?)\s+[:«\"']?(.*?)[:»\"']?$", raw_c, re.IGNORECASE)
     if poner_m:
         return ("replace", poner_m.group(1).strip())
 
-    # 5. Rephrasing / Humanizing directive (explicit command on this passage)
+    # 6. Rephrasing / Humanizing directive (explicit command on this passage)
     if re.search(
-        r"\b(?:redactar\s+(?:de\s+forma\s+diferente|diferente|de\s+otra\s+forma)|humanizar(?:lo)?|hacer\s+m[aá]s\s+conciso|mejorar\s+redacci[oó]n|estilo\s+natural|estilo-natural-es)\b",
+        r"\b(?:redacta\w*\s+(?:de\s+forma\s+diferente|diferente|de\s+otra\s+forma)|humaniza\w*|hacer\s+m[aá]s\s+conciso|mejora\w*\s+redacci[oó]n|estilo\s+natural|estilo-natural-es)\b",
         c_lower,
     ) and not re.search(r"\b(?:sin\s+nombrar|para\s+el\s+agente|revisar|consultar)\b", c_lower):
         polished = _humanize_text_span(matched_original)
@@ -786,7 +1379,12 @@ def _parse_instruction_action(comment: str, target_text: str, matched_original: 
     return None
 
 
-def _execute_redactor_instruction(comment: str, target_text: str, matched_original: str) -> tuple[str, str]:
+def _execute_redactor_instruction(
+    comment: str,
+    target_text: str,
+    matched_original: str,
+    section_context: str = "",
+) -> tuple[str, str]:
     """Execute an editorial comment on `matched_original` via the redactor + grant-flow-auditor rules.
 
     Strictly operates ONLY on `matched_original` (the anchored passage) and never touches outside text.
@@ -804,7 +1402,31 @@ def _execute_redactor_instruction(comment: str, target_text: str, matched_origin
         return ("humanize", _humanize_text_span(matched_original))
 
     c_lower = raw_c.lower()
-    working = matched_original
+    working = re.sub(r"^\s*[\.,;:]+\s*", "", matched_original)
+
+    # A0. Contextual sentence insertion ("agrega una oración que dé contexto... antes de este texto",
+    # "agrega dos oraciones al inicio del resumen que den más contexto del proyecto")
+    ctx_sent_m = re.search(
+        r"\b(?:agrega\w*|a[ñn]ad\w*|incluy\w*|incorpora\w*|escribe\w*|redacta\w*)\s+"
+        r"(?:(una|un|1|dos|2|tres|3)\s+)?"
+        r"(?:oraci[oó]n(?:es)?|orancioens|oranciones|frases?|l[ií]neas?)",
+        c_lower,
+    )
+    if ctx_sent_m or (
+        re.search(r"\b(?:agrega\w*|a[ñn]ad\w*|incluy\w*)\b", c_lower)
+        and re.search(r"\bcontexto\b", c_lower)
+    ):
+        qty_tok = (ctx_sent_m.group(1) if ctx_sent_m else "") or "1"
+        num_sentences = 2 if qty_tok in ("dos", "2", "tres", "3") else 1
+        ctx_prefix = _build_project_context_sentences(num_sentences, section_context or working)
+        is_after = bool(re.search(r"\b(?:despu[eé]s|al\s+final)\b", c_lower))
+        if ctx_prefix:
+            if is_after:
+                combined = f"{working.rstrip()} {ctx_prefix}"
+            else:
+                combined = f"{ctx_prefix} {working.lstrip()}"
+            return ("replace", _humanize_text_span(combined))
+        return ("replace", _humanize_text_span(working))
 
     # A. Generalization / Omission of names or specific mentions ("sin nombrar...", "sin mencionar...", "en general")
     omit_m = re.search(
@@ -843,7 +1465,7 @@ def _execute_redactor_instruction(comment: str, target_text: str, matched_origin
 
     # B. Explicit addition / clarification / detail ("aclarar...", "agregar...", "añadir...", "incluir...", "especificar...", "precisar...")
     add_m = re.match(
-        r"^(?:aclarar|agregar|a[ñn]adir|incluir|especificar|precisar|mencionar|detallar|complementar|incorporar)\s+(?:que\s+|sobre\s+|los?\s+|las?\s+|el\s+|la\s+)?(.+)$",
+        r"^(?:aclara\w*|agrega\w*|a[ñn]ad\w*|incluy\w*|especifica\w*|precisa\w*|menciona\w*|detalla\w*|complementa\w*|incorpora\w*)\s+(?:que\s+|sobre\s+|los?\s+|las?\s+|el\s+|la\s+)?(.+)$",
         raw_c,
         re.IGNORECASE,
     )
@@ -1018,7 +1640,15 @@ def apply_pdf_annotations(
     remaining_pending = 0
     if process_pending:
         consumed_pending, remaining_pending = consume_pending_instructions(
-            pipeline_dir, run_dir, file_contents, files_modified
+            pipeline_dir,
+            run_dir,
+            file_contents,
+            files_modified,
+            tex_files=tex_files,
+            applied_strikethroughs=applied_strikethroughs,
+            applied_humanize=applied_humanize,
+            applied_replace=applied_replace,
+            executed_comments=executed_comments,
         )
         if consumed_pending > 0:
             _mark_agent("redactor")
@@ -1042,9 +1672,29 @@ def apply_pdf_annotations(
             continue
 
         # Search for highest-scoring target text span across all candidate files
-        matched_file, match_span = _locate_best_span_in_files(
-            tex_files, file_contents, target_text, page_num=page_num, section_hint=ann.get("section")
+        is_ui_anchor = bool(re.match(r"^Morfeo\s+IA:", target_text, re.IGNORECASE))
+        is_section_positional = bool(
+            ann_type in ("comment", "comentario")
+            and re.search(
+                r"\b(?:al\s+inicio\s+del?|al\s+principio\s+del?|la\s+primera\s+oraci[oó]n\s+del?|la\s+primeera\s+oraci[oó]n\s+del?|al\s+comienzo\s+del?)\b",
+                comment_body,
+                re.IGNORECASE,
+            )
         )
+
+        matched_file: Path | None = None
+        match_span: tuple[int, int] | None = None
+        if target_text and not is_ui_anchor and not is_section_positional:
+            matched_file, match_span = _locate_best_span_in_files(
+                tex_files, file_contents, target_text, page_num=page_num, section_hint=ann.get("section")
+            )
+
+        if (matched_file is None or match_span is None) and ann_type in ("comment", "comentario"):
+            sec_f, sec_s = _resolve_section_target_from_instruction(
+                comment_body, tex_files, file_contents
+            )
+            if sec_f and sec_s:
+                matched_file, match_span = sec_f, sec_s
 
         matched_original = (
             file_contents[matched_file][match_span[0]:match_span[1]]
@@ -1060,11 +1710,16 @@ def apply_pdf_annotations(
             if matched_file and match_span and (action is not None or apply_directly):
                 if action is not None:
                     act_type, new_text = action
+                    if act_type == "replace" and new_text:
+                        new_text = _humanize_text_span(new_text)
                 elif bool(ann.get("apply_directly")) and not process_pending:
                     act_type, new_text = ("replace", comment_body)
                 else:
                     act_type, new_text = _execute_redactor_instruction(
-                        comment_body, target_text, matched_original or target_text
+                        comment_body,
+                        target_text,
+                        matched_original or target_text,
+                        section_context=file_contents[matched_file],
                     )
 
                 content = file_contents[matched_file]

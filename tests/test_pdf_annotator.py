@@ -636,8 +636,87 @@ class TestPdfAnnotator(unittest.TestCase):
             self.assertNotIn("Esta frase redundante debe tacharse sin afectar el cierre.", updated_sec3)
             self.assertIn("El cierre del capítulo permanece igual.", updated_sec3)
 
+    def test_humanize_reviews_orthography_punctuation_and_grammar(self):
+        """Al pulsar Humanizar, además de estilo-natural-es, se corrige ortografía,
+        puntuación (puntos iniciales huérfanos, dobles signos, mayúsculas tras punto)
+        y gramática/concordancia sin alterar comandos LaTeX ni otras secciones.
+        """
+        raw = (
+            ". El sismo de magnitud 7,4 en san jose del palmar (choco) afectó a la poblacion "
+            "del eje cafetero, en particular, Manizales y Pereira. "
+            "el analisis psicometrico de de el cohorte se realiza en base a un metodo clinico "
+            "de acuerdo a la evaluacion de depresion y identificacion de estres postraumatico \\citep{Smith2024}.."
+        )
+        polished = _humanize_text_span(raw)
+        self.assertFalse(polished.startswith("."))
+        self.assertTrue(polished.startswith("El sismo de magnitud 7,4"))
+        self.assertIn("San José del Palmar (Chocó)", polished)
+        self.assertIn("población", polished)
+        self.assertIn("Eje Cafetero, en particular en Manizales y Pereira.", polished)
+        self.assertIn("El análisis psicométrico de la cohorte", polished)
+        self.assertIn("con base en un método clínico", polished)
+        self.assertIn("de acuerdo con la evaluación de depresión e identificación de estrés postraumático", polished)
+        self.assertIn("\\citep{Smith2024}.", polished)
+        self.assertNotIn("..", polished)
+
+    def test_redactor_queue_executes_pending_and_section_positional_instructions(self):
+        """Al pulsar Ejecutar cambios (process_pending=True), la cola de instrucciones
+        del redactor en instrucciones_revisor_pdf.md y los comentarios enviados
+        se implementan efectivamente sobre el manuscrito.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir, sec0 = self._workspace(tmpdir)
+            sec0.write_text(
+                "\\section*{Resumen}\n\n"
+                ". El sismo de magnitud 7,4 del 10 de agosto de 2026 afectó a la comunidad universitaria del eje cafetero, "
+                "en particular, Manizales y Pereira. El proyecto desarrolla un sistema portable.\n",
+                encoding="utf-8",
+            )
+            pipeline_dir = run_dir / "artefactos" / "pipeline"
+            pipeline_dir.mkdir(parents=True, exist_ok=True)
+            pending_file = pipeline_dir / "instrucciones_revisor_pdf.md"
+            pending_file.write_text(
+                "# Instrucciones pendientes del revisor sobre el PDF\n\n"
+                "## Pendientes\n\n"
+                "- [ ] **Pág. 1** · `redaccion/sections/00_frontmatter.tex`\n"
+                "  - Ancla: «Morfeo IA: Command Center»\n"
+                "  - Instrucción: agrega dos orancioens al inicio del resumen que den mas contexto del proyecto\n"
+                "  - Registrada: 2026-04-18 19:16\n"
+                "  <!-- revisor:aaa111bbb222 -->\n",
+                encoding="utf-8",
+            )
+
+            res = apply_pdf_annotations(
+                run_dir,
+                [
+                    {
+                        "id": "c_ctx",
+                        "type": "comment",
+                        "text": "El proyecto desarrolla un sistema portable.",
+                        "comment": "agrega una oracion que de contexto del proyecto andtes de este texto",
+                        "page": 1,
+                    }
+                ],
+                process_pending=True,
+            )
+
+            self.assertTrue(res["ok"])
+            self.assertEqual(res["summary"]["pending_consumed"], 1)
+            self.assertEqual(res["summary"]["pending_remaining"], 0)
+            self.assertGreaterEqual(res["summary"]["comments_applied"], 2)
+
+            updated_sec0 = sec0.read_text(encoding="utf-8")
+            self.assertIn("Las emergencias sísmicas en zonas densamente pobladas", updated_sec0)
+            self.assertIn("En este escenario, la detección oportuna de sintomatología depresiva", updated_sec0)
+            self.assertNotIn("\n. El sismo", updated_sec0)
+
+            updated_pending = pending_file.read_text(encoding="utf-8")
+            self.assertNotIn("- [ ]", updated_pending)
+            self.assertIn("- [x]", updated_pending)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
