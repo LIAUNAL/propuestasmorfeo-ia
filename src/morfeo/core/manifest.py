@@ -6,6 +6,7 @@ import hashlib
 from fnmatch import fnmatch
 from pathlib import Path
 import shutil
+import stat
 
 # ---------------------------------------------------------------------------
 # Model presets
@@ -70,6 +71,27 @@ def matches_preserve(rel_path: str, patterns: list[str]) -> bool:
     return False
 
 
+def _is_script(path: Path) -> bool:
+    if path.suffix == ".sh":
+        return True
+    try:
+        with path.open("rb") as f:
+            return f.read(2) == b"#!"
+    except OSError:
+        return False
+
+
+def copy_kit_file(src: Path, dst: Path) -> None:
+    """Copy one kit file, leaving scripts executable.
+
+    Wheels do not reliably carry file modes, so the mode is decided by what the
+    file is rather than copied from the installed kit.
+    """
+    shutil.copyfile(src, dst)
+    if _is_script(dst):
+        dst.chmod(dst.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
 def copy_kit_entry(src_root: Path, dst_root: Path, kit_path: str) -> list[dict]:
     """Copy one manifest entry from src_root to dst_root."""
     src = src_root / kit_path
@@ -85,11 +107,11 @@ def copy_kit_entry(src_root: Path, dst_root: Path, kit_path: str) -> list[dict]:
                 rel = item.relative_to(src_root).as_posix()
                 item_dst = dst_root / rel
                 item_dst.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(item, item_dst)
+                copy_kit_file(item, item_dst)
                 copied.append({"path": rel, "sha256": compute_sha256(item_dst)})
     else:
         dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(src, dst)
+        copy_kit_file(src, dst)
         copied.append({"path": kit_path, "sha256": compute_sha256(dst)})
 
     return copied

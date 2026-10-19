@@ -240,7 +240,7 @@ export const NODE_PURPOSES = {
   revFinal: {
     title: 'revisor (Auditoría Integral)',
     line1: 'Ejecuta la auditoría global cruzada de dependencias, consistencia lógica y estilo.',
-    line2: 'Evalúa cumplimiento estricto de las 16 secciones y directrices institucionales.'
+    line2: 'Evalúa cumplimiento estricto de las 18 secciones y directrices institucionales.'
   },
   gate7: {
     title: 'GATE G7 Final (Aprobación)',
@@ -293,7 +293,7 @@ export const NODE_PURPOSES = {
   },
   guiaDoc: {
     title: 'guiaProyectosIA',
-    line1: 'Directriz canónica rectora que estipula la estructura de 16 secciones del proyecto.',
+    line1: 'Directriz canónica rectora que estipula la estructura de 18 secciones del proyecto.',
     line2: 'Define reglas de dependencias cruzadas, formatos de tablas y estándares de calidad.'
   },
   telemetria: {
@@ -336,7 +336,7 @@ const nodes = [
   n('gate1', 'f1', 4, 'security', 'GATE G1', 'aprobacion problema', { sources: S('.claude/commands/propuesta.md', 140, 170) }),
 
   // Lane f2: 3 · SOTA & Hipótesis
-  n('bibSota', 'f2', 0, 'backend', 'bibliografo-propuesta', '§4 SOTA (≥30 refs Q1/Q2)', { sources: A('bibliografo-propuesta') }),
+  n('bibSota', 'f2', 0, 'backend', 'bibliografo-propuesta', '§4 SOTA (≥39 refs Q1/Q2)', { sources: A('bibliografo-propuesta') }),
   n('invHip', 'f2', 1, 'backend', 'investigador (F2)', '§5 hipotesis', { sources: A('investigador') }),
   n('tikzSota', 'f2', 2, 'backend', 'disenador-tikz (F2)', 'spec estado_arte', { sources: A('disenador-tikz') }),
   n('gate2', 'f2', 3, 'security', 'GATE G2', 'aprobacion SOTA', { sources: S('.claude/commands/propuesta.md', 180, 210) }),
@@ -383,7 +383,7 @@ const nodes = [
   // Lane quality: Transversal · Calidad & Prosa
   n('skEstilo', 'quality', 0, 'external', 'estilo-natural-es', 'cadencia y naturalidad', { sources: K('estilo-natural-es') }),
   n('skDepur', 'quality', 1, 'external', 'depuracion-redundancias', 'depuracion redundancias', { sources: K('depuracion-redundancias-es') }),
-  n('guiaDoc', 'quality', 2, 'database', 'guiaProyectosIA', 'norma 16 secciones', { sources: S('guiaProyectosIA_Agente.md', 1, 50) }),
+  n('guiaDoc', 'quality', 2, 'database', 'guiaProyectosIA', 'norma 18 secciones', { sources: S('guiaProyectosIA_Agente.md', 1, 50) }),
   n('telemetria', 'quality', 3, 'database', 'telemetria_tokens', 'costo y duracion por fase', { sources: S('AGENTS.md', 170, 190) }),
 ];
 

@@ -1,5 +1,5 @@
 ---
-description: Crea la carpeta de proyecto de una corrida nueva de /propuesta (proposals/<run-id>/ con docs, artefactos, grafos y redaccion) y la deja activa.
+description: Crea la carpeta de proyecto de una corrida nueva de /propuesta (proposals/<run-id>/ con insumos, artefactos, grafos y redaccion) y la deja activa.
 argument-hint: "[idea breve de la propuesta] | run-id=<valor> [idea breve]"
 ---
 

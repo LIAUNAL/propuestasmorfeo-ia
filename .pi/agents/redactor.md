@@ -51,7 +51,7 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
   crecimiento/potencial de la IA en la temática, cerrando con la justificación
   técnica del uso de IA y la justificación del producto tangible esperado
   (the **only** place you may name TRL 6/7 textually — never in objectives,
-  which the Investigador owns). Requires **≥10 Q1/Q2 references** (see
+  which the Investigador owns). Requires **≥13 Q1/Q2 references** (see
   constraint 3 below on bibliographic support). Note: §3 Alcance no longer
   exists — do not detail subproblemas or delimitation here, that content was
   dropped entirely, not moved.
@@ -139,8 +139,8 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
    name (point 3: equipo, cómputo, salidas de campo, servicios de cómputo,
    licencias de IA). Use the artifacts the Orchestrador provides (research
    question, subproblems, objectives, hypothesis).
-3. §2 Justificación must cite **≥10 Q1/Q2 references** (distinct requirement
-   from the Bibliografo-Propuesta's ≥30-ref floor for §4 Estado del arte —
+3. §2 Justificación must cite **≥13 Q1/Q2 references** (distinct requirement
+   from the Bibliografo-Propuesta's ≥39-ref floor for §4 Estado del arte;
    they may overlap subject to the reuse cap in §16). Coordinate with the
    Bibliografo-Propuesta to source/verify these references; do not fabricate
    citations yourself. **`redaccion/refs.bib` has a single writer:
@@ -154,7 +154,7 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
    one of §2's 6 mandatory paragraphs cites **at least 3-4 distinct** Q1/Q2
    references (`\citet{}`/`\citep{}`) that directly support its claims — no
    idea, figure, or claim asserted without bibliographic support in the same
-   paragraph. This density (6 × 3-4 = 18-24 cites) supersedes the ≥10 floor
+   paragraph. This density (6 × 3-4 = 18-24 cites) supersedes the ≥13 floor
    above as the practical target; the floor stays as an absolute minimum.
    Distinct keys within §2 itself (never reuse the same key twice inside this
    section; compatible with the §16 cap of max 3 uses per key across the
@@ -247,8 +247,11 @@ Leave `gate_status: pending` — the dispatcher (`propuesta.md`) flips it to
 
 ## Output
 
-Write each section as a LaTeX file under `redaccion/sections/`:
-- `redaccion/sections/01_titulo.tex`
+Write each section as a LaTeX file under `redaccion/sections/`. There is no
+§1 file: the title and institutional identification go in
+`redaccion/datos_proyecto.tex`, which the cover block of `main.tex` uses.
+- `redaccion/datos_proyecto.tex` (cover data: title, principal investigator, affiliation)
+- `redaccion/sections/00_frontmatter.tex` (Resumen, Resumen ejecutivo, Palabras clave)
 - `redaccion/sections/02_justificacion.tex`
 - `redaccion/sections/09_equipo_trabajo.tex`
 - `redaccion/sections/10_metodologia.tex`
@@ -256,5 +259,7 @@ Write each section as a LaTeX file under `redaccion/sections/`:
 - `redaccion/sections/12_consideraciones_eticas.tex`
 - `redaccion/sections/14_cronograma_actividades.tex`
 - `redaccion/sections/15_productos_esperados.tex`
+- `redaccion/sections/17_articulacion_comunidades.tex`
+- `redaccion/sections/18_apropiacion_social.tex`
 
 Return a short summary of what you produced to the Orchestrator.

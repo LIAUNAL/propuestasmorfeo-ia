@@ -17,7 +17,7 @@
 
 ---
 
-**Morfeo IA** (`propuestasmorfeo-ia`) es un entorno de trabajo agéntico y determinista diseñado para investigar, redactar, estructurar y auditar propuestas completas de investigación científica y desarrollo tecnológico en Inteligencia Artificial. Produce documentos formales en **español** bajo formato LaTeX nativo (con exportación determinista a Word/DOCX), articulados rigurosamente en 16 secciones metodológicas con coherencia matemática, lógica, presupuestal y de impacto social (TRL 6 o 7).
+**Morfeo IA** (`propuestasmorfeo-ia`) es un entorno de trabajo agéntico y determinista diseñado para investigar, redactar, estructurar y auditar propuestas completas de investigación científica y desarrollo tecnológico en Inteligencia Artificial. Produce documentos formales en **español** bajo formato LaTeX nativo (con exportación determinista a Word/DOCX), articulados rigurosamente en 18 secciones metodológicas con coherencia matemática, lógica, presupuestal y de impacto social (TRL 6 o 7).
 
 El sistema coordina un equipo de **11 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
 
@@ -176,12 +176,12 @@ El marco cuenta con **11 subagentes especializados** con roles no solapados:
 | `redactor` | Opus | Prosa narrativa (§2, §9 a §12, §14, §15, §17, §18 y front-matter). |
 | `grant-flow-auditor` | Sonnet | Auditoría micro-estilística de cadencia, voz activa y eliminación de fricción léxica. |
 | `insumos-observador` | Sonnet | Ingesta y estructuración de insumos del usuario (PDFs, papers, TDRs, convocatorias). |
-| `bibliografo-propuesta` | Sonnet | Construcción del estado del arte (§4) y bibliografía en BibTeX (§16, ≥50 refs APA). |
+| `bibliografo-propuesta` | Sonnet | Construcción del estado del arte (§4) y bibliografía en BibTeX (§16, ≥65 refs APA). |
 | `revisor` | Sonnet | Validación formal en cada puerta de revisión (*gate* PASS/FAIL). |
 | `presupuestador` | Sonnet | Desglose financiero (§13): tabla de rubros, cofinanciación y aritmética exacta. |
 | `disenador-tikz` | Sonnet | Autoría de la especificación JSON de los diagramas (nunca escribe LaTeX directo). |
-| `revisor-figuras` | Sonnet | Juicio visual (escala, legibilidad, armonía) sobre el render PNG de las figuras. |
-| `tikz-optimizer` | Sonnet | Corrección asistida de especificaciones JSON cuando falla la compilación o la auditoría. |
+| `revisor-figuras` | Haiku | Juicio visual (escala, legibilidad, armonía) sobre el render PNG de las figuras. |
+| `tikz-optimizer` | Haiku | Corrección asistida de especificaciones JSON cuando falla la compilación o la auditoría. |
 
 ---
 
@@ -246,7 +246,7 @@ Fase 1    Árbol de problemas (§3) y pregunta de investigación
   ├── Bucle TikZ: figura arbol_problemas (render determinista)
   └── [GATE G1] Veredicto Revisor
   │
-Fase 2    Estado del arte (§4, ≥30 refs Q1/Q2) e hipótesis (§5)
+Fase 2    Estado del arte (§4, ≥39 refs Q1/Q2) e hipótesis (§5)
   ├── Bucle TikZ: figura estado_arte
   └── [GATE G2] Veredicto Revisor
   │

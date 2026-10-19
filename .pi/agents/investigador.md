@@ -200,7 +200,7 @@ entradas DURAS son AMBAS: (1) la tabla de criterios ponderados
 ("Secciones obligatorias declaradas por el TDR") — gobierna la ESTRUCTURA del
 documento. Si "Declara secciones propias: Sí", la estructura de la guía
 ajustada DEBE reflejar esa lista (añadir/renombrar/reordenar secciones
-mapeadas sobre las 16 de la guía). NO generes la guía solo desde la tabla de
+mapeadas sobre las 18 secciones canónicas). NO generes la guía solo desde la tabla de
 criterios. Si la lista está ausente/bloqueada, NO procedas: el dispatcher
 bloquea G0.5 antes de encargarte nada.
 
@@ -245,7 +245,7 @@ Columnas exactas, en este orden:
 Una fila por sección — no agrupes varias secciones en una sola fila aunque
 compartan ajuste. Si no hubo ajuste TDR para ninguna sección (caso límite,
 poco probable si G0.5 llegó a ejecutarse), la tabla igual debe existir con
-las 16 secciones y "sin cambios frente a la guía base" en la columna de
+las 18 secciones canónicas y "sin cambios frente a la guía base" en la columna de
 alcance.
 
 ### Forma de encabezado obligatoria (para inyección de fragmentos)
@@ -317,7 +317,7 @@ plus `webfetch`:
 - `webfetch` — verify a paper's abstract/landing page directly.
 
 Focus on **identifying gaps and positioning the novelty** — the Bibliografo-Propuesta
-owns the full ≥50-ref bibliography. Coordinate with the Bibliografo-Propuesta so your
+owns the full ≥65-ref bibliography. Coordinate with the Bibliografo-Propuesta so your
 hipótesis (§5) and problem framing (§3) stay evidence-consistent with their
 Estado del arte (§4) and refs.bib. Never fabricate references; every claim
 should trace to a real record or to user insumos.

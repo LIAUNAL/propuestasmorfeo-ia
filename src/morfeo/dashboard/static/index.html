@@ -21,7 +21,7 @@
       --border-subtle: #242f3d;
       --text: #f9fafb;
       --text-muted: #9ca3af;
-      --text-dim: #6b7280;
+      --text-dim: #8b95a5;
       --accent: #38bdf8;
       --accent-dim: rgba(56, 189, 248, 0.15);
       --ok: #10b981;
@@ -34,6 +34,10 @@
       --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       --radius: 8px;
       --radius-lg: 12px;
+      /* Floating CLI button: the page reserves a gutter of this size so no
+         content ends up under it. */
+      --fab-size: 58px;
+      --fab-offset: 24px;
     }
 
     [data-theme="light"] {
@@ -44,15 +48,16 @@
       --border: #cbd5e1;
       --border-subtle: #e2e8f0;
       --text: #0f172a;
-      --text-muted: #64748b;
-      --text-dim: #94a3b8;
-      --accent: #0284c7;
+      /* Text and status tones reach WCAG AA (>= 4.5:1) on --surface-2. */
+      --text-muted: #475569;
+      --text-dim: #566376;
+      --accent: #0369a1;
       --accent-dim: rgba(2, 132, 199, 0.12);
-      --ok: #059669;
+      --ok: #047857;
       --ok-dim: rgba(5, 150, 105, 0.12);
-      --warn: #d97706;
+      --warn: #b45309;
       --warn-dim: rgba(217, 119, 6, 0.12);
-      --bad: #dc2626;
+      --bad: #b91c1c;
       --bad-dim: rgba(220, 38, 38, 0.12);
     }
 
@@ -193,6 +198,7 @@
       color: #0b0f19;
       border-color: var(--accent);
     }
+    [data-theme="light"] .btn--primary { color: #ffffff; }
     .btn--primary:hover {
       filter: brightness(1.1);
     }
@@ -284,6 +290,7 @@
     main {
       flex: 1;
       padding: 1.75rem;
+      padding-bottom: calc(1.75rem + var(--fab-size) + var(--fab-offset));
       max-width: 1500px;
       width: 100%;
       margin: 0 auto;
@@ -351,7 +358,7 @@
     .tree-switch { display: flex; gap: 0.4rem; }
     .tree-legend { font-size: 0.75rem; color: var(--text-dim); }
     .tree-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1rem; margin-top: 1rem; align-items: start; }
-    @media (max-width: 1100px) { .tree-layout { grid-template-columns: 1fr; } }
+    @media (max-width: 1100px) { .tree-layout { grid-template-columns: minmax(0, 1fr); } }
     .tree-banner:empty { display: none; }
     .tree-banner { font-size: 0.82rem; padding: 0.6rem 0.8rem; border-radius: var(--radius); background: var(--accent-dim); border: 1px solid var(--accent); margin-bottom: 0.9rem; color: var(--text); }
     .tree-canvas { display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 0.5rem; }
@@ -361,7 +368,9 @@
     .tree-node { position: relative; flex: 1 1 0; min-width: 150px; max-width: 320px; padding: 0.55rem 0.7rem; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface-2); font-size: 0.78rem; line-height: 1.4; cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease; }
     .tree-node:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); }
     .tree-node.is-selected { box-shadow: 0 0 0 2px var(--accent); }
-    .tree-node__id { display: inline-block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-dim); margin-right: 0.3rem; }
+    /* Internal node ids (crown, trunk, f1...) stay in the DOM for comments but are not shown. */
+    .tree-node__id { display: none; }
+    .tree-node__text { white-space: normal; overflow-wrap: anywhere; text-wrap: pretty; }
     .tree-node__count { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--warn); color: #111; font-size: 0.68rem; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
     .tree-node--pending { border-style: dashed; color: var(--text-muted); font-style: italic; background: transparent; }
     .tree-node--crown { max-width: 640px; text-align: center; }
@@ -370,6 +379,15 @@
     .tree-group { flex: 1 1 0; min-width: 190px; max-width: 340px; display: flex; flex-direction: column; gap: 0.45rem; padding: 0.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); }
     .tree-group .tree-node { max-width: none; }
     .tree-group__head { font-weight: 600; }
+    /* After the base tree rules so it overrides them: on phones the three
+       subproblem columns stack instead of widening the page. */
+    @media (max-width: 600px) {
+      .tree-groups { flex-direction: column; }
+      .tree-group { max-width: none; min-width: 0; }
+      .tree-row { flex-wrap: wrap; }
+      .tree-node { min-width: 0; max-width: none; }
+      .tree-row > .tree-node { flex: 1 1 140px; }
+    }
     /* Paleta: problemas en tonos de alerta, objetivos en tonos de logro. */
     .tree--problemas .tree-node--crown { border-color: var(--accent); background: var(--accent-dim); }
     .tree--problemas .tree-node--branch { border-color: var(--warn); background: var(--warn-dim); }
@@ -390,7 +408,7 @@
     .tree-comments li span { flex: 1; }
     .tree-comments button { background: none; border: none; color: var(--text-muted); cursor: pointer; }
     .tree-history li { color: var(--text-muted); }
-    .tree-history a { color: var(--accent); cursor: pointer; }
+    .tree-history a { color: var(--accent); cursor: pointer; display: inline-block; min-height: 24px; line-height: 24px; }
     .tree-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .tree-actions .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
     .tree-approve { border-color: var(--ok); color: var(--ok); }
@@ -408,6 +426,7 @@
       font-size: 0.72rem;
       font-weight: 600;
       padding: 0.2rem 0.55rem;
+      min-height: 24px;
       border-radius: 6px;
       cursor: pointer;
       border: 1px solid var(--border);
@@ -435,10 +454,14 @@
     .phase-exec-missing li { margin-bottom: 0.3rem; }
     .phase-card__head {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: flex-start;
       gap: 0.5rem;
     }
+    .phase-card__head .badge { white-space: nowrap; }
+    .phase-card__foot { gap: 0.5rem; }
+    .phase-card__foot > span:last-child { white-space: nowrap; }
     .phase-card__name {
       font-weight: 700;
       font-size: 0.95rem;
@@ -650,6 +673,31 @@
       white-space: pre-wrap;
       color: var(--text);
     }
+    .artifact-viewer.is-markdown {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      white-space: normal;
+    }
+    .artifact-viewer.is-markdown h1, .artifact-viewer.is-markdown h2, .artifact-viewer.is-markdown h3,
+    .artifact-viewer.is-markdown h4, .artifact-viewer.is-markdown h5, .artifact-viewer.is-markdown h6 { margin: 1.1rem 0 0.5rem; line-height: 1.3; }
+    .artifact-viewer.is-markdown h1 { font-size: 1.35rem; }
+    .artifact-viewer.is-markdown h2 { font-size: 1.15rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.25rem; }
+    .artifact-viewer.is-markdown h3 { font-size: 1rem; }
+    .artifact-viewer.is-markdown p, .artifact-viewer.is-markdown ul, .artifact-viewer.is-markdown ol,
+    .artifact-viewer.is-markdown blockquote, .artifact-viewer.is-markdown pre, .artifact-viewer.is-markdown table { margin: 0 0 0.75rem; }
+    .artifact-viewer.is-markdown ul, .artifact-viewer.is-markdown ol { padding-left: 1.4rem; }
+    .artifact-viewer.is-markdown code { font-family: var(--font-mono); font-size: 0.82rem; background: var(--surface-2); padding: 0.05rem 0.3rem; border-radius: 4px; }
+    .artifact-viewer.is-markdown pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem; overflow-x: auto; white-space: pre; }
+    .artifact-viewer.is-markdown pre code { background: none; padding: 0; }
+    .artifact-viewer.is-markdown blockquote { border-left: 3px solid var(--accent); padding: 0.25rem 0.85rem; color: var(--text-muted); }
+    .artifact-viewer.is-markdown table { border-collapse: collapse; display: block; overflow-x: auto; font-size: 0.84rem; }
+    .artifact-viewer.is-markdown th, .artifact-viewer.is-markdown td { border: 1px solid var(--border); padding: 0.35rem 0.6rem; text-align: left; vertical-align: top; }
+    .artifact-viewer.is-markdown th { background: var(--surface-2); }
+    .artifact-viewer.is-markdown hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+    .artifact-viewer.is-markdown a { color: var(--accent); }
+    .artifact-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-family: var(--font-sans); white-space: normal; }
+    .artifact-toolbar__path { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); overflow-wrap: anywhere; }
 
     /* Metric cards */
     .metrics-grid {
@@ -678,6 +726,13 @@
       font-family: var(--font-mono);
       margin: 0.25rem 0;
     }
+    #statRunId {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 1.15rem;
+      line-height: 2.1rem;
+    }
     .metric-card__sub {
       font-size: 0.75rem;
       color: var(--text-dim);
@@ -687,6 +742,7 @@
       border-top: 1px solid var(--border);
       background: var(--surface);
       padding: 1.25rem 2rem;
+      padding-right: calc(2rem + var(--fab-size) + var(--fab-offset));
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
@@ -761,7 +817,18 @@
         display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
+        padding: 0.6rem 1rem;
       }
+      .topbar__brand { flex: 1 1 100%; }
+      .topbar__actions {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        width: 100%;
+        gap: 0.5rem;
+      }
+      #runSelector { flex: 1 1 140px; min-width: 0; max-width: 100%; }
+      .meta-strip, .tabs-nav { padding-left: 1rem; padding-right: 1rem; }
+      main { padding-left: 1rem; padding-right: 1rem; }
       .topbar__center {
         order: 3;
         width: 100%;
@@ -772,11 +839,19 @@
         flex-direction: column;
         text-align: center;
         gap: 1rem;
+        padding-right: 1rem;
+        padding-bottom: calc(1.25rem + var(--fab-size) + var(--fab-offset));
       }
       .footer__col--left, .footer__col--right {
         justify-self: center;
         text-align: center;
       }
+    }
+    @media (max-width: 600px) {
+      :root { --fab-size: 48px; --fab-offset: 16px; }
+      /* Theme and refresh buttons collapse to their icon. */
+      .btn__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+      .topbar__title h1 { font-size: 0.95rem; }
     }
 
     /* =========================================================
@@ -965,6 +1040,9 @@
       content: '💡 ';
       filter: drop-shadow(0 0 6px #10b981);
     }
+    [data-theme="light"] .phase-card--lit {
+      background: linear-gradient(135deg, #ffffff, rgba(16, 185, 129, 0.08)) !important;
+    }
     .phase-card--unlit {
       opacity: 0.45 !important;
       border: 1px dashed var(--border) !important;
@@ -1012,6 +1090,7 @@
     }
     .pdf-page-indicator input {
       width: 44px;
+      min-height: 24px;
       padding: 0.15rem 0.3rem;
       text-align: center;
       background: var(--surface);
@@ -1115,6 +1194,7 @@
     }
     .pdf-page-indicator input {
       width: 44px;
+      min-height: 24px;
       padding: 0.15rem 0.3rem;
       text-align: center;
       background: var(--surface);
@@ -1233,7 +1313,8 @@
       font-size: 0.7rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: var(--text-dim);
+      /* The viewer background is dark (#1f2937) in both themes */
+      color: #cbd5e1;
       user-select: none;
     }
     .pdf-loading-overlay {
@@ -1460,11 +1541,23 @@
       display: flex;
       flex-direction: column;
       gap: 1rem;
-      max-height: 940px;
+      /* Fits short windows: sticky offset (75px) plus the FAB gutter below. */
+      max-height: calc(100vh - 75px - var(--fab-size) - var(--fab-offset) - 16px);
       overflow-y: auto;
       position: sticky;
       top: 75px;
       box-shadow: 0 4px 24px rgba(0,0,0,0.22);
+    }
+    /* Declared after the base PDF rules so it overrides them: below 900px the
+       PDF goes first and the change-control panel stacks below it. */
+    @media (max-width: 900px) {
+      .pdf-workspace-layout { flex-direction: column; align-items: stretch; min-height: 0; }
+      .pdf-main-column { width: 100%; }
+      .pdf-control-panel { width: 100%; position: static; max-height: none; }
+      .pdf-topbar__center { flex-wrap: wrap; max-width: 100%; }
+      .pdf-topbar__center .btn-group { flex-wrap: wrap; max-width: 100%; }
+      .pdf-interaction-actions { flex-wrap: wrap; margin-left: 0; }
+      .pdf-interaction-hint { min-width: 0; }
     }
 
     .control-panel__header {
@@ -1553,6 +1646,10 @@
       border-color: #38bdf8;
       transform: translateX(2px);
     }
+
+    [data-theme="light"] .btn--comment { color: #0369a1; }
+    [data-theme="light"] .btn--strikethrough { color: #b91c1c; }
+    [data-theme="light"] .btn--humanize { color: #047857; }
 
     .btn--strikethrough {
       background: rgba(239, 68, 68, 0.12);
@@ -1708,7 +1805,8 @@
       font-size: 0.72rem;
       cursor: pointer;
       text-decoration: underline;
-      padding: 0;
+      padding: 0 0.25rem;
+      min-height: 24px;
     }
     .btn-link:hover {
       color: var(--bad);
@@ -1772,11 +1870,11 @@
        ======================================================== */
     .morfeo-fab {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
+      bottom: var(--fab-offset);
+      right: var(--fab-offset);
       z-index: 99999;
-      width: 58px;
-      height: 58px;
+      width: var(--fab-size);
+      height: var(--fab-size);
       border-radius: 50%;
       background: linear-gradient(135deg, #0284c7, #38bdf8);
       box-shadow: 0 4px 20px rgba(56, 189, 248, 0.45);
@@ -2162,8 +2260,8 @@
       <select id="runSelector" class="btn" onchange="changeActiveRun(this.value)">
         <option value="">Cargando corridas...</option>
       </select>
-      <button class="btn" onclick="toggleTheme()" id="themeBtn" title="Cambiar tema">☀️ Claro</button>
-      <button class="btn btn--primary" onclick="loadStatus()" title="Actualizar datos">⟳ Actualizar</button>
+      <button class="btn" onclick="toggleTheme()" id="themeBtn" title="Cambiar tema" aria-label="Cambiar tema">☀️ <span class="btn__label">Claro</span></button>
+      <button class="btn btn--primary" onclick="loadStatus()" title="Actualizar datos" aria-label="Actualizar datos">⟳ <span class="btn__label">Actualizar</span></button>
     </div>
   </header>
 
@@ -2204,7 +2302,7 @@
             <a href="/api/flow" target="_blank" class="btn btn--primary">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
-        <iframe id="flowIframe" class="iframe-viewer" src="/api/flow"></iframe>
+        <iframe id="flowIframe" class="iframe-viewer" src="/api/flow?theme=dark"></iframe>
       </div>
 
       <!-- Panel de Propósito de la Etapa Seleccionada en el Diagrama Archify -->
@@ -2342,7 +2440,7 @@
     <div id="pane-sections" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Estructura Canónica de 16 Secciones (§0 a §18)</div>
+          <div class="panel__title">Estructura canónica: secciones numeradas y front-matter</div>
           <span class="panel__meta" id="sectionsMetaCount">—</span>
         </div>
         <div class="table-responsive">
@@ -2409,9 +2507,9 @@
 
               <div class="btn-group">
                 <button class="btn btn--sm" onclick="zoomPdf(-0.15)" title="Reducir zoom (−)">🔍−</button>
-                <span id="pdfZoomLabel" style="font-size: 0.75rem; padding: 0 0.4rem; color: var(--text-muted); cursor: pointer;" onclick="resetZoomPdf()" title="Restablecer zoom">120%</span>
+                <span id="pdfZoomLabel" style="font-size: 0.75rem; padding: 0 0.4rem; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; min-height: 24px;" onclick="resetZoomPdf()" title="Restablecer zoom">125%</span>
                 <button class="btn btn--sm" onclick="zoomPdf(0.15)" title="Aumentar zoom (+)">🔍+</button>
-                <button class="btn btn--sm" onclick="resetZoomPdf()" title="Ajustar zoom al 120%">120%</button>
+                <button class="btn btn--sm" id="btnPdfZoomReset" onclick="resetZoomPdf()" title="Ajustar zoom al 125%">125%</button>
               </div>
             </div>
 
@@ -2771,7 +2869,7 @@
 
   <footer class="dashboard-footer">
     <div class="footer__col footer__col--left">
-      <strong>Morfeo IA v0.5.0</strong>
+      <strong id="footerVersion">Morfeo IA</strong>
       <span>Orquestador Multi-Agente de Formulación Científica en IA</span>
     </div>
 
@@ -3290,9 +3388,11 @@
       const origin = from ? problemNodeText(from) : null;
       const body = pending
         ? `Pendiente: lo redacta el agente${origin ? ` a partir de «${escapeHtml(origin)}»` : ''}.`
-        : escapeHtml(text).replace(/\n/g, '<br>');
+        // Tree labels carry manual `\n` breaks sized for the TikZ figure; on
+        // screen the node width differs, so they collapse into normal wrapping.
+        : escapeHtml(text).replace(/\s*\n\s*/g, ' ');
       return `<div class="tree-node tree-node--${kind}${pending ? ' tree-node--pending' : ''}${TREES_STATE.selected === id ? ' is-selected' : ''}" data-node="${escapeHtml(id)}" tabindex="0">
-        <span class="tree-node__id">${escapeHtml(id)}</span>${body}${count ? `<span class="tree-node__count">${count}</span>` : ''}
+        <span class="tree-node__id">${escapeHtml(id)}</span><span class="tree-node__text">${body}</span>${count ? `<span class="tree-node__count">${count}</span>` : ''}
       </div>`;
     }
 
@@ -3603,18 +3703,41 @@
     let currentStatus = null;
     let activeTab = 'flow';
 
+    // Footer version: the running package, plus the workspace kit stamp
+    // (`version`, from .marco/version) when the project was created with another one.
+    function renderFooterVersion(data) {
+      const el = document.getElementById('footerVersion');
+      if (!el || !data) return;
+      const pkg = data.package_version || data.version;
+      if (!pkg) return;
+      const kit = data.version && data.version !== pkg ? ` (kit del proyecto: ${data.version})` : '';
+      el.textContent = `Morfeo IA v${pkg}${kit}`;
+    }
+
+    // The theme button keeps its icon visible and hides the word on phones;
+    // the Archify flow iframe reads `?theme=` on load, so it is reloaded with it.
+    function applyThemeChrome(theme) {
+      document.getElementById('themeBtn').innerHTML = theme === 'dark'
+        ? '☀️ <span class="btn__label">Claro</span>'
+        : '🌙 <span class="btn__label">Oscuro</span>';
+      const flow = document.getElementById('flowIframe');
+      const flowSrc = `/api/flow?theme=${theme}`;
+      if (flow && flow.getAttribute('src') !== flowSrc) flow.setAttribute('src', flowSrc);
+    }
+
     function toggleTheme() {
       const html = document.documentElement;
       const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', nextTheme);
-      localStorage.setItem('morfeo-theme', nextTheme);
-      document.getElementById('themeBtn').textContent = nextTheme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
+      try { localStorage.setItem('morfeo-theme', nextTheme); } catch (e) {}
+      applyThemeChrome(nextTheme);
     }
 
     // Init theme
-    const savedTheme = localStorage.getItem('morfeo-theme') || 'dark';
+    let savedTheme = 'dark';
+    try { savedTheme = localStorage.getItem('morfeo-theme') || 'dark'; } catch (e) {}
     document.documentElement.setAttribute('data-theme', savedTheme);
-    document.getElementById('themeBtn').textContent = savedTheme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
+    applyThemeChrome(savedTheme);
 
     function navigateTab(tabId) {
       if (tabId === 'gates') {
@@ -3863,15 +3986,107 @@
       if (activeItem) activeItem.classList.add('active');
 
       const viewer = document.getElementById('artifactContent');
+      viewer.classList.remove('is-markdown');
       viewer.textContent = "Cargando artefacto...";
       try {
         const res = await fetch(`/api/artifact?file=${encodeURIComponent(relPath)}`);
         if (!res.ok) throw new Error("No se pudo leer el archivo");
         const text = await res.text();
-        viewer.textContent = text;
+        showArtifactText(relPath, text, /\.md$/i.test(relPath));
       } catch (err) {
         viewer.textContent = `Error: ${err.message}`;
       }
+    }
+
+    // Markdown artifacts render as formatted text; a toggle shows the source.
+    function showArtifactText(relPath, text, asMarkdown) {
+      const viewer = document.getElementById('artifactContent');
+      const isMd = /\.md$/i.test(relPath);
+      viewer.classList.toggle('is-markdown', asMarkdown);
+      const toolbar = isMd
+        ? `<div class="artifact-toolbar"><span class="artifact-toolbar__path">${escapeHtml(relPath)}</span>
+             <button class="btn btn--sm" type="button" id="artifactSourceToggle">${asMarkdown ? 'Ver fuente' : 'Ver formateado'}</button></div>`
+        : '';
+      viewer.innerHTML = toolbar + (asMarkdown ? renderMarkdown(text) : `<div>${escapeHtml(text)}</div>`);
+      const toggle = document.getElementById('artifactSourceToggle');
+      if (toggle) toggle.addEventListener('click', () => showArtifactText(relPath, text, !asMarkdown));
+    }
+
+    // Small, dependency-free Markdown renderer. Everything is HTML-escaped
+    // first; only the generated tags are markup. Links accept http(s), mailto
+    // and relative targets only.
+    function renderMarkdown(src) {
+      const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const inline = (t) => {
+        const codes = [];
+        let out = esc(t).replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return `\u0000${codes.length - 1}\u0000`; });
+        out = out
+          .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, href) => {
+            const ok = /^(https?:|mailto:|#|\/|\.{0,2}\/|[\w-]+(\/|\.|$))/i.test(href) && !/^\s*(javascript|data|vbscript):/i.test(href);
+            return ok ? `<a href="${href}" target="_blank" rel="noopener">${label}</a>` : label;
+          })
+          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+          .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+          .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
+          .replace(/~~([^~]+)~~/g, '<del>$1</del>');
+        return out.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[Number(i)]}</code>`);
+      };
+      const lines = String(src).replace(/\r\n?/g, '\n').split('\n');
+      const html = [];
+      let i = 0;
+      const isTableSep = (l) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+      const cells = (l) => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+      while (i < lines.length) {
+        const line = lines[i];
+        if (/^\s*$/.test(line)) { i++; continue; }
+        const fence = line.match(/^\s*(```|~~~)/);
+        if (fence) {
+          const buf = []; i++;
+          while (i < lines.length && !lines[i].trim().startsWith(fence[1])) buf.push(lines[i++]);
+          i++;
+          html.push(`<pre><code>${esc(buf.join('\n'))}</code></pre>`);
+          continue;
+        }
+        const h = line.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/);
+        if (h) { html.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
+        if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) { html.push('<hr>'); i++; continue; }
+        if (line.includes('|') && i + 1 < lines.length && isTableSep(lines[i + 1])) {
+          const head = cells(line); i += 2;
+          const rows = [];
+          while (i < lines.length && lines[i].includes('|') && lines[i].trim()) rows.push(cells(lines[i++]));
+          html.push(`<table><thead><tr>${head.map(c => `<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${
+            rows.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
+          continue;
+        }
+        if (/^\s*>/.test(line)) {
+          const buf = [];
+          while (i < lines.length && /^\s*>/.test(lines[i])) buf.push(lines[i++].replace(/^\s*>\s?/, ''));
+          html.push(`<blockquote>${renderMarkdown(buf.join('\n'))}</blockquote>`);
+          continue;
+        }
+        const list = line.match(/^\s*([-*+]|\d+[.)])\s+/);
+        if (list) {
+          const ordered = /\d/.test(list[1]);
+          const items = [];
+          while (i < lines.length) {
+            const m = lines[i].match(/^\s*([-*+]|\d+[.)])\s+(.*)$/);
+            if (m && /\d/.test(m[1]) === ordered) { items.push(m[2]); i++; }
+            else if (items.length && /^\s{2,}\S/.test(lines[i])) { items[items.length - 1] += ' ' + lines[i].trim(); i++; }
+            else break;
+          }
+          const tag = ordered ? 'ol' : 'ul';
+          html.push(`<${tag}>${items.map(it => {
+            const task = it.match(/^\[([ xX])\]\s+(.*)$/);
+            return task ? `<li>${task[1] === ' ' ? '☐' : '☑'} ${inline(task[2])}</li>` : `<li>${inline(it)}</li>`;
+          }).join('')}</${tag}>`);
+          continue;
+        }
+        const buf = [];
+        while (i < lines.length && lines[i].trim() && !/^(#{1,6}\s|\s*(```|~~~)|\s*>|\s*([-*+]|\d+[.)])\s+)/.test(lines[i])
+               && !(lines[i].includes('|') && i + 1 < lines.length && isTableSep(lines[i + 1]))) buf.push(lines[i++].trim());
+        html.push(`<p>${inline(buf.join(' '))}</p>`);
+      }
+      return html.join('\n');
     }
 
     let lastStatusSignature = '';
@@ -3985,7 +4200,9 @@
         `;
 
         // Metric Cards
-        document.getElementById('statRunId').textContent = data.active_run ? data.active_run.split('-').slice(0, 3).join('-') : '—';
+        document.getElementById('statRunId').textContent = data.active_run || '—';
+        document.getElementById('statRunId').title = data.active_run || '';
+        renderFooterVersion(data);
         document.getElementById('statRunDir').textContent = data.active_run ? `proposals/${data.active_run}` : 'Usa /propuesta-init';
         document.getElementById('statGatesPassed').textContent = `${totals.gates_passed || 0} / ${totals.gates_total || 13}`;
         
@@ -4139,7 +4356,7 @@
             <td><code>sections/${s.filename}</code></td>
             <td>${s.words.toLocaleString()}</td>
             <td>${s.citations}</td>
-            <td>${s.has_figures ? '✓ Sí' : '—'}</td>
+            <td>${s.has_figures ? `✓ ${s.figures_count || 'Sí'}` : '—'}</td>
             <td><span class="badge badge--${statusTone}">${s.status}</span></td>
           `;
           secTbody.appendChild(tr);
@@ -4217,7 +4434,7 @@
           div.onclick = () => loadArtifact(art.rel_path);
           div.innerHTML = `
             <span>📄 ${art.name}</span>
-            <small style="color: var(--text-dim);">${Math.round(art.size / 1024)} KB</small>
+            <small style="color: var(--text-muted);">${Math.round(art.size / 1024)} KB</small>
           `;
           artList.appendChild(div);
         });
@@ -4740,7 +4957,7 @@
       "16_bibliografia": {
         code: "§16",
         title: "Bibliografía",
-        principle: "Acervo de literatura científica que sustenta toda la propuesta. Exige más de 50 referencias de alta calidad, predominantemente Q1/Q2 de los últimos tres años, en formato APA autor-año estricto.",
+        principle: "Acervo de literatura científica que sustenta toda la propuesta. Exige al menos 65 referencias distintas de alta calidad, predominantemente Q1/Q2 de los últimos tres años, en formato APA autor-año estricto.",
         connections: {
           inputs: [
             { code: "Citas", id: "04_estado_arte", title: "Todas las Secciones", rel: "Citas autor-año natbib acumuladas" }
@@ -4757,7 +4974,7 @@
           allowed: [
             "Formato APA autor-año exclusivo (citet o citep de natbib).",
             "Anteponer clearpage y renewcommand{bibsection}{} para eliminar el título duplicado 'Referencias'.",
-            "Más de 50 referencias totales con mayoría Q1/Q2 de los últimos 3 años."
+            "Al menos 65 referencias distintas con mayoría Q1/Q2 de los últimos 3 años."
           ],
           forbidden: [
             "Prohibido el estilo numérico IEEE ([1]).",
@@ -5016,7 +5233,16 @@
     let pdfDoc = null;
     let pdfCurrentPage = 1;
     let pdfTotalPages = 1;
-    let pdfScale = 1.25;
+    // Default zoom: the label, the reset button and resetZoomPdf all derive from it.
+    const PDF_DEFAULT_SCALE = 1.25;
+    let pdfScale = PDF_DEFAULT_SCALE;
+    (function syncZoomControls() {
+      const pct = `${Math.round(PDF_DEFAULT_SCALE * 100)}%`;
+      const lbl = document.getElementById('pdfZoomLabel');
+      if (lbl) lbl.textContent = pct;
+      const btn = document.getElementById('btnPdfZoomReset');
+      if (btn) { btn.textContent = pct; btn.title = `Ajustar zoom al ${pct}`; }
+    })();
     let pdfBaseSize = null;
     let pdfRenderObserver = null;
     let stripScrollFrame = null;
@@ -5573,7 +5799,7 @@
     }
 
     function resetZoomPdf() {
-      pdfScale = 1.25;
+      pdfScale = PDF_DEFAULT_SCALE;
       const zoomLbl = document.getElementById('pdfZoomLabel');
       if (zoomLbl) zoomLbl.textContent = `${Math.round(pdfScale * 100)}%`;
       applyScaleToStrip();
@@ -6914,7 +7140,7 @@
         box.innerHTML = `
           <div><strong>Fecha:</strong> ${data.timestamp.split('T')[0]} ${data.timestamp.split('T')[1].slice(0,5)}</div>
           <div>✂️ Tachados: <strong>${app.strikethrough || 0}</strong> · 🔁 Reemplazos: <strong>${app.replace || 0}</strong> · ✨ Humanizados: <strong>${app.humanize || 0}</strong> · 💬 Instrucciones al agente: <strong>${comentariosHistoricos}</strong></div>
-          <div style="margin-top: 0.25rem;"><a href="javascript:void(0)" onclick="navigateTab('artifacts'); loadArtifact('artefactos/anotaciones_pdf.md');" style="color: var(--accent);">Ver informe anotaciones_pdf.md ↗</a></div>
+          <div style="margin-top: 0.25rem;"><a href="javascript:void(0)" onclick="navigateTab('artifacts'); loadArtifact('artefactos/anotaciones_pdf.md');" style="color: var(--accent); display: inline-block; min-height: 24px; line-height: 24px;">Ver informe anotaciones_pdf.md ↗</a></div>
         `;
 
         if (executedChangeMarks.length === 0 && data.details) {
