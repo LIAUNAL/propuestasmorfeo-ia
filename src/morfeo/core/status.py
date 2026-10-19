@@ -120,10 +120,48 @@ def parse_run_metadata(run_dir: Path) -> dict[str, Any]:
     return meta
 
 
+_FIGURE_INCLUDE = re.compile(r"\\input\{sections/diag_[^}]*\}|\\includegraphics(?:\[[^\]]*\])?\{[^}]*\}")
+_SECTION_INPUT = re.compile(r"\\input\{sections/((?!diag_)[^}]+?)(?:\.tex)?\}")
+
+
+def _strip_tex_comments(raw: str) -> str:
+    """Drop `%` comments, keeping escaped `\\%` literals."""
+    return re.sub(r"(?<!\\)%.*", "", raw)
+
+
+def _main_tex_figures(run_dir: Path) -> dict[str, int]:
+    """Figures `main.tex` places after each section's `\\input`.
+
+    The diagrams are not inside the section files: `main.tex` includes them
+    right after the section that owns them, so a figure include belongs to the
+    last section `\\input` that precedes it. Includes before the first section
+    (header logos) belong to no section.
+    """
+    main_tex = run_dir / "redaccion" / "main.tex"
+    if not main_tex.is_file():
+        return {}
+    text = _strip_tex_comments(main_tex.read_text(encoding="utf-8", errors="replace"))
+    counts: dict[str, int] = {}
+    current: str | None = None
+    tokens = sorted(
+        [(m.start(), "section", m.group(1)) for m in _SECTION_INPUT.finditer(text)]
+        + [(m.start(), "figure", "") for m in _FIGURE_INCLUDE.finditer(text)]
+    )
+    for _, kind, value in tokens:
+        if kind == "section":
+            current = Path(value).name
+            counts.setdefault(current, 0)
+        elif current is not None:
+            counts[current] = counts.get(current, 0) + 1
+    return counts
+
+
 def parse_sections_info(run_dir: Path) -> list[dict[str, Any]]:
     sections_dir = run_dir / "redaccion" / "sections"
     if not sections_dir.is_dir():
         return []
+
+    placed_figures = _main_tex_figures(run_dir)
 
     sections: list[dict[str, Any]] = []
     for f in sorted(sections_dir.glob("*.tex")):
@@ -134,9 +172,12 @@ def parse_sections_info(run_dir: Path) -> list[dict[str, Any]]:
         clean = re.sub(r"%.*", "", raw)
         words = len(clean.split())
         cites = len(re.findall(r"\\cite[pt]?\{([^}]+)\}", raw))
-        has_tikz = ("\\input{sections/diag_" in raw) or ("\\includegraphics" in raw)
-
         stem = f.stem
+        # A figure either lives in the section file or is placed by main.tex
+        # right after the section's \\input (see _main_tex_figures).
+        figures_count = len(_FIGURE_INCLUDE.findall(_strip_tex_comments(raw))) + placed_figures.get(stem, 0)
+        has_tikz = figures_count > 0
+
         # Extract title from leading comment or fall back to map
         m = re.search(r"%\s*(§\d+[a-z]?\s+[^%\n]+)", raw)
         title = m.group(1).strip() if m else SECTION_TITLES.get(stem, stem)
@@ -153,6 +194,7 @@ def parse_sections_info(run_dir: Path) -> list[dict[str, Any]]:
             "words": words,
             "citations": cites,
             "has_figures": has_tikz,
+            "figures_count": figures_count,
             "status": status,
         })
 
@@ -498,7 +540,10 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
     result_data = {
         "workspace": str(target_dir),
         "workspace_title": workspace_title,
+        # `version` is the workspace kit stamp (`.marco/version`); the running
+        # package can be newer, so the dashboard footer shows both.
         "version": version,
+        "package_version": _package_version(),
         "active_run": active_run,
         "run_details": run_info,
         "all_runs": all_runs,
