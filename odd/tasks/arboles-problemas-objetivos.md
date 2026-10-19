@@ -14,8 +14,8 @@ Rama `feat/arboles-problemas-objetivos`. Entrega: `single-pr`. Pruebas: `python3
 | ID | Specs | Ruta | Estado | Commit |
 |----|-------|------|--------|--------|
 | T0 | (previo) botón Ejecutar | inline | hecho | bf13626 |
-| T1 | S2, S4 | inline | pendiente | |
-| T2 | S1, S3, S4 | inline | pendiente | |
+| T1 | S2, S4 | inline | hecho | b5cde53 |
+| T2 | S1, S3, S4 | inline | hecho | 15a462a |
 
 T1: `core/trees.py` + API (`GET /api/trees`, `POST /api/trees/feedback`, `POST /api/trees/approve`) + pruebas Python.
 T2: pestaña, render visual, comentarios, envío al agente, aprobación + pruebas JS.
@@ -24,3 +24,6 @@ T2: pestaña, render visual, comentarios, envío al agente, aprobación + prueba
 
 - **L1** (2026-10-19) «agrega una pestaña entre pipeline y avance y secciones, que se llame Arbol de problemas y objetivos. explora e implementa una alternativa eficiente y visual, que inicialmente proponga el arbor de problemas y luego el de objetivos segun la evolucion de las fases y el flujo del proyecto, debe ser visual y claro, y permitir iterar y ajustar con el agente de forma interactiva, para ir puliendo hasta aprobar dichos arboles»
 - **L2** Exploración: la spec del árbol de problemas (`kind: arbol`) trae `groups[].causes`, `trunk`, `branches`, `crown`. No existe árbol de objetivos en el marco; §6/§7 traen el objetivo general y OE1–OE3 en `enumerate`.
+- **L3** T1: RED 14/14 → GREEN (`tests/test_trees.py`), contra la corrida real §6/§7 se extraen bien (3 OE, 13 textos pendientes). Commit b5cde53.
+- **L4** T2: RED 9/9 → GREEN (`tests/js/trees.tab.test.mjs`); suites completas 221 Python y 48 JS en verde; generadores `--check` sin deriva. Verificado en navegador contra la corrida real (solo lectura). Commit 15a462a.
+- **L5** Siguiente paso: probar el ciclo completo con Claude Code en una corrida real (enviar un ajuste, que el agente reescriba la spec, aprobar).
