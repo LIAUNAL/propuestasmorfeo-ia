@@ -267,6 +267,8 @@ def record_feedback(run_dir: Path, tree: str, comments: list[dict[str, Any]], ge
         for c in comments:
             node = str(c.get("node") or "")
             actual = _node_text(current["tree"], node)
+            # Los títulos llevan saltos de línea para la figura: en la lista van en una.
+            actual = " ".join(actual.split()) if actual else actual
             lines.append(f"- **{node}**" + (f" (texto actual: «{actual}»)" if actual else "") + f": {str(c['text']).strip()}")
         lines.append("")
     path = run_dir / rel

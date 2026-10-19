@@ -3514,11 +3514,12 @@
         return;
       }
       if (!result.ok) { treeMessage(result.error || 'No se pudo aprobar.', 'error'); return; }
+      await loadTrees();
+      // setTreeView limpia el mensaje: la confirmación va después del cambio de vista.
+      if (view === 'problemas' && TREES_STATE.data && TREES_STATE.data.stage === 'objetivos') setTreeView('objetivos');
       treeMessage(view === 'problemas'
         ? 'Árbol de problemas aprobado. Sigue el árbol de objetivos.'
         : 'Árbol de objetivos aprobado.', 'ok');
-      await loadTrees();
-      if (view === 'problemas' && TREES_STATE.data && TREES_STATE.data.stage === 'objetivos') setTreeView('objetivos');
     }
 
     // Asegura una terminal con un agente que entienda los slash commands y el

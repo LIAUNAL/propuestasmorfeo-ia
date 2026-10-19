@@ -157,3 +157,20 @@ test('sin spec el árbol de problemas explica cómo se construye', async (t) => 
   const viewer = await harness(t, payload);
   assert.match(viewer.document.getElementById('treeCanvas').textContent, /se construye en la Fase 1/);
 });
+
+test('aprobar el árbol de problemas pasa a objetivos sin perder la confirmación', async (t) => {
+  const viewer = await createViewerHarness({ numPages: 1 });
+  t.after(() => viewer.dispose());
+  let approved = false;
+  viewer.window.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('/api/trees/approve')) { approved = true; return json({ ok: true }); }
+    if (u.includes('/api/trees')) return json(treesPayload({ problemStatus: approved ? 'aprobado' : 'pendiente' }));
+    return json({}, 503);
+  };
+  await viewer.viewer('loadTrees');
+  await viewer.viewer('approveCurrentTree');
+  await flush();
+  assert.equal(viewer.window.eval('TREES_STATE.view'), 'objetivos');
+  assert.match(viewer.document.getElementById('treeMessage').textContent, /Árbol de problemas aprobado/);
+});

@@ -140,6 +140,16 @@ class TestReviewCycle(unittest.TestCase):
             self.assertIn(result["request"], result["prompt"])
             self.assertEqual(load_trees(run)["problem"]["review"]["status"], "en_ajuste")
 
+    def test_a_multiline_node_is_quoted_on_one_line(self):
+        """Los títulos de subproblema llevan saltos de línea para la figura; citados
+        tal cual rompían la lista Markdown de la solicitud."""
+        with tempfile.TemporaryDirectory() as tmp:
+            spec = dict(SPEC, groups=[dict(SPEC["groups"][0], title="SP1 · Uno\ny dos")] + SPEC["groups"][1:])
+            run = make_run(Path(tmp), spec=spec)
+            result = record_feedback(run, "problemas", [{"node": "SP1", "text": "Acortar"}])
+            body = (run / result["request"]).read_text(encoding="utf-8")
+            self.assertIn("- **SP1** (texto actual: «SP1 · Uno y dos»): Acortar", body)
+
     def test_a_new_version_after_feedback_is_ready_for_review(self):
         with tempfile.TemporaryDirectory() as tmp:
             run = make_run(Path(tmp))
