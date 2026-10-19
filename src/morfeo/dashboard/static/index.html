@@ -1313,7 +1313,8 @@
       font-size: 0.7rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: var(--text-dim);
+      /* The viewer background is dark (#1f2937) in both themes */
+      color: #cbd5e1;
       user-select: none;
     }
     .pdf-loading-overlay {
@@ -1645,6 +1646,10 @@
       border-color: #38bdf8;
       transform: translateX(2px);
     }
+
+    [data-theme="light"] .btn--comment { color: #0369a1; }
+    [data-theme="light"] .btn--strikethrough { color: #b91c1c; }
+    [data-theme="light"] .btn--humanize { color: #047857; }
 
     .btn--strikethrough {
       background: rgba(239, 68, 68, 0.12);
@@ -4429,7 +4434,7 @@
           div.onclick = () => loadArtifact(art.rel_path);
           div.innerHTML = `
             <span>📄 ${art.name}</span>
-            <small style="color: var(--text-dim);">${Math.round(art.size / 1024)} KB</small>
+            <small style="color: var(--text-muted);">${Math.round(art.size / 1024)} KB</small>
           `;
           artList.appendChild(div);
         });
@@ -4952,7 +4957,7 @@
       "16_bibliografia": {
         code: "§16",
         title: "Bibliografía",
-        principle: "Acervo de literatura científica que sustenta toda la propuesta. Exige más de 50 referencias de alta calidad, predominantemente Q1/Q2 de los últimos tres años, en formato APA autor-año estricto.",
+        principle: "Acervo de literatura científica que sustenta toda la propuesta. Exige al menos 65 referencias distintas de alta calidad, predominantemente Q1/Q2 de los últimos tres años, en formato APA autor-año estricto.",
         connections: {
           inputs: [
             { code: "Citas", id: "04_estado_arte", title: "Todas las Secciones", rel: "Citas autor-año natbib acumuladas" }
@@ -4969,7 +4974,7 @@
           allowed: [
             "Formato APA autor-año exclusivo (citet o citep de natbib).",
             "Anteponer clearpage y renewcommand{bibsection}{} para eliminar el título duplicado 'Referencias'.",
-            "Más de 50 referencias totales con mayoría Q1/Q2 de los últimos 3 años."
+            "Al menos 65 referencias distintas con mayoría Q1/Q2 de los últimos 3 años."
           ],
           forbidden: [
             "Prohibido el estilo numérico IEEE ([1]).",

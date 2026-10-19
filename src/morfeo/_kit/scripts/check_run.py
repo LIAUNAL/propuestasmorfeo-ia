@@ -197,10 +197,13 @@ def check_main(report: Report, red: Path, final: bool) -> None:
     if re.search(r"\\input\{sections/01_", clean):
         report.add("error", "seccion-1-en-cuerpo", "main.tex incluye una sección §1; el título va solo en la portada.",
                    main)
+    # A logo wrapped in \IfFileExists is optional (the UTP one), wherever the
+    # guarded \includegraphics sits: the template puts it on the next line.
+    guarded = set(re.findall(r"\\IfFileExists\{(logos/[^}]+)\}", clean))
     for number, line in enumerate(text.splitlines(), start=1):
         line = strip_comment(line)
         for logo in re.findall(r"\\includegraphics(?:\[[^\]]*\])?\{(logos/[^}]+)\}", line):
-            if "IfFileExists" in line:
+            if logo in guarded:
                 continue
             if not (red / logo).is_file():
                 report.add("error", "logo-inexistente", f"{logo} no existe en redaccion/.", main, number)

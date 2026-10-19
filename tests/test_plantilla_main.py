@@ -117,6 +117,19 @@ class TemplateCompilesTest(unittest.TestCase):
             second = self._build(red)
             self.assertTrue((red / "main.pdf").is_file(), second.stdout[-2000:] + second.stderr[-2000:])
 
+    @unittest.skipUnless(shutil.which("pdftotext"), "pdftotext not installed")
+    def test_a_rebuild_picks_up_a_section_added_after_the_first_compile(self) -> None:
+        # \IfFileExists hides files that did not exist at the last compile from
+        # latexmk's dependency list; without a forced run the PDF stays stale.
+        with tempfile.TemporaryDirectory() as tmp:
+            red = _make_run(Path(tmp)) / "redaccion"
+            self._build(red)
+            self.assertTrue((red / "main.pdf").is_file(), "the first build produced no PDF")
+            (red / "sections" / "05_hipotesis.tex").write_text("\\section{Hipótesis}\nTextoNuevoDePrueba.\n")
+            self._build(red)
+            text = subprocess.run(["pdftotext", str(red / "main.pdf"), "-"], capture_output=True, text=True).stdout
+            self.assertIn("TextoNuevoDePrueba", text, "the PDF is stale after adding a section")
+
 
 if __name__ == "__main__":
     unittest.main()

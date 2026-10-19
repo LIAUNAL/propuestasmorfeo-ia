@@ -94,6 +94,43 @@ class TestSectionFigures(_RunFixture):
         self.assertTrue(figs["12_etica"])
 
 
+class TestTemplateRun(unittest.TestCase):
+    """Runs created from plantilla/main.tex place diagrams through macros."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self._tmp.name)
+        self.run = self.repo / "proposals" / "2026-01-plantilla"
+        sections = self.run / "redaccion" / "sections"
+        sections.mkdir(parents=True)
+        (self.repo / "proposals" / ".current-run").write_text("2026-01-plantilla\n", encoding="utf-8")
+        (self.run / "_run.md").write_text("| Idea | idea corta |\n", encoding="utf-8")
+        plantilla = Path(__file__).resolve().parent.parent / "plantilla"
+        (self.run / "redaccion" / "main.tex").write_text((plantilla / "main.tex").read_text(encoding="utf-8"))
+        (self.run / "redaccion" / "datos_proyecto.tex").write_text(
+            "\\newcommand{\\TituloProyecto}{Sistema de prueba con plantilla}\n", encoding="utf-8")
+        for stem in ("03_descripcion_problema", "04_estado_arte", "05_hipotesis"):
+            (sections / f"{stem}.tex").write_text(BODY, encoding="utf-8")
+        for diag in ("diag_arbol_problemas", "diag_estado_arte_a", "diag_estado_arte_b"):
+            (sections / f"{diag}.tex").write_text("% tikz\n", encoding="utf-8")
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_diagrams_placed_by_the_template_macros_are_counted(self):
+        status = get_project_status(self.repo, force_refresh=True)
+        sections = (status.get("run_details") or {}).get("sections") or status.get("sections") or []
+        counts = {s["id"]: s.get("figures_count", 0) for s in sections}
+        self.assertEqual(counts.get("03_descripcion_problema"), 1, counts)
+        self.assertEqual(counts.get("04_estado_arte"), 2, counts)
+        self.assertEqual(counts.get("05_hipotesis"), 0, counts)
+
+    def test_title_comes_from_datos_proyecto(self):
+        status = get_project_status(self.repo, force_refresh=True)
+        details = status.get("run_details") or {}
+        self.assertEqual(details.get("title"), "Sistema de prueba con plantilla", details)
+
+
 class TestPackageVersion(_RunFixture):
     def test_status_reports_the_running_package_version(self):
         self.assertEqual(self.status()["package_version"], morfeo.__version__)

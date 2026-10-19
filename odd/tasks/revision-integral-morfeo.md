@@ -121,7 +121,8 @@ L5 (2026-10-19). T3, T4 y T5 cerradas.
 - El bibliógrafo tiene un tope de 25 búsquedas por despacho.
 - `/propuesta-continuar` lee solo su bloque de fase.
 - El auditor corre una vez por unidad.
-- Los agentes de figuras pasan a haiku.
+- `tikz-optimizer` y `revisor-figuras` pasan a haiku; `disenador-tikz` sigue
+  en sonnet porque diseña el contenido de la spec.
 
 Quedan fuera de este corte, como seguimiento:
 - Acotar las dependencias que lee el `revisor` en cada compuerta (ahorro

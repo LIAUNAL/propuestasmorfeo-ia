@@ -200,7 +200,7 @@ entradas DURAS son AMBAS: (1) la tabla de criterios ponderados
 ("Secciones obligatorias declaradas por el TDR") — gobierna la ESTRUCTURA del
 documento. Si "Declara secciones propias: Sí", la estructura de la guía
 ajustada DEBE reflejar esa lista (añadir/renombrar/reordenar secciones
-mapeadas sobre las 16 de la guía). NO generes la guía solo desde la tabla de
+mapeadas sobre las 18 secciones canónicas). NO generes la guía solo desde la tabla de
 criterios. Si la lista está ausente/bloqueada, NO procedas: el dispatcher
 bloquea G0.5 antes de encargarte nada.
 

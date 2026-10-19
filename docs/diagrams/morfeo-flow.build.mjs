@@ -336,7 +336,7 @@ const nodes = [
   n('gate1', 'f1', 4, 'security', 'GATE G1', 'aprobacion problema', { sources: S('.claude/commands/propuesta.md', 140, 170) }),
 
   // Lane f2: 3 · SOTA & Hipótesis
-  n('bibSota', 'f2', 0, 'backend', 'bibliografo-propuesta', '§4 SOTA (≥30 refs Q1/Q2)', { sources: A('bibliografo-propuesta') }),
+  n('bibSota', 'f2', 0, 'backend', 'bibliografo-propuesta', '§4 SOTA (≥39 refs Q1/Q2)', { sources: A('bibliografo-propuesta') }),
   n('invHip', 'f2', 1, 'backend', 'investigador (F2)', '§5 hipotesis', { sources: A('investigador') }),
   n('tikzSota', 'f2', 2, 'backend', 'disenador-tikz (F2)', 'spec estado_arte', { sources: A('disenador-tikz') }),
   n('gate2', 'f2', 3, 'security', 'GATE G2', 'aprobacion SOTA', { sources: S('.claude/commands/propuesta.md', 180, 210) }),

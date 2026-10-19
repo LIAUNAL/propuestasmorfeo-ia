@@ -114,6 +114,12 @@ def parse_run_metadata(run_dir: Path) -> dict[str, Any]:
         m = re.search(r"\\(?:LARGE|Large|large)\\bfseries\s+([^}\\]+)", main_tex.read_text(encoding="utf-8", errors="replace"))
         if m:
             meta["title"] = m.group(1).strip()
+    # Runs created from plantilla/main.tex keep the title in datos_proyecto.tex
+    datos = run_dir / "redaccion" / "datos_proyecto.tex"
+    if not meta["title"] and datos.is_file():
+        m = _TITLE_MACRO.search(datos.read_text(encoding="utf-8", errors="replace"))
+        if m and not m.group(1).strip().startswith("[Por definir"):
+            meta["title"] = m.group(1).strip()
     if not meta["title"]:
         meta["title"] = meta["idea"]
 
@@ -121,7 +127,12 @@ def parse_run_metadata(run_dir: Path) -> dict[str, Any]:
 
 
 _FIGURE_INCLUDE = re.compile(r"\\input\{sections/diag_[^}]*\}|\\includegraphics(?:\[[^\]]*\])?\{[^}]*\}")
-_SECTION_INPUT = re.compile(r"\\input\{sections/((?!diag_)[^}]+?)(?:\.tex)?\}")
+_SECTION_INPUT = re.compile(r"\\input\{sections/((?!diag_)[^}#]+?)(?:\.tex)?\}")
+# plantilla/main.tex places sections and diagrams through these macros; a
+# diagram only exists in the document when its file does.
+_TEMPLATE_SECTION = re.compile(r"\\SeccionSiExiste\{([^}#]+)\}")
+_TEMPLATE_FIGURE = re.compile(r"\\DiagramaSiExiste\{(diag_[^}#]+)\}")
+_TITLE_MACRO = re.compile(r"\\newcommand\{\\TituloProyecto\}\{(.+)\}\s*$", re.M)
 
 
 def _strip_tex_comments(raw: str) -> str:
@@ -143,9 +154,13 @@ def _main_tex_figures(run_dir: Path) -> dict[str, int]:
     text = _strip_tex_comments(main_tex.read_text(encoding="utf-8", errors="replace"))
     counts: dict[str, int] = {}
     current: str | None = None
+    sections_dir = run_dir / "redaccion" / "sections"
     tokens = sorted(
         [(m.start(), "section", m.group(1)) for m in _SECTION_INPUT.finditer(text)]
+        + [(m.start(), "section", m.group(1)) for m in _TEMPLATE_SECTION.finditer(text)]
         + [(m.start(), "figure", "") for m in _FIGURE_INCLUDE.finditer(text)]
+        + [(m.start(), "figure", "") for m in _TEMPLATE_FIGURE.finditer(text)
+           if (sections_dir / f"{m.group(1)}.tex").is_file()]
     )
     for _, kind, value in tokens:
         if kind == "section":

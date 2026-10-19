@@ -129,8 +129,13 @@ check_deps() {
 build_latexmk() {
   log "Compilando con latexmk (${ENGINE} + ${BIBENGINE})..."
   cd "${SCRIPT_DIR}"
+  # -g fuerza al menos una pasada: main.tex incluye secciones y logos con
+  # \IfFileExists, así que un archivo que no existía en la compilación
+  # anterior no figura entre las dependencias de latexmk y, sin -g, el PDF
+  # quedaría desactualizado aunque el build diga OK.
   latexmk \
     -f \
+    -g \
     -pdf \
     -pdflatex="${ENGINE} -interaction=nonstopmode -synctex=1 %O %S" \
     -bibtex \

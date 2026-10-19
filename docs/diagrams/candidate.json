@@ -318,7 +318,7 @@
       "id": "bibSota",
       "type": "backend",
       "label": "bibliografo-propuesta",
-      "sublabel": "§4 SOTA (≥30 refs Q1/Q2)",
+      "sublabel": "§4 SOTA (≥39 refs Q1/Q2)",
       "sources": [
         {
           "path": ".claude/agents/bibliografo-propuesta.md",

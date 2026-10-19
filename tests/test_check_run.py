@@ -145,6 +145,22 @@ class CheckRunTest(unittest.TestCase):
             self.assertEqual(code, 1)
 
 
+class TemplateRunTest(unittest.TestCase):
+    """A run created from the real plantilla/ must pass the checker as created."""
+
+    def test_a_fresh_template_run_has_no_errors(self) -> None:
+        import shutil
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel in ("plantilla", "scripts"):
+                shutil.copytree(REPO / rel, root / rel, ignore=shutil.ignore_patterns("__pycache__"))
+            subprocess.run(["bash", "scripts/init-run.sh", "fresh", "idea"], cwd=root, check=True,
+                           capture_output=True)
+            code, findings = _run(root / "proposals" / "fresh")
+            self.assertEqual(_codes(findings, "error"), set(), findings)
+            self.assertEqual(code, 0)
+
+
 class SpecAgreesWithCheckerTest(unittest.TestCase):
     """The floors and the section count are stated once per file and must agree."""
 

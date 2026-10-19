@@ -17,7 +17,7 @@
 
 **Regla de unicidad del título.** El texto del título se compila **una sola vez**, en la portada/bloque de título del documento (`\title{}`). Ninguna otra sección (Resumen, Resumen ejecutivo, encabezado de página, etc.) debe repetir el título completo como texto o como encabezado propio; si una sección necesita referirse al proyecto, debe hacerlo de forma referencial ("esta propuesta", "el proyecto") y no reproduciendo el título verbatim.
 
-**Regla de no inclusión como sección de cuerpo con párrafos en `main.tex`.** El título y la identificación del proyecto se compilan exclusivamente en el bloque de encabezado/portada (`\begin{center} ... \end{center}` o `\title{}`) de `main.tex`. En el ensamble de `main.tex` **NUNCA se incluye una sección numerada de cuerpo ni párrafos narrativos** titulados "1. Título e identificación del proyecto" (ni `\input{sections/01_titulo_identificacion}`). El cuerpo numerado arranca directamente después del front-matter con `\setcounter{section}{1}` y `\input{sections/02_justificacion}`, garantizando que la primera sección numerada sea "2. Justificación y pertinencia" en estricta coherencia con las 16 secciones canónicas.
+**Regla de no inclusión como sección de cuerpo con párrafos en `main.tex`.** El título y la identificación del proyecto se compilan exclusivamente en el bloque de encabezado/portada (`\begin{center} ... \end{center}` o `\title{}`) de `main.tex`. En el ensamble de `main.tex` **NUNCA se incluye una sección numerada de cuerpo ni párrafos narrativos** titulados "1. Título e identificación del proyecto" (ni `\input{sections/01_titulo_identificacion}`). El cuerpo numerado arranca directamente después del front-matter con `\setcounter{section}{1}` y `\input{sections/02_justificacion}`, garantizando que la primera sección numerada sea "2. Justificación y pertinencia" en estricta coherencia con las 18 secciones canónicas.
 
 **Secciones preliminares (front-matter, sin numerar).** Las tres secciones siguientes (Resumen, Resumen ejecutivo, Palabras clave) son preliminares: se redactan como SÍNTESIS del documento completo en una fase tardía del pipeline (Fase 6.5, ver `.claude/commands/propuesta.md`) y en el documento final se renderizan ANTES de la sección 2, inmediatamente después del Título. NO llevan número (no alteran la numeración §2–§16); en el ensamble LaTeX se maquetan con `\section*{}` (sin numerar).
 
@@ -433,7 +433,7 @@ Estas convenciones son la única fuente de verdad para el ensamble LaTeX; aplíc
 > de esta tabla. La excepción son los apartados o y p del TDR, que el marco
 > trata como secciones propias: `17_articulacion_comunidades.tex` y
 > `18_apropiacion_social.tex` (18 secciones canónicas en total, con la
-> bibliografía al final del documento). Al maquetar, se realiza como `\subsection*{}` (sin numerar) o como
+> bibliografía al final del documento). Al maquetar, un sub-bloque se realiza como `\subsection*{}` (sin numerar) o como
 > un párrafo con encabezado en negrita dentro de la sección anfitriona, pero debe
 > quedar **visualmente identificable** (título propio) para el evaluador, porque
 > típicamente responde a un criterio de evaluación ponderado específico de esa
