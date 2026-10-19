@@ -63,9 +63,9 @@ el repositorio para volver a correrlo.
 |----|-------|------|--------|--------|
 | T1 | S2 | inline | hecha: RED 5/5 (exit 126 reproducido), GREEN 5/5 | 0b5437e |
 | T2 | S3, S4 | inline | hecha: RED 5/6, GREEN 6/6 con compilación real con y sin logo UTP | 4398a86 |
-| T3 | S6, S8 | inline | pendiente | |
-| T4 | S4, S5, S8 | inline | pendiente | |
-| T5 | S7, S8 | inline | pendiente | |
+| T3 | S6, S8 | inline | hecha: RED 4/5, GREEN 6/6; en la corrida de referencia reporta las 4 rayas de §10 y el 01_titulo | a949ae6 |
+| T4 | S4, S5, S8 | inline | hecha: prueba de consistencia RED sobre la spec vieja, GREEN; puertos regenerados | eb46e04 |
+| T5 | S7, S8 | inline | hecha: 5 pruebas de presupuesto, RED 5/5 sin los cambios, GREEN; puertos regenerados | b79969d |
 | T6 | S9 | delegada (escritor paralelo, superficie disjunta: tablero) | pendiente | |
 
 Ruta: T6 se delega porque corre en paralelo con T1 a T5 sobre archivos
@@ -111,3 +111,22 @@ quedan numeradas como §16 y §17, y la bibliografía (16_) cierra el documento
 como §18. Los identificadores de la guía (§16 bibliografía, §17, §18) nombran
 archivos y responsabilidades, no la numeración impresa. Esto se documenta en
 T4.
+
+L5 (2026-10-19). T3, T4 y T5 cerradas.
+- `check_run.py` entra antes de cada `revisor` en los tres puertos.
+- La especificación queda con un solo valor por regla, y una prueba la ata a
+  las constantes del verificador.
+- `AGENTS.md` baja de 33,8 k a 21,2 k caracteres: el material del despachador
+  pasa a `docs/operacion-pipeline.md`.
+- El bibliógrafo tiene un tope de 25 búsquedas por despacho.
+- `/propuesta-continuar` lee solo su bloque de fase.
+- El auditor corre una vez por unidad.
+- Los agentes de figuras pasan a haiku.
+
+Quedan fuera de este corte, como seguimiento:
+- Acotar las dependencias que lee el `revisor` en cada compuerta (ahorro
+  estimado de 30 a 50 % de su costo; riesgo de perder cruces).
+- Una lista de verificación compacta para el auditor en vez de leer las dos
+  skills completas.
+- El `CLAUDE.md` global del usuario, que agrega unos 21 k tokens a cada
+  subagente y está fuera del repositorio.
