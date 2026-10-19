@@ -3,7 +3,7 @@
 <p align="center">
   <img src="docs/assets/morfeo-anime.jpg" alt="Morfeo en estilo anime con propuesta holográfica y subagentes de IA orbitando" width="560">
   <br>
-  <strong>Laboratorio de Inteligencia Artificial — Universidad Nacional de Colombia Sede Manizales</strong>
+  <strong>Laboratorio de Inteligencia Artificial · Universidad Nacional de Colombia Sede Manizales</strong>
   <br>
   <em>Orquestación agéntica, formulación metodológica rigurosa y generación de propuestas científicas en LaTeX y Word</em>
 </p>
@@ -57,13 +57,7 @@ pipx install propuestasmorfeo-ia
 pip install propuestasmorfeo-ia
 ```
 
-Si deseas soporte extendido opcional para FastAPI y Uvicorn en el panel de control web:
-
-```bash
-pip install "propuestasmorfeo-ia[ui]"
-```
-
-*(El comando `morfeo ui` funciona de forma nativa con el servidor multihilo de la biblioteca estándar de Python sin requerir paquetes adicionales).*
+El tablero (`morfeo ui`) corre sobre el servidor multihilo de la biblioteca estándar de Python, así que no necesita paquetes adicionales.
 
 ---
 
@@ -93,9 +87,9 @@ Dentro del directorio inicializado puedes ejecutar los comandos del asistente en
 
 | Comando | Descripción |
 |---|---|
-| `morfeo init <dir> [--title] [--preset] [--tools]` | Inicializa un workspace autocontenido con los 68 activos base del marco. |
+| `morfeo init <dir> [--title] [--preset] [--tools]` | Inicializa un workspace autocontenido con los 73 activos base del marco. |
 | `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF. |
-| `morfeo ui [dir] [--port 8765] [--no-open]` | Despliega el Command Center web interactivo en tiempo real. |
+| `morfeo ui [dir] [--port 8080] [--no-open]` | Despliega el Command Center web interactivo en tiempo real (puerto 8080 por defecto, o el siguiente libre). |
 | `morfeo compile [dir] [--docx] [--run <id>]` | Compila el proyecto LaTeX a PDF (`build.sh`) o exporta a Word (`--docx`). |
 | `morfeo export [dir] [-o <archivo>] [--run <id>]` | Empaqueta y exporta la propuesta con todos sus artefactos en `.tar.gz` o `.zip`. |
 | `morfeo import <archivo> [dir] [--force]` | Importa y desempaca un proyecto o corrida compartida en una nueva carpeta o existente. |
@@ -126,7 +120,7 @@ En entornos asistidos (Claude Code, OpenCode, Antigravity, Pi), el framework ofr
 
 ## Tablero de Control Web y Visor PDF (`morfeo ui`)
 
-El comando `morfeo ui` despliega un Command Center web interactivo en `http://localhost:8765` diseñado para supervisión visual y edición colaborativa:
+El comando `morfeo ui` despliega un Command Center web interactivo en `http://localhost:8080` (o el siguiente puerto libre) diseñado para supervisión visual y edición colaborativa:
 
 <p align="center">
   <img src="docs/assets/morfeo-avatar.png" alt="Avatar anime de Morfeo" width="72">
@@ -137,7 +131,7 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
 ### Características Principales:
 
 1. **Flujograma de Fases con Iluminación Dinámica:**
-   - Visualización gráfica de las 13 etapas metodológicas del pipeline y sus compuertas.
+   - Visualización gráfica de las 16 unidades del pipeline (intake, guía ajustada al TDR y las 14 unidades de redacción) y de sus 13 compuertas.
    - Las fases completadas y aprobadas se iluminan con borde activo, resplandor esmeralda/cian y badge de verificación.
    - Las fases pendientes permanecen en reposo visual sutil, evitando sobrecarga cognitiva.
    - Cada caja de fase trae un botón **«Ejecutar»**. Solo queda activo en la unidad que el flujo va a correr (`next_step` del control de ejecución) o en el intake mientras siga abierto, y envía `/propuesta-continuar` o `/propuesta-analizar` a la terminal del asistente. En cualquier otra fase explica qué etapas, compuertas y secciones faltan para habilitarla.
@@ -178,8 +172,8 @@ El marco cuenta con **11 subagentes especializados** con roles no solapados:
 | Agente | Modelo sugerido | Responsabilidad |
 |---|---|---|
 | `coordinador-propuesta` | Sonnet | Referencia canónica del pipeline, despacho y ensamble final de `main.tex`. |
-| `investigador` | Opus | Definición del árbol de problemas (§3), hipótesis (§5), objetivos (§6, §7) y marco conceptual (§8). |
-| `redactor` | Opus | Prosa narrativa (§2, §9, §10, §11, §14, §15, front-matter y consideraciones éticas). |
+| `investigador` | Opus | Subproblemas y pregunta de investigación (§3), hipótesis (§5), objetivos (§6, §7), marco conceptual (§8) y árbol de objetivos. |
+| `redactor` | Opus | Prosa narrativa (§2, §9 a §12, §14, §15, §17, §18 y front-matter). |
 | `grant-flow-auditor` | Sonnet | Auditoría micro-estilística de cadencia, voz activa y eliminación de fricción léxica. |
 | `insumos-observador` | Sonnet | Ingesta y estructuración de insumos del usuario (PDFs, papers, TDRs, convocatorias). |
 | `bibliografo-propuesta` | Sonnet | Construcción del estado del arte (§4) y bibliografía en BibTeX (§16, ≥50 refs APA). |
@@ -242,6 +236,12 @@ Fase 0    Ingesta de insumos y clasificación TDR / borrador
   │
   ├── [GATE G0.5] Aprobación de tabla de secciones ajustada al TDR
   │
+Fase 1a   Scoping temprano y subproblemas preliminares
+  └── [GATE G1a] Veredicto Revisor
+  │
+Fase 1b   Corpus SOTA Q1/Q2 y semilla bibliográfica
+  └── [GATE G1b] Veredicto Revisor
+  │
 Fase 1    Árbol de problemas (§3) y pregunta de investigación
   ├── Bucle TikZ: figura arbol_problemas (render determinista)
   └── [GATE G1] Veredicto Revisor
@@ -253,7 +253,7 @@ Fase 2    Estado del arte (§4, ≥30 refs Q1/Q2) e hipótesis (§5)
 Fase 3    Justificación y pertinencia (§2, TRL 6/7 explícito)
   └── [GATE G3] Veredicto Revisor
   │
-Fase 4    Objetivo general (§6) y 3 específicos (§7) — mapeo 1:1 con subproblemas
+Fase 4    Objetivo general (§6) y 3 específicos (§7), con mapeo 1:1 a los subproblemas
   └── [GATE G4] Veredicto Revisor
   │
 Fase 5    Marco conceptual (§8) y equipo de trabajo (§9, roles derivados de §7)
@@ -267,8 +267,10 @@ Fase 6    Resultados esperados (§11) y consideraciones éticas (§12)
 Fase 6.4  Presupuesto financiero (§13)
   └── [GATE G6.4] Veredicto Revisor
   │
-Fase 6.45 Cronograma de actividades (§14, Gantt) y productos esperados (§15, xltabular)
+Fase 6.45 Cronograma (§14, Gantt), productos esperados (§15, xltabular) y bibliografía (§16)
 Fase 6.46 Articulación comunitaria (§17) y apropiación social del conocimiento (§18)
+  └── [GATE G6.46] Veredicto Revisor
+  │
 Fase 6.5  Front-matter (Resumen, Resumen ejecutivo, Palabras clave)
   └── [GATE G6.5] Veredicto Revisor
   │
@@ -449,7 +451,7 @@ Sin Morfeo instalado, basta descomprimir con la herramienta del sistema (`unzip`
 
 ### El tablero sobre el ejemplo
 
-`morfeo ui` levanta el Command Center sobre la corrida importada. El flujograma muestra las 13 etapas aprobadas, el visor abre el PDF de 59 páginas con las herramientas de anotación editorial, y el panel de telemetría reporta los 55,1 millones de tokens y los 908 tool-uses que consumió la formulación.
+`morfeo ui` levanta el Command Center sobre la corrida importada. El flujograma muestra las 13 compuertas aprobadas, el visor abre el PDF de 59 páginas con las herramientas de anotación editorial, y el panel de telemetría reporta los 55,1 millones de tokens y los 908 tool-uses que consumió la formulación.
 
 ### Antes de reutilizarlo
 
@@ -469,9 +471,13 @@ El marco admite ejecución multi-runtime a partir de una única fuente de verdad
 Para sincronizar y validar los puertos secundarios ante cualquier modificación de los archivos base:
 
 ```bash
-python3 scripts/gen-antigravity.py
+# Regenerar los puertos tras editar .claude/
+python3 scripts/gen-opencode.py && python3 scripts/gen-pi.py && python3 scripts/gen-antigravity.py
+
+# Verificar que no haya deriva (sale con código distinto de cero si la hay)
 python3 scripts/gen-opencode.py --check
 python3 scripts/gen-pi.py --check
+python3 scripts/gen-antigravity.py --check
 ```
 
 ---
@@ -482,6 +488,13 @@ El proyecto cuenta con una suite integral de pruebas unitarias y de integración
 
 ```bash
 python3 -m unittest discover -s tests -p "test_*.py"
+```
+
+El JavaScript del tablero (visor PDF, botón «Ejecutar», pestaña de árboles) se prueba ejecutando el archivo real bajo jsdom:
+
+```bash
+npm install
+npm test
 ```
 
 ---
