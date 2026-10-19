@@ -119,8 +119,8 @@ check_deps() {
   fi
   if [[ ! -f "${SCRIPT_DIR}/${MAIN}" ]]; then
     err "No existe ${SCRIPT_DIR}/${MAIN}."
-    err "main.tex se genera por cada corrida de /propuesta (Fase 7, ensamble); no está committeado."
-    err "Ejecuta /propuesta en Claude Code hasta completar la Fase 7 antes de compilar."
+    err "init-run.sh siembra main.tex desde plantilla/main.tex al crear la corrida."
+    err "Copialo a mano desde la plantilla del marco o vuelve a correr /propuesta-init."
     exit 1
   fi
 }

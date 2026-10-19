@@ -1,0 +1,141 @@
+% =====================================================================
+% main.tex: plantilla canónica de ensamble (copiada por init-run.sh)
+%
+% Compila desde la primera compuerta: cada sección y cada diagrama entra
+% solo si su archivo ya existe en sections/, así que nunca hay que reescribir
+% este archivo para agregar una sección. Los datos de portada viven en
+% datos_proyecto.tex.
+%
+% Orden del documento: portada (título, sin sección numerada §1),
+% front-matter sin numerar, §2 a §15, articulación comunitaria y apropiación
+% social (archivos 17_ y 18_), y la bibliografía (archivo 16_) al final.
+%
+% Logos (guía, regla única): UNAL arriba a la derecha, GCPDS abajo a la
+% izquierda, LabIA abajo a la derecha. El logo de la UTP es opcional: solo
+% aparece (arriba a la izquierda) si la propuesta copia
+% logos-opcionales/logo_utp.png del marco a logos/logo_utp.png.
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+% --- Codificación e idioma -------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noindentfirst]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% --- Geometría, encabezado y pie --------------------------------------------
+\usepackage[a4paper,margin=2.4cm,headheight=38pt,footskip=1.3cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+
+% --- Matemáticas, listas y tablas -------------------------------------------
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{array}
+\usepackage{url}
+
+% --- Bibliografía APA autor-año (natbib + apalike); IEEE numérico prohibido -
+\usepackage[round,authoryear]{natbib}
+
+% --- Referencias cruzadas en español ----------------------------------------
+\usepackage{cleveref}
+\crefname{section}{sección}{secciones}
+\crefname{figure}{figura}{figuras}
+\crefname{table}{tabla}{tablas}
+\crefname{equation}{ecuación}{ecuaciones}
+
+% --- Diagramas ----------------------------------------------------------------
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc,fit,backgrounds}
+\usepackage{pgfgantt}
+
+% --- Colores institucionales (fuente única) ----------------------------------
+\definecolor{azulUNAL}{HTML}{0066B3}
+\definecolor{grisLabIA}{HTML}{666666}
+\definecolor{verdeGCPDS}{HTML}{2E8B57}
+\definecolor{rojoLimitante}{HTML}{C0392B}
+
+% --- Captions de tabla: "Tabla", nunca "Cuadro" (babel exige el hook) -------
+\addto\captionsspanish{\renewcommand{\tablename}{Tabla}}
+
+% --- Jerarquía tipográfica: títulos dos tamaños menos ------------------------
+\usepackage{sectsty}
+\sectionfont{\large\bfseries}
+\subsectionfont{\normalsize\bfseries}
+\subsubsectionfont{\normalsize\bfseries}
+
+% --- Encabezado y pie institucional -------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\includegraphics[height=1.1cm]{logos/logo_unal.png}}
+\IfFileExists{logos/logo_utp.png}{%
+  \fancyhead[L]{\includegraphics[height=1.1cm]{logos/logo_utp.png}}}{}
+\fancyfoot[L]{\includegraphics[height=1.0cm]{logos/logogcpds.png}}
+\fancyfoot[C]{\small\thepage}
+\fancyfoot[R]{\includegraphics[height=1.0cm]{logos/logo_labIA.png}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% --- Ensamble tolerante: secciones y diagramas solo si existen ---------------
+\newcommand{\SeccionSiExiste}[1]{\IfFileExists{sections/#1.tex}{\input{sections/#1}}{}}
+% Un diagrama lleva su caption y su \label en sections/<nombre>_caption.tex
+% (regla 11: caption concreto, nunca genérico). Sin ese archivo el PDF lo
+% marca y scripts/check_run.py lo reporta.
+\newcommand{\DiagramaSiExiste}[1]{%
+  \IfFileExists{sections/#1.tex}{%
+    \begin{figure}[htbp]
+      \centering
+      \input{sections/#1}
+      \IfFileExists{sections/#1_caption.tex}{\input{sections/#1_caption}}{%
+        \caption{\textbf{[Falta caption: #1]}}\label{fig:#1}}
+    \end{figure}}{}}
+
+\input{datos_proyecto}
+
+\begin{document}
+
+% --- Portada: el título se compila una sola vez, aquí (sin sección §1) -------
+\begin{center}
+  {\Large\bfseries \TituloProyecto}\\[0.6em]
+  {\normalsize Investigador principal: \InvestigadorPrincipal}\\[0.3em]
+  {\small \AfiliacionProyecto}
+\end{center}
+\thispagestyle{fancy}
+
+% --- Front-matter sin numerar (Resumen, Resumen ejecutivo, Palabras clave) ---
+\SeccionSiExiste{00_frontmatter}
+
+% --- Cuerpo: arranca en §2 -----------------------------------------------------
+\setcounter{section}{1}
+
+\SeccionSiExiste{02_justificacion}
+\SeccionSiExiste{03_descripcion_problema}
+\DiagramaSiExiste{diag_arbol_problemas}
+\SeccionSiExiste{04_estado_arte}
+\DiagramaSiExiste{diag_estado_arte}
+\DiagramaSiExiste{diag_estado_arte_a}
+\DiagramaSiExiste{diag_estado_arte_b}
+\SeccionSiExiste{05_hipotesis}
+\SeccionSiExiste{06_objetivo_general}
+\SeccionSiExiste{07_objetivos_especificos}
+\SeccionSiExiste{08_marco_conceptual}
+\SeccionSiExiste{09_equipo_trabajo}
+\SeccionSiExiste{10_metodologia}
+\DiagramaSiExiste{diag_metodologico}
+\SeccionSiExiste{11_resultados_esperados}
+\SeccionSiExiste{12_consideraciones_eticas}
+\SeccionSiExiste{13_presupuesto}
+\SeccionSiExiste{14_cronograma_actividades}
+\SeccionSiExiste{15_productos_esperados}
+\SeccionSiExiste{17_articulacion_comunidades}
+\SeccionSiExiste{18_apropiacion_social}
+
+% --- Bibliografía (archivo 16_, con \clearpage y \bibsection vacío) al final --
+\SeccionSiExiste{16_bibliografia}
+
+\end{document}

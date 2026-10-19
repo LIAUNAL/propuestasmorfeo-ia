@@ -102,7 +102,10 @@ done
 
 # --- LaTeX skeleton, copied (never symlinked: the run must stay
 #     self-contained and readable after the framework moves on) -------------
-for item in build.sh scripts logos templates; do
+# main.tex and datos_proyecto.tex are seeded once and never overwritten: the
+# run fills them in. logos-opcionales/ (e.g. the UTP logo) stays in the
+# framework; a proposal that needs one copies it into redaccion/logos/.
+for item in build.sh scripts logos templates main.tex datos_proyecto.tex; do
   src="$SKELETON/$item"
   dest="$RUN_ROOT/redaccion/$item"
   [ -e "$src" ] || die "framework skeleton missing: $src"
