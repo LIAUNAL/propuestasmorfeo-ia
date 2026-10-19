@@ -66,7 +66,7 @@ el repositorio para volver a correrlo.
 | T3 | S6, S8 | inline | hecha: RED 4/5, GREEN 6/6; en la corrida de referencia reporta las 4 rayas de §10 y el 01_titulo | a949ae6 |
 | T4 | S4, S5, S8 | inline | hecha: prueba de consistencia RED sobre la spec vieja, GREEN; puertos regenerados | eb46e04 |
 | T5 | S7, S8 | inline | hecha: 5 pruebas de presupuesto, RED 5/5 sin los cambios, GREEN; puertos regenerados | b79969d |
-| T6 | S9 | delegada (escritor paralelo, superficie disjunta: tablero) | pendiente | |
+| T6 | S9 | delegada (escritor paralelo, superficie disjunta: tablero) | hecha: RED en Python y JS, GREEN; arnés PASS en 64 combinaciones | 0eaaaac |
 
 Ruta: T6 se delega porque corre en paralelo con T1 a T5 sobre archivos
 disjuntos (`src/morfeo/dashboard/`, `src/morfeo/core/status.py`, pruebas del
@@ -130,3 +130,13 @@ Quedan fuera de este corte, como seguimiento:
   skills completas.
 - El `CLAUDE.md` global del usuario, que agrega unos 21 k tokens a cada
   subagente y está fuera del repositorio.
+
+L6 (2026-10-19). T6 cerrada.
+- Verificación del padre: diff dentro de la superficie autorizada; suite
+  completa con 264 pruebas Python OK y 62 JS OK.
+- Dashboards reiniciados; `/api/status` ya trae `package_version` 0.5.5 y
+  figuras en §3, §4 (2) y §10.
+- Arnés `tests/ui/dashboard_audit.py`: PASS en 4 tamaños, 2 temas y 8
+  pestañas.
+- Evaluación RDD de la rama: riesgo alto (`high_risk`). Se lanza un
+  verificador independiente antes de la revisión.
