@@ -389,10 +389,24 @@ TEMPLATE = """<!DOCTYPE html>
   .inspector-group {
     font-size: 11px;
     color: var(--muted);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+  .inspector-summary {
+    font-size: 11.5px;
+    color: #e2e8f0;
+    background: rgba(0, 240, 255, 0.07);
+    border-left: 2px solid var(--cyan);
+    padding: 5px 8px;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.35;
   }
   .inspector-neighbors-title {
     font-size: 11px;
@@ -496,17 +510,50 @@ TEMPLATE = """<!DOCTYPE html>
   #tooltipHud {
     position: absolute;
     pointer-events: none;
-    background: rgba(11, 15, 28, 0.95);
+    background: rgba(11, 15, 28, 0.96);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--cyan);
     color: #fff;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 11.5px;
     opacity: 0;
-    transition: opacity 0.1s;
-    z-index: 20;
-    max-width: 320px;
-    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+    transition: opacity 0.12s ease;
+    z-index: 25;
+    width: max-content;
+    max-width: min(440px, calc(100vw - 48px));
+    box-shadow: 0 0 18px rgba(0, 240, 255, 0.28), 0 8px 20px rgba(0, 0, 0, 0.65);
+  }
+  #tooltipHud .tooltip-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 416px;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #tooltipHud .tooltip-summary {
+    font-size: 11px;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 416px;
+    line-height: 1.35;
+    margin-bottom: 4px;
+  }
+  #tooltipHud .tooltip-meta {
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 416px;
   }
 </style>
 </head>
@@ -538,7 +585,7 @@ TEMPLATE = """<!DOCTYPE html>
     <div class="hud-overlay">
       <div class="hud-pill">
         <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 6px var(--cyan);"></span>
-        <span>Haz clic en un nodo para <strong>resaltar sus conexiones</strong>. Arrastra para orbitar en 3D.</span>
+        <span>Pasa el cursor o haz clic en un nodo para ver su <strong>etiqueta principal y resumen</strong>. Arrastra para orbitar en 3D.</span>
       </div>
       <div class="hud-cluster-tags" id="clusterFilterTags">
         <!-- Rendered by JS -->
@@ -551,6 +598,7 @@ TEMPLATE = """<!DOCTYPE html>
         <div class="inspector-title" id="inspTitle">—</div>
         <button class="inspector-close" onclick="clearSelection()">&times;</button>
       </div>
+      <div class="inspector-summary" id="inspSummary" title="">—</div>
       <div>
         <span class="inspector-type" id="inspType">File</span>
         <div class="inspector-group" id="inspGroup">Cluster</div>
@@ -603,9 +651,12 @@ TEMPLATE = """<!DOCTYPE html>
     var groupIndex = n.group ? groups.indexOf(n.group) : -1;
     var color = groupIndex >= 0 ? PAL[groupIndex % PAL.length] : "#00f0ff";
     var size = (n.type === "Subseccion" || n.type === "Branch") ? 7.5 : 4.5;
+    var labelStr = String(n.label || n.id || "");
+    var summaryStr = String(n.summary || n.group || labelStr).replace(/\s+/g, " ").trim();
     var nodeObj = {
       id: n.id,
-      label: n.label || n.id,
+      label: labelStr,
+      summary: summaryStr,
       type: n.type || "File",
       group: n.group || "General",
       color: color,
@@ -898,13 +949,14 @@ TEMPLATE = """<!DOCTYPE html>
         projectedNodes.forEach(function(item) {
           var n = item.node;
           var isTarget = (selectedNode === n);
+          var isHovered = (hoveredNode === n);
           var isConn = !selectedNode
             ? (!activeClusterFilter || n.group === activeClusterFilter)
             : (isTarget || selectedNode.neighbors.has(n.id));
-          var alpha = isTarget ? 1.0 : (isConn ? 0.92 : 0.14);
-          var r = Math.max(3.5, n.size * (isTarget ? 2.1 : (isConn ? 1.35 : 0.85)));
+          var alpha = (isTarget || isHovered) ? 1.0 : (isConn ? 0.92 : 0.14);
+          var r = Math.max(4.0, n.size * (isTarget ? 2.1 : (isHovered ? 1.75 : (isConn ? 1.35 : 0.85))));
 
-          ctx.globalAlpha = alpha * 0.45;
+          ctx.globalAlpha = alpha * 0.48;
           var grad = ctx.createRadialGradient(item.sx, item.sy, 0, item.sx, item.sy, r * 3.2);
           grad.addColorStop(0, n.color);
           grad.addColorStop(1, "rgba(0,0,0,0)");
@@ -914,7 +966,7 @@ TEMPLATE = """<!DOCTYPE html>
           ctx.fill();
 
           ctx.globalAlpha = alpha;
-          ctx.fillStyle = isTarget ? "#ffffff" : n.color;
+          ctx.fillStyle = (isTarget || isHovered) ? "#ffffff" : n.color;
           ctx.beginPath();
           ctx.arc(item.sx, item.sy, r, 0, Math.PI * 2);
           ctx.fill();
@@ -1097,11 +1149,103 @@ TEMPLATE = """<!DOCTYPE html>
     scene.add(lineSegments);
   }
 
+  function escapeHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function projectNodeToScreen(n) {
+    if (!camera || !stageEl) return null;
+    var w = stageEl.clientWidth || 800;
+    var h = stageEl.clientHeight || 600;
+    camera.updateMatrixWorld();
+    var v = new THREE.Vector3(n.x, n.y, n.z);
+    v.project(camera);
+    if (v.z < -1 || v.z > 1) return null;
+    return {
+      sx: (v.x * 0.5 + 0.5) * w,
+      sy: (-v.y * 0.5 + 0.5) * h,
+      depth: v.z
+    };
+  }
+
+  function pickNodeAt(mouseX, mouseY) {
+    if (!camera || !stageEl) return null;
+    var w = stageEl.clientWidth || 800;
+    var h = stageEl.clientHeight || 600;
+    if (w <= 0 || h <= 0) return null;
+
+    // 1. Direct Three.js raycast against node meshes
+    var mouse = new THREE.Vector2(
+      (mouseX / w) * 2 - 1,
+      -(mouseY / h) * 2 + 1
+    );
+    var raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObjects(nodeMeshes);
+    if (intersects.length > 0 && intersects[0].object && intersects[0].object.userData) {
+      return intersects[0].object.userData.node;
+    }
+
+    // 2. Screen-space proximity hit test (covers luminous glow orb & Canvas 2D mode)
+    var bestNode = null;
+    var bestScore = Infinity;
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      var p = projectNodeToScreen(n);
+      if (!p) continue;
+      var hitRadius = Math.max(16, n.size * 2.9);
+      var dx = p.sx - mouseX;
+      var dy = p.sy - mouseY;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= hitRadius) {
+        var score = dist + p.depth * 1.5;
+        if (score < bestScore) {
+          bestScore = score;
+          bestNode = n;
+        }
+      }
+    }
+    return bestNode;
+  }
+
+  function renderTooltipForNode(n, sx, sy, isPinned) {
+    if (!n || !tooltipEl || !stageEl) return;
+    var summaryLine = (n.summary && n.summary !== n.label)
+      ? n.summary
+      : (n.type + " · " + (n.group || "General"));
+    var pinBadge = isPinned
+      ? '<span style="font-size:9px; padding:1px 5px; border-radius:4px; background:rgba(0,240,255,0.18); color:var(--cyan); border:1px solid rgba(0,240,255,0.45);">Fijado</span>'
+      : '';
+    tooltipEl.innerHTML =
+      '<div class="tooltip-label">' +
+        '<span style="width:8px; height:8px; border-radius:50%; flex:none; background:' + n.color + '; box-shadow:0 0 6px ' + n.color + ';"></span>' +
+        '<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeHtml(n.label) + '</span>' +
+        pinBadge +
+      '</div>' +
+      '<div class="tooltip-summary">' + escapeHtml(summaryLine) + '</div>' +
+      '<div class="tooltip-meta"><span style="color:var(--cyan);">' + escapeHtml(n.type) + '</span> · ' + escapeHtml(n.group || "General") + ' · ' + n.neighbors.size + ' conex</div>';
+
+    var stageW = stageEl.clientWidth || 800;
+    var stageH = stageEl.clientHeight || 600;
+    var tipW = Math.min(430, Math.max(240, tooltipEl.offsetWidth || 320));
+    var tipH = tooltipEl.offsetHeight || 68;
+    var left = Math.max(12, Math.min(sx + 16, stageW - tipW - 14));
+    var top = Math.max(12, Math.min(sy + 14, stageH - tipH - 14));
+    tooltipEl.style.left = left + "px";
+    tooltipEl.style.top = top + "px";
+    tooltipEl.style.opacity = 1;
+  }
+
   // Connected Nodes Highlighting Logic
   function updateVisualStates() {
     nodes.forEach(function(n) {
       var isConnected = false;
       var isTarget = (selectedNode === n);
+      var isHovered = (hoveredNode === n);
 
       if (selectedNode) {
         isConnected = isTarget || selectedNode.neighbors.has(n.id);
@@ -1117,6 +1261,11 @@ TEMPLATE = """<!DOCTYPE html>
           n.mesh.scale.setScalar(n.size * 1.5);
           n.sprite.material.opacity = 0.95;
           n.sprite.scale.setScalar(n.size * 8.5);
+        } else if (isHovered) {
+          n.mesh.material.opacity = 1.0;
+          n.mesh.scale.setScalar(n.size * 1.35);
+          n.sprite.material.opacity = 0.9;
+          n.sprite.scale.setScalar(n.size * 7.2);
         } else if (isConnected) {
           n.mesh.material.opacity = 0.95;
           n.mesh.scale.setScalar(n.size * 1.2);
@@ -1129,11 +1278,11 @@ TEMPLATE = """<!DOCTYPE html>
           n.sprite.scale.setScalar(n.size * 2.0);
         }
       } else if (activeClusterFilter) {
-        if (isConnected) {
+        if (isConnected || isHovered) {
           n.mesh.material.opacity = 1.0;
-          n.mesh.scale.setScalar(n.size * 1.25);
-          n.sprite.material.opacity = 0.85;
-          n.sprite.scale.setScalar(n.size * 6.5);
+          n.mesh.scale.setScalar(n.size * (isHovered ? 1.4 : 1.25));
+          n.sprite.material.opacity = 0.88;
+          n.sprite.scale.setScalar(n.size * (isHovered ? 7.4 : 6.5));
         } else {
           n.mesh.material.opacity = 0.14;
           n.mesh.scale.setScalar(n.size * 0.75);
@@ -1142,10 +1291,10 @@ TEMPLATE = """<!DOCTYPE html>
         }
       } else {
         // Default Luminous State
-        n.mesh.material.opacity = 0.95;
-        n.mesh.scale.setScalar(n.size);
-        n.sprite.material.opacity = 0.72;
-        n.sprite.scale.setScalar(n.size * 5.4);
+        n.mesh.material.opacity = isHovered ? 1.0 : 0.95;
+        n.mesh.scale.setScalar(n.size * (isHovered ? 1.35 : 1.0));
+        n.sprite.material.opacity = isHovered ? 0.92 : 0.72;
+        n.sprite.scale.setScalar(n.size * (isHovered ? 7.2 : 5.4));
       }
     });
 
@@ -1205,6 +1354,14 @@ TEMPLATE = """<!DOCTYPE html>
     selectedNode = n;
     inspectorCard.style.display = "flex";
     document.getElementById("inspTitle").textContent = n.label;
+    var summaryEl = document.getElementById("inspSummary");
+    if (summaryEl) {
+      var summaryLine = (n.summary && n.summary !== n.label)
+        ? n.summary
+        : (n.type + " · " + (n.group || "General"));
+      summaryEl.textContent = summaryLine;
+      summaryEl.title = summaryLine;
+    }
     document.getElementById("inspType").textContent = n.type;
     document.getElementById("inspGroup").innerHTML = '<span style="width:8px; height:8px; border-radius:50%; background:' + n.color + '; box-shadow:0 0 6px ' + n.color + '"></span> ' + (n.group || "General");
 
@@ -1216,12 +1373,18 @@ TEMPLATE = """<!DOCTYPE html>
     neighList.forEach(function(neighbor) {
       var chip = document.createElement("div");
       chip.className = "neighbor-chip";
-      chip.innerHTML = '<span>' + neighbor.label.slice(0, 36) + (neighbor.label.length > 36 ? "…" : "") + '</span><span style="font-size:10px; color:var(--cyan);">' + neighbor.type + '</span>';
+      chip.title = neighbor.label + (neighbor.summary ? " — " + neighbor.summary : "");
+      chip.innerHTML = '<span>' + escapeHtml(neighbor.label.slice(0, 36) + (neighbor.label.length > 36 ? "…" : "")) + '</span><span style="font-size:10px; color:var(--cyan);">' + escapeHtml(neighbor.type) + '</span>';
       chip.onclick = function() {
         focusNodeById(neighbor.id);
       };
       container.appendChild(chip);
     });
+
+    var p = projectNodeToScreen(n);
+    if (p) {
+      renderTooltipForNode(n, p.sx, p.sy, true);
+    }
 
     updateVisualStates();
   }
@@ -1229,6 +1392,9 @@ TEMPLATE = """<!DOCTYPE html>
   window.clearSelection = function() {
     selectedNode = null;
     inspectorCard.style.display = "none";
+    if (!hoveredNode && tooltipEl) {
+      tooltipEl.style.opacity = 0;
+    }
     updateVisualStates();
   };
 
@@ -1257,6 +1423,7 @@ TEMPLATE = """<!DOCTYPE html>
   // 3D Camera Controls (Orbit & Pan)
   var isDragging = false;
   var isRightDrag = false;
+  var dragDistancePx = 0;
   var previousMousePos = { x: 0, y: 0 };
   var spherical = { radius: 680, theta: 0, phi: Math.PI / 2 };
   var orbitCenter = { x: 0, y: 0, z: 0 };
@@ -1266,6 +1433,7 @@ TEMPLATE = """<!DOCTYPE html>
   stageEl.addEventListener("mousedown", function(e) {
     if (e.target.closest("#inspectorCard") || e.target.closest(".hud-overlay")) return;
     isDragging = true;
+    dragDistancePx = 0;
     isRightDrag = (e.button === 2 || e.shiftKey);
     previousMousePos = { x: e.clientX, y: e.clientY };
     stageEl.classList.add("dragging");
@@ -1279,6 +1447,7 @@ TEMPLATE = """<!DOCTYPE html>
     if (isDragging) {
       var deltaX = e.clientX - previousMousePos.x;
       var deltaY = e.clientY - previousMousePos.y;
+      dragDistancePx += Math.abs(deltaX) + Math.abs(deltaY);
 
       if (isRightDrag) {
         // Pan
@@ -1295,28 +1464,26 @@ TEMPLATE = """<!DOCTYPE html>
       return;
     }
 
-    // Raycast on hover
+    // Hover node detection (3D raycast + 2D screen-space orb hit test)
     if (camera && renderer) {
-      var mouse = new THREE.Vector2(
-        (mouseX / stageEl.clientWidth) * 2 - 1,
-        -(mouseY / stageEl.clientHeight) * 2 + 1
-      );
-      var raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(mouse, camera);
-      var intersects = raycaster.intersectObjects(nodeMeshes);
-
-      if (intersects.length > 0) {
-        var hitNode = intersects[0].object.userData.node;
-        if (hitNode !== hoveredNode) {
-          hoveredNode = hitNode;
-          tooltipEl.innerHTML = '<strong>' + hitNode.label + '</strong><br><span style="color:var(--cyan);">' + hitNode.type + '</span> · ' + hitNode.group + ' (' + hitNode.neighbors.size + ' conex)';
-          tooltipEl.style.left = Math.min(mouseX + 15, stageEl.clientWidth - 260) + "px";
-          tooltipEl.style.top = (mouseY + 15) + "px";
-          tooltipEl.style.opacity = 1;
-        }
+      var hitNode = pickNodeAt(mouseX, mouseY);
+      if (hitNode) {
+        var changed = (hitNode !== hoveredNode);
+        hoveredNode = hitNode;
+        stageEl.style.cursor = "pointer";
+        renderTooltipForNode(hitNode, mouseX, mouseY, selectedNode === hitNode);
+        if (changed) updateVisualStates();
       } else {
+        var hadHover = Boolean(hoveredNode);
         hoveredNode = null;
-        tooltipEl.style.opacity = 0;
+        stageEl.style.cursor = isDragging ? "grabbing" : "grab";
+        if (selectedNode) {
+          var sp = projectNodeToScreen(selectedNode);
+          if (sp) renderTooltipForNode(selectedNode, sp.sx, sp.sy, true);
+        } else {
+          tooltipEl.style.opacity = 0;
+        }
+        if (hadHover) updateVisualStates();
       }
     }
   });
@@ -1336,21 +1503,15 @@ TEMPLATE = """<!DOCTYPE html>
 
   stageEl.addEventListener("click", function(e) {
     if (e.target.closest("#inspectorCard") || e.target.closest(".hud-overlay") || e.target.closest("header")) return;
+    if (dragDistancePx > 6) return;
     var rect = stageEl.getBoundingClientRect();
     var mouseX = e.clientX - rect.left;
     var mouseY = e.clientY - rect.top;
 
-    var mouse = new THREE.Vector2(
-      (mouseX / stageEl.clientWidth) * 2 - 1,
-      -(mouseY / stageEl.clientHeight) * 2 + 1
-    );
-    var raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
-    var intersects = raycaster.intersectObjects(nodeMeshes);
-
-    if (intersects.length > 0) {
-      var hitNode = intersects[0].object.userData.node;
+    var hitNode = pickNodeAt(mouseX, mouseY);
+    if (hitNode) {
       showInspector(hitNode);
+      renderTooltipForNode(hitNode, mouseX, mouseY, true);
     } else {
       clearSelection();
     }
@@ -1375,7 +1536,9 @@ TEMPLATE = """<!DOCTYPE html>
       return;
     }
     var found = nodes.find(function(n) {
-      return n.label.toLowerCase().indexOf(q) >= 0 || n.id.toLowerCase().indexOf(q) >= 0;
+      return n.label.toLowerCase().indexOf(q) >= 0 ||
+             n.id.toLowerCase().indexOf(q) >= 0 ||
+             (n.summary && n.summary.toLowerCase().indexOf(q) >= 0);
     });
     if (found) {
       showInspector(found);
@@ -1460,13 +1623,19 @@ TEMPLATE = """<!DOCTYPE html>
     // Luminous Breathing Effect for Nodes
     nodes.forEach(function(n) {
       if (n.sprite) {
-        var baseScale = n.size * 5.2;
         var pulse = Math.sin(time * 2.5 + n.x * 0.05) * 0.4;
         if (selectedNode === n) {
           n.sprite.scale.setScalar(n.size * 8.5 + pulse * 1.5);
         }
       }
     });
+
+    if (selectedNode && !hoveredNode) {
+      var sp = projectNodeToScreen(selectedNode);
+      if (sp) {
+        renderTooltipForNode(selectedNode, sp.sx, sp.sy, true);
+      }
+    }
 
     renderer.render(scene, camera);
   }
