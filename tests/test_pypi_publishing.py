@@ -81,8 +81,12 @@ class BuiltArtifactsCarryTheKitTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        # Check, never rebuild: rewriting the tracked kit here hid drift instead
+        # of reporting it, and mutated the working tree during the suite.
         build_kit = REPO / "scripts" / "build-kit.py"
-        subprocess.run([sys.executable, str(build_kit), "--quiet"], cwd=REPO, check=True)
+        drift = subprocess.run([sys.executable, str(build_kit), "--check"], cwd=REPO, capture_output=True, text=True)
+        if drift.returncode != 0:
+            raise AssertionError(f"src/morfeo/_kit is stale; run scripts/build-kit.py:\n{drift.stdout}")
 
         cls._tmp = tempfile.mkdtemp(prefix="morfeo-dist-")
         result = subprocess.run(
