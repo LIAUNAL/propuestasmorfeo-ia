@@ -294,16 +294,15 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def _resolve_scripts_dir(self) -> Path:
-        scripts_dir = self.workspace_dir / "scripts"
-        if not (scripts_dir / "build_manuscript_graph.py").is_file():
-            repo_root = Path(__file__).resolve().parent.parent.parent.parent
-            if (repo_root / "scripts" / "build_manuscript_graph.py").is_file():
-                scripts_dir = repo_root / "scripts"
-            else:
-                kit_scripts = Path(__file__).resolve().parent.parent / "_kit" / "scripts"
-                if (kit_scripts / "build_manuscript_graph.py").is_file():
-                    scripts_dir = kit_scripts
-        return scripts_dir
+        # The packaged kit goes first: a portable project's scripts/ is a copy
+        # frozen at the kit version it was created with, and rendering with it
+        # would hide every graph fix shipped since.
+        kit_scripts = Path(__file__).resolve().parent.parent / "_kit" / "scripts"
+        repo_root = Path(__file__).resolve().parent.parent.parent.parent
+        for candidate in (kit_scripts, self.workspace_dir / "scripts", repo_root / "scripts"):
+            if (candidate / "build_manuscript_graph.py").is_file():
+                return candidate
+        return self.workspace_dir / "scripts"
 
     def handle_graph_build(self) -> None:
         data = get_project_status(self.workspace_dir)
