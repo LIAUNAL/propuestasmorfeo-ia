@@ -240,7 +240,7 @@ export const NODE_PURPOSES = {
   revFinal: {
     title: 'revisor (Auditoría Integral)',
     line1: 'Ejecuta la auditoría global cruzada de dependencias, consistencia lógica y estilo.',
-    line2: 'Evalúa cumplimiento estricto de las 16 secciones y directrices institucionales.'
+    line2: 'Evalúa cumplimiento estricto de las 18 secciones y directrices institucionales.'
   },
   gate7: {
     title: 'GATE G7 Final (Aprobación)',
@@ -293,7 +293,7 @@ export const NODE_PURPOSES = {
   },
   guiaDoc: {
     title: 'guiaProyectosIA',
-    line1: 'Directriz canónica rectora que estipula la estructura de 16 secciones del proyecto.',
+    line1: 'Directriz canónica rectora que estipula la estructura de 18 secciones del proyecto.',
     line2: 'Define reglas de dependencias cruzadas, formatos de tablas y estándares de calidad.'
   },
   telemetria: {
@@ -383,7 +383,7 @@ const nodes = [
   // Lane quality: Transversal · Calidad & Prosa
   n('skEstilo', 'quality', 0, 'external', 'estilo-natural-es', 'cadencia y naturalidad', { sources: K('estilo-natural-es') }),
   n('skDepur', 'quality', 1, 'external', 'depuracion-redundancias', 'depuracion redundancias', { sources: K('depuracion-redundancias-es') }),
-  n('guiaDoc', 'quality', 2, 'database', 'guiaProyectosIA', 'norma 16 secciones', { sources: S('guiaProyectosIA_Agente.md', 1, 50) }),
+  n('guiaDoc', 'quality', 2, 'database', 'guiaProyectosIA', 'norma 18 secciones', { sources: S('guiaProyectosIA_Agente.md', 1, 50) }),
   n('telemetria', 'quality', 3, 'database', 'telemetria_tokens', 'costo y duracion por fase', { sources: S('AGENTS.md', 170, 190) }),
 ];
 

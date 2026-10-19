@@ -945,7 +945,7 @@
       "id": "guiaDoc",
       "type": "database",
       "label": "guiaProyectosIA",
-      "sublabel": "norma 16 secciones",
+      "sublabel": "norma 18 secciones",
       "sources": [
         {
           "path": "guiaProyectosIA_Agente.md",

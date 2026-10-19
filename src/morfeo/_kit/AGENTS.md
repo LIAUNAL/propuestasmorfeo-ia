@@ -58,8 +58,14 @@ Referencia completa del CLI (comandos, flags, entorno, manifest) en
    esos insumos en un contexto compartido (`idea-seed` para notas en `ideas/`).
 3. **Enfoque:** Productos/servicios de IA con innovación investigativa,
    transferencia tecnológica clara, productos tangibles con **TRL 6 o 7**.
-4. **Estructura:** Sigue rigurosamente las 16 secciones de la
-   `guiaProyectosIA_Agente.md`. No omitas ni renumeres secciones. **Regla de no
+4. **Estructura:** La propuesta tiene 18 secciones canónicas: las 16 de la
+   `guiaProyectosIA_Agente.md` más la articulación con comunidades
+   (`17_articulacion_comunidades.tex`) y la apropiación social
+   (`18_apropiacion_social.tex`), apartados o y p del TDR. No omitas ni
+   renumeres secciones. Orden impreso, fijado por `plantilla/main.tex`:
+   front-matter sin numerar, §2 a §15, los archivos 17_ y 18_, y la
+   bibliografía (archivo 16_) al final del documento; los números de la guía
+   nombran archivos y responsabilidades, no la numeración que imprime LaTeX. **Regla de no
    inclusión de §1 en el cuerpo de `main.tex`:** El título y la identificación
    institucional se compilan exclusivamente en el bloque de encabezado/portada
    (`\begin{center} ... \end{center}`) de `main.tex`. Nunca se incluye una
@@ -84,19 +90,20 @@ Referencia completa del CLI (comandos, flags, entorno, manifest) en
      hacia adelante válida, ya que Presupuesto se redacta antes que Cronograma
      en el pipeline pero ambos referencian las mismas fases de Metodología.
    - TRL 6 o 7 debe ser explícito en pertinencia (§2) y resultados esperados
-     (§11); **nunca** se nombra en objetivo general (§6) ni en objetivos
-     específicos (§7).
-   - Alianza territorial y cohortes: La articulación interinstitucional entre la
-     Universidad Nacional de Colombia Sede Manizales y la Universidad
-     Tecnológica de Pereira (UTP) en el Eje Cafetero vincula una cohorte por
-     conveniencia de 80 estudiantes (`EST-MZ-xxx` y `EST-PE-xxx`), con
-     pruebas de campo y captura en ambos campus.
+     (§11), y la metodología (§10) muestra la trayectoria; **nunca** se nombra
+     en objetivo general (§6) ni en objetivos específicos (§7).
+   - Alianzas y cohortes: solo cuando la propuesta declara una alianza
+     interinstitucional (por ejemplo, UNAL Sede Manizales con la Universidad
+     Tecnológica de Pereira), esa alianza y sus cohortes se articulan de forma
+     coherente en §9, §10, §12, §13 y §17. No es un requisito de toda
+     propuesta; sale de la idea y los insumos de la corrida.
    - Tabla 4 de productos esperados (§15): Usa `\usepackage{xltabular}` y el
      entorno `xltabular` con encabezados de continuación para evitar
      desbordes de página (`Float too large`).
-6. **Calidad bibliográfica:** ≥10 refs Q1/Q2 para §2 Justificación y
-   pertinencia (mínimo 6 párrafos); ≥30 refs Q1/Q2 (≤3 años) para §4 Estado
-   del arte; ≥50 refs totales para §16 Bibliografía; formato **APA
+6. **Calidad bibliográfica:** ≥13 refs Q1/Q2 para §2 Justificación y
+   pertinencia (mínimo 6 párrafos); ≥39 refs Q1/Q2 (≤3 años) para §4 Estado
+   del arte; ≥65 refs totales para §16 Bibliografía. La guía es la fuente de
+   estos pisos y `scripts/check_run.py` los verifica; formato **APA
    author-year únicamente** (natbib+apalike, `\citet{}`/`\citep{}`) — el
    estilo numérico IEEE (`[1]`) está prohibido, conforme a
    `guiaProyectosIA_Agente.md` §16 Bibliografía. Sin tesis; preprints solo de
@@ -134,9 +141,13 @@ Referencia completa del CLI (comandos, flags, entorno, manifest) en
    artefactos de una corrida.
 8. **Salida LaTeX:** Cada sección se escribe como archivo `.tex` en
    `redaccion/sections/`; referencias en `redaccion/refs.bib`; ensamblaje en
-   `redaccion/main.tex`. El template `main.tex` incluye un footer con los
-   logos institucionales (`redaccion/logos/`: LabIA, UNAL, GCPDS) vía
-   `fancyhdr`; los agentes no deben eliminarlo. `redaccion/` es la **fuente de
+   `redaccion/main.tex`, que sale de `plantilla/main.tex` e incluye cada
+   sección solo si su archivo existe (no se reescribe en cada compuerta).
+   Logos vía `fancyhdr`, según la guía: UNAL arriba a la derecha, GCPDS abajo
+   a la izquierda y LabIA abajo a la derecha; los agentes no deben
+   eliminarlos. El logo de la UTP es opcional: solo lo llevan las propuestas
+   con esa alianza, copiando `plantilla/logos-opcionales/logo_utp.png` a
+   `redaccion/logos/`. `redaccion/` es la **fuente de
    verdad** dentro de una corrida, pero **no está versionada**: `.tex`/`.bib`/`.pdf`/`.docx`
    y el resto del contenido de la corrida están en `.gitignore` (igual que
    las corridas archivadas bajo `proposals/<run-id>/`) — GitHub solo aloja el
@@ -247,7 +258,7 @@ cifra, una fecha ni una clave de cita.
 
 **Invariantes de estilo del documento (obligatorios):**
 - **Tipografía y jerarquía:** Compilado en `11pt` (`\documentclass[11pt,a4paper]{article}`). Títulos dos tamaños menos: título principal en encabezado `\Large\bfseries`, secciones de cuerpo `\large\bfseries`, subsecciones y subsubsecciones `\normalsize\bfseries`.
-- **Logos institucionales:** En el pie de página mediante `fancyhdr` con los logos oficiales (`redaccion/logos/`: LabIA, UNAL, GCPDS).
+- **Logos institucionales:** Vía `fancyhdr`: UNAL arriba a la derecha, GCPDS abajo a la izquierda, LabIA abajo a la derecha; UTP opcional arriba a la izquierda.
 - **Prohibición de rayas anglosajonas y dobles guiones:** Queda terminantemente prohibido el uso de `--` o ` — ` en la prosa narrativa. Los incisos se resuelven con comas, punto y coma o paréntesis.
 - **Formato de citación:** APA autor-año natbib exclusivamente (`\citet{}`, `\citep{}`); el estilo numérico IEEE está prohibido.
 - **Estructura fija:** Los párrafos requeridos por la guía (ej. los 6 de §2) y el mapeo 1:1 (3 subproblemas ↔ 3 objetivos específicos) son inalterables.
@@ -402,7 +413,7 @@ El **asistente primario de Claude Code** puede despachar directamente
 cualquier subagente de propuesta para tareas puntuales —arreglar figuras,
 revisar una sección, actualizar bibliografía, refinar objetivos— **sin pasar
 por el pipeline completo de `coordinador-propuesta`**. El pipeline completo de
-16 secciones con gates sigue `/propuesta` o el
+18 secciones con gates sigue `/propuesta` o el
 flujo stepped `/propuesta-analizar` + `/propuesta-continuar`.
 
 | Agente | Cuándo despacharlo directamente |

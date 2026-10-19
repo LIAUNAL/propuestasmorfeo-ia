@@ -69,8 +69,8 @@ you) before reporting a FAIL for a missing artifact.
    alcanzado) — but FAIL any textual "TRL" mention inside §6 Objetivo general
    or §7 Objetivos específicos, which must express the level functionally
    instead.
-4. **Bibliographic quality:** ≥30 Q1/Q2 refs (≤3 yrs) for §4 Estado del arte;
-   ≥10 additional Q1/Q2 refs for §2 Justificación; ≥50 total for §16
+4. **Bibliographic quality:** ≥39 Q1/Q2 refs (≤3 yrs) for §4 Estado del arte;
+   ≥13 additional Q1/Q2 refs for §2 Justificación; ≥65 total for §16
    Bibliografía; APA author-year format (no IEEE numeric); no theses;
    preprints only from recognized labs/leaders.
    Mechanical checks are deterministic: the dispatcher runs

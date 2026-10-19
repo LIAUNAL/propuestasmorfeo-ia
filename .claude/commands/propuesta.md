@@ -1326,29 +1326,23 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         de `_estado.md` (ninguna fase omitida), más una fila `TOTAL` que
         suma solo las filas numéricas (las filas con el sentinel
         `no medible directamente` quedan excluidas de la suma).
-        Tú (el asistente primario) ensamblas `redaccion/main.tex` una vez aprobado.
-        Los 3 archivos `00_*.tex` (Resumen → Resumen ejecutivo → Palabras
-        clave, en ese orden) DEBEN incluirse antes del contenido de §2,
-        maquetados con `\section*{}`. Tras el front-matter se incluye
-        `\setcounter{section}{1}` para que el cuerpo inicie en el número 2.
-        En `main.tex` NUNCA se incluye una sección numerada de cuerpo ni párrafos
-        narrativos de §1 Título e identificación (el título y la identificación
-        se compilan exclusivamente en el bloque de encabezado de portada).
-        Orden del cuerpo (`\input{sections/...}`, 16 secciones en este orden exacto):
-        `02_justificacion`,
-        `03_descripcion_problema` (con `diag_arbol_problemas`),
-        `04_estado_arte` (con `diag_estado_arte`), `05_hipotesis`, `06_objetivo_general`,
-        `07_objetivos_especificos`, `08_marco_conceptual`,
-        `09_equipo_trabajo`, `10_metodologia` (con `diag_metodologico`),
-        `11_resultados_esperados`, `12_consideraciones_eticas`,
-        `13_presupuesto`, `14_cronograma_actividades`,
-        `15_productos_esperados`, y por último el bloque de bibliografía
-        (`16_bibliografia` + `\bibliographystyle{apalike}` +
-        `\bibliography{refs}`, §16). Nota de reordenamiento: `13_presupuesto`
-        va ANTES de `14_cronograma_actividades` en el cuerpo ensamblado,
-        aunque ambas secciones referencian las mismas fases de la
-        Metodología (§10) — es la posición mandada por
-        `guiaProyectosIA_Agente.md`, no un error de orden.
+        Tú (el asistente primario) cerrás `redaccion/main.tex` una vez aprobado.
+        No se escribe a mano: sale de `plantilla/main.tex`, que ya fija el
+        preámbulo, la portada sin §1, `\setcounter{section}{1}`, los logos y
+        el orden canónico de las 18 secciones (front-matter `00_frontmatter`,
+        §2 a §15 con los diagramas tras §3, §4 y §10, luego
+        `17_articulacion_comunidades`, `18_apropiacion_social` y la
+        bibliografía `16_bibliografia` al final). `13_presupuesto` va antes de
+        `14_cronograma_actividades`, como manda la guía. Lo que queda por
+        hacer: completar `redaccion/datos_proyecto.tex` (título, investigador
+        principal, afiliación), confirmar que cada diagrama tenga su
+        `sections/diag_<nombre>_caption.tex`, copiar
+        `plantilla/logos-opcionales/logo_utp.png` a `redaccion/logos/` solo si
+        la propuesta declara esa alianza, y correr
+        `python3 scripts/check_run.py <RUN_ROOT> --final` hasta que salga sin
+        errores. Si la corrida trae un `main.tex` anterior a la plantilla,
+        reemplazalo por la plantilla y trasladá su portada a
+        `datos_proyecto.tex` y sus captions a los archivos `_caption.tex`.
         Tras ensamblar y compilar `redaccion/main.pdf` (`redaccion/build.sh`),
         genera también la versión Word con `./build.sh --docx` desde
         `redaccion/`: produce `redaccion/main.docx` con los 3 diagramas
@@ -1365,7 +1359,8 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         [NUEVO] Como último paso de la Fase 7, ya con `main.pdf` ensamblado,
         corres una pasada de QA visual asesora: `pixelshot redaccion/main.pdf
         -o redaccion/pixelshot-out/` y revisas los tiles renderizados en busca
-        de posición del logo (encabezado UNAL, pie GCPDS/LabIA), desbordes de
+        de posición de los logos (UNAL arriba a la derecha, GCPDS abajo a la
+        izquierda, LabIA abajo a la derecha, UTP solo si aplica), desbordes de
         tablas/Gantt, figuras TikZ rotas o ilegibles, y coherencia general de
         maquetación. Es un paso mecánico que corres tú (asistente primario),
         no un agente ni un Task nuevo — sin ronda interactiva adicional. Si

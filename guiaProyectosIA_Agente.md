@@ -59,8 +59,8 @@ sustento, PND/plan departamental con el eje citado, hallazgos de OCDE/Banco
 Mundial con la fuente primaria, alineación TDR con evidencia de pertinencia,
 crecimiento de la IA con literatura reciente). Ninguna idea, cifra o afirmación se
 plantea sin sustento bibliográfico directo en el mismo párrafo. Esta densidad, no
-el piso de ≥10 de arriba, es la referencia práctica: 6 párrafos × 3-4 citas
-distintas supera ampliamente las 10 mínimas. Compatible con el tope de reúso de
+el piso de ≥13 de arriba, es la referencia práctica: 6 párrafos × 3-4 citas
+distintas supera ampliamente las 13 mínimas. Compatible con el tope de reúso de
 §16 (máx. 3 usos por clave en todo el documento, cada uso en sección distinta):
 dentro de §2, las claves citadas deben ser distintas entre sí (nunca la misma
 clave dos veces dentro de esta sección). A diferencia de §3/§4, §2 SÍ puede
@@ -271,7 +271,7 @@ documento, cada uno en una sección distinta). Con 3-5 subsecciones × 2-3
 párrafos × 3-4 citas distintas, la sección supera ampliamente por
 construcción el antiguo piso agregado de 8-10 referencias; esa cifra queda
 obsoleta como referencia práctica, igual que ocurre en §2 frente a su propio
-piso de ≥10.
+piso de ≥13.
 
 ### 9. Equipo de trabajo
 
@@ -316,7 +316,7 @@ menos 15 referencias Q1/Q2 distintas, sin techo**. La regla es un piso, no un
 rango: §10 desarrolla varios objetivos y nombra varias técnicas por objetivo, de
 modo que **cada técnica nombrada lleva su respaldo**, y el total lo fija el
 número de técnicas que la sección realmente describe, no una cuota. Es la misma
-lógica de §2 (≥10), §4 (≥30) y §8 (densidad por párrafo). Compatible con el
+lógica de §2 (≥13), §4 (≥39) y §8 (densidad por párrafo). Compatible con el
 tope de reúso de §16.
 
 **Ubicación del diagrama (regla permanente).** El contenido del diagrama
@@ -401,7 +401,7 @@ Todo contenido de esta sección que no provenga de un insumo directo del usuario
     que sí tienen piso obligatorio) antes que introducir un 4º uso o fabricar una
     cita forzada.
 4.  **Calidad y Actualidad:** Se debe favorecer e incluir mayoritariamente artículos publicados en revistas indexadas en **cuartiles Q1 y Q2 de los últimos tres años**.
-5.  **Volumen:** Para demostrar rigor en proyectos de investigación aplicada, se recomienda integrar un soporte bibliográfico sólido con **más de 50 citas**.
+5.  **Volumen:** El documento cita **al menos 65 referencias distintas** (piso obligatorio; los de §2 y §4 son 13 y 39). Alcanzado el piso con margen, la búsqueda se detiene: más referencias no mejoran la propuesta y sí encarecen la corrida. `scripts/check_run.py --final` verifica este piso.
 6.  **Fuentes Permitidas:**
     *   **Evitar** explícitamente citar tesis de grado o maestría.
     *   Se permite incluir libros teóricos de alto impacto.
@@ -425,12 +425,15 @@ Estas convenciones son la única fuente de verdad para el ensamble LaTeX; aplíc
 
 > **Nota sobre sub-bloques obligatorios exigidos por un TDR/doc-secciones.** Cuando
 > una convocatoria (vía su TDR o un `doc-secciones` externo) exige contenido
-> obligatorio anidado dentro de una de las 16 secciones base (p. ej. "Articulación
+> obligatorio anidado dentro de una de las secciones base (p. ej. "Articulación
 > con actores externos" dentro de Equipo de trabajo, §9, o "Estrategia de
 > divulgación" dentro de Productos esperados, §15), ese contenido es un
 > **sub-bloque interno** de su sección anfitriona, NO una `\section` numerada
-> independiente: no altera la numeración §1–§16 ni las convenciones de anidamiento
-> de esta tabla. Al maquetar, se realiza como `\subsection*{}` (sin numerar) o como
+> independiente: no altera la numeración ni las convenciones de anidamiento
+> de esta tabla. La excepción son los apartados o y p del TDR, que el marco
+> trata como secciones propias: `17_articulacion_comunidades.tex` y
+> `18_apropiacion_social.tex` (18 secciones canónicas en total, con la
+> bibliografía al final del documento). Al maquetar, se realiza como `\subsection*{}` (sin numerar) o como
 > un párrafo con encabezado en negrita dentro de la sección anfitriona, pero debe
 > quedar **visualmente identificable** (título propio) para el evaluador, porque
 > típicamente responde a un criterio de evaluación ponderado específico de esa

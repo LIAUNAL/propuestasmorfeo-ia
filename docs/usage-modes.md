@@ -53,7 +53,7 @@ de unidad).
 | Modo | Qué pones en `insumos/` | Qué hace el pipeline |
 |------|--------------------------|----------------------|
 | **Scratch** | Opcional: TDR, papers, `doc-secciones` | Escribe la propuesta completa desde la idea |
-| **Improve-from-draft** | Borrador PDF/DOCX (`draft-base`) ± papers | Siembra el encuadre temprano (§3) desde el borrador y **reescribe** las 16 secciones |
+| **Improve-from-draft** | Borrador PDF/DOCX (`draft-base`) ± papers | Siembra el encuadre temprano (§3) desde el borrador y **reescribe** las 18 secciones |
 | **Both** | TDR + borrador + papers | TDR gobierna estructura/presupuesto/prioridad; el borrador siembra ciencia; el resto del pipeline corre completo |
 
 **Semántica honesta de “continuar / mejorar”:** un borrador en `insumos/` se

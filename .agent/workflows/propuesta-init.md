@@ -1,6 +1,6 @@
 # Workflow: propuesta-init
 
-> Crea la carpeta de proyecto de una corrida nueva de /propuesta (proposals/<run-id>/ con docs, artefactos, grafos y redaccion) y la deja activa.
+> Crea la carpeta de proyecto de una corrida nueva de /propuesta (proposals/<run-id>/ con insumos, artefactos, grafos y redaccion) y la deja activa.
 
 
 # /propuesta-init — Crear la carpeta de proyecto de una corrida

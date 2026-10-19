@@ -245,7 +245,7 @@ Columnas exactas, en este orden:
 Una fila por sección — no agrupes varias secciones en una sola fila aunque
 compartan ajuste. Si no hubo ajuste TDR para ninguna sección (caso límite,
 poco probable si G0.5 llegó a ejecutarse), la tabla igual debe existir con
-las 16 secciones y "sin cambios frente a la guía base" en la columna de
+las 18 secciones canónicas y "sin cambios frente a la guía base" en la columna de
 alcance.
 
 ### Forma de encabezado obligatoria (para inyección de fragmentos)
@@ -317,7 +317,7 @@ plus `webfetch`:
 - `webfetch` — verify a paper's abstract/landing page directly.
 
 Focus on **identifying gaps and positioning the novelty** — the Bibliografo-Propuesta
-owns the full ≥50-ref bibliography. Coordinate with the Bibliografo-Propuesta so your
+owns the full ≥65-ref bibliography. Coordinate with the Bibliografo-Propuesta so your
 hipótesis (§5) and problem framing (§3) stay evidence-consistent with their
 Estado del arte (§4) and refs.bib. Never fabricate references; every claim
 should trace to a real record or to user insumos.

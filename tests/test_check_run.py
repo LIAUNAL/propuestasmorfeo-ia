@@ -145,5 +145,25 @@ class CheckRunTest(unittest.TestCase):
             self.assertEqual(code, 1)
 
 
+class SpecAgreesWithCheckerTest(unittest.TestCase):
+    """The floors and the section count are stated once per file and must agree."""
+
+    def test_floors_and_section_count_agree_across_the_spec(self) -> None:
+        sys.path.insert(0, str(REPO / "scripts"))
+        import check_run
+
+        texts = {rel: (REPO / rel).read_text(encoding="utf-8") for rel in (
+            "AGENTS.md", "guiaProyectosIA_Agente.md", ".claude/agents/revisor.md",
+            ".claude/agents/redactor.md", ".claude/agents/bibliografo-propuesta.md", "README.md")}
+        for rel in ("AGENTS.md", ".claude/agents/revisor.md"):
+            for floor in (check_run.FLOOR_JUSTIFICACION, check_run.FLOOR_ESTADO_ARTE, check_run.FLOOR_TOTAL):
+                self.assertIn(f"≥{floor}", texts[rel], f"{rel} does not state the ≥{floor} floor")
+        for rel, text in texts.items():
+            for stale in ("≥10 refs", "≥30 refs", "≥50 refs", "≥50 total", "16 secciones de la"):
+                self.assertNotIn(stale, text, f"{rel} still says {stale!r}")
+        self.assertEqual(len(check_run.CANONICAL_SECTIONS), 18)
+        self.assertIn("18 secciones canónicas", texts["AGENTS.md"])
+
+
 if __name__ == "__main__":
     unittest.main()

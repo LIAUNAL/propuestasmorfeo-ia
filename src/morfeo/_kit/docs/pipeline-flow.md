@@ -3,7 +3,7 @@
 Diagrama tipo BPMN (fases, compuertas de aprobación, bucles de corrección y las
 tres vistas de conocimiento transversales) del pipeline multi-agente descrito
 en `.claude/commands/propuesta.md` y `.claude/agents/coordinador-propuesta.md`,
-alineado a las 16 secciones de `guiaProyectosIA_Agente.md`.
+alineado a las 18 secciones canónicas (las 16 de `guiaProyectosIA_Agente.md` más §17 y §18).
 
 - **Antes de la Fase 0**: `/propuesta-init` crea la subcarpeta de la corrida
   (`proposals/<run-id>/`) y la activa; todas las rutas `insumos/...`,
