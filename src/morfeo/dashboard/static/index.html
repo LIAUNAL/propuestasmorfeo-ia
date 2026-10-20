@@ -415,6 +415,7 @@
     .tree-rules summary { cursor: pointer; font-weight: 600; color: var(--text); }
     .tree-rules h4 { margin: 0.75rem 0 0.35rem; font-size: 0.8rem; }
     .tree-rules ul { margin: 0; padding-left: 1.1rem; color: var(--text-muted); line-height: 1.5; }
+    .tree-rules__intro { margin: 0.5rem 0 0; color: var(--text-muted); line-height: 1.5; }
     .tree-rules__source { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--text-dim); }
     .tree-empty p { margin-bottom: 0.9rem; }
     .tree-review__body { display: flex; flex-direction: column; gap: 0.55rem; }
@@ -468,6 +469,7 @@
       border: 1px solid #1e293b;
     }
     .phase-exec-note { margin-top: 0.6rem; font-size: 0.8rem; color: #94a3b8; }
+.phase-exec-optional { font-weight: 400; color: #94a3b8; }
     .phase-exec-missing { margin: 0.35rem 0 0 1.1rem; }
     .phase-exec-missing li { margin-bottom: 0.3rem; }
     .phase-card__head {
@@ -2485,6 +2487,27 @@
           <div class="panel__title">MGA resumido: planteamiento del problema</div>
           <button class="btn btn--sm" type="button" onclick="loadMgaResumido()">Recargar</button>
         </div>
+        <details class="tree-rules" id="mgaRules">
+          <summary>Reglas para construir el MGA resumido</summary>
+          <p class="tree-rules__intro">La Fase 1 lo escribe a partir de los dos árboles aprobados en G1b y después deriva §3 de este documento, con la misma variable, las mismas causas y la misma magnitud.</p>
+          <h4>Planteamiento del problema</h4>
+          <ul>
+            <li><strong>Problema central:</strong> el tronco del árbol de problemas, copiado textual, sin reescribirlo.</li>
+            <li><strong>Contexto general:</strong> presenta el problema desde el sector de aplicación con sus desafíos operativos, económicos o sociales, lo describe mejor y delimita la ubicación (departamentos o regiones). Cierra declarando las causas directas del árbol.</li>
+            <li><strong>Causa directa 1:</strong> en proyectos de IA aplicada, se relaciona con el levantamiento de datos: sensores, baterías de pruebas, levantamiento de información y construcción de bases de datos (sin infraestructura, con especialistas y con apoyo de las comunidades), calidad de los datos y datos descentralizados.</li>
+            <li><strong>Causa directa 2:</strong> se relaciona con la necesidad de una plataforma interoperable que se alimente de los datos de la causa 1, con buena conectividad, accesible y de buena interacción con el usuario, y con modelos de IA generativa y predictiva, agentes de IA, procesamiento de datos multimodal, de bajo costo, desplegables y de muchas variables.</li>
+            <li><strong>Causa directa 3:</strong> se alinea con la apropiación social y la transferencia de la tecnología: pocos estudios (ninguno en Colombia), barreras con las comunidades, apropiación por parte de ellas e impacto en ellas.</li>
+            <li>Los párrafos de las causas siguen las reglas del árbol de problemas: cada uno expande su causa directa y sus causas indirectas como un estado negativo, nunca como la ausencia de la solución.</li>
+          </ul>
+          <h4>Magnitud del problema</h4>
+          <ul>
+            <li>Cifras que sustentan cada causa directa, con su fuente (autor o entidad, año y enlace o documento de <code>insumos/</code>). Sin fuente verificable, la cifra se marca «[cifra por confirmar]» y nunca se inventa.</li>
+            <li>El indicador de línea base es el más flexible y fácil de cuantificar según el árbol y las causas; en proyectos de IA aplicada se alinea con la plataforma. Se desarrolla en 2 o 3 párrafos.</li>
+            <li>Una tabla reúne los indicadores (indicador, causa, valor, fuente y año) y resalta en negrilla el que el proyecto busca mover, marcado como «línea base del proyecto».</li>
+            <li>Ese indicador coincide con la magnitud del tronco del árbol de problemas; si cambia, se actualiza el árbol y se vuelve a aprobar.</li>
+          </ul>
+          <p class="tree-rules__source">Fuente: estructura del MGA resumido acordada para Morfeo (investigador, regla 15) y reglas MGA del árbol de problemas (guía, §3).</p>
+        </details>
         <div id="mgaContent" class="artifact-viewer is-markdown">Cargando…</div>
       </div>
     </div>
@@ -3220,8 +3243,15 @@
       const blocked = (reason, missing = [], missingLabel = 'Falta para habilitarla:') => ({ allowed: false, command: null, reason, missing, missingLabel, note: null });
       if (!p) return blocked('La unidad no figura en el inventario del pipeline.');
 
+      // Sin corrida, el intake la crea: /propuesta-analizar resuelve el run-id
+      // con la idea inicial y corre scripts/init-run.sh.
+      if (!data.active_run && p.id === 'fase0') {
+        return { allowed: true, command: '/propuesta-analizar', idea: true, missing: [], note: null,
+          reason: 'No hay corrida activa: /propuesta-analizar crea la corrida con la idea inicial y hace el intake de los insumos.' };
+      }
       if (!data.active_run) {
         return blocked('No hay una corrida activa sobre la cual ejecutar el pipeline.', [
+          'Lanzar el intake desde «Fase 0 · Intake y enrutamiento de insumos» con la idea inicial',
           'Crear y activar la corrida con /propuesta-init <idea>',
           'Depositar los insumos (TDR, borradores, papers) en insumos/ con /propuesta-insumos',
         ]);
@@ -3251,7 +3281,7 @@
         if (intakeDone) {
           return blocked('El intake ya se completó para esta corrida; el flujo avanza ahora con /propuesta-continuar.');
         }
-        const res = { allowed: true, command: '/propuesta-analizar', reason: p.id === 'g0_5'
+        const res = { allowed: true, command: '/propuesta-analizar', idea: p.id === 'fase0', reason: p.id === 'g0_5'
           ? 'La guía ajustada al TDR se ofrece dentro de /propuesta-analizar cuando hay un TDR en insumos/tdr/.'
           : 'El intake está pendiente: /propuesta-analizar clasifica los insumos y deja listo el control de ejecución.', missing: [], note: null };
         if (!(data.run_details && data.run_details.insumos_count)) {
@@ -3297,35 +3327,95 @@
       );
     }
 
-    let PHASE_EXEC_PENDING = null;
+    // Guía del recuadro «Ejecutar» por unidad: qué puede escribir el operador
+    // para el comando de la fase y, si la fase tiene panel propio, a dónde ir
+    // para revisar o aprobar lo que produce.
+    const PHASE_GUIDES = {
+      fase0: { label: 'Idea inicial', placeholder: 'Idea inicial: problema u oportunidad, enfoque de solución (método, tecnología, innovación), beneficiarios, región y alineación con la convocatoria…' },
+      g0_5: { label: 'Indicaciones para ajustar la guía al TDR', placeholder: 'Requisitos del TDR que hay que priorizar: secciones exigidas, topes de páginas o presupuesto, duración y criterios de evaluación…', panel: { tab: 'artifacts', label: 'Ver la guía ajustada en Artefactos' } },
+      fase1a: { label: 'Indicaciones para el scoping', placeholder: 'Términos de búsqueda, ventana de años, venues o grupos de referencia y, si ya los tienes, los tres subproblemas que propones…' },
+      fase1b: { label: 'Indicaciones para los árboles', placeholder: 'Problema central (calificativo negativo + variable + población o lugar), causas directas e indirectas, efectos y la magnitud con su fuente…', panel: { tab: 'trees', label: 'Revisar y aprobar en «Árbol de problemas y objetivos»' } },
+      fase1c: { label: 'Indicaciones para el corpus SOTA', placeholder: 'Temas y enfoques a cubrir, años, revistas o conferencias, papers semilla que no pueden faltar…' },
+      fase1: { label: 'Indicaciones para el MGA resumido y §3', placeholder: 'Sector de aplicación, departamentos o regiones, fuentes de cifras (DANE, IDEAM, ministerios…) e indicador de línea base que buscas mover…', panel: { tab: 'mga', label: 'Ver el MGA resumido' } },
+      fase2: { label: 'Indicaciones para el estado del arte y la hipótesis', placeholder: 'Enfoques o familias de modelos a priorizar en el estado del arte, papers clave, brechas que quieres resaltar y la idea de la hipótesis…', panel: { tab: 'sections', label: 'Ver §4 y §5 en Secciones' } },
+      fase3: { label: 'Indicaciones para la justificación', placeholder: 'ODS, Plan Nacional de Desarrollo, planes departamentales, cifras de contexto y argumentos de pertinencia y TRL…', panel: { tab: 'sections', label: 'Ver §2 en Secciones' } },
+      fase4: { label: 'Indicaciones para los objetivos', placeholder: 'Ajustes al objetivo general o a los específicos (siempre desde el árbol de objetivos aprobado), verbos o alcances que quieras privilegiar…', panel: { tab: 'trees', label: 'Ver el árbol de objetivos' } },
+      fase5: { label: 'Indicaciones para el marco conceptual y el equipo', placeholder: 'Conceptos que deben aparecer en el marco conceptual; integrantes del equipo con su rol, perfil, dedicación e institución…', panel: { tab: 'sections', label: 'Ver §8 y §9 en Secciones' } },
+      fase5_5: { label: 'Indicaciones para la metodología', placeholder: 'Fases de trabajo, métodos y algoritmos por objetivo específico, datos y equipos disponibles, validación y trayectoria de TRL…', panel: { tab: 'sections', label: 'Ver §10 en Secciones' } },
+      fase6: { label: 'Indicaciones para resultados y ética', placeholder: 'Resultados esperados por objetivo, indicadores, consideraciones éticas (datos personales, consentimiento, comité de ética)…', panel: { tab: 'sections', label: 'Ver §11 y §12 en Secciones' } },
+      fase6_4: { label: 'Indicaciones para el presupuesto', placeholder: 'Tope de la convocatoria, cofinanciación y contrapartidas, rubros, honorarios, equipos y viajes; la compuerta del presupuesto se negocia contigo en la terminal…', panel: { tab: 'sections', label: 'Ver §13 en Secciones' } },
+      fase6_45: { label: 'Indicaciones para cronograma y productos', placeholder: 'Duración en meses, hitos y entregables por fase, productos esperados (artículos, software, prototipos, eventos)…', panel: { tab: 'sections', label: 'Ver §14 a §16 en Secciones' } },
+      fase6_46: { label: 'Indicaciones para comunidades y apropiación', placeholder: 'Comunidades y aliados, estrategias de articulación, talleres o actividades de apropiación social del conocimiento…', panel: { tab: 'sections', label: 'Ver §17 y §18 en Secciones' } },
+      fase6_47: { label: 'Indicaciones para los anexos MGA', placeholder: 'Planes de desarrollo con los que se alinea, participantes, población afectada y objetivo, alternativas, riesgos y metas del marco lógico…', panel: { tab: 'sections', label: 'Ver los anexos 19 a 25 en Secciones' } },
+      fase6_5: { label: 'Indicaciones para el resumen', placeholder: 'Énfasis del resumen y del resumen ejecutivo, palabras clave que deben aparecer…', panel: { tab: 'sections', label: 'Ver el front-matter en Secciones' } },
+      fase7: { label: 'Indicaciones para la auditoría final', placeholder: 'Ajustes finales de forma o de fondo que la auditoría y el ensamble deben atender…', panel: { tab: 'preview', label: 'Revisar el PDF en Previsualización' } },
+    };
 
-    function runPhaseExecution(unitId) {
+    let PHASE_EXEC_PENDING = null;
+    let PHASE_EXEC_IDEA = false;
+
+    // The initial idea comes from idea.md (or the run's insumos/ideas/idea.md).
+    async function fillPhaseExecIdea() {
+      const box = document.getElementById('phaseExecInput');
+      if (!box) return;
+      try {
+        const res = await fetch('/api/idea');
+        const data = res.ok ? await res.json() : null;
+        if (data && data.text && !box.value) box.value = data.text;
+        const src = document.getElementById('phaseExecIdeaSource');
+        if (src) src.textContent = data && data.source
+          ? `Tomada de ${data.source}; puedes editarla antes de lanzar.`
+          : 'idea.md está vacío: escribe la idea o deja el campo vacío y el asistente la pedirá.';
+      } catch (err) { /* sin idea precargada: el campo queda editable */ }
+    }
+
+    async function runPhaseExecution(unitId) {
       const data = currentStatus || {};
       const p = (PHASES_INFO || []).find(u => u.id === unitId) || { id: unitId, name: unitId };
       const v = evaluatePhaseExecution(unitId, data);
       PHASE_EXEC_PENDING = v.allowed ? v.command : null;
+      PHASE_EXEC_IDEA = !!(v.allowed && v.idea);
+      const guide = PHASE_GUIDES[unitId] || {};
 
       document.getElementById('phaseExecModalTitle').textContent = `${formatPhaseNumber(p.id)} · ${p.name}`;
       const icon = document.getElementById('phaseExecModalIcon');
       icon.textContent = v.allowed ? '▶' : '⛔';
+      const panel = guide.panel
+        ? `<p class="phase-exec-note">Esta fase tiene panel propio para revisar lo que produce:</p>
+           <button class="btn btn--sm" type="button" data-panel="${escapeHtml(guide.panel.tab)}">↪ ${escapeHtml(guide.panel.label)}</button>`
+        : '';
+      const input = v.allowed
+        ? `<label class="tree-label" for="phaseExecInput" style="margin-top: 0.65rem; display: block;">${escapeHtml(guide.label || 'Indicaciones para esta fase')} <span class="phase-exec-optional">(opcional)</span></label>
+           <textarea id="phaseExecInput" class="tree-textarea" rows="4" placeholder="${escapeHtml(guide.placeholder || 'Indicaciones para el agente de esta fase…')}"></textarea>
+           ${PHASE_EXEC_IDEA ? '<p class="phase-exec-note" id="phaseExecIdeaSource"></p>' : '<p class="phase-exec-note">Lo que escribas se agrega al comando como indicaciones para los agentes de la fase; no salta compuertas ni cambia las reglas de la guía.</p>'}`
+        : '';
       const body = v.allowed
         ? `<p>${escapeHtml(v.reason)}</p>
            <p style="margin-top: 0.65rem;">Se enviará a la terminal del asistente (Claude Code por defecto):</p>
-           <code class="phase-exec-cmd">${escapeHtml(v.command)}</code>
+           <code class="phase-exec-cmd">${escapeHtml(v.command)} ${PHASE_EXEC_IDEA ? '&lt;idea inicial&gt;' : '[indicaciones]'}</code>
+           ${input}
            ${v.note ? `<p class="phase-exec-note">${escapeHtml(v.note)}</p>` : ''}
-           <p class="phase-exec-note">Las compuertas siguen deteniendo el flujo hasta tu aprobación.</p>`
+           <p class="phase-exec-note">Las compuertas siguen deteniendo el flujo hasta tu aprobación.</p>
+           ${panel}`
         : `<p><strong>Aún no se puede ejecutar esta etapa.</strong> ${escapeHtml(v.reason)}</p>
            ${v.missing.length
              ? `<p style="margin-top: 0.65rem;">${escapeHtml(v.missingLabel || 'Falta para habilitarla:')}</p>
                 <ul class="phase-exec-missing">${v.missing.map(m => `<li>${escapeHtml(m)}</li>`).join('')}</ul>`
-             : ''}`;
+             : ''}
+           ${panel}`;
       document.getElementById('phaseExecModalBody').innerHTML = body;
+      document.querySelectorAll('#phaseExecModalBody [data-panel]').forEach(btn => btn.addEventListener('click', () => {
+        closePhaseExecModal();
+        navigateTab(btn.getAttribute('data-panel'));
+      }));
       document.getElementById('phaseExecConfirmBtn').style.display = v.allowed ? '' : 'none';
       document.getElementById('phaseExecModal').classList.add('is-open');
+      if (PHASE_EXEC_IDEA) await fillPhaseExecIdea();
     }
 
     function closePhaseExecModal() {
       PHASE_EXEC_PENDING = null;
+      PHASE_EXEC_IDEA = false;
       document.getElementById('phaseExecModal').classList.remove('is-open');
     }
 
@@ -3333,7 +3423,12 @@
     // refleja el panel del agente. En Shell o AGY se cambia a Claude Code, el
     // runtime canónico, y se espera a que arranque antes de escribir.
     function confirmPhaseExecution() {
-      const cmd = PHASE_EXEC_PENDING;
+      let cmd = PHASE_EXEC_PENDING;
+      const ideaBox = document.getElementById('phaseExecInput');
+      if (cmd && ideaBox) {
+        const idea = ideaBox.value.split(/\s+/).filter(Boolean).join(' ');
+        if (idea) cmd = `${cmd} ${idea}`;
+      }
       closePhaseExecModal();
       if (!cmd) return;
       if (['claude', 'opencode', 'pi', 'herdr'].includes(selectedAgent)) {
@@ -4429,7 +4524,8 @@
           const card = document.createElement('div');
           const enCurso = !!(EN_CURSO && EN_CURSO.fase === p.id);
           card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
-          card.onclick = () => openDrawer(idx);
+          card.onclick = () => runPhaseExecution(p.id);
+          card.title = 'Clic para ejecutar esta fase con tus indicaciones';
           const exec = evaluatePhaseExecution(p.id, data);
           card.innerHTML = `
             <button type="button" class="phase-card__run ${exec.allowed ? 'is-ready' : 'is-blocked'}" data-unit="${escapeHtml(p.id)}"

@@ -85,11 +85,39 @@ test('sin intake completo solo se habilita el intake con /propuesta-analizar', a
   assert.match(step.missing.join('\n'), /Intake/);
 });
 
-test('sin corrida activa nada se ejecuta y se indica /propuesta-init', async (t) => {
+test('sin corrida activa el intake se lanza con la idea inicial y el resto pide /propuesta-init', async (t) => {
   const viewer = await harness(t);
-  const verdict = viewer.viewer('evaluatePhaseExecution', 'fase0', envelope({ active_run: null }));
-  assert.equal(verdict.allowed, false);
-  assert.match(verdict.missing.join('\n'), /\/propuesta-init/);
+  const data = envelope({ active_run: null, control: null });
+  const intake = viewer.viewer('evaluatePhaseExecution', 'fase0', data);
+  assert.equal(intake.allowed, true);
+  assert.equal(intake.command, '/propuesta-analizar');
+  assert.equal(intake.idea, true);
+  assert.match(intake.reason, /crea la corrida/);
+
+  const step = viewer.viewer('evaluatePhaseExecution', 'fase1a', data);
+  assert.equal(step.allowed, false);
+  assert.match(step.missing.join('\n'), /\/propuesta-init|Intake/);
+});
+
+test('el intake ofrece la idea inicial de idea.md y la envía con /propuesta-analizar', async (t) => {
+  const viewer = await harness(t);
+  viewer.window.fetch = async (url) => {
+    if (String(url).includes('/api/idea')) {
+      return { ok: true, status: 200, json: async () => ({ ok: true, text: 'Problema: baja cobertura del monitoreo hídrico en Caldas.', source: 'idea.md' }) };
+    }
+    return { ok: false, status: 503, json: async () => ({}) };
+  };
+  viewer.window.eval(`currentStatus = ${JSON.stringify(envelope({ active_run: null, control: null }))}; setPhasesInfo(currentStatus.pipeline_units);
+    window.__sent = [];
+    sendTerminalQuickCommand = (cmd) => window.__sent.push(cmd);`);
+  await viewer.viewer('runPhaseExecution', 'fase0');
+  await flush();
+  const idea = viewer.document.getElementById('phaseExecInput');
+  assert.ok(idea, 'el modal trae el campo de idea inicial');
+  assert.equal(idea.value, 'Problema: baja cobertura del monitoreo hídrico en Caldas.');
+  idea.value = 'Problema: baja cobertura\ndel monitoreo hídrico.';
+  viewer.document.getElementById('phaseExecConfirmBtn').click();
+  assert.deepEqual(Array.from(viewer.window.__sent), ['/propuesta-analizar Problema: baja cobertura del monitoreo hídrico.']);
 });
 
 test('con una unidad en curso ninguna otra se puede lanzar', async (t) => {
@@ -131,4 +159,57 @@ test('el modal de la unidad habilitada ofrece el comando y lo envía a la termin
   confirm.click();
   assert.deepEqual(Array.from(viewer.window.__sent), ['/propuesta-continuar']);
   assert.ok(!viewer.document.getElementById('phaseExecModal').classList.contains('is-open'));
+});
+
+test('la unidad habilitada abre un recuadro con la guía de la fase y envía las indicaciones', async (t) => {
+  const viewer = await harness(t);
+  viewer.window.eval(`currentStatus = ${JSON.stringify(envelope())}; setPhasesInfo(currentStatus.pipeline_units);
+    window.__sent = [];
+    sendTerminalQuickCommand = (cmd) => window.__sent.push(cmd);`);
+  await viewer.viewer('runPhaseExecution', 'fase2');
+  const box = viewer.document.getElementById('phaseExecInput');
+  assert.ok(box, 'el recuadro de indicaciones existe');
+  assert.match(box.getAttribute('placeholder'), /estado del arte/i);
+  box.value = 'Priorizar  modelos\nfundacionales.';
+  viewer.document.getElementById('phaseExecConfirmBtn').click();
+  assert.deepEqual(Array.from(viewer.window.__sent), ['/propuesta-continuar Priorizar modelos fundacionales.']);
+});
+
+test('una fase con panel propio ofrece ir a ese panel', async (t) => {
+  const viewer = await harness(t);
+  const data = envelope({ control: { mode: 'stepped', next_step: 'fase1b', last_completed: 'fase1a', intake_complete: true } });
+  viewer.window.eval(`currentStatus = ${JSON.stringify(data)}; setPhasesInfo(currentStatus.pipeline_units);
+    startTreesPolling = () => {};`);
+  await viewer.viewer('runPhaseExecution', 'fase1b');
+  const link = viewer.document.querySelector('#phaseExecModalBody [data-panel]');
+  assert.ok(link, 'hay un acceso al panel de la fase');
+  assert.equal(link.getAttribute('data-panel'), 'trees');
+  link.click();
+  assert.equal(viewer.window.eval('activeTab'), 'trees');
+  assert.ok(!viewer.document.getElementById('phaseExecModal').classList.contains('is-open'));
+});
+
+test('una fase bloqueada también remite a su panel, sin recuadro de indicaciones', async (t) => {
+  const viewer = await harness(t);
+  viewer.window.eval(`currentStatus = ${JSON.stringify(envelope())}; setPhasesInfo(currentStatus.pipeline_units);`);
+  await viewer.viewer('runPhaseExecution', 'fase1');
+  assert.equal(viewer.document.getElementById('phaseExecInput'), null);
+  const link = viewer.document.querySelector('#phaseExecModalBody [data-panel]');
+  assert.equal(link && link.getAttribute('data-panel'), 'mga');
+});
+
+test('clic en la caja del pipeline abre el recuadro de ejecución de esa fase', async (t) => {
+  const viewer = await harness(t);
+  const data = envelope();
+  viewer.window.fetch = async (url) => String(url).includes('/api/status')
+    ? { ok: true, status: 200, json: async () => data, text: async () => JSON.stringify(data) }
+    : { ok: false, status: 503, json: async () => ({}), text: async () => '' };
+  await viewer.viewer('loadStatus');
+  await flush();
+  const card = Array.from(viewer.document.querySelectorAll('#pipelineGrid .phase-card')).find(c => /Estado del arte/.test(c.textContent));
+  assert.ok(card);
+  card.click();
+  await flush();
+  assert.ok(viewer.document.getElementById('phaseExecModal').classList.contains('is-open'));
+  assert.ok(viewer.document.getElementById('phaseExecInput'));
 });

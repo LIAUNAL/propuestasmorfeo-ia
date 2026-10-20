@@ -142,7 +142,7 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
    - Visualización gráfica de las 16 unidades del pipeline (intake, guía ajustada al TDR y las 14 unidades de redacción) y de sus 13 compuertas.
    - Las fases completadas y aprobadas se iluminan con borde activo, resplandor esmeralda/cian y badge de verificación.
    - Las fases pendientes permanecen en reposo visual sutil, evitando sobrecarga cognitiva.
-   - Cada caja de fase trae un botón **«Ejecutar»**. Solo queda activo en la unidad que el flujo va a correr (`next_step` del control de ejecución) o en el intake mientras siga abierto, y envía `/propuesta-continuar` o `/propuesta-analizar` a la terminal del asistente. En cualquier otra fase explica qué etapas, compuertas y secciones faltan para habilitarla.
+   - Cada caja de fase trae un botón **«Ejecutar»**. Solo queda activo en la unidad que el flujo va a correr (`next_step` del control de ejecución) o en el intake mientras siga abierto, y envía `/propuesta-continuar` o `/propuesta-analizar` a la terminal del asistente. En cualquier otra fase explica qué etapas, compuertas y secciones faltan para habilitarla. La caja «Intake y enrutamiento de insumos» queda activa incluso antes de crear la corrida: abre un campo con la idea inicial, precargada desde `idea.md` (o `insumos/ideas/idea.md` de la corrida), y lanza `/propuesta-analizar <idea>`, que crea la corrida y hace el intake. Un clic en cualquier caja abre ese mismo recuadro: la unidad habilitada trae un campo con la guía de lo que se puede pedir en esa fase (términos de búsqueda, región y fuentes de cifras, equipo, tope del presupuesto…) y lo envía como `/propuesta-continuar <indicaciones>`; las fases con panel propio ofrecen ir a él (árboles en 1b y 4, MGA resumido en 1, Secciones en las que redactan, Previsualización en la 7).
 
 2. **Visor PDF Integrado de Alto Rendimiento:**
    - Motor de previsualización basado en PDF.js con renderizado asíncrono no bloqueante.
@@ -172,7 +172,7 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
    - La aprobación queda en `artefactos/arboles/revision.json`, atada al contenido aprobado: si el árbol cambia después, la aprobación caduca. El de objetivos solo se itera y se aprueba con el de problemas aprobado y sin textos pendientes.
 
 7. **MGA resumido:**
-   - Pestaña entre «Árbol de problemas y objetivos» y «Secciones». Muestra `artefactos/mga_resumido.md`, que la Fase 1 escribe antes de §3: el problema central copiado del árbol, el contexto general de la problemática, un párrafo por cada causa directa, la magnitud del problema y la tabla de indicadores con la línea base del proyecto resaltada. §3 se deriva de este documento.
+   - Pestaña entre «Árbol de problemas y objetivos» y «Secciones». Muestra `artefactos/mga_resumido.md`, que la Fase 1 escribe antes de §3: el problema central copiado del árbol, el contexto general de la problemática, un párrafo por cada causa directa, la magnitud del problema y la tabla de indicadores con la línea base del proyecto resaltada. §3 se deriva de este documento. El desplegable «Reglas para construir el MGA resumido» resume las reglas de trabajo de cada párrafo, de la magnitud y de la tabla de indicadores.
 
 ---
 

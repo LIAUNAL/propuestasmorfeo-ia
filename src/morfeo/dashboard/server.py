@@ -67,6 +67,34 @@ def parse_telemetria(telemetria_file: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def flatten_idea(markdown: str) -> str:
+    """One-line idea for `/propuesta-analizar`: "Heading: text" per filled section.
+
+    The `idea.md` template has only headings and HTML comments; that yields "".
+    """
+    markdown = re.sub(r"<!--.*?-->", "", markdown, flags=re.S)
+    parts: list[str] = []
+    heading: str | None = None
+    lines: list[str] = []
+
+    def flush() -> None:
+        body = " ".join(" ".join(lines).split())
+        if body:
+            parts.append(f"{heading}: {body}" if heading else body)
+
+    for line in markdown.splitlines():
+        match = re.match(r"^(#{1,6})\s+(.*)$", line.strip())
+        if match:
+            flush()
+            lines = []
+            # The level-1 title names the document, not a section of the idea.
+            heading = match.group(2).strip() if len(match.group(1)) > 1 else None
+            continue
+        lines.append(line)
+    flush()
+    return " ".join(parts)
+
+
 BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 
 
@@ -87,6 +115,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_favicon(path)
         elif path == "/api/status":
             self.serve_api_status()
+        elif path == "/api/idea":
+            self.serve_idea()
         elif path == "/api/terminal/agents":
             self.serve_terminal_agents()
         elif path == "/api/terminal/tools":
@@ -540,6 +570,27 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         result = approve_tree(run_dir, str(payload.get("tree") or ""))
         # 409: el flujo todavía no permite aprobar (falta el árbol previo o textos).
         self._send_json(200 if result.get("ok") else 409, result)
+
+    def serve_idea(self) -> None:
+        candidates = [self.workspace_dir / "idea.md"]
+        pointer = self.workspace_dir / "proposals" / ".current-run"
+        run = pointer.read_text(encoding="utf-8").strip() if pointer.is_file() else ""
+        if re.fullmatch(r"[A-Za-z0-9._-]+", run) and run not in (".", ".."):
+            candidates.append(self.workspace_dir / "proposals" / run / "insumos" / "ideas" / "idea.md")
+        text, source = "", None
+        for path in candidates:
+            if path.is_file():
+                text = flatten_idea(path.read_text(encoding="utf-8", errors="replace"))
+                if text:
+                    source = path.relative_to(self.workspace_dir).as_posix()
+                    break
+        body = json.dumps({"ok": True, "text": text, "source": source}, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
     def serve_api_status(self) -> None:
         response_data = get_project_status(self.workspace_dir)

@@ -22,13 +22,22 @@ rangos de líneas:
 - siempre, las secciones `## Raíz de corrida`, `## Reglas de gate` y
   `## Telemetría de uso por fase`;
 - `## Bucle de figuras (canónico)` solo si la unidad dibuja un diagrama
-  (Fases 1, 2 y 5.5), y `## Cómo usar codebase-memory` solo si la unidad
+  (Fases 1b, 2 y 5.5), y `## Cómo usar codebase-memory` solo si la unidad
   indexa o consulta un grafo.
 Si el bloque remite a otra sección por su nombre, leé esa sección y nada más.
 
 Entrada:
 
 $ARGUMENTS
+
+Si la entrada trae texto, son **indicaciones del operador** para esta unidad
+(el tablero las envía desde el recuadro «Ejecutar» de la fase). Inyectalas
+inline, bajo el encabezado `## INDICACIONES DEL OPERADOR`, en el prompt de cada
+Task de la unidad que redacta o diseña contenido, después del fragmento de
+guía. Son preferencias de contenido: no cambian `next_step`, no saltan
+compuertas ni anulan las reglas de la guía ni las de los árboles MGA; si
+alguna choca con una regla, la regla gana y lo decís en el reporte de la
+unidad. Registralas en el evento `artefactos/pipeline/NN-<unidad>.md`.
 
 ## 1. Precondiciones (si fallan, DETENTE)
 

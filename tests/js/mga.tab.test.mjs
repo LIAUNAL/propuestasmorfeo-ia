@@ -92,3 +92,14 @@ test('un error que no es 404 se informa como error, no como archivo ausente', as
   assert.match(box.textContent, /HTTP 500/);
   assert.doesNotMatch(box.textContent, /Aún no hay/);
 });
+
+test('la pestaña muestra las reglas de trabajo del MGA resumido', async (t) => {
+  const { viewer } = await harness(t, () => text(MGA));
+  const rules = viewer.document.querySelector('#pane-mga details.tree-rules#mgaRules');
+  assert.ok(rules, 'el desplegable de reglas existe');
+  assert.equal(rules.querySelector('summary').textContent.trim(), 'Reglas para construir el MGA resumido');
+  const txt = rules.textContent;
+  for (const rule of [/copiado textual/, /departamentos o regiones/, /Causa directa 1/, /plataforma interoperable/, /apropiación social/, /línea base/, /tabla/, /\[cifra por confirmar\]/]) {
+    assert.match(txt, rule);
+  }
+});
