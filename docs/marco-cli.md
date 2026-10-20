@@ -45,7 +45,7 @@ Si `marco` no se encuentra después de la instalación, ejecutar
 ### 2.1 `marco init` — Crear un proyecto portable
 
 ```
-marco init <dir> [--title TITLE] [--tools TOOLS] [--lang CODE] [--model-preset NAME]
+marco init <dir> [--title TITLE] [--tools TOOLS] [--lang CODE] [--model-preset NAME] [--sgr]
 ```
 
 Crea una carpeta de proyecto autocontenida en `<dir>` con el kit completo
@@ -60,6 +60,7 @@ y la configuración de idioma y modelo.
 | `--tools` | `claude,opencode,pi,antigravity` | Lista separada por comas de los runtimes a instalar (ver §5) |
 | `--lang` | `es` (o prompt interactivo) | Código BCP-47 del idioma de la propuesta. En TTY sin flag, muestra un menú interactivo |
 | `--model-preset` | `claude` (o prompt interactivo) | Nombre del preset de modelos. En TTY sin flag, muestra un menú interactivo. Presets válidos: `claude`, `gpt`, `opencode-go` |
+| `--sgr` | apagado | El proyecto sigue el flujo del Sistema General de Regalías (metodología MGA). Guarda `"flujo": "sgr"` en la configuración; sin la bandera queda `"flujo": "base"` |
 
 **Comportamiento:**
 
@@ -72,8 +73,9 @@ y la configuración de idioma y modelo.
 4. Copia los archivos del kit listados en `kit-manifest.json` desde la fuente
    (monorepo o `MARCO_KIT_ROOT`).
 5. Escribe `.marco/version`, `.marco/manifest.json` con checksums SHA-256,
-   y `.marco/config.json` con `language`, `model_preset`, `agent_models`,
-   `created_at` y `updated_at`.
+   y `.marco/config.json` con `language`, `model_preset`, `flujo`, `agent_models`,
+   `created_at` y `updated_at`. `morfeo init` escribe además `.morfeo/config.json`
+   con `version`, `lang`, `preset`, `tools`, `title` y `flujo`.
 6. **No** crea contenido de corrida en la raíz del proyecto: las corridas las
    crea `scripts/init-run.sh` (vía `/propuesta-init`) en `proposals/<run-id>/`
    con sus cuatro subcarpetas, y las zonas de depósito las siembra
@@ -105,7 +107,13 @@ marco init /tmp/p2 --tools claude,opencode
 marco init /tmp/p3 --title "Demo" --tools claude,pi
 marco init /tmp/p4 --lang en --model-preset gpt
 marco init /tmp/p5 --lang en --model-preset opencode-go --tools claude
+marco init /tmp/p6 --title "Regalías" --sgr
 ```
+
+**Clave `flujo`:** vale `base` (pipeline de siempre) o `sgr` (Sistema General
+de Regalías, MGA). Un proyecto creado antes de esta clave se trata como `base`.
+`scripts/init-run.sh` copia el valor a la fila `flujo` del `_run.md` de cada
+corrida nueva, y `morfeo status` y el tablero lo muestran.
 
 **Códigos de salida:**
 
@@ -143,6 +151,9 @@ Nunca toca el contenido del operador.
 `redaccion/sections/**`, `redaccion/main.tex`, `redaccion/refs.bib`,
 `proposals/**` (corridas, registro local y puntero),
 `vault/**`, `DECISIONS.md`, `journal/**`.
+
+La configuración del proyecto tampoco se pierde: `upgrade` conserva la clave
+`flujo` y el resto de `config.json` tal como estaban.
 
 **Idempotente:** ejecutar `upgrade` dos veces seguidas sin cambios en el
 kit deja el árbol exactamente igual y termina com código 0.

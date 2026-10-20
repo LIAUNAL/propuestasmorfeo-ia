@@ -39,6 +39,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_init.add_argument("--lang", default="es", choices=["es", "en"], help="Idioma del scaffolding")
     p_init.add_argument("--title", default=None, help="Título inicial de la propuesta")
     p_init.add_argument("--force", action="store_true", help="Inicializar aunque el directorio no esté vacío")
+    p_init.add_argument(
+        "--sgr",
+        action="store_true",
+        help="El proyecto sigue el flujo del Sistema General de Regalías (MGA)",
+    )
 
     # --- upgrade ---
     p_upgrade = sub.add_parser("upgrade", help="Actualiza los componentes del kit preservando el contenido del usuario.")
@@ -102,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
                 preset_name=args.preset,
                 title=args.title,
                 force=args.force,
+                flujo="sgr" if args.sgr else "base",
             )
         elif args.command == "upgrade":
             return upgrade_project(target_dir=args.dir, force=args.force)
