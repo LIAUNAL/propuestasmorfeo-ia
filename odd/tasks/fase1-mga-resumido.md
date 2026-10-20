@@ -40,11 +40,13 @@ Branch: `feat/fase1-mga-resumido`. Delivery: ask-on-risk. Runner: `uv run python
 
 ## Tasks
 
-- [ ] T1 (S1, S2, S3) pipeline units, gates, status, prompts (propuesta.md, steps, continuar, agents), docs — route inline
-- [ ] T2 (S4, S5) MGA resumido artifact contract, backend route, dashboard tab, tests — route inline
+- [x] T1 (S1, S2, S3) pipeline units, gates, status, prompts (propuesta.md, steps, continuar, agents), docs — route inline — 74ab934, 768cf7f (general flow diagram)
+- [x] T2 (S4, S5) MGA resumido artifact contract, backend route, dashboard tab, tests — route inline — see L5
 
 ## Log
 
 - L1 (2026-10-20) user request: pasted block quoted in S1–S5 ("Actualiza el flujo de las fases para flujos base de proyectos morfeo y para flujos proyectos sgr ...").
 - L2 (2026-10-20) decision on §3: "Fase 1 hace ambos (Recomendado)" — Fase 1 writes the MGA resumido and then derives §3 from it, same gate G1.
 - L3 Route: inline (no writer trigger: tasks share prompt files). Explorer mapping delegated (mapping trigger: >5 lookups across core, dashboard, commands, agents, docs, tests).
+- L4 T1: RED 4 failures in tests/test_pipeline_units.py (16 units, 15 gates, chain fase1a→fase1b→fase1c→fase1); GREEN after units/steps edit. G1b now names the trees gate, G1c the SOTA corpus. Ports and kit regenerated, --check clean. Archify diagram re-pinned to 74ab934 and re-rendered with a new lane, check reports no failures.
+- L5 T2: RED 4/4 in tests/js/mga.tab.test.mjs; GREEN after adding the `mga` tab (`loadMgaResumido`, reads `/api/artifact?file=artefactos/mga_resumido.md`, existing renderMarkdown; no backend change). Trees tab order test now expects «MGA resumido» after it. Suites: Python 339 OK, JS 73 OK.

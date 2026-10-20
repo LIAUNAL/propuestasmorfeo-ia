@@ -2302,6 +2302,7 @@
     <button class="tab-nav__btn active" onclick="navigateTab('flow')">Flujo general</button>
     <button class="tab-nav__btn" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
     <button class="tab-nav__btn" onclick="navigateTab('trees')">Árbol de problemas y objetivos</button>
+    <button class="tab-nav__btn" onclick="navigateTab('mga')">MGA resumido</button>
     <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
     <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
     <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
@@ -2474,6 +2475,17 @@
             <ol class="tree-history" id="treeHistory"></ol>
           </div>
         </aside>
+      </div>
+    </div>
+
+    <!-- TAB: MGA RESUMIDO -->
+    <div id="pane-mga" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">MGA resumido: planteamiento del problema</div>
+          <button class="btn btn--sm" type="button" onclick="loadMgaResumido()">Recargar</button>
+        </div>
+        <div id="mgaContent" class="artifact-viewer is-markdown">Cargando…</div>
       </div>
     </div>
 
@@ -3858,6 +3870,8 @@
       if (tabId === 'trees') startTreesPolling();
       else stopTreesPolling();
 
+      if (tabId === 'mga') loadMgaResumido();
+
       if (tabId === 'preview') {
         initPdfViewer();
       } else if (tabId === 'atlas') {
@@ -4083,6 +4097,24 @@
         showArtifactText(relPath, text, /\.md$/i.test(relPath));
       } catch (err) {
         viewer.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    // The Fase 1 writes the MGA summary before §3; the tab shows it rendered.
+    const MGA_FILE = 'artefactos/mga_resumido.md';
+
+    async function loadMgaResumido() {
+      const box = document.getElementById('mgaContent');
+      if (!box) return;
+      try {
+        const res = await fetch(`/api/artifact?file=${encodeURIComponent(MGA_FILE)}`);
+        if (!res.ok) {
+          box.innerHTML = `<p>Aún no hay MGA resumido. La Fase 1 lo escribe en <code>${MGA_FILE}</code> a partir de los árboles aprobados en G1b, antes de redactar §3.</p>`;
+          return;
+        }
+        box.innerHTML = renderMarkdown(await res.text());
+      } catch (err) {
+        box.textContent = `Error: ${err.message}`;
       }
     }
 

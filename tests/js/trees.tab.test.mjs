@@ -72,13 +72,13 @@ async function harness(t, payload, posts = [], { stubPrompt = true } = {}) {
   return viewer;
 }
 
-test('la pestaña queda entre «Pipeline y Avance» y «Secciones»', async (t) => {
+test('la pestaña queda entre «Pipeline y Avance» y «MGA resumido»', async (t) => {
   const viewer = await harness(t, treesPayload());
   const labels = Array.from(viewer.document.querySelectorAll('.tab-nav__btn')).map(b => b.textContent.trim());
   const i = labels.indexOf('Árbol de problemas y objetivos');
   assert.ok(i > 0, 'la pestaña existe');
   assert.equal(labels[i - 1], 'Pipeline y Avance');
-  assert.equal(labels[i + 1], 'Secciones');
+  assert.equal(labels[i + 1], 'MGA resumido');
   assert.ok(viewer.document.getElementById('pane-trees'));
 });
 
