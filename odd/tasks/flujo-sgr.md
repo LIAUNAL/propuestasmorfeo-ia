@@ -101,3 +101,17 @@ solo la avisa en el tronco; si `.morfeo/config.json` no trae una clave válida,
 `init-run.sh` cae a `.marco/config.json` y `detect_flujo` no (init nunca los deja
 distintos). Las citas de p. 23 y p. 122 del Instructivo son pasajes distintos y
 ambas son correctas según la exploración.
+
+L7. RDD. La rama completa excedió el presupuesto de contexto del revisor; el
+operador eligió «Tramos de código». T2 (c22cdb0) y T1 (20b2394) se revisaron por
+separado con las lentes risk y reliability: ambos aprobados y reconocidos
+(review-331365fc4472038c y review-f7e8ea0f85878f47, autoridad quemada). La guía y
+los prompts (0b06ace) y el kit/ports generados quedaron fuera de la revisión y
+cubiertos por el verificador. Hallazgos informativos, trabajo aparte:
+- T1: el bloqueo de aprobación falla abierto si no carga `check_run.py`
+  (`trees.py:67-112`); una spec mal formada puede tumbar el checker
+  (`check_run.py:392-401`); `magnitude.valor` no se exige; falsos positivos
+  residuales del infinitivo; cambio de forma de `--json` (aceptado).
+- T2: un flujo base oculta una compuerta G6.47 ya registrada (`status.py:279`);
+  `init-run.sh` imprime una línea más (`flujo: …`); `--sgr` del CLI heredado
+  sin prueba; `status.py` ahora depende de `pipeline_units`.
