@@ -12,8 +12,10 @@ Paso previo  `/propuesta-init <idea>` → crea y activa `proposals/<run-id>/`
         (`RUN_ROOT`) con sus cuatro subcarpetas: insumos/ artefactos/ grafos/
         redaccion/. El usuario deja sus insumos en `insumos/`.
 Fase 0  Insumos-Observador → ingerir insumos
-Fase 1  Investigador → §3 descripción del problema + pregunta
-        → Grant-Flow-Auditor (pule §3 con estilo-natural-es)
+Fase 1a Bibliografo-Propuesta (MODE=scope) + Investigador → 3 subproblemas
+        ──→ GATE G1a ──→ user
+Fase 1b Investigador → contenido del árbol de problemas
+        (`artefactos/arboles/arbol_problemas.md`, reglas MGA en ambos flujos)
         → Bucle de figura `arbol_problemas` (procedimiento canónico único, ver
           "Bucle de figuras" abajo):
             Diseñador-TikZ (autor de `specs/arbol_problemas.spec.json`)
@@ -25,7 +27,14 @@ Fase 1  Investigador → §3 descripción del problema + pregunta
               corrige la SPEC (nunca el .tex); tope compartido de 4 intentos,
               con escalamiento explícito al usuario al agotarse
             → en PASS, continúa
-        ──→ GATE Revisor ──→ user
+        → Investigador → árbol de objetivos (`artefactos/arboles/arbol_objetivos.json`)
+        ──→ GATE G1b ──→ user (aprueba los dos árboles en la pestaña de árboles)
+Fase 1c Bibliografo-Propuesta (MODE=sota) → corpus SOTA + WRITE-REFS
+        ──→ GATE G1c ──→ user
+Fase 1  Investigador → MGA resumido (`artefactos/mga_resumido.md`) → §3
+        descripción del problema + pregunta, derivada del MGA resumido
+        → Grant-Flow-Auditor (pule §3 con estilo-natural-es)
+        ──→ GATE G1 ──→ user
 Fase 2  Bibliografo-Propuesta → §4 estado del arte (paralelo)
         Investigador → §5 hipótesis
         → Grant-Flow-Auditor (pule §4 y §5 con estilo-natural-es)

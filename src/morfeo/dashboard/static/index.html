@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo</title>
-  <link rel="icon" type="image/png" sizes="128x128" href="/static/favicon.png">
-  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="128x128" href="/static/favicon.png?app=morfeo">
+  <link rel="shortcut icon" href="/favicon.ico?app=morfeo">
   <link rel="stylesheet" href="/static/vendor/pdf_viewer.min.css">
   <link rel="stylesheet" href="/static/vendor/xterm.css">
   <script src="/static/vendor/pdf.min.js"></script>
@@ -2266,7 +2266,7 @@
   <header class="topbar">
     <div class="topbar__brand">
       <div class="topbar__avatar-wrap" title="Morfeo IA: Orquestador de Formulación Científica en IA">
-        <img src="/static/morfeo-logo.png" alt="Morfeo IA" class="topbar__avatar">
+        <img src="/static/morfeo-logo.png?app=morfeo" alt="Morfeo IA" class="topbar__avatar">
       </div>
       <div class="topbar__title">
         <h1 id="topbarProjectTitle" title="Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo">Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo</h1>
@@ -2302,6 +2302,7 @@
     <button class="tab-nav__btn active" onclick="navigateTab('flow')">Flujo general</button>
     <button class="tab-nav__btn" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
     <button class="tab-nav__btn" onclick="navigateTab('trees')">Árbol de problemas y objetivos</button>
+    <button class="tab-nav__btn" onclick="navigateTab('mga')">MGA resumido</button>
     <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
     <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
     <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
@@ -2474,6 +2475,17 @@
             <ol class="tree-history" id="treeHistory"></ol>
           </div>
         </aside>
+      </div>
+    </div>
+
+    <!-- TAB: MGA RESUMIDO -->
+    <div id="pane-mga" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">MGA resumido: planteamiento del problema</div>
+          <button class="btn btn--sm" type="button" onclick="loadMgaResumido()">Recargar</button>
+        </div>
+        <div id="mgaContent" class="artifact-viewer is-markdown">Cargando…</div>
       </div>
     </div>
 
@@ -2933,7 +2945,7 @@
   <!-- Botón Flotante Asistente Morfeo (FAB) -->
   <div id="morfeoAssistantFab" class="morfeo-fab" onclick="toggleMorfeoTerminal()" title="Abrir Asistente CLI Morfeo">
     <div class="morfeo-fab__pulse"></div>
-    <img src="/static/morfeo-logo.png" alt="Morfeo CLI" class="morfeo-fab__logo">
+    <img src="/static/morfeo-logo.png?app=morfeo" alt="Morfeo CLI" class="morfeo-fab__logo">
     <span class="morfeo-fab__badge" id="morfeoFabBadge">CLI</span>
   </div>
 
@@ -2977,7 +2989,7 @@
   <div id="morfeoTerminalWindow" class="morfeo-terminal-window">
     <div class="morfeo-terminal-header">
       <div class="morfeo-terminal-title">
-        <img src="/static/morfeo-logo.png" alt="Morfeo" class="morfeo-terminal-logo">
+        <img src="/static/morfeo-logo.png?app=morfeo" alt="Morfeo" class="morfeo-terminal-logo">
         <span>Asistente CLI Morfeo</span>
         <span class="terminal-status-dot" id="terminalStatusDot" title="Desconectado"></span>
       </div>
@@ -3021,7 +3033,7 @@
   <script>
     // El inventario de unidades llega en el sobre de estado (`pipeline_units`).
     // Antes esta lista estaba escrita aquí con trece entradas que inventaban
-    // compuerta para `fase6` y `fase6_45` y omitían `fase1a` y `fase1b`, que son
+    // compuerta para `fase6` y `fase6_45` y omitían `fase1a` y la fase del corpus, que son
     // justamente las que producen los insumos del paper. No hay respaldo
     // duplicado: si el binario de `morfeo` no publica el inventario, el flujo lo
     // dice en lugar de mostrar una lista vieja que parece correcta.
@@ -3053,8 +3065,9 @@
       fase0: "Ingesta, clasificación y extracción de los insumos del usuario (documentos base, TDR, papers y enlaces) para estructurar el contexto compartido de la propuesta.",
       g0_5: "Cotejo preliminar de las secciones de la guía frente a los términos de referencia de la convocatoria, fijando requisitos específicos y restricciones formales.",
       fase1a: "Búsqueda bibliográfica de encuadre en el grafo de conocimiento para delimitar el alcance temático y postular los tres subproblemas preliminares mutuamente excluyentes.",
-      fase1b: "Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo las referencias semilla e indexando el grafo de papers y el vault de conocimiento.",
-      fase1: "Redacción de la descripción del problema (§3), formulación de la pregunta central de investigación y diseño del árbol de problemas validado en TikZ.",
+      fase1b: "Construcción del árbol de problemas a partir de los subproblemas y de su espejo positivo, el árbol de objetivos, con las reglas de la MGA en ambos flujos; la figura TikZ del árbol se valida en el bucle de figuras.",
+      fase1c: "Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo las referencias semilla e indexando el grafo de papers y el vault de conocimiento.",
+      fase1: "Redacción del MGA resumido (problema central del árbol, contexto, expansión de las tres causas directas y magnitud con tabla de indicadores de línea base) y, a partir de él, de la descripción del problema (§3) con la pregunta central.",
       fase2: "Construcción del estado del arte con referencias Q1/Q2 (§4), formulación de la hipótesis falsable (§5) y elaboración del mapa visual del estado del arte.",
       fase3: "Elaboración de la justificación y pertinencia (§2), articulando la solución con los ODS, el PND y el nivel de madurez tecnológica TRL 6 o 7.",
       fase4: "Formulación del objetivo general (§6) y los tres objetivos específicos (§7), garantizando una correspondencia biyectiva estricta con los subproblemas.",
@@ -3083,8 +3096,9 @@
         fase0: "Intake e insumos",
         g0_5: "Guía al TDR",
         fase1a: "Scoping y subproblemas",
-        fase1b: "Corpus SOTA y papers",
-        fase1: "Problema y árbol TikZ",
+        fase1b: "Árboles de problemas y objetivos",
+        fase1c: "Corpus SOTA y papers",
+        fase1: "MGA resumido y §3",
         fase2: "Estado del arte e hipótesis",
         fase3: "Justificación y pertinencia",
         fase4: "Objetivos (gen. y esp.)",
@@ -3511,7 +3525,7 @@
       const fase1a = units.find(u => u.id === 'fase1a');
       if (fase1a && resolvePhaseVerdict(fase1a, data) === 'PASS') return null;
       const c = data.control;
-      if (c && c.intake_complete && c.next_step && !['fase1a', 'fase1b'].includes(c.next_step)) return null;
+      if (c && c.intake_complete && c.next_step && c.next_step !== 'fase1a') return null;
       return 'Los subproblemas se definen en la Fase 1a (scoping). Avanza el pipeline con /propuesta-continuar hasta superar G1a para proponer el árbol.';
     }
 
@@ -3856,6 +3870,8 @@
       if (tabId === 'trees') startTreesPolling();
       else stopTreesPolling();
 
+      if (tabId === 'mga') loadMgaResumido();
+
       if (tabId === 'preview') {
         initPdfViewer();
       } else if (tabId === 'atlas') {
@@ -4081,6 +4097,28 @@
         showArtifactText(relPath, text, /\.md$/i.test(relPath));
       } catch (err) {
         viewer.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    // The Fase 1 writes the MGA summary before §3; the tab shows it rendered.
+    const MGA_FILE = 'artefactos/mga_resumido.md';
+
+    async function loadMgaResumido() {
+      const box = document.getElementById('mgaContent');
+      if (!box) return;
+      try {
+        const res = await fetch(`/api/artifact?file=${encodeURIComponent(MGA_FILE)}`);
+        if (res.status === 404) {
+          box.innerHTML = `<p>Aún no hay MGA resumido. La Fase 1 lo escribe en <code>${MGA_FILE}</code> a partir de los árboles aprobados en G1b, antes de redactar §3.</p>`;
+          return;
+        }
+        if (!res.ok) {
+          box.textContent = `Error al leer ${MGA_FILE}: HTTP ${res.status}`;
+          return;
+        }
+        box.innerHTML = renderMarkdown(await res.text());
+      } catch (err) {
+        box.textContent = `Error: ${err.message}`;
       }
     }
 

@@ -38,23 +38,11 @@ flowchart TD
     end
 
     GateG1a -->|aprobado| CheckG1a{G1a aprobada?}
-    CheckG1a -->|si| SubFase1b
-    CheckG1a -->|no| Fase1
+    CheckG1a -->|si| Fase1b
+    CheckG1a -->|no| Fase1b
 
-    subgraph SubFase1b["Fase 1b — COMPUERTA G1b: Expansion SOTA"]
-        Corpus[Task: bibliografo MODE=sota<br/>corpus 30-40 papers] --> PapersGraphUpd[Dispatcher: index_repository incremental]
-        PapersGraphUpd --> Grouping[Task: bibliografo<br/>agrupacion 3-5 subsecciones]
-        Grouping --> GateG1b{Usuario aprueba}
-        GateG1b -->|cambios| Corpus
-        GateG1b -->|aprobado| WriteRefs[Task: bibliografo<br/>WRITE-REFS: refs.bib]
-        WriteRefs --> VaultBuild[Dispatcher: index_repository vault<br/>baseline, primera vez]
-    end
-    VaultBuild --> Fase1
-    SubFase1b -.-> Fase1
-
-    subgraph Fase1["Fase 1 — Descripcion del problema (sec 3)"]
-        Explore[Task: bibliografo MODE=explore<br/>mapa amplio, mas de 5 obras] --> Invest1[Task: investigador<br/>sec 3 subproblemas + pregunta de investigacion]
-        Invest1 --> Tikz1[Task: disenador-tikz<br/>arbol de problemas]
+    subgraph Fase1b["Fase 1b — COMPUERTA G1b: Arbol de problemas y arbol de objetivos (reglas MGA, ambos flujos)"]
+        Invest1[Task: investigador<br/>contenido del arbol de problemas<br/>causas directas = subproblemas] --> Tikz1[Task: disenador-tikz<br/>spec arbol_problemas]
         Tikz1 --> Opt1[Task: tikz-optimizer<br/>compila PNG + token OVERFULL]
         Opt1 --> Overfull1{Precheck determinista:<br/>OVERFULL N mayor que 0?}
         Overfull1 -->|si| Cap1{Intentos<br/>4/4?}
@@ -62,8 +50,28 @@ flowchart TD
         RevFig1 -->|FAIL| Cap1
         Cap1 -->|no, +1 intento| Opt1
         Cap1 -->|si, agotado| Escal1[Escala a usuario:<br/>diagrama, 4/4 intentos, ultimo hallazgo]
-        RevFig1 -->|PASS| Gate1{GATE revisor<br/>+ evidencia de grafo}
-        Gate1 -->|FAIL| Invest1
+        RevFig1 -->|PASS| ObjTree[Task: investigador<br/>arbol de objetivos, espejo MGA]
+        ObjTree --> GateG1b{GATE revisor + usuario<br/>aprueba los dos arboles en el tablero}
+        GateG1b -->|FAIL| Invest1
+    end
+    GateG1b -->|aprobado| SubFase1c
+
+    subgraph SubFase1c["Fase 1c — COMPUERTA G1c: Expansion SOTA"]
+        Corpus[Task: bibliografo MODE=sota<br/>corpus 30-40 papers] --> PapersGraphUpd[Dispatcher: index_repository incremental]
+        PapersGraphUpd --> Grouping[Task: bibliografo<br/>agrupacion 3-5 subsecciones]
+        Grouping --> GateG1c{Usuario aprueba}
+        GateG1c -->|cambios| Corpus
+        GateG1c -->|aprobado| WriteRefs[Task: bibliografo<br/>WRITE-REFS: refs.bib]
+        WriteRefs --> VaultBuild[Dispatcher: index_repository vault<br/>baseline, primera vez]
+    end
+    VaultBuild --> Fase1
+    SubFase1c -.-> Fase1
+
+    subgraph Fase1["Fase 1 — MGA resumido y descripcion del problema (sec 3)"]
+        Explore[Task: bibliografo MODE=explore<br/>mapa amplio, mas de 5 obras] --> Mga1[Task: investigador<br/>MGA resumido: problema central, contexto,<br/>causas directas, magnitud y tabla de indicadores]
+        Mga1 --> Sec3[Task: investigador<br/>sec 3 derivada del MGA resumido + pregunta]
+        Sec3 --> Gate1{GATE revisor<br/>+ evidencia de grafo}
+        Gate1 -->|FAIL| Mga1
     end
     Fase1 --> Fase2
 
@@ -160,12 +168,12 @@ flowchart TD
     Fase7 --> End([Propuesta final: PDF + DOCX])
 
     subgraph Grafos["Grafos transversales (3, corren en paralelo al flujo principal)"]
-        GPapers["Indice de papers (codebase-memory)<br/>run-id-papers sobre artefactos/scoping/papers, reporte grafos/papers-graph-report.md<br/>seed G1a, refresca en G1b y Fase 2"]
-        GVault["Indice de vault (coherencia, codebase-memory)<br/>run-id-vault sobre artefactos/vault, reporte grafos/vault-graph-report.md<br/>baseline en G1b, refresh en cada gate Fase 1-7"]
+        GPapers["Indice de papers (codebase-memory)<br/>run-id-papers sobre artefactos/scoping/papers, reporte grafos/papers-graph-report.md<br/>seed G1a, refresca en G1c y Fase 2"]
+        GVault["Indice de vault (coherencia, codebase-memory)<br/>run-id-vault sobre artefactos/vault, reporte grafos/vault-graph-report.md<br/>baseline en G1c, refresh en cada gate Fase 1-7"]
         GPipeline["Registro de pipeline (estructura)<br/>artefactos/pipeline/NN-fase.md (eventos) + _estado.md<br/>un evento .md por transicion de compuerta, sin indexar (no aporta valor consumido)"]
     end
 
     classDef gate fill:#fff3cd,stroke:#b8860b,stroke-width:1px
     classDef graph3 fill:#e6f0ff,stroke:#4a6fa5,stroke-width:1px
-    class Guard,Ambig,HasTDR,Corrob,OptIn,GateG05,GateG1a,CheckG1a,GateG1b,Overfull1,Cap1,RevFig1,Gate1,Overfull2,Cap2,RevFig2,Gate2,Gate3,Gate4,Gate5,Overfull5,Cap5,RevFig5,Gate55,ModeRes,LoopP,GateP,Gate65,AuditFinal gate
+    class Guard,Ambig,HasTDR,Corrob,OptIn,GateG05,GateG1a,CheckG1a,GateG1b,GateG1c,Overfull1,Cap1,RevFig1,Gate1,Overfull2,Cap2,RevFig2,Gate2,Gate3,Gate4,Gate5,Overfull5,Cap5,RevFig5,Gate55,ModeRes,LoopP,GateP,Gate65,AuditFinal gate
     class GPapers,GVault,GPipeline graph3

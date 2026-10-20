@@ -53,16 +53,22 @@ you) before reporting a FAIL for a missing artifact.
 2. **Cross-dependencies (mandatory):**
    - 3 subproblems (§3) ↔ 3 specific objectives (§7), 1:1 mapping.
    - Problem tree ↔ objective tree (MGA, both flows; guide §3 «Árbol de
-     problemas y árbol de objetivos según la MGA»): at G1, FAIL a central
+     problemas y árbol de objetivos según la MGA»): at G1b, FAIL a central
      problem or subproblem phrased as the absence of a solution ("Falta
      de…", "Ausencia de…", "Se requiere…") or a crown that is the solution;
-     at G4, FAIL an objective tree that changes the variable of its problem
+     also at G1b, FAIL an objective tree that changes the variable of its problem
      node or whose general objective carries the means ("mediante…"), the
      ends ("para mejorar…") or targets. `check_run.py` reports these as
      `arbol-*` and `objetivo-general-*` findings; you judge whether the
      content really keeps the variable. §6/§7 by flow: base flow, same
      variable as the tree with the guide's AI lead verbs; SGR flow, the
-     tree texts literally (`sgr-objetivo*` findings).
+     tree texts literally (`sgr-objetivo*` findings), checked at G4.
+   - MGA resumido (`artefactos/mga_resumido.md`) ↔ problem tree ↔ §3, at
+     G1: FAIL when its «Problema central» is not the trunk text verbatim,
+     when paragraphs 3 to 5 do not expand the three direct causes in order,
+     when the magnitude has a figure without a source, or when the table
+     does not highlight the baseline indicator; §3 keeps the same variable,
+     causes and magnitude.
    - Research question (end §3) ↔ general objective (§6).
    - Hypothesis (§5) ↔ Estado del arte synthesis (§4) and ↔ general objective (§6).
    - Marco conceptual (§8) ↔ problem limitations named in Descripción del

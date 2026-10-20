@@ -21,7 +21,7 @@ bibliographic fields (language-neutral).
 ## Modos de operación
 
 This agent runs in four modes, invoked depending on the pipeline phase.
-MODE=scope (Fase 1a pre-step) and MODE=sota (Fase 1b pre-step) are the two
+MODE=scope (Fase 1a pre-step) and MODE=sota (Fase 1c pre-step) are the two
 scoping-stage modes that add `consensus` to the tool scope.
 
 ### MODE=explore (Fase 0/1 pre-step)
@@ -102,18 +102,18 @@ scoping-stage modes that add `consensus` to the tool scope.
   inline to the dispatcher — the dispatcher builds the isolated
   `codebase-memory` index from `artefactos/scoping/papers/`.
 
-### MODE=sota (Fase 1b pre-step)
+### MODE=sota (Fase 1c pre-step)
 
 - Goal: expand the G1a 5-paper seed corpus into a **39-52 paper**
   abstract-only corpus (floor/ceiling raised 30% over the original 30-40,
   permanent rule, to feed downstream citation-hungry sections — §2/§3/§4
   subsections, §8 subsections — with enough margin), propose 3-5
-  state-of-the-art subsections grouping that corpus, and — on G1b approval
+  state-of-the-art subsections grouping that corpus, and — on G1c approval
   only — consolidate the full corpus into BibTeX. Runs as three sequential
-  sub-steps, dispatched separately across Fase 1b (see `propuesta.md`,
-  "Fase 1b").
+  sub-steps, dispatched separately across Fase 1c (see `propuesta.md`,
+  "Fase 1c").
 
-#### Sub-step: corpus (Fase 1b, step (a))
+#### Sub-step: corpus (Fase 1c, step (a))
 
 - Append `paper-6.md`..`paper-N.md` to the existing seed corpus
   (`paper-1.md`..`paper-5.md`) until the corpus totals **39-52
@@ -124,7 +124,7 @@ scoping-stage modes that add `consensus` to the tool scope.
   proposal's idea graph, outside `artefactos/scoping/`) nor its report
   `grafos/vault-graph-report.md`; only the papers index
   (`<run-id>-papers`) and `grafos/papers-graph-report.md` — both refreshed
-  by the dispatcher, see `propuesta.md`, "Fase 1b" — reflect the expanded
+  by the dispatcher, see `propuesta.md`, "Fase 1c" — reflect the expanded
   corpus.
 - Dedup: before writing a new `paper-N.md`, check its DOI (or, if missing,
   normalized title) against every existing paper in the corpus (seed +
@@ -150,11 +150,11 @@ scoping-stage modes that add `consensus` to the tool scope.
 - **Do NOT index the corpus yourself** — same as MODE=scope, the dispatcher
   re-indexes the expanded corpus with `codebase-memory`.
 
-#### Sub-step: grouping (Fase 1b, after the dispatcher's index refresh)
+#### Sub-step: grouping (Fase 1c, after the dispatcher's index refresh)
 
 - Dispatched only **after** the dispatcher has re-indexed the expanded corpus
   with `codebase-memory` and rewritten `grafos/papers-graph-report.md`
-  (see `propuesta.md`, "Fase 1b"). Never propose groupings before the updated
+  (see `propuesta.md`, "Fase 1c"). Never propose groupings before the updated
   report exists.
 - Input: the expanded `grafos/papers-graph-report.md` (central nodes,
   thematic communities, suggested questions) plus every paper's abstract in
@@ -167,10 +167,10 @@ scoping-stage modes that add `consensus` to the tool scope.
   which consumes this mapping table (see MODE=deliverable, constraint 1,
   below).
 
-#### Sub-step: WRITE-REFS (Fase 1b, on G1b approval only)
+#### Sub-step: WRITE-REFS (Fase 1c, on G1c approval only)
 
-- **Forbidden before G1b approval.** Only dispatched once the dispatcher
-  records G1b = APROBADA.
+- **Forbidden before G1c approval.** Only dispatched once the dispatcher
+  records G1c = APROBADA.
 - Writes `redaccion/refs.bib` in **one pass**, covering the **full corpus**
   (`paper-1.md`..`paper-N.md`), deriving BibTeX fields from each paper's
   already-captured metadata (título, autores, año, venue, DOI/URL) — **no
@@ -184,8 +184,8 @@ scoping-stage modes that add `consensus` to the tool scope.
   (`authorYear_keyword`).
 - Until this sub-step runs, `redaccion/refs.bib`'s checksum stays unchanged
   (the file may not exist yet, or may hold prior content from an earlier
-  phase); this sub-step is the **only** point in Fase 1b/Fase 1a that
-  touches it, and it changes the checksum **exactly once** per G1b
+  phase); this sub-step is the **only** point in Fase 1c/Fase 1a that
+  touches it, and it changes the checksum **exactly once** per G1c
   approval, in a single pass covering the full corpus.
 
 ### MODE=deliverable (Fase 4 existente)
@@ -194,7 +194,7 @@ This is the mode documented in the rest of this file — §4 + §16, with the
 "Hard constraints" and "Literature search stack" as specified below. It
 keeps the full existing tool stack: `openalex`, `semanticscholar`,
 `crossref`, `pubmed`, `arxiv`, `context7`. Only constraint 1 below narrows to
-consume the Fase 1b/G1b corpus instead of re-searching from scratch; every
+consume the Fase 1c/G1c corpus instead of re-searching from scratch; every
 other constraint and the tool stack itself are unchanged.
 
 All four modes share the `openalex` + `semanticscholar` subset — always
@@ -226,7 +226,7 @@ additionally have `consensus` as their primary Q1/Q2 tool.
 _Applies only to MODE=deliverable (Fase 4). MODE=explore is exempt — see
 "Modos de operación" above._
 
-1. For §4, consume the Fase 1b/G1b corpus
+1. For §4, consume the Fase 1c/G1c corpus
    (`artefactos/scoping/papers/paper-{1..N}.md`, 39-52 Q1/Q2 references) and
    its approved subsection mapping table instead of re-searching from
    scratch — the ≥39 Q1/Q2 floor is satisfied by that corpus. Additional
@@ -402,7 +402,7 @@ across sources for accuracy and to enrich metadata (DOIs, abstracts, citations).
 TODOS los modos que escriban `redaccion/refs.bib` deben cumplir este
 invariante (redacción a prueba de futuro), vinculante hoy en los dos
 caminos reales que existen: **MODE=sota**, sub-paso WRITE-REFS (ver la sección «Sub-step: WRITE-REFS»,
-solo tras aprobación G1b) y **MODE=deliverable** (ver la sección «Hard constraints (MODE=deliverable)», Fase 6,
+solo tras aprobación G1c) y **MODE=deliverable** (ver la sección «Hard constraints (MODE=deliverable)», Fase 6,
 §4+§16). Ningún otro camino escribe `refs.bib`: MODE=explore devuelve
 referencias en línea sin escribir archivo; MODE=scope no produce BibTeX;
 Fase 5 solo despacha al redactor y no toca `refs.bib` — el invariante NO

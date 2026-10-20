@@ -9,7 +9,7 @@
       "url": "https://github.com/LIAUNAL/propuestasmorfeo-ia",
       "provider": "github",
       "link_mode": "web",
-      "revision": "45d1c2bce14aaf678e4beac4b94e26503d978735"
+      "revision": "74ab9344f9c74b1f8f19a8cc699aad7217d9c064"
     },
     "legend": {
       "mode": "auto",
@@ -222,13 +222,13 @@
     {
       "id": "invProb",
       "type": "backend",
-      "label": "investigador (F1)",
-      "sublabel": "§3 problema y pregunta",
+      "label": "investigador (F1b)",
+      "sublabel": "árboles MGA",
       "sources": [
         {
           "path": ".claude/agents/investigador.md",
           "line": 1,
-          "end_line": 377
+          "end_line": 479
         }
       ],
       "row": 2,
@@ -247,7 +247,7 @@
         {
           "path": ".claude/agents/disenador-tikz.md",
           "line": 1,
-          "end_line": 135
+          "end_line": 148
         }
       ],
       "row": 2,
@@ -296,19 +296,57 @@
       ]
     },
     {
-      "id": "gate1",
+      "id": "gate1b",
       "type": "security",
-      "label": "GATE G1",
-      "sublabel": "aprobacion problema",
+      "label": "GATE G1b",
+      "sublabel": "aprobacion arboles",
       "sources": [
         {
           "path": ".claude/commands/propuesta.md",
-          "line": 140,
-          "end_line": 170
+          "line": 836,
+          "end_line": 870
         }
       ],
       "row": 2,
       "col": 4,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "mgaRes",
+      "type": "backend",
+      "label": "investigador (F1)",
+      "sublabel": "MGA resumido y §3",
+      "sources": [
+        {
+          "path": ".claude/agents/investigador.md",
+          "line": 1,
+          "end_line": 479
+        }
+      ],
+      "row": 3,
+      "col": 0,
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "gate1",
+      "type": "security",
+      "label": "GATE G1",
+      "sublabel": "aprobacion MGA y §3",
+      "sources": [
+        {
+          "path": ".claude/commands/propuesta.md",
+          "line": 990,
+          "end_line": 1040
+        }
+      ],
+      "row": 3,
+      "col": 1,
       "size": [
         186,
         58
@@ -323,10 +361,10 @@
         {
           "path": ".claude/agents/bibliografo-propuesta.md",
           "line": 1,
-          "end_line": 528
+          "end_line": 538
         }
       ],
-      "row": 3,
+      "row": 4,
       "col": 0,
       "size": [
         186,
@@ -342,10 +380,10 @@
         {
           "path": ".claude/agents/investigador.md",
           "line": 1,
-          "end_line": 377
+          "end_line": 479
         }
       ],
-      "row": 3,
+      "row": 4,
       "col": 1,
       "size": [
         186,
@@ -361,10 +399,10 @@
         {
           "path": ".claude/agents/disenador-tikz.md",
           "line": 1,
-          "end_line": 135
+          "end_line": 148
         }
       ],
-      "row": 3,
+      "row": 4,
       "col": 2,
       "size": [
         186,
@@ -383,7 +421,7 @@
           "end_line": 210
         }
       ],
-      "row": 3,
+      "row": 4,
       "col": 3,
       "size": [
         186,
@@ -399,10 +437,10 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 259
+          "end_line": 281
         }
       ],
-      "row": 4,
+      "row": 5,
       "col": 0,
       "size": [
         186,
@@ -421,7 +459,7 @@
           "end_line": 86
         }
       ],
-      "row": 4,
+      "row": 5,
       "col": 1,
       "size": [
         186,
@@ -440,7 +478,7 @@
           "end_line": 235
         }
       ],
-      "row": 4,
+      "row": 5,
       "col": 2,
       "size": [
         186,
@@ -456,10 +494,10 @@
         {
           "path": ".claude/agents/investigador.md",
           "line": 1,
-          "end_line": 377
+          "end_line": 479
         }
       ],
-      "row": 4,
+      "row": 5,
       "col": 3,
       "size": [
         186,
@@ -478,7 +516,7 @@
           "end_line": 260
         }
       ],
-      "row": 4,
+      "row": 5,
       "col": 4,
       "size": [
         186,
@@ -494,10 +532,10 @@
         {
           "path": ".claude/agents/investigador.md",
           "line": 1,
-          "end_line": 377
+          "end_line": 479
         }
       ],
-      "row": 5,
+      "row": 6,
       "col": 0,
       "size": [
         186,
@@ -513,10 +551,10 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 259
+          "end_line": 281
         }
       ],
-      "row": 5,
+      "row": 6,
       "col": 1,
       "size": [
         186,
@@ -535,7 +573,7 @@
           "end_line": 290
         }
       ],
-      "row": 5,
+      "row": 6,
       "col": 2,
       "size": [
         186,
@@ -551,10 +589,10 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 259
+          "end_line": 281
         }
       ],
-      "row": 6,
+      "row": 7,
       "col": 0,
       "size": [
         186,
@@ -570,10 +608,10 @@
         {
           "path": ".claude/agents/disenador-tikz.md",
           "line": 1,
-          "end_line": 135
+          "end_line": 148
         }
       ],
-      "row": 6,
+      "row": 7,
       "col": 1,
       "size": [
         186,
@@ -592,7 +630,7 @@
           "end_line": 86
         }
       ],
-      "row": 6,
+      "row": 7,
       "col": 2,
       "size": [
         186,
@@ -611,7 +649,7 @@
           "end_line": 320
         }
       ],
-      "row": 6,
+      "row": 7,
       "col": 3,
       "size": [
         186,
@@ -627,10 +665,10 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 259
+          "end_line": 281
         }
       ],
-      "row": 7,
+      "row": 8,
       "col": 0,
       "size": [
         186,
@@ -646,10 +684,10 @@
         {
           "path": ".claude/agents/presupuestador.md",
           "line": 1,
-          "end_line": 130
+          "end_line": 138
         }
       ],
-      "row": 7,
+      "row": 8,
       "col": 1,
       "size": [
         186,
@@ -668,7 +706,7 @@
           "end_line": 350
         }
       ],
-      "row": 7,
+      "row": 8,
       "col": 2,
       "size": [
         186,
@@ -684,10 +722,10 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 259
+          "end_line": 281
         }
       ],
-      "row": 7,
+      "row": 8,
       "col": 3,
       "size": [
         186,
@@ -703,10 +741,10 @@
         {
           "path": ".claude/agents/bibliografo-propuesta.md",
           "line": 1,
-          "end_line": 528
+          "end_line": 538
         }
       ],
-      "row": 7,
+      "row": 8,
       "col": 4,
       "size": [
         186,
@@ -722,10 +760,10 @@
         {
           "path": ".claude/agents/redactor.md",
           "line": 1,
-          "end_line": 259
+          "end_line": 281
         }
       ],
-      "row": 8,
+      "row": 9,
       "col": 0,
       "size": [
         186,
@@ -744,7 +782,7 @@
           "end_line": 390
         }
       ],
-      "row": 8,
+      "row": 9,
       "col": 1,
       "size": [
         186,
@@ -760,10 +798,10 @@
         {
           "path": ".claude/agents/revisor.md",
           "line": 1,
-          "end_line": 203
+          "end_line": 224
         }
       ],
-      "row": 8,
+      "row": 9,
       "col": 2,
       "size": [
         186,
@@ -782,7 +820,7 @@
           "end_line": 420
         }
       ],
-      "row": 8,
+      "row": 9,
       "col": 3,
       "size": [
         186,
@@ -798,10 +836,10 @@
         {
           "path": ".claude/agents/coordinador-propuesta.md",
           "line": 1,
-          "end_line": 207
+          "end_line": 222
         }
       ],
-      "row": 8,
+      "row": 9,
       "col": 4,
       "size": [
         186,
@@ -820,7 +858,7 @@
           "end_line": 40
         }
       ],
-      "row": 9,
+      "row": 10,
       "col": 0,
       "size": [
         186,
@@ -839,7 +877,7 @@
           "end_line": 125
         }
       ],
-      "row": 9,
+      "row": 10,
       "col": 1,
       "size": [
         186,
@@ -858,7 +896,7 @@
           "end_line": 40
         }
       ],
-      "row": 9,
+      "row": 10,
       "col": 2,
       "size": [
         186,
@@ -877,7 +915,7 @@
           "end_line": 40
         }
       ],
-      "row": 9,
+      "row": 10,
       "col": 3,
       "size": [
         186,
@@ -896,7 +934,7 @@
           "end_line": 60
         }
       ],
-      "row": 9,
+      "row": 10,
       "col": 4,
       "size": [
         186,
@@ -915,7 +953,7 @@
           "end_line": 30
         }
       ],
-      "row": 10,
+      "row": 11,
       "col": 0,
       "size": [
         186,
@@ -934,7 +972,7 @@
           "end_line": 30
         }
       ],
-      "row": 10,
+      "row": 11,
       "col": 1,
       "size": [
         186,
@@ -953,7 +991,7 @@
           "end_line": 50
         }
       ],
-      "row": 10,
+      "row": 11,
       "col": 2,
       "size": [
         186,
@@ -972,7 +1010,7 @@
           "end_line": 190
         }
       ],
-      "row": 10,
+      "row": 11,
       "col": 3,
       "size": [
         186,
@@ -1004,18 +1042,26 @@
     },
     {
       "kind": "region",
-      "label": "2 · Problema & TikZ (Fase 1)",
+      "label": "2 · Árboles MGA (Fase 1b)",
       "wraps": [
         "invProb",
         "tikzTree",
         "figEngine",
         "revFig",
+        "gate1b"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "3 · MGA resumido & Problema (Fase 1)",
+      "wraps": [
+        "mgaRes",
         "gate1"
       ]
     },
     {
       "kind": "region",
-      "label": "3 · SOTA & Hipótesis (Fase 2)",
+      "label": "4 · SOTA & Hipótesis (Fase 2)",
       "wraps": [
         "bibSota",
         "invHip",
@@ -1025,7 +1071,7 @@
     },
     {
       "kind": "region",
-      "label": "4 · Justificación & Objetivos (Fases 3 y 4)",
+      "label": "5 · Justificación & Objetivos (Fases 3 y 4)",
       "wraps": [
         "redJust",
         "audJust",
@@ -1036,7 +1082,7 @@
     },
     {
       "kind": "region",
-      "label": "5 · Marco & Equipo (Fase 5)",
+      "label": "6 · Marco & Equipo (Fase 5)",
       "wraps": [
         "invMarco",
         "redEquipo",
@@ -1045,7 +1091,7 @@
     },
     {
       "kind": "region",
-      "label": "6 · Metodología & Diagrama (Fase 5.5)",
+      "label": "7 · Metodología & Diagrama (Fase 5.5)",
       "wraps": [
         "redMet",
         "tikzMet",
@@ -1055,7 +1101,7 @@
     },
     {
       "kind": "region",
-      "label": "7 · Resultados, Presupuesto & Gantt (Fase 6)",
+      "label": "8 · Resultados, Presupuesto & Gantt (Fase 6)",
       "wraps": [
         "redRes",
         "presup",
@@ -1066,7 +1112,7 @@
     },
     {
       "kind": "region",
-      "label": "8 · Front-Matter & Ensamble (Fases 6.5 y 7)",
+      "label": "9 · Front-Matter & Ensamble (Fases 6.5 y 7)",
       "wraps": [
         "redFront",
         "gate65",
@@ -1077,7 +1123,7 @@
     },
     {
       "kind": "region",
-      "label": "9 · Command Center & Grafos",
+      "label": "10 · Command Center & Grafos",
       "wraps": [
         "uiServer",
         "cbmMcp",
@@ -1145,7 +1191,7 @@
       "id": "gate05-invProb",
       "from": "gate05",
       "to": "invProb",
-      "label": "Fase 1",
+      "label": "Fase 1b",
       "variant": "emphasis"
     },
     {
@@ -1164,8 +1210,21 @@
       "to": "revFig"
     },
     {
-      "id": "revFig-gate1",
+      "id": "revFig-gate1b",
       "from": "revFig",
+      "to": "gate1b",
+      "variant": "security"
+    },
+    {
+      "id": "gate1b-mgaRes",
+      "from": "gate1b",
+      "to": "mgaRes",
+      "label": "Fase 1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "mgaRes-gate1",
+      "from": "mgaRes",
       "to": "gate1",
       "variant": "security"
     },
@@ -1365,8 +1424,9 @@
       "items": [
         "Fase 0: Ingesta, clasificación y extracción de insumos del usuario para estructurar el contexto compartido.",
         "Fase 1a: Búsqueda bibliográfica de encuadre en el grafo para delimitar alcance y postular tres subproblemas.",
-        "Fase 1b: Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo referencias semilla e indexando.",
-        "Fase 1: Redacción de la descripción del problema (§3), formulación de la pregunta central y árbol TikZ."
+        "Fase 1b: Árbol de problemas y árbol de objetivos con las reglas MGA, en ambos flujos, y figura TikZ del árbol.",
+        "Fase 1c: Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo referencias semilla e indexando.",
+        "Fase 1: MGA resumido (problema central, contexto, causas y magnitud con línea base) y §3 derivada de él."
       ]
     },
     {

@@ -8,7 +8,8 @@ y no en el tablero.
 
 Antes de este módulo el mismo modelo estaba escrito tres veces y las tres se
 contradecían: la lista canónica de `status.py` no tenía `G1a` ni `G1b`, que la
-corrida de referencia sí pasó, y en su lugar llevaba `G6` y `G6.45`, que la tabla
+corrida de referencia sí pasó (hoy `G1b` es la compuerta de los árboles y
+`G1c` la del corpus SOTA), y en su lugar llevaba `G6` y `G6.45`, que la tabla
 declara sin compuerta. El `13/13` que reportaba la corrida era la coincidencia de
 dos treces distintos.
 """
@@ -36,16 +37,22 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "criteria": "Bibliografía de encuadre, scoping en codebase-memory y subproblemas tempranos mutuamente excluyentes.",
     },
     "G1b": {
-        "name": "Corpus SOTA y Semilla Bibliográfica",
+        "name": "Árbol de Problemas y Árbol de Objetivos",
         "phase": "Fase 1b",
+        "reviewer": "Revisor",
+        "criteria": "Árbol de problemas y árbol de objetivos con las reglas MGA, sin hallazgos de error en check_run.",
+    },
+    "G1c": {
+        "name": "Corpus SOTA y Semilla Bibliográfica",
+        "phase": "Fase 1c",
         "reviewer": "Revisor",
         "criteria": "Corpus Q1/Q2 expandido, WRITE-REFS y los índices del vault construidos una sola vez.",
     },
     "G1": {
-        "name": "Árbol de Problemas y Pregunta",
+        "name": "MGA Resumido y Descripción del Problema",
         "phase": "Fase 1",
         "reviewer": "Revisor",
-        "criteria": "Subproblemas mutuamente excluyentes y árbol TikZ verificado.",
+        "criteria": "MGA resumido con problema central, contexto, causas, magnitud y tabla de indicadores; §3 derivada de él.",
     },
     "G2": {
         "name": "Estado del Arte e Hipótesis",
@@ -192,9 +199,20 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
     {
         "id": "fase1b",
         "kind": "step",
+        "name": "Árbol de problemas y árbol de objetivos",
+        "desc": "Construcción del árbol de problemas a partir de los subproblemas y de su espejo positivo, el árbol de objetivos, con las reglas de la MGA en ambos flujos; la figura TikZ del árbol se valida en el bucle de figuras.",
+        "gate": "G1b",
+        "sections": [],
+        "agents": ["investigador", "disenador-tikz", "revisor-figuras", "revisor"],
+        "skills": [],
+        "next": "fase1c",
+    },
+    {
+        "id": "fase1c",
+        "kind": "step",
         "name": "Corpus SOTA y semilla bibliográfica",
         "desc": "Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo las referencias semilla e indexando el grafo de papers y el vault de conocimiento.",
-        "gate": "G1b",
+        "gate": "G1c",
         "sections": [],
         "agents": ["bibliografo-propuesta"],
         "skills": [],
@@ -203,11 +221,11 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
     {
         "id": "fase1",
         "kind": "step",
-        "name": "Problema, pregunta y árbol de problemas",
-        "desc": "Redacción de la descripción del problema (§3), formulación de la pregunta central de investigación y diseño del árbol de problemas validado en TikZ.",
+        "name": "MGA resumido y descripción del problema",
+        "desc": "Redacción del MGA resumido (problema central del árbol, contexto, expansión de las tres causas directas y magnitud con tabla de indicadores de línea base) y, a partir de él, de la descripción del problema (§3) con la pregunta central.",
         "gate": "G1",
         "sections": ["03"],
-        "agents": ["investigador", "grant-flow-auditor", "disenador-tikz", "revisor-figuras", "revisor"],
+        "agents": ["investigador", "grant-flow-auditor", "revisor"],
         "skills": ["estilo-natural-es"],
         "next": "fase2",
     },

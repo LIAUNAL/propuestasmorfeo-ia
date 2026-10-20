@@ -48,6 +48,7 @@ Mapeo id → bloque en `propuesta.md`:
 |-------------|-------------------------------|
 | `fase1a` | Fase 1a [G1a] |
 | `fase1b` | Fase 1b [G1b] |
+| `fase1c` | Fase 1c [G1c] |
 | `fase1` | Fase 1 |
 | `fase2` | Fase 2 |
 | `fase3` | Fase 3 |

@@ -109,7 +109,7 @@ Corré además la verificación de sincronía de los otros puertos (`python3 scr
        estado_propuesta.md        #   estado del pipeline y de cada compuerta
        insumos.md                 #   insumos estructurados por insumos-observador
        pipeline/                  #   log de fases/compuertas (+ _estado.md)
-       scoping/papers/            #   corpus de papers del scoping (G1a/G1b)
+       scoping/papers/            #   corpus de papers del scoping (G1a/G1c)
        vault/                     #   espejo Obsidian: secciones/, insumos/, .cbmignore
      grafos/                      # reportes de codebase-memory (papers y vault)
      redaccion/                   # el proyecto LaTeX
@@ -150,5 +150,5 @@ Corré además la verificación de sincronía de los otros puertos (`python3 scr
 - No borra ni copia contenido de corridas anteriores. Archivar es un cambio de
   estado en `_run.md` + el registro local.
 - No crea índices de `codebase-memory`. Los crea el dispatcher en las Fases
-  1a/1b, con `repo_path` absoluto al corpus (ver "Cómo usar `codebase-memory`"
+  1a/1c, con `repo_path` absoluto al corpus (ver "Cómo usar `codebase-memory`"
   en `propuesta.md`).

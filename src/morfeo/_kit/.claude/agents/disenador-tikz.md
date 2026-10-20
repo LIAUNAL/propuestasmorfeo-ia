@@ -20,7 +20,7 @@ a second (`artefactos/pipeline/30-fase2.md`).
 
 | Diagram | § | Spec you write |
 |---|---|---|
-| Árbol de problemas | §3 | `redaccion/specs/arbol_problemas.spec.json` |
+| Árbol de problemas | §3 (built in Fase 1b from `artefactos/arboles/arbol_problemas.md`) | `redaccion/specs/arbol_problemas.spec.json` |
 | Mapa de estado del arte | §4 | `redaccion/specs/estado_arte.spec.json` — o `estado_arte_a.spec.json` + `estado_arte_b.spec.json` cuando el mapa no cabe en A4 a tamaño natural (ver más abajo) |
 | Diagrama metodológico | §10 | `redaccion/specs/metodologico.spec.json` |
 
