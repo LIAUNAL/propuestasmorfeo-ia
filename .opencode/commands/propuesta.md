@@ -837,7 +837,8 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
 Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         base y SGR, con las reglas MGA de la guía, §3, «Árbol de problemas y
         árbol de objetivos según la MGA»). Corre después de G1a y antes del
-        corpus SOTA, para que el corpus y la Fase 1 partan de los árboles.
+        corpus SOTA, para que la Fase 1 (MGA resumido y §3) parta de los
+        árboles aprobados.
         (a) Task → investigador → contenido del árbol de problemas en
         `artefactos/arboles/arbol_problemas.md` (ver `investigador.md`,
         constraint 14): las causas directas son los 3 subproblemas de G1a
@@ -863,11 +864,20 @@ Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         `arbol-*` de error sobre los dos árboles.
         ──→ GATE Task → revisor ──→ usuario: el operador revisa y aprueba los
         dos árboles en la pestaña de árboles del tablero. NO avances sin
-        aprobación.
+        aprobación. Al aprobar, escribe G1b = APROBADA en
+        `artefactos/estado_propuesta.md` ("Compuertas tempranas" → sub-tabla
+        "G1b — Árboles de problemas y de objetivos": rutas de los dos
+        árboles, problema central, indicador de magnitud del tronco y Estado
+        G1b); la Fase 1 y la Fase 4 leen esa sub-tabla.
         ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
         `artefactos/pipeline/11-fase1b.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
         de uso acumulados de la fase (ver "Telemetría de uso por fase").
+        Compatibilidad con corridas anteriores a este orden: si
+        `artefactos/estado_propuesta.md` ya trae la sub-tabla
+        "G1b — Corpus y subsecciones SOTA" en APROBADA, el corpus ya se hizo;
+        trátala como G1c = APROBADA, no repitas la Fase 1c y corre la Fase 1b
+        (árboles) antes de la Fase 1.
 Fase 1c [COMPUERTA COMBINADA G1c] Expansión de corpus SOTA: se ejecuta
         siempre que la Fase 1a cerró con G1a = APROBADA (ver
         `artefactos/estado_propuesta.md`, sub-tabla "G1a — Scoping temprano");
@@ -1012,8 +1022,9 @@ Fase 1  (en AMBAS rutas) Task → bibliografo-propuesta MODE=explore → mapa de
         Este mismo investigador escribe PRIMERO el MGA resumido,
         `artefactos/mga_resumido.md` (estructura exacta en `investigador.md`,
         constraint 15), a partir de los dos árboles aprobados en G1b
-        (`artefactos/arboles/arbol_problemas.md` y
-        `redaccion/specs/arbol_problemas.spec.json`, que inyecta inline): el
+        (el de problemas, `artefactos/arboles/arbol_problemas.md` y
+        `redaccion/specs/arbol_problemas.spec.json`, y el de objetivos,
+        `artefactos/arboles/arbol_objetivos.json`, que inyecta inline): el
         problema central copiado textual del tronco, el contexto general,
         un párrafo por cada causa directa y la magnitud del problema con su
         tabla de indicadores, resaltando el indicador de línea base que el

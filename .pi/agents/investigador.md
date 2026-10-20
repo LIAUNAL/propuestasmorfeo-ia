@@ -258,6 +258,11 @@ You no longer own a section by that name.
    - **Magnitud del problema:** find figures that support each direct cause,
      to build the baseline indicator. Choose the baseline indicator from the
      problem tree and the causes: the most flexible and easiest to quantify.
+     Start from the trunk `magnitude` approved at G1b; if the figures point
+     to a better indicator, update `trunk.magnitude` in
+     `redaccion/specs/arbol_problemas.spec.json`, re-run
+     `python3 scripts/figura.py arbol_problemas` and say so in your return,
+     so that the operator re-approves the problem tree.
      For applied-AI projects, align it with the platform. Write 2 to 3
      paragraphs that develop this. Every figure carries its source (author or
      entity, year, link or document in `insumos/`); never invent a figure,
