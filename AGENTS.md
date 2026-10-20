@@ -44,6 +44,17 @@ proyecto portable creado con `marco init`. En ese modo:
 Referencia completa del CLI (comandos, flags, entorno, manifest) en
 [`docs/marco-cli.md`](docs/marco-cli.md).
 
+### Flujo SGR (`morfeo init --sgr`)
+
+Un proyecto creado con `--sgr` guarda `"flujo": "sgr"` en
+`.morfeo/config.json` (sin la clave, el flujo es `base`). El flujo base sigue
+igual; el SGR le suma el complemento `guiaProyectosIA_Agente_Regalias.md`
+(metodología MGA del DNP para el Sistema General de Regalías), que el dispatcher
+inyecta como bloques `### SGR §N` en los fragmentos de guía, y la Fase 6.47 con
+los anexos MGA 19 a 25. Los árboles de problemas y de objetivos siguen la MGA
+en **ambos** flujos (guía, §3); en el SGR, además, §6 y §7 copian literalmente
+el árbol de objetivos.
+
 ## Reglas globales
 
 1. **Idioma:** Los *system prompts* de los agentes están en inglés, pero toda
