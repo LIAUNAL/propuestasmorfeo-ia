@@ -9,7 +9,7 @@
       "url": "https://github.com/LIAUNAL/propuestasmorfeo-ia",
       "provider": "github",
       "link_mode": "web",
-      "revision": "45d1c2bce14aaf678e4beac4b94e26503d978735"
+      "revision": "74ab9344f9c74b1f8f19a8cc699aad7217d9c064"
     },
     "legend": {
       "mode": "auto",
@@ -326,8 +326,8 @@
           "end_line": 479
         }
       ],
-      "row": 2,
-      "col": 5,
+      "row": 3,
+      "col": 0,
       "size": [
         186,
         58
@@ -345,8 +345,8 @@
           "end_line": 1040
         }
       ],
-      "row": 2,
-      "col": 6,
+      "row": 3,
+      "col": 1,
       "size": [
         186,
         58
@@ -364,7 +364,7 @@
           "end_line": 538
         }
       ],
-      "row": 3,
+      "row": 4,
       "col": 0,
       "size": [
         186,
@@ -383,7 +383,7 @@
           "end_line": 479
         }
       ],
-      "row": 3,
+      "row": 4,
       "col": 1,
       "size": [
         186,
@@ -402,7 +402,7 @@
           "end_line": 148
         }
       ],
-      "row": 3,
+      "row": 4,
       "col": 2,
       "size": [
         186,
@@ -421,7 +421,7 @@
           "end_line": 210
         }
       ],
-      "row": 3,
+      "row": 4,
       "col": 3,
       "size": [
         186,
@@ -440,7 +440,7 @@
           "end_line": 281
         }
       ],
-      "row": 4,
+      "row": 5,
       "col": 0,
       "size": [
         186,
@@ -459,7 +459,7 @@
           "end_line": 86
         }
       ],
-      "row": 4,
+      "row": 5,
       "col": 1,
       "size": [
         186,
@@ -478,7 +478,7 @@
           "end_line": 235
         }
       ],
-      "row": 4,
+      "row": 5,
       "col": 2,
       "size": [
         186,
@@ -497,7 +497,7 @@
           "end_line": 479
         }
       ],
-      "row": 4,
+      "row": 5,
       "col": 3,
       "size": [
         186,
@@ -516,7 +516,7 @@
           "end_line": 260
         }
       ],
-      "row": 4,
+      "row": 5,
       "col": 4,
       "size": [
         186,
@@ -535,7 +535,7 @@
           "end_line": 479
         }
       ],
-      "row": 5,
+      "row": 6,
       "col": 0,
       "size": [
         186,
@@ -554,7 +554,7 @@
           "end_line": 281
         }
       ],
-      "row": 5,
+      "row": 6,
       "col": 1,
       "size": [
         186,
@@ -573,7 +573,7 @@
           "end_line": 290
         }
       ],
-      "row": 5,
+      "row": 6,
       "col": 2,
       "size": [
         186,
@@ -592,7 +592,7 @@
           "end_line": 281
         }
       ],
-      "row": 6,
+      "row": 7,
       "col": 0,
       "size": [
         186,
@@ -611,7 +611,7 @@
           "end_line": 148
         }
       ],
-      "row": 6,
+      "row": 7,
       "col": 1,
       "size": [
         186,
@@ -630,7 +630,7 @@
           "end_line": 86
         }
       ],
-      "row": 6,
+      "row": 7,
       "col": 2,
       "size": [
         186,
@@ -649,7 +649,7 @@
           "end_line": 320
         }
       ],
-      "row": 6,
+      "row": 7,
       "col": 3,
       "size": [
         186,
@@ -668,7 +668,7 @@
           "end_line": 281
         }
       ],
-      "row": 7,
+      "row": 8,
       "col": 0,
       "size": [
         186,
@@ -687,7 +687,7 @@
           "end_line": 138
         }
       ],
-      "row": 7,
+      "row": 8,
       "col": 1,
       "size": [
         186,
@@ -706,7 +706,7 @@
           "end_line": 350
         }
       ],
-      "row": 7,
+      "row": 8,
       "col": 2,
       "size": [
         186,
@@ -725,7 +725,7 @@
           "end_line": 281
         }
       ],
-      "row": 7,
+      "row": 8,
       "col": 3,
       "size": [
         186,
@@ -744,7 +744,7 @@
           "end_line": 538
         }
       ],
-      "row": 7,
+      "row": 8,
       "col": 4,
       "size": [
         186,
@@ -763,7 +763,7 @@
           "end_line": 281
         }
       ],
-      "row": 8,
+      "row": 9,
       "col": 0,
       "size": [
         186,
@@ -782,7 +782,7 @@
           "end_line": 390
         }
       ],
-      "row": 8,
+      "row": 9,
       "col": 1,
       "size": [
         186,
@@ -801,7 +801,7 @@
           "end_line": 224
         }
       ],
-      "row": 8,
+      "row": 9,
       "col": 2,
       "size": [
         186,
@@ -820,7 +820,7 @@
           "end_line": 420
         }
       ],
-      "row": 8,
+      "row": 9,
       "col": 3,
       "size": [
         186,
@@ -839,7 +839,7 @@
           "end_line": 222
         }
       ],
-      "row": 8,
+      "row": 9,
       "col": 4,
       "size": [
         186,
@@ -858,7 +858,7 @@
           "end_line": 40
         }
       ],
-      "row": 9,
+      "row": 10,
       "col": 0,
       "size": [
         186,
@@ -877,7 +877,7 @@
           "end_line": 125
         }
       ],
-      "row": 9,
+      "row": 10,
       "col": 1,
       "size": [
         186,
@@ -896,7 +896,7 @@
           "end_line": 40
         }
       ],
-      "row": 9,
+      "row": 10,
       "col": 2,
       "size": [
         186,
@@ -915,7 +915,7 @@
           "end_line": 40
         }
       ],
-      "row": 9,
+      "row": 10,
       "col": 3,
       "size": [
         186,
@@ -934,7 +934,7 @@
           "end_line": 60
         }
       ],
-      "row": 9,
+      "row": 10,
       "col": 4,
       "size": [
         186,
@@ -953,7 +953,7 @@
           "end_line": 30
         }
       ],
-      "row": 10,
+      "row": 11,
       "col": 0,
       "size": [
         186,
@@ -972,7 +972,7 @@
           "end_line": 30
         }
       ],
-      "row": 10,
+      "row": 11,
       "col": 1,
       "size": [
         186,
@@ -991,7 +991,7 @@
           "end_line": 50
         }
       ],
-      "row": 10,
+      "row": 11,
       "col": 2,
       "size": [
         186,
@@ -1010,7 +1010,7 @@
           "end_line": 190
         }
       ],
-      "row": 10,
+      "row": 11,
       "col": 3,
       "size": [
         186,
@@ -1042,20 +1042,26 @@
     },
     {
       "kind": "region",
-      "label": "2 · Árboles y MGA resumido (Fases 1b y 1)",
+      "label": "2 · Árboles MGA (Fase 1b)",
       "wraps": [
         "invProb",
         "tikzTree",
         "figEngine",
         "revFig",
-        "gate1b",
+        "gate1b"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "3 · MGA resumido & Problema (Fase 1)",
+      "wraps": [
         "mgaRes",
         "gate1"
       ]
     },
     {
       "kind": "region",
-      "label": "3 · SOTA & Hipótesis (Fase 2)",
+      "label": "4 · SOTA & Hipótesis (Fase 2)",
       "wraps": [
         "bibSota",
         "invHip",
@@ -1065,7 +1071,7 @@
     },
     {
       "kind": "region",
-      "label": "4 · Justificación & Objetivos (Fases 3 y 4)",
+      "label": "5 · Justificación & Objetivos (Fases 3 y 4)",
       "wraps": [
         "redJust",
         "audJust",
@@ -1076,7 +1082,7 @@
     },
     {
       "kind": "region",
-      "label": "5 · Marco & Equipo (Fase 5)",
+      "label": "6 · Marco & Equipo (Fase 5)",
       "wraps": [
         "invMarco",
         "redEquipo",
@@ -1085,7 +1091,7 @@
     },
     {
       "kind": "region",
-      "label": "6 · Metodología & Diagrama (Fase 5.5)",
+      "label": "7 · Metodología & Diagrama (Fase 5.5)",
       "wraps": [
         "redMet",
         "tikzMet",
@@ -1095,7 +1101,7 @@
     },
     {
       "kind": "region",
-      "label": "7 · Resultados, Presupuesto & Gantt (Fase 6)",
+      "label": "8 · Resultados, Presupuesto & Gantt (Fase 6)",
       "wraps": [
         "redRes",
         "presup",
@@ -1106,7 +1112,7 @@
     },
     {
       "kind": "region",
-      "label": "8 · Front-Matter & Ensamble (Fases 6.5 y 7)",
+      "label": "9 · Front-Matter & Ensamble (Fases 6.5 y 7)",
       "wraps": [
         "redFront",
         "gate65",
@@ -1117,7 +1123,7 @@
     },
     {
       "kind": "region",
-      "label": "9 · Command Center & Grafos",
+      "label": "10 · Command Center & Grafos",
       "wraps": [
         "uiServer",
         "cbmMcp",

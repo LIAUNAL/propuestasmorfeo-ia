@@ -344,8 +344,8 @@ const nodes = [
   n('figEngine', 'f1', 2, 'messagebus', 'figura.py', 'render y auditoria', { sources: S('plantilla/scripts/figura.py', 1, 50) }),
   n('revFig', 'f1', 3, 'backend', 'revisor-figuras', 'criterios visuales PNG', { sources: A('revisor-figuras') }),
   n('gate1b', 'f1', 4, 'security', 'GATE G1b', 'aprobacion arboles', { sources: S('.claude/commands/propuesta.md', 836, 870) }),
-  n('mgaRes', 'f1', 5, 'backend', 'investigador (F1)', 'MGA resumido y §3', { sources: A('investigador') }),
-  n('gate1', 'f1', 6, 'security', 'GATE G1', 'aprobacion MGA y §3', { sources: S('.claude/commands/propuesta.md', 990, 1040) }),
+  n('mgaRes', 'f1m', 0, 'backend', 'investigador (F1)', 'MGA resumido y §3', { sources: A('investigador') }),
+  n('gate1', 'f1m', 1, 'security', 'GATE G1', 'aprobacion MGA y §3', { sources: S('.claude/commands/propuesta.md', 990, 1040) }),
 
   // Lane f2: 3 · SOTA & Hipótesis
   n('bibSota', 'f2', 0, 'backend', 'bibliografo-propuesta', '§4 SOTA (≥39 refs Q1/Q2)', { sources: A('bibliografo-propuesta') }),
@@ -484,14 +484,15 @@ const edges = [
 const lanes = [
   ['cli', '0 · Morfeo CLI & Workspace'],
   ['f0', '1 · Ingesta & TDR (Fase 0)'],
-  ['f1', '2 · Árboles y MGA resumido (Fases 1b y 1)'],
-  ['f2', '3 · SOTA & Hipótesis (Fase 2)'],
-  ['f34', '4 · Justificación & Objetivos (Fases 3 y 4)'],
-  ['f5', '5 · Marco & Equipo (Fase 5)'],
-  ['f55', '6 · Metodología & Diagrama (Fase 5.5)'],
-  ['f6', '7 · Resultados, Presupuesto & Gantt (Fase 6)'],
-  ['f657', '8 · Front-Matter & Ensamble (Fases 6.5 y 7)'],
-  ['dash', '9 · Command Center & Grafos'],
+  ['f1', '2 · Árboles MGA (Fase 1b)'],
+  ['f1m', '3 · MGA resumido & Problema (Fase 1)'],
+  ['f2', '4 · SOTA & Hipótesis (Fase 2)'],
+  ['f34', '5 · Justificación & Objetivos (Fases 3 y 4)'],
+  ['f5', '6 · Marco & Equipo (Fase 5)'],
+  ['f55', '7 · Metodología & Diagrama (Fase 5.5)'],
+  ['f6', '8 · Resultados, Presupuesto & Gantt (Fase 6)'],
+  ['f657', '9 · Front-Matter & Ensamble (Fases 6.5 y 7)'],
+  ['dash', '10 · Command Center & Grafos'],
   ['quality', 'Transversal · Calidad & Telemetría'],
 ].map(([id, label]) => ({ id, label }));
 
@@ -521,7 +522,7 @@ export const doc = {
       url: 'https://github.com/LIAUNAL/propuestasmorfeo-ia',
       provider: 'github',
       link_mode: 'web',
-      revision: '45d1c2bce14aaf678e4beac4b94e26503d978735',
+      revision: '74ab9344f9c74b1f8f19a8cc699aad7217d9c064',
     },
     legend: {
       mode: 'auto',
