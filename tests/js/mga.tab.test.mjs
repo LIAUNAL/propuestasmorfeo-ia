@@ -83,3 +83,12 @@ test('navegar a la pestaña dispara la carga', async (t) => {
   await flush();
   assert.ok(requests.some(u => u.includes('mga_resumido.md')));
 });
+
+test('un error que no es 404 se informa como error, no como archivo ausente', async (t) => {
+  const { viewer } = await harness(t, () => text('boom', 500));
+  await viewer.viewer('loadMgaResumido');
+  await flush();
+  const box = viewer.document.getElementById('mgaContent');
+  assert.match(box.textContent, /HTTP 500/);
+  assert.doesNotMatch(box.textContent, /Aún no hay/);
+});

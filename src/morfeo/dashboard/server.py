@@ -67,6 +67,9 @@ def parse_telemetria(telemetria_file: Path) -> list[dict[str, Any]]:
     return rows
 
 
+BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
+
+
 class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
     workspace_dir: Path
 
@@ -155,7 +158,12 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
-        self.send_header("Cache-Control", "public, max-age=3600")
+        # The brand images share paths with other local dashboards; revalidate
+        # them so a port reused by another tool never shows its cached icon.
+        if target.name in BRAND_ASSETS:
+            self.send_header("Cache-Control", "no-cache")
+        else:
+            self.send_header("Cache-Control", "public, max-age=3600")
         self.end_headers()
         self.wfile.write(content)
 
@@ -172,7 +180,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
-        self.send_header("Cache-Control", "public, max-age=86400")
+        self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         self.wfile.write(content)
 

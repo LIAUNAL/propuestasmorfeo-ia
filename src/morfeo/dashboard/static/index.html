@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo</title>
-  <link rel="icon" type="image/png" sizes="128x128" href="/static/favicon.png">
-  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="128x128" href="/static/favicon.png?app=morfeo">
+  <link rel="shortcut icon" href="/favicon.ico?app=morfeo">
   <link rel="stylesheet" href="/static/vendor/pdf_viewer.min.css">
   <link rel="stylesheet" href="/static/vendor/xterm.css">
   <script src="/static/vendor/pdf.min.js"></script>
@@ -2266,7 +2266,7 @@
   <header class="topbar">
     <div class="topbar__brand">
       <div class="topbar__avatar-wrap" title="Morfeo IA: Orquestador de Formulación Científica en IA">
-        <img src="/static/morfeo-logo.png" alt="Morfeo IA" class="topbar__avatar">
+        <img src="/static/morfeo-logo.png?app=morfeo" alt="Morfeo IA" class="topbar__avatar">
       </div>
       <div class="topbar__title">
         <h1 id="topbarProjectTitle" title="Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo">Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo</h1>
@@ -2945,7 +2945,7 @@
   <!-- Botón Flotante Asistente Morfeo (FAB) -->
   <div id="morfeoAssistantFab" class="morfeo-fab" onclick="toggleMorfeoTerminal()" title="Abrir Asistente CLI Morfeo">
     <div class="morfeo-fab__pulse"></div>
-    <img src="/static/morfeo-logo.png" alt="Morfeo CLI" class="morfeo-fab__logo">
+    <img src="/static/morfeo-logo.png?app=morfeo" alt="Morfeo CLI" class="morfeo-fab__logo">
     <span class="morfeo-fab__badge" id="morfeoFabBadge">CLI</span>
   </div>
 
@@ -2989,7 +2989,7 @@
   <div id="morfeoTerminalWindow" class="morfeo-terminal-window">
     <div class="morfeo-terminal-header">
       <div class="morfeo-terminal-title">
-        <img src="/static/morfeo-logo.png" alt="Morfeo" class="morfeo-terminal-logo">
+        <img src="/static/morfeo-logo.png?app=morfeo" alt="Morfeo" class="morfeo-terminal-logo">
         <span>Asistente CLI Morfeo</span>
         <span class="terminal-status-dot" id="terminalStatusDot" title="Desconectado"></span>
       </div>
@@ -4108,8 +4108,12 @@
       if (!box) return;
       try {
         const res = await fetch(`/api/artifact?file=${encodeURIComponent(MGA_FILE)}`);
-        if (!res.ok) {
+        if (res.status === 404) {
           box.innerHTML = `<p>Aún no hay MGA resumido. La Fase 1 lo escribe en <code>${MGA_FILE}</code> a partir de los árboles aprobados en G1b, antes de redactar §3.</p>`;
+          return;
+        }
+        if (!res.ok) {
+          box.textContent = `Error al leer ${MGA_FILE}: HTTP ${res.status}`;
           return;
         }
         box.innerHTML = renderMarkdown(await res.text());
