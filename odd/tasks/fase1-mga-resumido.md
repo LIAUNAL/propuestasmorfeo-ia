@@ -41,7 +41,7 @@ Branch: `feat/fase1-mga-resumido`. Delivery: ask-on-risk. Runner: `uv run python
 ## Tasks
 
 - [x] T1 (S1, S2, S3) pipeline units, gates, status, prompts (propuesta.md, steps, continuar, agents), docs — route inline — 74ab934, 768cf7f (general flow diagram)
-- [x] T2 (S4, S5) MGA resumido artifact contract, backend route, dashboard tab, tests — route inline — see L5
+- [x] T2 (S4, S5) MGA resumido artifact contract, backend route, dashboard tab, tests — route inline — e05caf0
 
 ## Log
 
