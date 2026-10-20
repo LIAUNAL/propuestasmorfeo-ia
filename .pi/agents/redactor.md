@@ -263,7 +263,11 @@ Leave `gate_status: pending` — the dispatcher (`propuesta.md`) flips it to
 Write each section as a LaTeX file under `redaccion/sections/`. There is no
 §1 file: the title and institutional identification go in
 `redaccion/datos_proyecto.tex`, which the cover block of `main.tex` uses.
-- `redaccion/datos_proyecto.tex` (cover data: title, principal investigator, affiliation)
+- `redaccion/datos_proyecto.tex` (cover data: title, principal investigator, affiliation).
+  SGR flow: `\TituloProyecto` is the general objective with only its first
+  word changed, the infinitive turned into its noun («Fortalecer las
+  capacidades…» → «Fortalecimiento de las capacidades…»); the 12-15 word
+  rule does not apply there (`guiaProyectosIA_Agente_Regalias.md`, item 6).
 - `redaccion/sections/00_frontmatter.tex` (Resumen, Resumen ejecutivo, Palabras clave)
 - `redaccion/sections/02_justificacion.tex`
 - `redaccion/sections/09_equipo_trabajo.tex`

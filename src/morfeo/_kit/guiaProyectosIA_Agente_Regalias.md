@@ -45,6 +45,16 @@ archivo no se lee.
    «Árbol de problemas y árbol de objetivos según la MGA») y aplican en ambos
    flujos. Lo propio del flujo SGR es que §6 y §7 copian literalmente el árbol
    de objetivos.
+6. **Título derivado del objetivo general.** El título del proyecto
+   (`\TituloProyecto` en `redaccion/datos_proyecto.tex`) es el objetivo
+   general cambiando solo la primera palabra: el verbo en infinitivo pasa a su
+   sustantivo, seguido de «de» («Fortalecer las capacidades de infraestructura
+   en la Universidad Nacional» → «Fortalecimiento de las capacidades de
+   infraestructura en la Universidad Nacional»; «Incrementar el
+   aprovechamiento…» → «Incremento del aprovechamiento…»). El resto queda
+   idéntico. En el flujo SGR no aplica la extensión de 12 a 15 palabras de la
+   guía base; `scripts/check_run.py` verifica la derivación
+   (`sgr-titulo-no-derivado`).
 
 ---
 

@@ -19,7 +19,7 @@ SPEC = {
         {"id": "SP1", "title": "SP1 · Uno", "causes": [{"id": "r1", "text": "Causa uno"}, {"id": "r2", "text": "Causa dos"}]},
         {"id": "SP2", "title": "SP2 · Dos", "causes": [{"id": "r3", "text": "Causa tres"}]},
     ],
-    "trunk": {"label": "PROBLEMA CENTRAL", "text": "Problema central de prueba."},
+    "trunk": {"label": "PROBLEMA CENTRAL", "text": "Baja cobertura del servicio de prueba."},
     "branches": [{"id": "b1", "text": "Efecto uno"}],
     "crown": {"label": "SOLUCIÓN", "text": "Sistema propuesto."},
 }
@@ -59,7 +59,7 @@ def write_objectives_sections(run: Path) -> None:
     (sections / "07_objetivos_especificos.tex").write_text(OBJ_ESPECIFICOS, encoding="utf-8")
 
 
-def write_agent_objectives(run: Path, trunk: str = "Resolver el problema central de prueba") -> None:
+def write_agent_objectives(run: Path, trunk: str = "Aumentar la cobertura del servicio de prueba") -> None:
     """Objective tree that mirrors SPEC and follows the SGR rules."""
     arboles = run / "artefactos" / "arboles"
     arboles.mkdir(parents=True, exist_ok=True)
@@ -93,7 +93,7 @@ class TestLoadTrees(unittest.TestCase):
             trees = load_trees(run)
             problem = trees["problem"]
             self.assertTrue(problem["available"])
-            self.assertEqual(problem["tree"]["trunk"]["text"], "Problema central de prueba.")
+            self.assertEqual(problem["tree"]["trunk"]["text"], "Baja cobertura del servicio de prueba.")
             self.assertEqual([g["id"] for g in problem["tree"]["groups"]], ["SP1", "SP2"])
             self.assertEqual(problem["review"]["status"], "pendiente")
             self.assertEqual(trees["stage"], "problemas")
@@ -161,7 +161,7 @@ class TestLoadTrees(unittest.TestCase):
     def test_objective_findings_come_from_the_agent_tree(self):
         with tempfile.TemporaryDirectory() as tmp:
             run = make_run(Path(tmp))
-            write_agent_objectives(run, trunk="Resolver el problema central de prueba mediante un sistema de IA")
+            write_agent_objectives(run, trunk="Aumentar la cobertura del servicio de prueba mediante un sistema de IA")
             codes = {f["code"] for f in load_trees(run)["objectives"]["findings"]}
             self.assertEqual(codes, {"objetivo-general-con-medio"})
 
@@ -290,7 +290,7 @@ class TestReviewCycle(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             run = make_run(Path(tmp))
-            write_agent_objectives(run, trunk="Resolver el problema central de prueba en un 30 %")
+            write_agent_objectives(run, trunk="Aumentar la cobertura del servicio de prueba en un 30 %")
             approve_tree(run, "problemas")
             result = approve_tree(run, "objetivos")
             self.assertFalse(result["ok"])

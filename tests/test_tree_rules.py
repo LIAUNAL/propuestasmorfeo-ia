@@ -199,6 +199,58 @@ class ObjectiveTreeRulesTest(unittest.TestCase):
         self.assertEqual([f["severity"] for f in group], ["warning"])
 
 
+class NegativeQualifierTest(unittest.TestCase):
+    """The central problem opens with a negative qualifier that does not denote a lack."""
+
+    def test_the_central_problem_must_open_with_a_negative_qualifier(self) -> None:
+        for text in ("Problema central del estudio", "Capacidades limitadas de la red hospitalaria",
+                     "Opacidad que impide auditar el modelo"):
+            spec = problem(trunk={"label": "PROBLEMA CENTRAL", "text": text})
+            self.assertIn("arbol-problema-sin-calificativo-negativo", codes(check_run.problem_tree_findings(spec), "error"), text)
+
+    def test_the_qualifiers_of_the_sgr_team_and_the_mga_examples_pass(self) -> None:
+        for text in ("Poca cobertura de la red de monitoreo", "Escasas herramientas de análisis en Caldas",
+                     "Limitadas capacidades de infraestructura en la Universidad Nacional",
+                     "Insuficientes herramientas de diagnóstico temprano", "Deficiente trazabilidad de los lotes",
+                     "Bajo acceso al sistema de educación básica", "Altos niveles de deserción escolar en la zona rural",
+                     "Reducida aplicación de tecnología en el reciclaje", "Inadecuado manejo de residuos en la fuente"):
+            spec = problem(trunk={"label": "PROBLEMA CENTRAL", "text": text})
+            self.assertNotIn("arbol-problema-sin-calificativo-negativo", codes(check_run.problem_tree_findings(spec)), text)
+
+    def test_only_the_central_problem_is_held_to_the_qualifier_rule(self) -> None:
+        spec = problem()
+        spec["groups"][0]["title"] = "SP1 · Opacidad que impide auditar el modelo"
+        spec["branches"][0]["text"] = "Mayor volumen de residuos dispuestos"
+        self.assertNotIn("arbol-problema-sin-calificativo-negativo", codes(check_run.problem_tree_findings(spec)))
+
+
+class SgrTitleTest(unittest.TestCase):
+    """SGR: the title is the general objective with its first verb turned into a noun."""
+
+    def test_a_title_derived_from_the_general_objective_passes(self) -> None:
+        for title, objective in (
+            ("Fortalecimiento de las capacidades de infraestructura en la Universidad Nacional",
+             "Fortalecer las capacidades de infraestructura en la Universidad Nacional"),
+            ("Incremento del aprovechamiento de los residuos sólidos de la zona urbana",
+             "Incrementar el aprovechamiento de los residuos sólidos de la zona urbana"),
+            ("Aumento de las herramientas de diagnóstico", "Aumentar las herramientas de diagnóstico."),
+            ("Reducción de la deserción escolar en la zona rural", "Reducir la deserción escolar en la zona rural"),
+        ):
+            self.assertEqual(check_run.sgr_title_findings(title, objective), [], title)
+
+    def test_a_title_that_changes_more_than_the_first_word_fails(self) -> None:
+        for title in ("Fortalecimiento de infraestructura en la Universidad Nacional",
+                      "Plataforma para fortalecer las capacidades de infraestructura en la Universidad Nacional",
+                      "Desarrollo de las capacidades de infraestructura en la Universidad Nacional"):
+            findings = check_run.sgr_title_findings(
+                title, "Fortalecer las capacidades de infraestructura en la Universidad Nacional")
+            self.assertEqual(codes(findings, "error"), {"sgr-titulo-no-derivado"}, title)
+
+    def test_nothing_to_compare_is_not_a_finding(self) -> None:
+        self.assertEqual(check_run.sgr_title_findings("[Por definir: título del proyecto]", "Fortalecer X"), [])
+        self.assertEqual(check_run.sgr_title_findings("Fortalecimiento de X", ""), [])
+
+
 class SharedVariableTest(unittest.TestCase):
     def test_the_dts_mistake_changes_the_variable(self) -> None:
         ratio = check_run.shared_variable("Altos niveles de deserción educativa en la zona rural",

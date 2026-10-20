@@ -256,6 +256,23 @@ class FlujoTest(unittest.TestCase):
             self.assertNotIn("sgr-objetivo-general-distinto", _codes(findings))
             self.assertNotIn("sgr-objetivos-especificos-distintos", _codes(findings))
 
+    def test_sgr_title_is_the_general_objective_with_its_verb_as_a_noun(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _with_trees(_clean_run(Path(tmp)))
+            datos = root / "redaccion" / "datos_proyecto.tex"
+            _, findings = _run(root, "--flujo", "sgr")
+            self.assertIn("sgr-titulo-no-derivado", _codes(findings, "error"))
+            _, findings = _run(root)
+            self.assertNotIn("sgr-titulo-no-derivado", _codes(findings), "the base flow keeps its own title rule")
+
+            general = SGR_OBJECTIVES["trunk"]["text"]
+            verb, rest = general.split(" ", 1)
+            assert verb == "Aumentar", "fixture changed: adjust the noun below"
+            noun_phrase = "del " + rest[3:] if rest.startswith("el ") else "de " + rest
+            datos.write_text("\\newcommand{\\TituloProyecto}{Aumento " + noun_phrase + "}\n")
+            _, findings = _run(root, "--flujo", "sgr")
+            self.assertNotIn("sgr-titulo-no-derivado", _codes(findings))
+
     def test_base_objective_must_keep_the_tree_variable(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = _with_trees(_clean_run(Path(tmp)))
