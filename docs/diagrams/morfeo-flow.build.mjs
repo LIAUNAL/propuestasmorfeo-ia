@@ -84,11 +84,11 @@ export const NODE_PURPOSES = {
     line2: 'Requiere visto bueno explícito del usuario para autorizar la transición a redacción.'
   },
 
-  // 2 · Problema & TikZ (Fase 1)
+  // 2 · Árboles y MGA resumido (Fases 1b y 1)
   invProb: {
-    title: 'investigador (Fase 1)',
-    line1: 'Formula la descripción contextual del problema (§3) y la pregunta central de investigación.',
-    line2: 'Delimita con precisión técnica los tres subproblemas fundamentales a resolver.'
+    title: 'investigador (Fase 1b)',
+    line1: 'Construye el árbol de problemas desde los tres subproblemas, con las reglas MGA en ambos flujos.',
+    line2: 'Escribe después el árbol de objetivos como espejo positivo que conserva la variable.'
   },
   tikzTree: {
     title: 'disenador-tikz (Árbol)',
@@ -105,10 +105,20 @@ export const NODE_PURPOSES = {
     line1: 'Evalúa criterios visuales sobre el PNG generado: escala, legibilidad, centrado y balance.',
     line2: 'Emite dictamen PASS o transfiere incidencias al optimizador de especificaciones.'
   },
+  gate1b: {
+    title: 'GATE G1b (Árboles)',
+    line1: 'Compuerta de los dos árboles: el operador los revisa y aprueba en la pestaña de árboles.',
+    line2: 'Exige check_run.py sin hallazgos arbol-* de error sobre los dos árboles.'
+  },
+  mgaRes: {
+    title: 'investigador (Fase 1)',
+    line1: 'Redacta el MGA resumido: problema central, contexto, una causa directa por párrafo y magnitud.',
+    line2: 'Deriva de él la descripción del problema (§3) y la pregunta central de investigación.'
+  },
   gate1: {
-    title: 'GATE G1 (Problema)',
-    line1: 'Compuerta formal de validación de la descripción del problema y árbol de causas.',
-    line2: 'Verifica la coherencia estricta entre la pregunta central y los tres subproblemas delimitados.'
+    title: 'GATE G1 (MGA resumido)',
+    line1: 'Compuerta del MGA resumido y de §3: problema central textual del árbol y línea base resaltada.',
+    line2: 'Verifica que §3 conserve la variable, las causas y la magnitud del MGA resumido.'
   },
 
   // 3 · SOTA & Hipótesis (Fase 2)
@@ -329,11 +339,13 @@ const nodes = [
   n('gate05', 'f0', 3, 'security', 'GATE G0.5 (TDR)', 'tabla TDR aprobada', { sources: S('.claude/commands/propuesta.md', 100, 130) }),
 
   // Lane f1: 2 · Problema & TikZ
-  n('invProb', 'f1', 0, 'backend', 'investigador (F1)', '§3 problema y pregunta', { sources: A('investigador') }),
+  n('invProb', 'f1', 0, 'backend', 'investigador (F1b)', 'árboles MGA', { sources: A('investigador') }),
   n('tikzTree', 'f1', 1, 'backend', 'disenador-tikz', 'spec arbol_problemas', { sources: A('disenador-tikz') }),
   n('figEngine', 'f1', 2, 'messagebus', 'figura.py', 'render y auditoria', { sources: S('plantilla/scripts/figura.py', 1, 50) }),
   n('revFig', 'f1', 3, 'backend', 'revisor-figuras', 'criterios visuales PNG', { sources: A('revisor-figuras') }),
-  n('gate1', 'f1', 4, 'security', 'GATE G1', 'aprobacion problema', { sources: S('.claude/commands/propuesta.md', 140, 170) }),
+  n('gate1b', 'f1', 4, 'security', 'GATE G1b', 'aprobacion arboles', { sources: S('.claude/commands/propuesta.md', 836, 870) }),
+  n('mgaRes', 'f1', 5, 'backend', 'investigador (F1)', 'MGA resumido y §3', { sources: A('investigador') }),
+  n('gate1', 'f1', 6, 'security', 'GATE G1', 'aprobacion MGA y §3', { sources: S('.claude/commands/propuesta.md', 990, 1040) }),
 
   // Lane f2: 3 · SOTA & Hipótesis
   n('bibSota', 'f2', 0, 'backend', 'bibliografo-propuesta', '§4 SOTA (≥39 refs Q1/Q2)', { sources: A('bibliografo-propuesta') }),
@@ -409,13 +421,15 @@ const edges = [
   e('cmdAnalizar', 'insumosObs'),
   e('insumosObs', 'insumosMd'),
   e('insumosMd', 'gate05', null, { variant: 'security' }),
-  e('gate05', 'invProb', 'Fase 1', main),
+  e('gate05', 'invProb', 'Fase 1b', main),
 
   // Fase 1 Problema
   e('invProb', 'tikzTree'),
   e('tikzTree', 'figEngine'),
   e('figEngine', 'revFig'),
-  e('revFig', 'gate1', null, { variant: 'security' }),
+  e('revFig', 'gate1b', null, { variant: 'security' }),
+  e('gate1b', 'mgaRes', 'Fase 1', main),
+  e('mgaRes', 'gate1', null, { variant: 'security' }),
   e('gate1', 'bibSota', 'Fase 2', main),
 
   // Fase 2 SOTA
@@ -470,7 +484,7 @@ const edges = [
 const lanes = [
   ['cli', '0 · Morfeo CLI & Workspace'],
   ['f0', '1 · Ingesta & TDR (Fase 0)'],
-  ['f1', '2 · Problema & TikZ (Fase 1)'],
+  ['f1', '2 · Árboles y MGA resumido (Fases 1b y 1)'],
   ['f2', '3 · SOTA & Hipótesis (Fase 2)'],
   ['f34', '4 · Justificación & Objetivos (Fases 3 y 4)'],
   ['f5', '5 · Marco & Equipo (Fase 5)'],
@@ -540,8 +554,9 @@ export const doc = {
       items: [
         'Fase 0: Ingesta, clasificación y extracción de insumos del usuario para estructurar el contexto compartido.',
         'Fase 1a: Búsqueda bibliográfica de encuadre en el grafo para delimitar alcance y postular tres subproblemas.',
-        'Fase 1b: Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo referencias semilla e indexando.',
-        'Fase 1: Redacción de la descripción del problema (§3), formulación de la pregunta central y árbol TikZ.',
+        'Fase 1b: Árbol de problemas y árbol de objetivos con las reglas MGA, en ambos flujos, y figura TikZ del árbol.',
+        'Fase 1c: Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo referencias semilla e indexando.',
+        'Fase 1: MGA resumido (problema central, contexto, causas y magnitud con línea base) y §3 derivada de él.',
       ],
     },
     {

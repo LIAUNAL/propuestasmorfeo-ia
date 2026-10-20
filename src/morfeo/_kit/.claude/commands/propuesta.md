@@ -192,12 +192,12 @@ Cada vez que una fase de abajo dice "aplica el procedimiento de Refresh del
    cada gate. En esta misma Fase 0 asegúrate también de que existan
    `artefactos/vault/secciones/` y `artefactos/vault/insumos/` (créalos si faltan) — el mirror
    Obsidian de la propuesta (ver "Vault mirror" en `coordinador-propuesta.md`).
-   Más adelante (a partir de G1b, ver bloque "Fase 1b" abajo), el dispatcher
+   Más adelante (a partir de G1c, ver bloque "Fase 1c" abajo), el dispatcher
    indexa `artefactos/vault/` con `codebase-memory` bajo el nombre de proyecto
    `<run-id>-vault` y escribe el reporte derivado en
    `grafos/vault-graph-report.md` — artefacto de corrida,
    gitignoreado, nunca se commitea, igual que
-   `grafos/papers-graph-report.md` de la Fase 1a/1b (son dos índices
+   `grafos/papers-graph-report.md` de la Fase 1a/1c (son dos índices
    completamente distintos, sobre corpus y reportes distintos).
 3. Avanza fase por fase según el pipeline de `coordinador-propuesta.md`
    (resumido abajo). Tras cada gate, presenta al usuario: (a) resumen de lo
@@ -219,10 +219,10 @@ Cada vez que una fase de abajo dice "aplica el procedimiento de Refresh del
 
 ## Grafo de coherencia del vault (asesor, NO bloqueante)
 
-A partir de la aprobación de G1b, el DISPATCHER mantiene un índice de ideas
+A partir de la aprobación de G1c, el DISPATCHER mantiene un índice de ideas
 sobre `artefactos/vault/` con `codebase-memory` y lo inyecta como evidencia asesora en
 cada `Task → revisor` de las Fases 1-5 y 7 (ver los pasos "[NUEVO]" dentro de
-cada fase, abajo). Este índice es DISTINTO del de la Fase 1a/1b (que indexa
+cada fase, abajo). Este índice es DISTINTO del de la Fase 1a/1c (que indexa
 `artefactos/scoping/papers/`, el corpus de papers de scoping, bajo el proyecto
 `<run-id>-papers`, y reporta en `grafos/papers-graph-report.md`): el índice
 de esta sección es el proyecto `<run-id>-vault`, cubre el mirror Obsidian
@@ -305,7 +305,7 @@ papers ni el mirror Obsidian. Corpus y CWD dedicados: `artefactos/pipeline/`
 
 Corpus: el DISPATCHER escribe/actualiza un archivo `artefactos/pipeline/<NN>-<fase>.md`
 por cada evento de fase (p. ej. `00-fase0.md`, `10-fase1a.md`,
-`11-fase1b.md`, `20-fase1.md`, ...), más un `artefactos/pipeline/_estado.md`
+`12-fase1c.md`, `20-fase1.md`, ...), más un `artefactos/pipeline/_estado.md`
 compacto que espeja la tabla de compuertas en cada actualización (mantiene
 el corpus autocontenido bajo el único CWD `artefactos/pipeline/`, ya que
 `estado_propuesta.md` vive un nivel arriba). Plantilla mínima por evento:
@@ -761,7 +761,7 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
              name="<run-id>-papers", mode="full")` — `repo_path` absoluto al
              directorio del corpus, NUNCA la raíz del repo (ver "Reglas
              duras" en "Cómo usar `codebase-memory`"); `mode="full"` porque
-             la agrupación temática de la Fase 1b necesita la capa semántica.
+             la agrupación temática de la Fase 1c necesita la capa semántica.
           2. `get_architecture(project="<run-id>-papers",
              aspects=["clusters","hotspots","boundaries","file_tree"])`.
           3. Escribe `grafos/papers-graph-report.md` con las tres secciones
@@ -833,7 +833,41 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
         `10-fase1a.md` con el acumulador, independiente, de la Fase 1a),
         nunca un valor combinado; ídem las dos filas correspondientes en
         `_estado.md` (ver "Telemetría de uso por fase").
-Fase 1b [COMPUERTA COMBINADA G1b] Expansión de corpus SOTA: se ejecuta
+Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
+        base y SGR, con las reglas MGA de la guía, §3, «Árbol de problemas y
+        árbol de objetivos según la MGA»). Corre después de G1a y antes del
+        corpus SOTA, para que el corpus y la Fase 1 partan de los árboles.
+        (a) Task → investigador → contenido del árbol de problemas en
+        `artefactos/arboles/arbol_problemas.md` (ver `investigador.md`,
+        constraint 14): las causas directas son los 3 subproblemas de G1a
+        (inyecta inline el bloque "SUBPROBLEMAS TEMPRANOS APROBADOS (G1a)";
+        si la Fase 1a no corrió, el investigador los propone aquí), de 1 a 3
+        causas indirectas bajo cada una, el tronco con su magnitud
+        (indicador, valor y fuente) como línea base, las ramas de efectos
+        directos y la copa de efecto final. Antes de despachar esta Task, el
+        dispatcher arma el bloque `## FRAGMENTO DE GUÍA` con Directrices
+        Generales + §3 (Descripción del problema, por la regla de los
+        árboles) y lo inyecta inline al inicio del prompt.
+        (b) Bucle de figura `<name>` = `arbol_problemas`, procedimiento
+        canónico completo en "Bucle de figuras (canónico)". Contenido
+        autorizado: `artefactos/arboles/arbol_problemas.md`. Ningún nodo es
+        la ausencia de la solución, el problema central abre con un
+        calificativo negativo y la copa nunca es la solución ni se conecta
+        con las raíces.
+        (c) Task → investigador → árbol de objetivos
+        (`artefactos/arboles/arbol_objetivos.json`, espejo MGA nodo por nodo
+        de `redaccion/specs/arbol_problemas.spec.json`, ver `investigador.md`
+        constraint 14).
+        Antes del gate, `scripts/check_run.py` no debe reportar hallazgos
+        `arbol-*` de error sobre los dos árboles.
+        ──→ GATE Task → revisor ──→ usuario: el operador revisa y aprueba los
+        dos árboles en la pestaña de árboles del tablero. NO avances sin
+        aprobación.
+        ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
+        `artefactos/pipeline/11-fase1b.md` (evento de esta compuerta) y
+        actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
+        de uso acumulados de la fase (ver "Telemetría de uso por fase").
+Fase 1c [COMPUERTA COMBINADA G1c] Expansión de corpus SOTA: se ejecuta
         siempre que la Fase 1a cerró con G1a = APROBADA (ver
         `artefactos/estado_propuesta.md`, sub-tabla "G1a — Scoping temprano");
         si G1a no corrió o no cerró en APROBADA, omite esta fase por
@@ -868,7 +902,7 @@ Fase 1b [COMPUERTA COMBINADA G1b] Expansión de corpus SOTA: se ejecuta
         (solo después de que el paso (b) complete) → propone 3-5
         subsecciones SOTA como tabla de mapeo paper → subsección →
         SP1/SP2/SP3.
-        ──→ COMPUERTA COMBINADA G1b: presenta juntos, en una sola solicitud
+        ──→ COMPUERTA COMBINADA G1c: presenta juntos, en una sola solicitud
         de aprobación:
           1. El corpus ampliado: conteo final de papers y parámetros de
              búsqueda (query, filtro de cuartil, rango de años, hits por
@@ -888,12 +922,12 @@ Fase 1b [COMPUERTA COMBINADA G1b] Expansión de corpus SOTA: se ejecuta
             re-deriva la tabla de subsecciones (repite el paso (c) — el
             sub-paso grouping SIEMPRE se re-ejecuta cuando cambia el
             corpus, no es opcional ni un caso de scope creep) → vuelve a
-            presentar G1b.
+            presentar G1c.
           - Cambio solo a la AGRUPACIÓN (subsecciones) → re-ejecuta
             únicamente el sub-paso grouping (paso (c)) con el feedback
             exacto del usuario; el corpus y el índice quedan intactos;
-            vuelve a presentar G1b.
-        Regla de faltante G1b: si el bibliógrafo reporta menos de 30 papers
+            vuelve a presentar G1c.
+        Regla de faltante G1c: si el bibliógrafo reporta menos de 30 papers
         Q1/Q2 dentro de la ventana de recencia aplicable, el dispatcher NO
         debe sustituir ni relajar filtros en silencio — preséntale al
         usuario, en vivo, el mismo menú de la Regla de faltante G1a, ahora
@@ -903,16 +937,16 @@ Fase 1b [COMPUERTA COMBINADA G1b] Expansión de corpus SOTA: se ejecuta
           (c) ampliar/reformular los términos de búsqueda,
           (d) continuar con menos de 30,
           (e) aceptar un paper específico que el usuario nombre.
-        Aplica la opción elegida y vuelve a presentar dentro de G1b.
-        ──→ Al aprobar G1b: Task → bibliografo-propuesta MODE=sota, sub-paso
+        Aplica la opción elegida y vuelve a presentar dentro de G1c.
+        ──→ Al aprobar G1c: Task → bibliografo-propuesta MODE=sota, sub-paso
         **WRITE-REFS** → escribe `redaccion/refs.bib` en una sola pasada
         cubriendo el corpus completo (prohibido antes de esta aprobación).
-        Luego escribe el corpus aprobado + la tabla de subsecciones + G1b =
+        Luego escribe el corpus aprobado + la tabla de subsecciones + G1c =
         APROBADA en `artefactos/estado_propuesta.md` ("Compuertas tempranas
-        (G0.5, G1a)" → sub-tabla "G1b — Corpus y subsecciones SOTA": conteo
+        (G0.5, G1a)" → sub-tabla "G1c — Corpus y subsecciones SOTA": conteo
         de papers, parámetros de búsqueda, ruta del grafo actualizado +
         extracto del reporte, tabla de mapeo de subsecciones, y Estado
-        G1b).
+        G1c).
         ──→ [NUEVO] DISPATCHER: papers-graph refresh (post-WRITE-REFS):
         guardia — ejecuta este bloque solo si `redaccion/refs.bib` cambió en
         este sub-paso (WRITE-REFS lo acaba de escribir). Mecánica:
@@ -920,14 +954,14 @@ Fase 1b [COMPUERTA COMBINADA G1b] Expansión de corpus SOTA: se ejecuta
         name="<run-id>-papers", mode="full")` (incremental, mismo `name`) y
         reescribe `grafos/papers-graph-report.md`.
         ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
-        `artefactos/pipeline/11-fase1b.md` (evento de esta compuerta) y
+        `artefactos/pipeline/12-fase1c.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
         de uso acumulados de la fase (ver "Telemetría de uso por fase").
         ──→ [NUEVO] Índice de ideas del vault — baseline (primera vez):
         inmediatamente después de lo anterior, en esta misma transición de
-        aprobación final de G1b (NO en cada iteración del bucle de G1b), el
+        aprobación final de G1c (NO en cada iteración del bucle de G1c), el
         DISPATCHER construye el índice baseline del vault. Este índice es
-        DISTINTO del del paso (b) de esta misma Fase 1b (que actualiza el
+        DISTINTO del del paso (b) de esta misma Fase 1c (que actualiza el
         índice del corpus de papers de scoping, `<run-id>-papers`): este cubre
         el mirror Obsidian (`artefactos/vault/secciones/` + `artefactos/vault/insumos/`), no el
         corpus de papers, y es un proyecto aparte. Ver "Grafo de coherencia
@@ -967,23 +1001,27 @@ Fase 1  (en AMBAS rutas) Task → bibliografo-propuesta MODE=explore → mapa de
         gap↔`paper-N`. Si la Fase 1a no corrió (o no cerró en APROBADA),
         omite por completo este bloque adicional: el despacho de esta Task
         es entonces idéntico al de hoy.
-        Si además la Fase 1b corrió y su gate cerró con G1b = APROBADA (ver
-        `artefactos/estado_propuesta.md`, sub-tabla "G1b — Corpus y
+        Si además la Fase 1c corrió y su gate cerró con G1c = APROBADA (ver
+        `artefactos/estado_propuesta.md`, sub-tabla "G1c — Corpus y
         subsecciones SOTA"), inyecta ADEMÁS, inline, el bloque "CORPUS Y
-        SUBSECCIONES APROBADAS (G1b)" con el conteo del corpus ampliado y la
-        tabla de mapeo de subsecciones; si la Fase 1b no corrió (o no cerró
+        SUBSECCIONES APROBADAS (G1c)" con el conteo del corpus ampliado y la
+        tabla de mapeo de subsecciones; si la Fase 1c no corrió (o no cerró
         en APROBADA), omite este bloque adicional y el despacho sigue el
         comportamiento previo al cambio.
-        ──→ luego bucle de figura `<name>` = `arbol_problemas`,
-        procedimiento canónico completo en "Bucle de figuras (canónico)".
-        Contenido autorizado: el bloque del Investigador (causas
-        indirectas en 3 grupos encabezados por las causas directas, tronco
-        con su magnitud, ramas de efectos directos y copa de efecto final),
-        con las reglas MGA de la guía (§3, «Árbol de problemas y árbol de
-        objetivos según la MGA»): ningún nodo como ausencia de la solución
-        y la copa nunca es la solución. La copa NUNCA se conecta con las
-        raíces. Antes del gate, `scripts/check_run.py` no debe reportar
-        hallazgos `arbol-*` de error sobre la spec.
+        Este mismo investigador escribe PRIMERO el MGA resumido,
+        `artefactos/mga_resumido.md` (estructura exacta en `investigador.md`,
+        constraint 15), a partir de los dos árboles aprobados en G1b
+        (`artefactos/arboles/arbol_problemas.md` y
+        `redaccion/specs/arbol_problemas.spec.json`, que inyecta inline): el
+        problema central copiado textual del tronco, el contexto general,
+        un párrafo por cada causa directa y la magnitud del problema con su
+        tabla de indicadores, resaltando el indicador de línea base que el
+        proyecto busca mover. Las cifras de la magnitud salen de fuentes
+        verificables (web y documentos de `insumos/`), nunca inventadas.
+        DESPUÉS deriva §3 del MGA resumido: misma variable, mismas causas y
+        misma magnitud; §3 ya no lleva el bloque comentado del árbol, que
+        vive en `artefactos/arboles/`. El tablero muestra el MGA resumido en
+        su pestaña «MGA resumido».
         `artefactos/vault/secciones/03_descripcion_problema.md` cambió en esta fase
         (recién escrita/actualizada por `investigador`); si no cambió,
         reutiliza el reporte de grafo existente sin
@@ -1064,21 +1102,19 @@ Fase 3  Task → redactor → §2 justificación y pertinencia. Antes de despach
         `artefactos/pipeline/40-fase3.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
         de uso acumulados de la fase (ver "Telemetría de uso por fase").
-Fase 4  Task → investigador → árbol de objetivos
-        (`artefactos/arboles/arbol_objetivos.json`, espejo MGA de
-        `redaccion/specs/arbol_problemas.spec.json`, ver `investigador.md`
-        constraint 14) y DESPUÉS §6 objetivo general + §7 objetivos
-        específicos. Flujo base: §6/§7 con los verbos rectores de la guía y
-        la misma variable del árbol. Flujo SGR: §6/§7 copian literalmente
-        el árbol. Antes de despachar esta Task, el dispatcher arma el
-        bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §3
+Fase 4  Task → investigador → §6 objetivo general + §7 objetivos
+        específicos a partir del árbol de objetivos aprobado en G1b
+        (`artefactos/arboles/arbol_objetivos.json`, que inyecta inline; el
+        investigador no lo reescribe salvo que el operador lo haya pedido en
+        la pestaña de árboles). Flujo base: §6/§7 con los verbos rectores de
+        la guía y la misma variable del árbol. Flujo SGR: §6/§7 copian
+        literalmente el árbol. Antes de despachar esta Task, el dispatcher
+        arma el bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §3
         (Descripción del problema, por la regla de los árboles) + §6
         (Objetivo general) + §7 (Objetivos específicos) + Convenciones
         técnicas de LaTeX y lo inyecta inline al inicio del prompt. Antes
         del gate, `scripts/check_run.py` no debe reportar hallazgos
-        `arbol-*`, `objetivo-general-*` ni `sgr-objetivo*` de error; el
-        operador revisa y aprueba los dos árboles en la pestaña de árboles
-        del tablero.
+        `arbol-*`, `objetivo-general-*` ni `sgr-objetivo*` de error.
         ──→ [NUEVO] DISPATCHER: guardia — re-indexa el vault solo si
         `artefactos/vault/secciones/06_objetivo_general.md` o
         `artefactos/vault/secciones/07_objetivos_especificos.md` cambiaron en esta
@@ -1444,7 +1480,8 @@ anterior costaba **~28,8 min por figura** (tres despachos y tres fallos de
 ```
 1. Task -> disenador-tikz
    escribe `redaccion/specs/<name>.spec.json` (NO escribe LaTeX).
-   Inyecta inline el contenido autorizado: el bloque del Investigador para el
+   Inyecta inline el contenido autorizado: `artefactos/arboles/arbol_problemas.md`
+   (Fase 1b) para el
    árbol, el bloque comentado al final de 04_estado_arte.tex para el mapa, y
    §10 para el metodológico.
 

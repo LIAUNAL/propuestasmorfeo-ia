@@ -67,7 +67,7 @@ truth.
 
 Post-intake order (see `_propuesta-steps.md` for control block fields):
 
-`fase1a` → `fase1b` → `fase1` → `fase2` → `fase3` → `fase4` → `fase5` →
+`fase1a` → `fase1b` → `fase1c` → `fase1` → `fase2` → `fase3` → `fase4` → `fase5` →
 `fase5_5` → `fase6` → `fase6_4` → `fase6_45` → `fase6_46` → [`fase6_47`, solo flujo SGR] → `fase6_5` → `fase7` → `done`
 
 - **auto** (`/propuesta`): loop all units in one session; stop at gates.
@@ -91,24 +91,36 @@ Fase 1a [GATE COMBINADO G1a] Scoping temprano: bibliografo-propuesta
         subproblemas) ──→ GATE combinado ──→ user. Descripción de
         referencia únicamente — ver `propuesta.md`, Fase 1a, para el
         detalle completo que ejecuta el dispatcher real.
-Fase 1b [GATE COMBINADO G1b] Expansión de corpus SOTA: bibliografo-propuesta
+Fase 1b [GATE G1b] Árbol de problemas y árbol de objetivos (ambos flujos,
+        reglas MGA): investigador → contenido del árbol de problemas
+        (`artefactos/arboles/arbol_problemas.md`, causas directas = los 3
+        subproblemas de G1a) → bucle de figura `arbol_problemas` definido UNA
+        sola vez en "Bucle de figuras (canónico)" de
+        `.agent/workflows/propuesta.md`: disenador-tikz (autor de la spec
+        JSON) → `python3 scripts/figura.py arbol_problemas` (determinista:
+        render → compile → autofix → auditoría mecánica) → con FIGURA PASS,
+        revisor-figuras audita solo los 4 criterios visuales sobre el
+        preview → en FAIL vuelve a tikz-optimizer, que corrige la SPEC (nunca
+        el .tex); tope compartido de 4 intentos por diagrama, con
+        escalamiento explícito al usuario al agotarse → investigador →
+        árbol de objetivos (`artefactos/arboles/arbol_objetivos.json`, espejo
+        MGA) → `check_run.py` sin hallazgos `arbol-*` de error ──→ GATE
+        revisor ──→ user (aprueba los dos árboles en la pestaña de árboles
+        del tablero)
+Fase 1c [GATE COMBINADO G1c] Expansión de corpus SOTA: bibliografo-propuesta
         MODE=sota (corpus + grouping) → GATE combinado ──→ user. Al aprobar
-        G1b, el dispatcher además dispara, UNA sola vez, el indexado
+        G1c, el dispatcher además dispara, UNA sola vez, el indexado
         baseline del vault con codebase-memory (proyecto `<run-id>-vault`,
         mirror Obsidian, distinto del índice de scoping `<run-id>-papers`) →
         reporte en `grafos/vault-graph-report.md`. Descripción de referencia únicamente — ver
-        `propuesta.md`, Fase 1b y "Grafo de coherencia del vault", para el
+        `propuesta.md`, Fase 1c y "Grafo de coherencia del vault", para el
         detalle completo que ejecuta el dispatcher real.
-Fase 1  investigador → §3 descripción del problema + pregunta
+Fase 1  investigador → MGA resumido (`artefactos/mga_resumido.md`:
+        problema central textual del árbol, contexto general, una causa
+        directa por párrafo, magnitud con tabla de indicadores y la línea
+        base resaltada) → §3 descripción del problema + pregunta, derivada
+        del MGA resumido
         → grant-flow-auditor (pule §3 con estilo-natural-es)
-        → bucle de figura `arbol_problemas` definido UNA sola vez en "Bucle de figuras
-        (canónico)" de `.agent/workflows/propuesta.md`: disenador-tikz (autor
-        de la spec JSON) → `python3 scripts/figura.py arbol_problemas`
-        (determinista: render → compile → autofix → auditoría mecánica) → con
-        FIGURA PASS, revisor-figuras audita solo los 4 criterios visuales
-        sobre el preview → en FAIL vuelve a tikz-optimizer, que corrige la
-        SPEC (nunca el .tex); tope compartido de 4 intentos por diagrama, con
-        escalamiento explícito al usuario al agotarse → en PASS continúa
         ──→ [NUEVO]
         dispatcher: refresh del índice del vault (codebase-memory) + inyecta
         bloque `EVIDENCIA DE GRAFO` (asesor, NO bloqueante) en el prompt de revisor ──→ GATE
@@ -118,7 +130,7 @@ Fase 2  bibliografo-propuesta → §4 estado del arte (paralelo)
         → grant-flow-auditor (pule §4 y §5 con estilo-natural-es)
         → bucle de figura `<name>` = `estado_arte` (contenido autorizado: el bloque comentado al
         final de `04_estado_arte.tex`); procedimiento y tope idénticos a la
-        Fase 1 ──→ [NUEVO] refresh del índice del
+        Fase 1b ──→ [NUEVO] refresh del índice del
         vault + bloque `EVIDENCIA DE GRAFO` ──→ GATE revisor ──→ user
 Fase 3  redactor → §2 justificación y pertinencia
         → grant-flow-auditor (pule §2 con estilo-natural-es)

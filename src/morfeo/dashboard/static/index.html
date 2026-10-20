@@ -3021,7 +3021,7 @@
   <script>
     // El inventario de unidades llega en el sobre de estado (`pipeline_units`).
     // Antes esta lista estaba escrita aquí con trece entradas que inventaban
-    // compuerta para `fase6` y `fase6_45` y omitían `fase1a` y `fase1b`, que son
+    // compuerta para `fase6` y `fase6_45` y omitían `fase1a` y la fase del corpus, que son
     // justamente las que producen los insumos del paper. No hay respaldo
     // duplicado: si el binario de `morfeo` no publica el inventario, el flujo lo
     // dice en lugar de mostrar una lista vieja que parece correcta.
@@ -3053,8 +3053,9 @@
       fase0: "Ingesta, clasificación y extracción de los insumos del usuario (documentos base, TDR, papers y enlaces) para estructurar el contexto compartido de la propuesta.",
       g0_5: "Cotejo preliminar de las secciones de la guía frente a los términos de referencia de la convocatoria, fijando requisitos específicos y restricciones formales.",
       fase1a: "Búsqueda bibliográfica de encuadre en el grafo de conocimiento para delimitar el alcance temático y postular los tres subproblemas preliminares mutuamente excluyentes.",
-      fase1b: "Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo las referencias semilla e indexando el grafo de papers y el vault de conocimiento.",
-      fase1: "Redacción de la descripción del problema (§3), formulación de la pregunta central de investigación y diseño del árbol de problemas validado en TikZ.",
+      fase1b: "Construcción del árbol de problemas a partir de los subproblemas y de su espejo positivo, el árbol de objetivos, con las reglas de la MGA en ambos flujos; la figura TikZ del árbol se valida en el bucle de figuras.",
+      fase1c: "Consolidación del corpus de literatura Q1/Q2 reciente, extrayendo las referencias semilla e indexando el grafo de papers y el vault de conocimiento.",
+      fase1: "Redacción del MGA resumido (problema central del árbol, contexto, expansión de las tres causas directas y magnitud con tabla de indicadores de línea base) y, a partir de él, de la descripción del problema (§3) con la pregunta central.",
       fase2: "Construcción del estado del arte con referencias Q1/Q2 (§4), formulación de la hipótesis falsable (§5) y elaboración del mapa visual del estado del arte.",
       fase3: "Elaboración de la justificación y pertinencia (§2), articulando la solución con los ODS, el PND y el nivel de madurez tecnológica TRL 6 o 7.",
       fase4: "Formulación del objetivo general (§6) y los tres objetivos específicos (§7), garantizando una correspondencia biyectiva estricta con los subproblemas.",
@@ -3083,8 +3084,9 @@
         fase0: "Intake e insumos",
         g0_5: "Guía al TDR",
         fase1a: "Scoping y subproblemas",
-        fase1b: "Corpus SOTA y papers",
-        fase1: "Problema y árbol TikZ",
+        fase1b: "Árboles de problemas y objetivos",
+        fase1c: "Corpus SOTA y papers",
+        fase1: "MGA resumido y §3",
         fase2: "Estado del arte e hipótesis",
         fase3: "Justificación y pertinencia",
         fase4: "Objetivos (gen. y esp.)",
@@ -3511,7 +3513,7 @@
       const fase1a = units.find(u => u.id === 'fase1a');
       if (fase1a && resolvePhaseVerdict(fase1a, data) === 'PASS') return null;
       const c = data.control;
-      if (c && c.intake_complete && c.next_step && !['fase1a', 'fase1b'].includes(c.next_step)) return null;
+      if (c && c.intake_complete && c.next_step && c.next_step !== 'fase1a') return null;
       return 'Los subproblemas se definen en la Fase 1a (scoping). Avanza el pipeline con /propuesta-continuar hasta superar G1a para proponer el árbol.';
     }
 

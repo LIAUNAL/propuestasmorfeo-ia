@@ -37,9 +37,13 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
 - **§5 Hipótesis** — a single paragraph derived from the synthesis of Estado
   del arte (§4, owned by the Bibliografo-Propuesta), anticipating the general
   objective
+- **Árbol de problemas (content)** — `artefactos/arboles/arbol_problemas.md`,
+  written in Fase 1b (constraint 14)
 - **Árbol de objetivos** — `artefactos/arboles/arbol_objetivos.json`, the
-  MGA mirror of the problem tree, written in Fase 4 before §6/§7
-  (constraint 14)
+  MGA mirror of the problem tree, written in Fase 1b right after the problem
+  spec (constraint 14)
+- **MGA resumido** — `artefactos/mga_resumido.md`, written in Fase 1 before
+  §3, which derives from it (constraint 15)
 - **§6 Objetivo general** — the exact answer to the research question
 - **§7 Objetivos específicos** — at least 3, 1:1 with subproblems
 - **§8 Marco conceptual** — conceptual/theoretical grounding for §10 Metodología
@@ -104,7 +108,7 @@ You no longer own a section by that name.
    support in the same paragraph. Distinct keys within the same paragraph and
    the same section (compatible with the §16 reuse cap: max 3 uses per key
    across the whole document, each in a different section). Draw primarily
-   from the approved G1b corpus (`artefactos/scoping/papers/paper-{1..35}.md`,
+   from the approved G1c corpus (`artefactos/scoping/papers/paper-{1..35}.md`,
    `redaccion/refs.bib`).
 9. **SP1/SP2/SP3 item format in §3's paragraph-2 list (mandatory).** Each
    item is tagged with its plain label (`SP1.`, `SP2.`, `SP3.`) — never bold
@@ -177,8 +181,9 @@ You no longer own a section by that name.
 14. **Problem and objective trees follow the MGA (mandatory, both flows).**
    The full rule is the guide's §3 block «Árbol de problemas y árbol de
    objetivos según la MGA»; this item is the backstop.
-   - **Fase 1, problem tree content** (the commented block at the end of §3
-     that `disenador-tikz` turns into the spec): central problem = negative
+   - **Fase 1b, problem tree content** (written to
+     `artefactos/arboles/arbol_problemas.md`, which `disenador-tikz` turns
+     into the spec; §3 no longer carries it): central problem = negative
      qualifier + measurable variable + population or place, opening with the
      qualifier itself (poco, escaso, limitado, insuficiente, deficiente, bajo,
      alto, reducido, inadecuado…), never the
@@ -187,7 +192,8 @@ You no longer own a section by that name.
      effects hang from the central problem; the crown is the final indirect
      effect, never the solution. Give the central problem its magnitude
      (indicator, value, source) as the baseline.
-   - **Fase 4, objective tree first.** Before §6/§7, write
+   - **Fase 1b, objective tree right after the problem spec.** Once the
+     figure loop has written the spec, write
      `artefactos/arboles/arbol_objetivos.json` with the schema
      `{groups:[{id,from,title,objective,means:[{id,from,text}]}],trunk:{label,text},branches:[{id,from,text}],crown:{label,text}}`,
      mirroring the problem spec node by node (`from` = the problem node id):
@@ -206,6 +212,62 @@ You no longer own a section by that name.
      the tree texts (trunk and group objectives, in order), and the
      `### SGR §6`/`### SGR §7` blocks of the Task's guide fragment win over
      the base verb menu.
+15. **MGA resumido (Fase 1, both flows, before §3).** Write
+   `artefactos/mga_resumido.md` in Spanish, in Markdown, from the trees
+   approved at G1b, with exactly this structure (headings verbatim):
+
+   ```markdown
+   # Planteamiento del problema
+
+   ## Problema central
+   <párrafo 1>
+
+   ## Contexto general de la problemática
+   <párrafos 2 a 5>
+
+   ## Magnitud del problema
+   <2 a 3 párrafos>
+
+   <tabla de indicadores>
+   ```
+
+   - **Párrafo 1, Problema central:** the central problem of the problem
+     tree (its trunk text), copied verbatim. No rewording.
+   - **Párrafo 2:** introduce the problem from the application sector,
+     contextualizing the operational, economic or social challenges;
+     describe the central problem better; delimit the location (departments
+     or regions). Close by stating the direct causes of the problem tree.
+   - **Párrafo 3, direct cause 1** expanded. For applied-AI projects, relate
+     it to data collection: sensors, test batteries, information gathering
+     and database construction (no infrastructure, specialists required,
+     community support for data collection), data quality, decentralized
+     data.
+   - **Párrafo 4, direct cause 2** expanded. For applied-AI projects, relate
+     it to the need for an interoperable platform fed by the data of cause 1,
+     with good connectivity, accessible, with good user interaction, and to
+     the need to develop generative and predictive AI models, AI agents,
+     data processing, multimodal, low-cost, deployable, many variables.
+   - **Párrafo 5, direct cause 3** expanded, aligned with social
+     appropriation and technology transfer: few studies (none in Colombia),
+     barriers with the communities, that they appropriate it, that it has an
+     impact on them.
+   - Paragraphs 3 to 5 follow the problem-tree rules of constraint 14 and the
+     guide's §3 block: each one expands its direct cause and its indirect
+     causes as stated in the tree, a negative state, never the absence of the
+     solution.
+   - **Magnitud del problema:** find figures that support each direct cause,
+     to build the baseline indicator. Choose the baseline indicator from the
+     problem tree and the causes: the most flexible and easiest to quantify.
+     For applied-AI projects, align it with the platform. Write 2 to 3
+     paragraphs that develop this. Every figure carries its source (author or
+     entity, year, link or document in `insumos/`); never invent a figure,
+     and mark "[cifra por confirmar]" when no verifiable source exists.
+   - **Tabla de indicadores:** a Markdown table with the indicators drawn
+     from the magnitude (columns: Indicador, Causa, Valor, Fuente, Año), with
+     the indicator the project aims to move in **bold** and marked
+     "(línea base del proyecto)". The trunk's `magnitude` in the problem
+     spec must name that same indicator.
+   - Then write §3 from this document: same variable, causes and magnitude.
 
 ## Entradas de Fase 0/1 (intake)
 

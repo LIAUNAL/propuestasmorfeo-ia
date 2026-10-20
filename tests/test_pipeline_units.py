@@ -28,7 +28,7 @@ from morfeo.core.pipeline_units import (  # noqa: E402
 
 STEPS_DOC = REPO / ".claude" / "commands" / "_propuesta-steps.md"
 
-STEP_UNITS_EXPECTED = 15
+STEP_UNITS_EXPECTED = 16
 
 # Valores de compuerta observados en los artefactos de la corrida de referencia,
 # incluidos los que la tabla no reconoce. El inventario tiene que ubicarlos todos:
@@ -37,6 +37,7 @@ OBSERVED_IN_ARTIFACTS = (
     "G0.5",
     "G1a",
     "G1b",
+    "G1c",
     "G1",
     "G2",
     "G3",
@@ -120,13 +121,30 @@ class TestPipelineUnits(unittest.TestCase):
     def test_the_gates_the_reference_run_passed_are_canonical(self) -> None:
         canonical = {g["id"] for g in canonical_gates()}
         for real in (
-            "G0.5", "G1a", "G1b", "G1", "G2", "G3", "G4",
+            "G0.5", "G1a", "G1b", "G1c", "G1", "G2", "G3", "G4",
             "G5", "G5.5", "G6.4", "G6.46", "G6.5", "G7",
         ):
             self.assertIn(real, canonical, f"falta {real} en las compuertas canónicas")
-        # Trece del flujo base más G6.47, la compuerta de los anexos MGA del flujo SGR.
+        # Catorce del flujo base más G6.47, la compuerta de los anexos MGA del flujo SGR.
         self.assertIn("G6.47", canonical)
-        self.assertEqual(len(canonical), 14, "las compuertas canónicas son catorce")
+        self.assertEqual(len(canonical), 15, "las compuertas canónicas son quince")
+
+    def test_early_units_run_scoping_trees_corpus_then_mga_summary(self) -> None:
+        # Same order in both flows: the trees come right after the subproblems and
+        # before the SOTA corpus; Fase 1 writes the MGA summary and §3 from it.
+        for flujo in ("base", "sgr"):
+            by_id = {u["id"]: u for u in units_for_flujo(flujo)}
+            chain = ["fase0"]
+            while chain[-1] != "fase2":
+                chain.append(by_id[chain[-1]]["next"])
+            self.assertEqual(chain, ["fase0", "fase1a", "fase1b", "fase1c", "fase1", "fase2"], flujo)
+            self.assertEqual(by_id["fase1b"]["gate"], "G1b")
+            self.assertEqual(by_id["fase1c"]["gate"], "G1c")
+            self.assertEqual(by_id["fase1"]["gate"], "G1")
+            self.assertIn("Árbol de problemas y árbol de objetivos", by_id["fase1b"]["name"])
+            self.assertIn("Corpus SOTA", by_id["fase1c"]["name"])
+            self.assertIn("MGA resumido", by_id["fase1"]["name"])
+            self.assertEqual(by_id["fase1"]["sections"], ["03"])
 
     def test_alias_map_places_every_observed_value(self) -> None:
         canonical = {g["id"] for g in canonical_gates()}

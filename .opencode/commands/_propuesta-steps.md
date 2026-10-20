@@ -61,8 +61,9 @@ cortó, que es justo lo que hay que ver.
 | `next_step` | Unit | Gate | On PASS → next |
 |-------------|------|------|----------------|
 | `fase1a` | Early scoping (bibliógrafo MODE=scope, codebase-memory scoping, investigador early) | G1a | `fase1b` |
-| `fase1b` | SOTA corpus expansion + WRITE-REFS + vault codebase-memory once | G1b | `fase1` |
-| `fase1` | §3 problema + grant-flow-auditor + spec del árbol de problemas (`figura.py`) + revisor | G1 | `fase2` |
+| `fase1b` | Árbol de problemas (spec + `figura.py`) y árbol de objetivos (`arbol_objetivos.json`) con las reglas MGA, en ambos flujos + revisor | G1b | `fase1c` |
+| `fase1c` | SOTA corpus expansion + WRITE-REFS + vault codebase-memory once | G1c | `fase1` |
+| `fase1` | MGA resumido (`artefactos/mga_resumido.md`) + §3 problema derivada de él + grant-flow-auditor + revisor | G1 | `fase2` |
 | `fase2` | §4 SOTA + §5 hipótesis + grant-flow-auditor + spec del mapa SOTA (`figura.py`) + revisor | G2 | `fase3` |
 | `fase3` | §2 justificación + grant-flow-auditor + revisor | G3 | `fase4` |
 | `fase4` | §6–§7 objetivos + grant-flow-auditor + revisor | G4 | `fase5` |

@@ -166,10 +166,13 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
    - Visores interactivos embebidos para explorar el grafo de literatura científica (`papers-graph`) y el mapa conceptual del vault Obsidian (`vault-graph`).
 
 6. **Árbol de problemas y objetivos:**
-   - Pestaña propia, entre «Pipeline y Avance» y «Secciones». Dibuja el árbol de problemas a partir de `redaccion/specs/arbol_problemas.spec.json` (copa, efectos, problema central y causas agrupadas por subproblema).
+   - Pestaña propia, entre «Pipeline y Avance» y «MGA resumido». Los dos árboles se construyen en la Fase 1b. Dibuja el árbol de problemas a partir de `redaccion/specs/arbol_problemas.spec.json` (copa, efectos, problema central y causas agrupadas por subproblema).
    - Propone el árbol de objetivos como espejo del anterior: cada causa da un medio, cada subproblema su objetivo específico, el problema central el objetivo general y cada efecto un fin. Toma §6 y §7 cuando ya existen y deja en línea punteada lo que el agente aún debe redactar. Si el agente escribe `artefactos/arboles/arbol_objetivos.json`, esa versión reemplaza la derivada.
    - Se itera nodo por nodo: un clic selecciona el nodo, se escribe el comentario y **«Enviar ajuste al agente»** guarda la solicitud en `artefactos/arboles/ajuste_<árbol>_NN.md` y se la pasa a la terminal (`disenador-tikz` para el de problemas, `investigador` para el de objetivos). La pestaña se refresca sola y avisa cuando llega una versión nueva.
    - La aprobación queda en `artefactos/arboles/revision.json`, atada al contenido aprobado: si el árbol cambia después, la aprobación caduca. El de objetivos solo se itera y se aprueba con el de problemas aprobado y sin textos pendientes.
+
+7. **MGA resumido:**
+   - Pestaña entre «Árbol de problemas y objetivos» y «Secciones». Muestra `artefactos/mga_resumido.md`, que la Fase 1 escribe antes de §3: el problema central copiado del árbol, el contexto general de la problemática, un párrafo por cada causa directa, la magnitud del problema y la tabla de indicadores con la línea base del proyecto resaltada. §3 se deriva de este documento.
 
 ---
 
@@ -247,11 +250,14 @@ Fase 0    Ingesta de insumos y clasificación TDR / borrador
 Fase 1a   Scoping temprano y subproblemas preliminares
   └── [GATE G1a] Veredicto Revisor
   │
-Fase 1b   Corpus SOTA Q1/Q2 y semilla bibliográfica
-  └── [GATE G1b] Veredicto Revisor
-  │
-Fase 1    Árbol de problemas (§3) y pregunta de investigación
+Fase 1b   Árbol de problemas y árbol de objetivos (reglas MGA, ambos flujos)
   ├── Bucle TikZ: figura arbol_problemas (render determinista)
+  └── [GATE G1b] Veredicto Revisor y aprobación en la pestaña de árboles
+  │
+Fase 1c   Corpus SOTA Q1/Q2 y semilla bibliográfica
+  └── [GATE G1c] Veredicto Revisor
+  │
+Fase 1    MGA resumido y descripción del problema (§3) con la pregunta
   └── [GATE G1] Veredicto Revisor
   │
 Fase 2    Estado del arte (§4, ≥39 refs Q1/Q2) e hipótesis (§5)
