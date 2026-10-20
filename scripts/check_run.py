@@ -324,6 +324,8 @@ NOT_INFINITIVES = frozenset({
     "amanecer", "cáncer", "carácter", "líder", "mártir", "elixir", "nadir", "mayor", "menor", "par", "mar",
     "bar", "alfiler", "alquiler", "cadáver", "esfínter", "suéter", "póster", "máster", "chofer", "chófer",
     "sector", "superior", "inferior", "exterior", "interior", "anterior", "posterior",
+    "irregular", "insular", "tabular", "angular", "rectangular", "ocular", "vulgar", "lumbar",
+    "bienestar", "malestar", "consular", "escolar", "titular", "modular", "celular",
 })
 MEANS_RE = re.compile(r"\b(mediante|a\s+trav[eé]s\s+de|por\s+medio\s+de|por\s+intermedio\s+de)\b", re.I)
 ENDS_RE = re.compile(r"\bpara\s+[a-záéíóúñ]+(ar|er|ir)\b|\bcon\s+el\s+(fin|prop[oó]sito|objetivo)\s+de\b", re.I)
@@ -666,7 +668,7 @@ def main() -> int:
             where = f["file"] + (f":{f['line']}" if f["line"] else "") + (f" [{f['node']}]" if f.get("node") else "")
             print(f"[{f['severity'].upper()}] {f['code']} {where} {f['message']}".rstrip())
         warnings = len(report.findings) - report.errors()
-        print(f"check_run: {report.errors()} errores, {warnings} avisos (flujo {report.flujo})")
+        print(f"check_run: {report.errors()} errores, {warnings} avisos")
     return 1 if report.errors() else 0
 
 

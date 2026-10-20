@@ -51,11 +51,11 @@ empaquetado.
 
 | ID | Specs | Ruta | Estado | Commit |
 |---|---|---|---|---|
-| T1 | S2, S3 | delegada (paralela, superficie disjunta) | pendiente | |
-| T2 | S4 | delegada (paralela, superficie disjunta) | pendiente | |
-| T3 | S2, S3, S5 | inline: guías, agentes, comandos, plantilla, unidad del pipeline | pendiente | |
-| T4 | S6 | inline: ports, kit, docs, suite completa | pendiente | |
-| T5 | S1-S6 | verificador independiente al final | pendiente | |
+| T1 | S2, S3 | delegada (paralela, superficie disjunta) | hecha: RED 50 Python + 6 JS, GREEN 69 + 69 | 20b2394 |
+| T2 | S4 | delegada (paralela, superficie disjunta) | hecha: RED 11 pruebas, GREEN `test_flujo_sgr_init` + `test_morfeo_cli` | c22cdb0 |
+| T3 | S2, S3, S5 | inline: guías, agentes, comandos, plantilla, unidad del pipeline | hecha: RED/GREEN `test_pipeline_units` (units_for_flujo), `test_plantilla_main` (anexos), `test_figure_pipeline` (leyenda MGA) | 0b06ace |
+| T4 | S6 | inline: ports, kit, docs, suite completa | hecha: `gen-*.py --check` y `build-kit.py --check` limpios; 330 Python OK, 69 JS OK | 0628696 |
+| T5 | S1-S6 | verificador independiente al final | hecha: S1-S6 PASS; un bloqueo corregido | ver L6 |
 
 ## Log
 
@@ -83,3 +83,21 @@ objetivos solo existe en el tablero (`src/morfeo/core/trees.py`). Ruta: T1 y T2 
 delegan en paralelo porque tienen superficies disjuntas y cada una pesa más que
 lanzar un subagente; T3 queda inline. El borrador `guiaProyectosIA_Agente_Regalias.md`
 se reemplaza por la guía complementaria SGR (sus notas quedan en el historial de git).
+
+L5. T3 y T2 cerradas. La leyenda de la figura del árbol decía «SOLUCIÓN (COPA)» y
+ahora nombra los niveles MGA («EFECTO FINAL», «EFECTOS DIRECTOS»). El flujo base
+no ve la unidad `fase6_47` ni la compuerta G6.47: `units_for_flujo` las omite y
+el `next` de `fase6_46` salta a `fase6_5`. La evaluación RDD queda para cuando T1
+esté confirmada (había archivos sin rastrear de T1 en curso).
+
+L6. Verificación independiente: S1 a S6 PASS. Un bloqueo: la línea de resumen de
+`check_run` ganó el sufijo «(flujo …)» sin que nadie lo pidiera; se quitó (el
+flujo sigue en `--json`, el tablero y `_run.md`) y una prueba fija la forma
+anterior. Se aceptó el cambio de forma de `--json` (lista → `{flujo, findings}`),
+sin consumidores en el repo. Avisos atendidos: «Irregular», «Malestar» y otros
+adjetivos en -ar ya no se leen como infinitivos. Avisos abiertos, no bloqueantes:
+el flujo SGR pide magnitud también en causas y efectos directos, pero el checker
+solo la avisa en el tronco; si `.morfeo/config.json` no trae una clave válida,
+`init-run.sh` cae a `.marco/config.json` y `detect_flujo` no (init nunca los deja
+distintos). Las citas de p. 23 y p. 122 del Instructivo son pasajes distintos y
+ambas son correctas según la exploración.

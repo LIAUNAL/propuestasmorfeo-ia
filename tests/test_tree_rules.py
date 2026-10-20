@@ -72,6 +72,13 @@ def objectives(**changes) -> dict:
 
 
 class ProblemTreeRulesTest(unittest.TestCase):
+    def test_adjectives_ending_like_an_infinitive_are_not_solutions(self) -> None:
+        for text in ("Irregular acceso al agua potable en Caldas", "Malestar social en la zona rural",
+                     "Insular aislamiento de los productores"):
+            spec = problem(trunk={"label": "PROBLEMA CENTRAL", "text": text})
+            codes = {f["code"] for f in check_run.problem_tree_findings(spec)}
+            self.assertNotIn("arbol-solucion-en-problema", codes, text)
+
     def test_a_well_formed_problem_tree_has_no_findings(self) -> None:
         self.assertEqual(check_run.problem_tree_findings(PROBLEM), [])
 

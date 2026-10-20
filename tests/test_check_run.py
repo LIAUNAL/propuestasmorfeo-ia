@@ -31,6 +31,10 @@ def _run(run_root: Path, *args: str) -> tuple[int, list[dict]]:
     return code, data["findings"]
 
 
+def _summary(run_root: Path, *args: str) -> str:
+    result = subprocess.run([sys.executable, str(CHECK), str(run_root), *args], capture_output=True, text=True)
+    return result.stdout.strip().splitlines()[-1]
+
 def _codes(findings: list[dict], severity: str | None = None) -> set[str]:
     return {f["code"] for f in findings if severity is None or f["severity"] == severity}
 
@@ -197,6 +201,13 @@ def _write_objective_sections(root: Path, general: str, specifics: list[str]) ->
 class FlujoTest(unittest.TestCase):
     """S2-S3: tree rules in both flows; §6/§7 literal and MGA annexes only in the SGR flow."""
 
+    def test_the_text_summary_line_keeps_its_previous_form(self) -> None:
+        # The flow goes in --json and in the dashboard; the summary line others read stays as it was.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _clean_run(Path(tmp))
+            self.assertRegex(_summary(root), r"^check_run: \d+ errores, \d+ avisos$")
+            self.assertRegex(_summary(root, "--flujo", "sgr"), r"^check_run: \d+ errores, \d+ avisos$")
+
     def test_the_json_output_reports_the_flow(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = _clean_run(Path(tmp))
@@ -213,13 +224,6 @@ class FlujoTest(unittest.TestCase):
             run = _clean_run(workspace / "proposals" / "r1")
             _, data = _run_json(run)
             self.assertEqual(data["flujo"], "sgr")
-
-    def test_the_text_output_names_the_flow(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = _clean_run(Path(tmp))
-            result = subprocess.run([sys.executable, str(CHECK), str(root), "--flujo", "sgr"],
-                                    capture_output=True, text=True)
-            self.assertIn("flujo sgr", result.stdout)
 
     def test_sgr_final_requires_the_mga_annexes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
