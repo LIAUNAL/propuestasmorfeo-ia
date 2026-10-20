@@ -1,6 +1,6 @@
 {
   "_comment": "Kit manifest for marco portable project CLI. JSON format chosen over YAML to keep marco_cli.py stdlib-only (zero external deps). Version is the kit version, bumped independently of the proposal framework. kit_paths are SOURCE paths in this repo (the LaTeX skeleton lives in plantilla/, which init-run.sh copies into each run's redaccion/). Unlisted files MUST NOT be installed. preserve_paths is everything an upgrade must never overwrite: the whole proposals/ tree (runs, local registry, pointer) plus project-local config. RUNTIME PORTS ARE DELIBERATELY ABSENT: .pi/, .opencode/ and .agent/ are materialised by scripts/gen-*.py, which `marco init/upgrade` runs for each tool selected with `--tools`; listing them here would bypass that filter. What IS listed is every generator plus its data, so a portable project can regenerate or re-check its ports offline. scripts/agent-models.json is the model source of truth: gen-pi.py writes both the agent frontmatter and .pi/subagents.json from it, and it refuses a Claude-bridge model unless allow_claude_bridge is set deliberately.",
-  "version": "0.5.6",
+  "version": "0.6.0",
   "kit_paths": [
     ".claude/agents/bibliografo-propuesta.md",
     ".claude/agents/coordinador-propuesta.md",
