@@ -51,7 +51,8 @@ explicit message before anything is compiled.
 
 - The tree follows the MGA (guide §3, «Árbol de problemas y árbol de
   objetivos según la MGA»): `trunk` is the central problem as a negative
-  state (qualifier + variable + population or place), `groups[].title` the
+  state that opens with a negative qualifier (qualifier + variable +
+  population or place, e.g. «Limitadas capacidades de…»), `groups[].title` the
   direct causes (the subproblemas), `causes` the indirect causes,
   `branches` the direct effects and `crown` the final indirect effect.
   **The crown is never the solution**, and no node is written as the absence

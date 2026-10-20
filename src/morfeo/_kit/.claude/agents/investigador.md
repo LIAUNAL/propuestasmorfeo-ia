@@ -178,7 +178,9 @@ You no longer own a section by that name.
    objetivos según la MGA»; this item is the backstop.
    - **Fase 1, problem tree content** (the commented block at the end of §3
      that `disenador-tikz` turns into the spec): central problem = negative
-     qualifier + measurable variable + population or place, never the
+     qualifier + measurable variable + population or place, opening with the
+     qualifier itself (poco, escaso, limitado, insuficiente, deficiente, bajo,
+     alto, reducido, inadecuado…), never the
      absence of a solution and never opening with an infinitive; direct
      causes = the subproblemas; 1-3 indirect causes under each; direct
      effects hang from the central problem; the crown is the final indirect

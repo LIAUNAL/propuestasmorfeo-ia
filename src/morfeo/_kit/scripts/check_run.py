@@ -22,6 +22,7 @@ it. Both flows apply the SGR guide rules (MGA, DNP) to the problem and
 objective trees when their files exist:
   problem tree (redaccion/specs/arbol_problemas.spec.json):
     arbol-ausencia-de-solucion (error), arbol-solucion-en-problema (error),
+    arbol-problema-sin-calificativo-negativo (error, central problem only),
     arbol-sin-efectos (error), arbol-sin-magnitud (warning),
     arbol-causa-directa-sin-indirectas (warning), arbol-sin-efecto-final (warning)
   objective tree (artefactos/arboles/arbol_objetivos.json):
@@ -30,7 +31,8 @@ objective trees when their files exist:
     arbol-variable-cambiada (error on the trunk, warning on a group)
   base flow: objetivo-general-sin-variable-del-arbol (warning, §6 vs tree)
   SGR flow: sgr-objetivo-general-distinto, sgr-objetivos-especificos-distintos
-    (§6/§7 must be the objective tree texts), and with --final
+    (§6/§7 must be the objective tree texts), sgr-titulo-no-derivado (the
+    title is the general objective with its verb as a noun), and with --final
     sgr-anexo-faltante for each missing MGA annex in SGR_SECTIONS.
 The tree rule functions (problem_tree_findings, objective_tree_findings,
 shared_variable, detect_flujo) are pure and imported by the dashboard.
@@ -387,6 +389,31 @@ def shared_variable(ref: str, other: str) -> float:
     return len(ref_words & _content_words(other)) / len(ref_words)
 
 
+# Negative qualifiers a central problem may open with: they describe an existing
+# negative state without denoting a lack (sgrguia examples and the SGR team's
+# recommendation: poco, escaso, limitado, insuficiente, deficiente). Folded.
+NEGATIVE_QUALIFIERS = frozenset(
+    f"{stem}{end}"
+    for stem, ends in (
+        ("poc", ("o", "a", "os", "as")), ("escas", ("o", "a", "os", "as")),
+        ("limitad", ("o", "a", "os", "as")), ("baj", ("o", "a", "os", "as")),
+        ("alt", ("o", "a", "os", "as")), ("elevad", ("o", "a", "os", "as")),
+        ("reducid", ("o", "a", "os", "as")), ("inadecuad", ("o", "a", "os", "as")),
+        ("inapropiad", ("o", "a", "os", "as")), ("precari", ("o", "a", "os", "as")),
+        ("excesiv", ("o", "a", "os", "as")), ("fragmentad", ("o", "a", "os", "as")),
+        ("inequitativ", ("o", "a", "os", "as")), ("lent", ("o", "a", "os", "as")),
+        ("insuficiente", ("", "s")), ("deficiente", ("", "s")), ("ineficiente", ("", "s")),
+        ("inestable", ("", "s")), ("creciente", ("", "s")), ("desigual", ("", "es")),
+        ("irregular", ("", "es")), ("debil", ("", "es")), ("ineficaz", ("",)), ("ineficaces", ("",)),
+    )
+    for end in ends
+)
+
+
+def opens_with_negative_qualifier(text) -> bool:
+    return _fold(_first_word(_node_body(text))) in NEGATIVE_QUALIFIERS
+
+
 def _finding(severity: str, code: str, node: str, message: str) -> dict:
     return {"severity": severity, "code": code, "node": node, "message": message}
 
@@ -419,6 +446,11 @@ def problem_tree_findings(spec: dict) -> list[dict]:
             findings.append(_finding("error", "arbol-solucion-en-problema", node,
                                      "El árbol de problemas describe la situación negativa; la solución va en el "
                                      "árbol de objetivos."))
+    trunk_text = _node_body((spec.get("trunk") or {}).get("text"))
+    if trunk_text and not opens_with_negative_qualifier(trunk_text):
+        findings.append(_finding("error", "arbol-problema-sin-calificativo-negativo", "trunk",
+                                 "El problema central empieza con un calificativo negativo que no indique carencia "
+                                 "(poco, escaso, limitado, insuficiente, deficiente, bajo, alto…)."))
     magnitude = (spec.get("trunk") or {}).get("magnitude")
     if not (isinstance(magnitude, dict) and str(magnitude.get("indicador") or "").strip()
             and str(magnitude.get("fuente") or "").strip()):
@@ -562,6 +594,50 @@ def _same_text(a, b) -> bool:
     return key(a) == key(b)
 
 
+TITLE_RE = re.compile(r"\\newcommand\{\\TituloProyecto\}\{(.*)\}\s*$")
+
+
+def project_title(red: Path) -> str:
+    """\\TituloProyecto from datos_proyecto.tex, or "" when absent."""
+    datos = red / "datos_proyecto.tex"
+    if not datos.is_file():
+        return ""
+    for line in datos.read_text(encoding="utf-8", errors="replace").splitlines():
+        match = TITLE_RE.match(strip_comment(line).strip())
+        if match:
+            return match.group(1)
+    return ""
+
+
+def _title_key(words: list[str]) -> str:
+    return " ".join(_fold(w.lower()) for w in words).rstrip(" .;:")
+
+
+def sgr_title_findings(title, general_objective) -> list[dict]:
+    """SGR: the title is the general objective with only its first word changed,
+    the infinitive turned into its noun (Fortalecer → Fortalecimiento de…).
+    A placeholder or a missing objective is not a finding."""
+    title = normalize_tree_text(title)
+    objective = normalize_tree_text(general_objective)
+    if not title or not objective or title.startswith("[Por definir"):
+        return []
+    t_words, o_words = title.split(), objective.split()
+    rest = t_words[1:]
+    # The noun takes "de" before the objective's object: "del" stands for "de el".
+    if rest and rest[0].lower() == "del":
+        rest = ["el"] + rest[1:]
+    elif rest and rest[0].lower() == "de":
+        rest = rest[1:]
+    verb = _fold(o_words[0].lower())
+    stem = verb[:-2] if INFINITIVE_RE.match(verb) else verb
+    noun = _fold(t_words[0].lower())
+    if len(o_words) > 1 and noun.startswith(stem[:4]) and noun != verb and _title_key(rest) == _title_key(o_words[1:]):
+        return []
+    return [_finding("error", "sgr-titulo-no-derivado", "titulo",
+                     "En el flujo SGR el título es el objetivo general cambiando solo la primera palabra por su "
+                     "sustantivo (Fortalecer las capacidades… → Fortalecimiento de las capacidades…).")]
+
+
 def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections: dict[str, Path],
                 flujo: str) -> None:
     problem_path = run_root / PROBLEM_SPEC
@@ -579,6 +655,9 @@ def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections:
 
     tree_general = normalize_tree_text((objectives.get("trunk") or {}).get("text"))
     if flujo == "sgr":
+        datos = run_root / "redaccion" / "datos_proyecto.tex"
+        for f in sgr_title_findings(project_title(run_root / "redaccion"), tree_general):
+            report.add(f["severity"], f["code"], f["message"], datos)
         if "06_objetivo_general" in texts and not _same_text(general_objective_text(texts["06_objetivo_general"]),
                                                              tree_general):
             report.add("error", "sgr-objetivo-general-distinto",
