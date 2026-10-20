@@ -427,12 +427,21 @@ def _prompt_if_tty(prompt: str, options: list[str], default: str) -> str:
     return _prompt_if_tty("Invalid selection.", options, default)
 
 
-def _build_config_json(lang: str, preset_name: str, tools: list[str] | set[str] | None = None) -> dict:
-    """Return the config dict for .marco/config.json."""
+def _build_config_json(
+    lang: str,
+    preset_name: str,
+    tools: list[str] | set[str] | None = None,
+    flujo: str = "base",
+) -> dict:
+    """Return the config dict for .marco/config.json.
+
+    ``flujo`` is ``"base"`` or ``"sgr"`` (Sistema General de Regalias, MGA).
+    """
     now = datetime.now(timezone.utc).isoformat()
     cfg = {
         "language": lang,
         "model_preset": preset_name,
+        "flujo": flujo,
         "agent_models": dict(_MODEL_PRESETS[preset_name]),
         "created_at": now,
         "updated_at": now,
@@ -564,7 +573,8 @@ def cmd_init(args: argparse.Namespace) -> None:
     )
 
     # --- .marco/config.json ---
-    config = _build_config_json(lang, preset_name, tools=tools)
+    flujo = "sgr" if getattr(args, "sgr", False) else "base"
+    config = _build_config_json(lang, preset_name, tools=tools, flujo=flujo)
     (marco_dir / "config.json").write_text(
         json.dumps(config, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
@@ -627,6 +637,7 @@ def cmd_init(args: argparse.Namespace) -> None:
     print(f"  Tools: {', '.join(sorted(tools))}")
     print(f"  Language: {lang}")
     print(f"  Model preset: {preset_name}")
+    print(f"  Flow: {flujo}")
     print(f"\n  Next: cd {target} && open your runtime (Claude Code / OpenCode / pi)")
     print(f"        with CWD set to this folder and start with /propuesta-init")
     if args.title:
@@ -948,6 +959,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_init = sub.add_parser("init", help="Create a portable project folder")
     p_init.add_argument("dir", help="Target directory path")
     p_init.add_argument("--title", default=None, help="Optional proposal title")
+    p_init.add_argument(
+        "--sgr",
+        action="store_true",
+        help="Project follows the Sistema General de Regalias (MGA) flow",
+    )
     p_init.add_argument(
         "--tools",
         default="claude,opencode,pi,antigravity",

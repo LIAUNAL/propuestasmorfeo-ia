@@ -23,6 +23,14 @@ from .manifest import (
 )
 
 
+# Flujo del proyecto: `base` es el pipeline de siempre; `sgr` agrega lo que pide
+# el Sistema General de Regalías (metodología MGA). Se guarda en config.json.
+FLUJO_LABELS = {
+    "base": "base",
+    "sgr": "SGR (Sistema General de Regalías, MGA)",
+}
+
+
 def init_project(
     target_dir: Path,
     tools: set[str],
@@ -31,7 +39,10 @@ def init_project(
     title: str | None = None,
     force: bool = False,
     quiet: bool = False,
+    flujo: str = "base",
 ) -> int:
+    if flujo not in FLUJO_LABELS:
+        raise UserError(f"Flujo desconocido: {flujo} (válidos: {', '.join(FLUJO_LABELS)})")
     target_dir = target_dir.resolve()
     if target_dir.exists() and not force:
         existing = [p for p in target_dir.iterdir() if p.name != ".DS_Store"]
@@ -81,6 +92,7 @@ def init_project(
             "preset": preset_name,
             "tools": sorted(tools),
             "title": title,
+            "flujo": flujo,
         }
         with (marker_dir / "config.json").open("w", encoding="utf-8") as f:
             json.dump(config_record, f, indent=2)
@@ -131,6 +143,7 @@ def init_project(
     if not quiet:
         print("\n[OK] Espacio de trabajo Morfeo creado exitosamente.")
         print(f"     Directorio: {target_dir}")
+        print(f"     Flujo: {FLUJO_LABELS[flujo]}")
         print("     Para comenzar:")
         print(f"       cd {target_dir}")
         print("       morfeo status .")

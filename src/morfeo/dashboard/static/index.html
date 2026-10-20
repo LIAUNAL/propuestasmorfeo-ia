@@ -398,6 +398,24 @@
     .tree--objetivos .tree-node--trunk:not(.tree-node--pending) { border-color: var(--ok); background: var(--ok-dim); }
     .tree--objetivos .tree-group__head:not(.tree-node--pending) { border-color: var(--ok); }
     .tree-empty { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 0.88rem; }
+    /* Reglas de la guía SGR: hallazgos por nodo, magnitud y caja de reglas. */
+    .tree-node.tree-node--finding-error { outline: 2px solid var(--bad); outline-offset: 2px; }
+    .tree-node.tree-node--finding-warning { outline: 2px dashed var(--warn); outline-offset: 2px; }
+    .tree-subtier { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); text-align: center; margin: 0.1rem 0 -0.15rem; }
+    .tree-magnitude { max-width: 760px; margin: 0.4rem auto 0; font-size: 0.75rem; color: var(--text-muted); text-align: center; overflow-wrap: anywhere; }
+    .tree-magnitude strong { color: var(--text); }
+    .tree-magnitude--missing { font-style: italic; color: var(--text-dim); }
+    .tree-findings:empty { display: none; }
+    .tree-findings { margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; font-size: 0.8rem; }
+    .tree-findings h4 { margin: 0 0 0.5rem; font-size: 0.8rem; }
+    .tree-findings ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+    .tree-findings li { display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; overflow-wrap: anywhere; }
+    .tree-findings__node { font-family: var(--font-mono, monospace); font-size: 0.72rem; color: var(--text-dim); }
+    .tree-rules { margin-top: 0.75rem; font-size: 0.8rem; border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: 0.5rem 0.75rem; background: var(--surface-2); }
+    .tree-rules summary { cursor: pointer; font-weight: 600; color: var(--text); }
+    .tree-rules h4 { margin: 0.75rem 0 0.35rem; font-size: 0.8rem; }
+    .tree-rules ul { margin: 0; padding-left: 1.1rem; color: var(--text-muted); line-height: 1.5; }
+    .tree-rules__source { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--text-dim); }
     .tree-empty p { margin-bottom: 0.9rem; }
     .tree-review__body { display: flex; flex-direction: column; gap: 0.55rem; }
     .tree-selected { font-size: 0.8rem; color: var(--text-muted); padding: 0.55rem 0.65rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); }
@@ -2257,6 +2275,7 @@
     </div>
     <div class="topbar__actions">
       <span class="badge badge--live">LIVE</span>
+      <span class="badge badge--info" id="flujoBadge" title="Flujo de redacción del proyecto">Flujo base</span>
       <select id="runSelector" class="btn" onchange="changeActiveRun(this.value)">
         <option value="">Cargando corridas...</option>
       </select>
@@ -2402,12 +2421,32 @@
           </div>
           <span class="tree-legend" id="treeLegend"></span>
         </div>
+        <details class="tree-rules" id="treeRules">
+          <summary>Reglas de la guía SGR</summary>
+          <h4>Árbol de problemas</h4>
+          <ul>
+            <li>El problema central es un estado negativo que existe hoy: calificativo, variable medible y población o lugar (por ejemplo, «Bajo aprovechamiento de los residuos sólidos domiciliarios de la zona urbana»).</li>
+            <li>Un problema no es la ausencia de su solución: evita «falta de», «no existe» o «se requiere».</li>
+            <li>Cada causa directa es un subproblema; sus causas indirectas van debajo.</li>
+            <li>Los efectos directos cuelgan del problema central y la copa es el efecto final, no la solución.</li>
+            <li>La magnitud del problema (indicador, valor y fuente) queda como línea base.</li>
+          </ul>
+          <h4>Árbol de objetivos</h4>
+          <ul>
+            <li>Es el espejo positivo del árbol de problemas y conserva su variable.</li>
+            <li>El problema central da el objetivo general: verbo en infinitivo, objeto y elementos descriptivos, sin el medio («mediante», «a través de»), los fines («para mejorar…») ni las metas.</li>
+            <li>Cada causa directa da un objetivo específico; cada causa indirecta, un medio que dice el qué y no el cómo.</li>
+            <li>Cada efecto da un fin, y el efecto final da el fin último.</li>
+          </ul>
+          <p class="tree-rules__source">Fuentes: Instructivo MGA 2023 (p. 122) y Manual conceptual MGA 2015, Departamento Nacional de Planeación.</p>
+        </details>
       </div>
 
       <div class="tree-layout">
         <div class="panel tree-stage">
           <div class="tree-banner" id="treeBanner"></div>
           <div class="tree-canvas" id="treeCanvas"></div>
+          <div class="tree-findings" id="treeFindings" aria-live="polite"></div>
         </div>
 
         <aside class="panel tree-review">
@@ -3339,8 +3378,8 @@
       if (first || !TREES_STATE.view) {
         TREES_STATE.view = (data.stage === 'objetivos' || data.stage === 'aprobados') ? 'objetivos' : 'problemas';
       }
-      const r = t => [t.hash, t.review.status, (t.review.iterations || []).length];
-      const sig = JSON.stringify([data.run, data.review_error || null, r(data.problem), r(data.objectives)]);
+      const r = t => [t.hash, t.review.status, (t.review.iterations || []).length, JSON.stringify(t.findings || [])];
+      const sig = JSON.stringify([data.run, data.flujo || 'base', data.review_error || null, r(data.problem), r(data.objectives)]);
       if (sig !== TREES_STATE.sig) {
         TREES_STATE.sig = sig;
         renderTrees();
@@ -3382,6 +3421,41 @@
       return null;
     }
 
+    // Hallazgos de la guía SGR del árbol visible: el más grave marca el nodo.
+    function treeFindings() {
+      const entry = currentTreeEntry();
+      return (entry && Array.isArray(entry.findings)) ? entry.findings : [];
+    }
+
+    function treeFindingClass(id) {
+      const sev = treeFindings().filter(f => f.node === id).map(f => f.severity);
+      if (sev.includes('error')) return ' tree-node--finding-error';
+      if (sev.includes('warning')) return ' tree-node--finding-warning';
+      return '';
+    }
+
+    function treeMagnitudeHtml(trunk) {
+      const m = trunk && trunk.magnitude;
+      const has = m && (m.indicador || m.valor || m.fuente);
+      if (!has) return '<div class="tree-magnitude tree-magnitude--missing">Sin magnitud: agrega indicador, valor y fuente (línea base)</div>';
+      const part = (label, value) => value ? `<span><strong>${label}:</strong> ${escapeHtml(String(value))}</span>` : '';
+      return `<div class="tree-magnitude">Magnitud · ${[part('Indicador', m.indicador), part('Valor', m.valor), part('Fuente', m.fuente)].filter(Boolean).join(' · ')}</div>`;
+    }
+
+    function renderTreeFindings() {
+      const el = document.getElementById('treeFindings');
+      if (!el) return;
+      const entry = currentTreeEntry();
+      const findings = entry && entry.available ? treeFindings() : [];
+      if (!findings.length) { el.innerHTML = ''; return; }
+      const order = { error: 0, warning: 1 };
+      const items = findings.slice().sort((a, b) => (order[a.severity] ?? 2) - (order[b.severity] ?? 2)).map(f => {
+        const bad = f.severity === 'error';
+        return `<li><span class="badge badge--${bad ? 'bad' : 'warn'}">${bad ? 'Error' : 'Aviso'}</span><span>${escapeHtml(f.message || f.code || '')}</span><span class="tree-findings__node">${escapeHtml(f.node || '')} · ${escapeHtml(f.code || '')}</span></li>`;
+      }).join('');
+      el.innerHTML = `<h4>Hallazgos de la guía SGR (${findings.length})</h4><ul>${items}</ul>`;
+    }
+
     function treeNodeHtml(id, text, kind, from) {
       const pending = !text;
       const count = (TREES_STATE.comments[TREES_STATE.view] || []).filter(c => c.node === id).length;
@@ -3391,34 +3465,39 @@
         // Tree labels carry manual `\n` breaks sized for the TikZ figure; on
         // screen the node width differs, so they collapse into normal wrapping.
         : escapeHtml(text).replace(/\s*\n\s*/g, ' ');
-      return `<div class="tree-node tree-node--${kind}${pending ? ' tree-node--pending' : ''}${TREES_STATE.selected === id ? ' is-selected' : ''}" data-node="${escapeHtml(id)}" tabindex="0">
+      return `<div class="tree-node tree-node--${kind}${pending ? ' tree-node--pending' : ''}${treeFindingClass(id)}${TREES_STATE.selected === id ? ' is-selected' : ''}" data-node="${escapeHtml(id)}" tabindex="0">
         <span class="tree-node__id">${escapeHtml(id)}</span><span class="tree-node__text">${body}</span>${count ? `<span class="tree-node__count">${count}</span>` : ''}
       </div>`;
     }
 
+    // Niveles de la MGA, de la copa a las raíces.
+    const TREE_TIERS = {
+      problemas: { crown: 'Efecto final', branches: 'Efectos directos', trunk: 'Problema central', heads: 'Causas directas', leaves: 'Causas indirectas' },
+      objetivos: { crown: 'Fin último', branches: 'Fines', trunk: 'Objetivo general', heads: 'Objetivos específicos', leaves: 'Medios' },
+    };
+
     function treeHtml(tree, view) {
       const objetivos = view === 'objetivos';
-      const tiers = objetivos
-        ? ['Impacto (copa)', 'Fines (ramas)', 'Objetivo general (tronco)', 'Medios por objetivo específico (raíces)']
-        : ['Solución (copa)', 'Efectos (ramas)', 'Problema central (tronco)', 'Causas por subproblema (raíces)'];
+      const tiers = TREE_TIERS[objetivos ? 'objetivos' : 'problemas'];
       const groups = (tree.groups || []).map(g => {
         const leaves = objetivos ? (g.means || []) : (g.causes || []);
         const head = objetivos
           ? treeNodeHtml(g.id, g.objective ? `${g.title || g.id} · ${g.objective}` : null, 'group tree-group__head', g.from)
           : treeNodeHtml(g.id, g.title, 'group tree-group__head');
-        return `<div class="tree-group">${head}${leaves.map(n => treeNodeHtml(n.id, n.text, 'leaf', n.from)).join('')}</div>`;
+        return `<div class="tree-group">${head}<div class="tree-subtier">${tiers.leaves}</div>${leaves.map(n => treeNodeHtml(n.id, n.text, 'leaf', n.from)).join('')}</div>`;
       }).join('');
       return `<div class="tree tree--${view}">
-        <div class="tree-tier">${tiers[0]}</div>
+        <div class="tree-tier">${tiers.crown}</div>
         <div class="tree-row">${treeNodeHtml('crown', (tree.crown || {}).text, 'crown')}</div>
         <div class="tree-link"></div>
-        <div class="tree-tier">${tiers[1]}</div>
+        <div class="tree-tier">${tiers.branches}</div>
         <div class="tree-row">${(tree.branches || []).map(b => treeNodeHtml(b.id, b.text, 'branch', b.from)).join('')}</div>
         <div class="tree-link"></div>
-        <div class="tree-tier">${tiers[2]}</div>
+        <div class="tree-tier">${tiers.trunk}</div>
         <div class="tree-row">${treeNodeHtml('trunk', (tree.trunk || {}).text, 'trunk')}</div>
+        ${objetivos ? '' : treeMagnitudeHtml(tree.trunk)}
         <div class="tree-link"></div>
-        <div class="tree-tier">${tiers[3]}</div>
+        <div class="tree-tier">${tiers.heads}</div>
         <div class="tree-groups">${groups}</div>
       </div>`;
     }
@@ -3438,9 +3517,13 @@
       const d = TREES_STATE.data;
       const entry = currentTreeEntry();
       if (!d || !entry) return { send: 'Sin datos del árbol.', approve: 'Sin datos del árbol.' };
+      const errors = (entry.findings || []).filter(f => f.severity === 'error').length;
+      const findingsMsg = errors
+        ? `Corrige los hallazgos de error de la guía SGR antes de aprobar (${errors}): pide el ajuste al agente.`
+        : null;
       if (TREES_STATE.view === 'problemas') {
         if (!entry.available) return { send: null, approve: entry.hint };
-        return { send: null, approve: entry.review.status === 'aprobado' ? 'Esta versión ya está aprobada.' : null };
+        return { send: null, approve: entry.review.status === 'aprobado' ? 'Esta versión ya está aprobada.' : findingsMsg };
       }
       if (d.problem.review.status !== 'aprobado') {
         const msg = 'Primero hay que aprobar el árbol de problemas: el de objetivos es su espejo y se itera después.';
@@ -3450,7 +3533,7 @@
       if ((entry.missing || []).length) {
         return { send: null, approve: `Faltan textos por redactar (${entry.missing.length}): pide al agente que complete los medios y los fines.` };
       }
-      return { send: null, approve: null };
+      return { send: null, approve: findingsMsg };
     }
 
     function renderTrees() {
@@ -3478,7 +3561,7 @@
       let banner = '';
       if (view === 'objetivos' && entry.available) {
         if (d.problem.review.status !== 'aprobado') banner = 'Propuesta preliminar en espejo del árbol de problemas: se itera y aprueba cuando el árbol de problemas esté aprobado.';
-        else if (entry.derived) banner = `${entry.hint} Toma §6 y §7 cuando ya existen.`;
+        else if (entry.derived) banner = entry.hint || '';
       }
       if (entry.review.status === 'por_revisar') banner = '🔔 El agente entregó una nueva versión de este árbol: revísala y apruébala o pide otro ajuste.';
       if (d.review_error) banner = `⚠️ ${d.review_error}`;
@@ -3500,6 +3583,7 @@
           el.addEventListener('click', () => selectTreeNode(el.dataset.node));
         });
       }
+      renderTreeFindings();
       renderTreeReview();
     }
 
@@ -3621,7 +3705,7 @@
     async function requestTreeProposal() {
       const gate = treeProposalGate();
       if (gate) { treeMessage(gate, 'error'); return; }
-      const result = await postTreeFeedback('problemas', [], 'Proponer el árbol de problemas a partir de los subproblemas de §3: tres grupos de causas (uno por subproblema), el problema central, los efectos y la solución.');
+      const result = await postTreeFeedback('problemas', [], 'Proponer el árbol de problemas a partir de los subproblemas de §3: tres causas directas (una por subproblema) con sus causas indirectas, el problema central como estado negativo con su magnitud, los efectos directos y el efecto final.');
       if (!result.ok) { treeMessage(result.error || 'No se pudo registrar la solicitud.', 'error'); return; }
       await deliverTreePrompt(result);
       await loadTrees();
@@ -4117,6 +4201,16 @@
       }
     }
 
+    // Insignia del flujo del proyecto (base o SGR), desde /api/status.
+    function renderFlujoBadge(status) {
+      const el = document.getElementById('flujoBadge');
+      if (!el) return;
+      const sgr = status && status.flujo === 'sgr';
+      el.textContent = sgr ? 'Flujo SGR' : 'Flujo base';
+      el.className = `badge ${sgr ? 'badge--ok' : 'badge--info'}`;
+      el.title = sgr ? 'Proyecto con el flujo del Sistema General de Regalías (MGA)' : 'Proyecto con el flujo base';
+    }
+
     async function loadStatus() {
       if (document.hidden) return; // Pausa el sondeo cuando la pestaña está en segundo plano
       try {
@@ -4124,6 +4218,7 @@
         if (!res.ok) return;
         const data = await res.json();
         currentStatus = data;
+        renderFlujoBadge(data);
         if (data.active_run) {
           const footerRun = document.getElementById('terminalFooterRun');
           if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;

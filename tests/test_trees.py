@@ -59,6 +59,24 @@ def write_objectives_sections(run: Path) -> None:
     (sections / "07_objetivos_especificos.tex").write_text(OBJ_ESPECIFICOS, encoding="utf-8")
 
 
+def write_agent_objectives(run: Path, trunk: str = "Resolver el problema central de prueba") -> None:
+    """Objective tree that mirrors SPEC and follows the SGR rules."""
+    arboles = run / "artefactos" / "arboles"
+    arboles.mkdir(parents=True, exist_ok=True)
+    (arboles / "arbol_objetivos.json").write_text(json.dumps({
+        "groups": [
+            {"id": "OE1", "from": "SP1", "title": "OE1", "objective": "Lograr el objetivo uno",
+             "means": [{"id": "m1", "from": "r1", "text": "Atender la causa uno"},
+                       {"id": "m2", "from": "r2", "text": "Atender la causa dos"}]},
+            {"id": "OE2", "from": "SP2", "title": "OE2", "objective": "Lograr el objetivo dos",
+             "means": [{"id": "m3", "from": "r3", "text": "Atender la causa tres"}]},
+        ],
+        "trunk": {"label": "OBJETIVO GENERAL", "text": trunk},
+        "branches": [{"id": "f1", "from": "b1", "text": "Reducir el efecto uno"}],
+        "crown": {"label": "FIN ÚLTIMO", "text": "Mejorar el bienestar"},
+    }, ensure_ascii=False), encoding="utf-8")
+
+
 class TestLoadTrees(unittest.TestCase):
     def test_without_spec_the_problem_tree_is_not_available_and_explains_why(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -93,16 +111,67 @@ class TestLoadTrees(unittest.TestCase):
             self.assertIsNone(obj["tree"]["trunk"]["text"])
             self.assertEqual(obj["tree"]["branches"][0]["from"], "b1")
 
-    def test_objectives_take_sections_6_and_7_when_written(self):
+    def test_the_derived_mirror_does_not_copy_sections_6_and_7(self):
+        # S3: this mirror used to copy §6 and §7. In the base flow §6 and §7 keep
+        # their AI verbs and differ from the tree by design, so the copy was
+        # removed on purpose: every positive text waits for the investigador.
         with tempfile.TemporaryDirectory() as tmp:
             run = make_run(Path(tmp))
             write_objectives_sections(run)
-            tree = load_trees(run)["objectives"]["tree"]
-            self.assertEqual(tree["trunk"]["text"], "Desarrollar un sistema portable de prueba.")
-            self.assertEqual(
-                [g["objective"] for g in tree["groups"]],
-                ["Desarrollar la estrategia uno.", "Diseñar el esquema dos."],
-            )
+            obj = load_trees(run)["objectives"]
+            tree = obj["tree"]
+            self.assertIsNone(tree["trunk"]["text"])
+            self.assertEqual(tree["trunk"]["label"], "OBJETIVO GENERAL")
+            self.assertEqual([g["objective"] for g in tree["groups"]], [None, None])
+            self.assertEqual([g["title"] for g in tree["groups"]], ["OE1", "OE2"])
+            self.assertEqual(tree["crown"], {"label": "FIN ÚLTIMO", "text": None})
+            self.assertIn("fin último", obj["missing"])
+            self.assertIn("investigador", obj["hint"])
+            self.assertEqual(obj["findings"], [])
+
+    def test_magnitude_passes_through_on_trunk_groups_and_branches(self):
+        magnitude = {"indicador": "Tasa de deserción", "valor": "12 %", "fuente": "SIMAT 2024"}
+        spec = json.loads(json.dumps(SPEC))
+        spec["trunk"]["magnitude"] = magnitude
+        spec["groups"][0]["magnitude"] = magnitude
+        spec["branches"][0]["magnitude"] = magnitude
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = load_trees(make_run(Path(tmp), spec=spec))["problem"]["tree"]
+            self.assertEqual(tree["trunk"]["magnitude"], magnitude)
+            self.assertEqual(tree["groups"][0]["magnitude"], magnitude)
+            self.assertNotIn("magnitude", tree["groups"][1])
+            self.assertEqual(tree["branches"][0]["magnitude"], magnitude)
+
+    def test_the_default_crown_is_the_final_effect_not_the_solution(self):
+        spec = {k: v for k, v in SPEC.items() if k not in ("crown", "trunk")}
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = load_trees(make_run(Path(tmp), spec=spec))["problem"]["tree"]
+            self.assertEqual(tree["crown"]["label"], "EFECTO FINAL")
+            self.assertEqual(tree["trunk"]["label"], "PROBLEMA CENTRAL")
+
+    def test_the_payload_carries_the_findings_of_the_sgr_rules(self):
+        spec = dict(SPEC, trunk={"label": "PROBLEMA CENTRAL", "text": "Falta de un sistema de alerta"})
+        with tempfile.TemporaryDirectory() as tmp:
+            trees = load_trees(make_run(Path(tmp), spec=spec))
+            codes = {f["code"] for f in trees["problem"]["findings"]}
+            self.assertIn("arbol-ausencia-de-solucion", codes)
+            self.assertIn("arbol-sin-magnitud", codes)
+            self.assertEqual(trees["objectives"]["findings"], [])
+
+    def test_objective_findings_come_from_the_agent_tree(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp))
+            write_agent_objectives(run, trunk="Resolver el problema central de prueba mediante un sistema de IA")
+            codes = {f["code"] for f in load_trees(run)["objectives"]["findings"]}
+            self.assertEqual(codes, {"objetivo-general-con-medio"})
+
+    def test_the_payload_reports_the_flow(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp))
+            self.assertEqual(load_trees(run)["flujo"], "base")
+            (Path(tmp) / ".morfeo").mkdir()
+            (Path(tmp) / ".morfeo" / "config.json").write_text('{"flujo": "sgr"}', encoding="utf-8")
+            self.assertEqual(load_trees(run)["flujo"], "sgr")
 
     def test_objectives_file_written_by_the_agent_wins_over_the_derivation(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -201,20 +270,55 @@ class TestReviewCycle(unittest.TestCase):
             self.assertIn("arbol_objetivos.json", result["prompt"])
 
     def test_both_approved_closes_the_stage(self):
+        # The agent tree now has to mirror SPEC and follow the SGR rules,
+        # otherwise its error findings block the approval.
         with tempfile.TemporaryDirectory() as tmp:
             run = make_run(Path(tmp))
-            arboles = run / "artefactos" / "arboles"
-            arboles.mkdir()
-            (arboles / "arbol_objetivos.json").write_text(json.dumps({
-                "groups": [{"id": "OE1", "from": "SP1", "title": "OE1", "objective": "Obj",
-                            "means": [{"id": "m1", "from": "r1", "text": "Medio"}]}],
-                "trunk": {"label": "OBJETIVO GENERAL", "text": "General"},
-                "branches": [{"id": "f1", "from": "b1", "text": "Fin"}],
-                "crown": {"label": "IMPACTO", "text": "Impacto"},
-            }), encoding="utf-8")
+            write_agent_objectives(run)
             approve_tree(run, "problemas")
             self.assertTrue(approve_tree(run, "objetivos")["ok"])
             self.assertEqual(load_trees(run)["stage"], "aprobados")
+
+    def test_a_tree_with_error_findings_cannot_be_approved(self):
+        spec = dict(SPEC, trunk={"label": "PROBLEMA CENTRAL", "text": "Ausencia de un sistema de alerta"})
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp), spec=spec)
+            result = approve_tree(run, "problemas")
+            self.assertFalse(result["ok"])
+            self.assertIn("Corrige los hallazgos de la guía SGR antes de aprobar", result["error"])
+            self.assertIn("arbol-ausencia-de-solucion", result["error"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp))
+            write_agent_objectives(run, trunk="Resolver el problema central de prueba en un 30 %")
+            approve_tree(run, "problemas")
+            result = approve_tree(run, "objetivos")
+            self.assertFalse(result["ok"])
+            self.assertIn("objetivo-general-con-meta", result["error"])
+
+    def test_warnings_do_not_block_the_approval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp))
+            self.assertEqual({f["severity"] for f in load_trees(run)["problem"]["findings"]}, {"warning"})
+            self.assertTrue(approve_tree(run, "problemas")["ok"])
+
+    def test_feedback_prompts_carry_the_sgr_rules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp))
+            problem = record_feedback(run, "problemas", [], "Ajustar")["prompt"]
+            self.assertIn("estado negativo", problem)
+            self.assertIn("falta de", problem)
+            self.assertIn("efecto indirecto", problem)
+            self.assertIn("magnitud", problem)
+            base = record_feedback(run, "objetivos", [], "Ajustar")["prompt"]
+            self.assertIn("cada causa directa se vuelve", base)
+            self.assertIn("No modifiques §6 ni §7 sin preguntarme; deben conservar la variable del árbol.", base)
+            self.assertNotIn("\n", base)
+            (Path(tmp) / ".morfeo").mkdir()
+            (Path(tmp) / ".morfeo" / "config.json").write_text('{"flujo": "sgr"}', encoding="utf-8")
+            sgr = record_feedback(run, "objetivos", [], "Ajustar")["prompt"]
+            self.assertIn("En el flujo SGR §6 y §7 son literalmente los textos de este árbol", sgr)
+            self.assertNotIn("deben conservar la variable del árbol", sgr)
 
 
 class TestReviewFileRobustness(unittest.TestCase):

@@ -70,6 +70,17 @@ class TemplateContentTest(unittest.TestCase):
         self.assertNotIn(-1, positions, dict(zip(order, positions)))
         self.assertEqual(positions, sorted(positions), "sections are out of the canonical order")
 
+    def test_sgr_annexes_sit_between_section_18_and_the_bibliography(self) -> None:
+        # Only SGR runs write these files; \SeccionSiExiste keeps them out of a base run.
+        annexes = [
+            "19_alineacion_planes", "20_participantes", "21_poblacion", "22_alternativas",
+            "23_cadena_valor", "24_riesgos", "25_marco_logico",
+        ]
+        order = ["18_apropiacion_social", *annexes, "16_bibliografia"]
+        positions = [self.tex.find("\\SeccionSiExiste{" + name + "}") for name in order]
+        self.assertNotIn(-1, positions, dict(zip(order, positions)))
+        self.assertEqual(positions, sorted(positions), "SGR annexes are out of order")
+
 
 class TemplateInRunTest(unittest.TestCase):
     def test_init_run_seeds_main_tex_without_the_optional_logo(self) -> None:

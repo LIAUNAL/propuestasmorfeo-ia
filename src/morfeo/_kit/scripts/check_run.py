@@ -8,12 +8,32 @@ reference run did). Standard library only: every runtime (Claude Code, Pi,
 OpenCode, Antigravity) runs it the same way.
 
 Usage:
-  python3 scripts/check_run.py [RUN_ROOT] [--final] [--json]
+  python3 scripts/check_run.py [RUN_ROOT] [--final] [--json] [--flujo {base,sgr}]
 
 RUN_ROOT defaults to the run named in proposals/.current-run. Without --final,
 only files that already exist are checked (a mid-pipeline gate); --final also
 requires every canonical section, a filled cover and the total reference
-floor. Exit code 1 when any error is found.
+floor. Exit code 1 when any error is found. --json prints an object
+{"flujo": ..., "findings": [...]}.
+
+Flow (flujo): read from the first `.morfeo/config.json` or `.marco/config.json`
+found from RUN_ROOT upwards ("base" when missing or invalid); --flujo overrides
+it. Both flows apply the SGR guide rules (MGA, DNP) to the problem and
+objective trees when their files exist:
+  problem tree (redaccion/specs/arbol_problemas.spec.json):
+    arbol-ausencia-de-solucion (error), arbol-solucion-en-problema (error),
+    arbol-sin-efectos (error), arbol-sin-magnitud (warning),
+    arbol-causa-directa-sin-indirectas (warning), arbol-sin-efecto-final (warning)
+  objective tree (artefactos/arboles/arbol_objetivos.json):
+    arbol-objetivos-no-infinitivo, objetivo-general-con-medio,
+    objetivo-general-con-fin, objetivo-general-con-meta, arbol-espejo-roto,
+    arbol-variable-cambiada (error on the trunk, warning on a group)
+  base flow: objetivo-general-sin-variable-del-arbol (warning, §6 vs tree)
+  SGR flow: sgr-objetivo-general-distinto, sgr-objetivos-especificos-distintos
+    (§6/§7 must be the objective tree texts), and with --final
+    sgr-anexo-faltante for each missing MGA annex in SGR_SECTIONS.
+The tree rule functions (problem_tree_findings, objective_tree_findings,
+shared_variable, detect_flujo) are pure and imported by the dashboard.
 
 Reference floors come from guiaProyectosIA_Agente.md (§2 "al menos 13
 referencias", §4 "al menos 39 referencias", §16 total of 65); a test keeps
@@ -28,6 +48,7 @@ import re
 import shutil
 import subprocess
 import sys
+import unicodedata
 from pathlib import Path
 
 FLOOR_JUSTIFICACION = 13
@@ -43,6 +64,15 @@ CANONICAL_SECTIONS = (
     "13_presupuesto", "14_cronograma_actividades", "15_productos_esperados", "16_bibliografia",
     "17_articulacion_comunidades", "18_apropiacion_social",
 )
+
+# MGA annexes of the SGR flow (S5); the base flow never requires them.
+SGR_SECTIONS = (
+    "19_alineacion_planes", "20_participantes", "21_poblacion", "22_alternativas",
+    "23_cadena_valor", "24_riesgos", "25_marco_logico",
+)
+FLUJOS = ("base", "sgr")
+PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
+OBJECTIVES_FILE = Path("artefactos") / "arboles" / "arbol_objetivos.json"
 
 # Environments whose content is not narrative prose (tables, drawings, code, math)
 NON_PROSE_ENVS = (
@@ -66,15 +96,20 @@ class Report:
     def __init__(self, run_root: Path) -> None:
         self.run_root = run_root
         self.findings: list[dict] = []
+        self.flujo = "base"
 
-    def add(self, severity: str, code: str, message: str, path: Path | None = None, line: int | None = None) -> None:
+    def add(self, severity: str, code: str, message: str, path: Path | None = None, line: int | None = None,
+            node: str | None = None) -> None:
         rel = ""
         if path is not None:
             try:
                 rel = path.relative_to(self.run_root).as_posix()
             except ValueError:
                 rel = str(path)
-        self.findings.append({"severity": severity, "code": code, "file": rel, "line": line, "message": message})
+        finding = {"severity": severity, "code": code, "file": rel, "line": line, "message": message}
+        if node is not None:
+            finding["node"] = node
+        self.findings.append(finding)
 
     def errors(self) -> int:
         return sum(1 for f in self.findings if f["severity"] == "error")
@@ -250,8 +285,330 @@ def check_pdf(report: Report, red: Path) -> None:
         break
 
 
-def run_checks(run_root: Path, final: bool) -> Report:
+# --- Flow and tree rules of the SGR guide (MGA, DNP) -------------------------
+
+def detect_flujo(run_root: Path) -> str:
+    """Flow of the project that holds `run_root`: the first `.morfeo/config.json`
+    or `.marco/config.json` found from `run_root` upwards decides; "base" when
+    none exists or its value is not a known flow."""
+    try:
+        start = Path(run_root).resolve()
+    except OSError:
+        return "base"
+    for folder in (start, *start.parents):
+        for name in (".morfeo", ".marco"):
+            config = folder / name / "config.json"
+            if not config.is_file():
+                continue
+            try:
+                data = json.loads(config.read_text(encoding="utf-8", errors="replace"))
+            except (OSError, ValueError):
+                return "base"
+            value = data.get("flujo") if isinstance(data, dict) else None
+            return value if value in FLUJOS else "base"
+    return "base"
+
+
+MGA_PROBLEM_RULE = ("«Un problema no es la ausencia de su solución, sino un estado existente negativo» "
+                    "(Instructivo MGA 2023, p. 122)")
+ABSENCE_RE = re.compile(
+    r"\b(falta|ausencia|carencia|inexistencia)\s+de\b|\bno\s+(existe|existen|hay)\b"
+    r"|\bse\s+requiere\b|\bnecesidad\s+de\b", re.I)
+INFINITIVE_RE = re.compile(r"^[a-záéíóúñ]+(ar|er|ir)$")
+# Spanish nouns and adjectives that end like an infinitive.
+NOT_INFINITIVES = frozenset({
+    "lugar", "hogar", "hogares", "poder", "mujer", "particular", "militar", "escolar", "familiar", "regular",
+    "similar", "popular", "titular", "auxiliar", "peculiar", "singular", "circular", "celular", "molecular",
+    "muscular", "vascular", "nuclear", "solar", "lunar", "polar", "estelar", "ejemplar", "secular", "bipolar",
+    "altar", "pilar", "collar", "radar", "hangar", "azúcar", "dólar", "primer", "taller", "placer", "deber",
+    "amanecer", "cáncer", "carácter", "líder", "mártir", "elixir", "nadir", "mayor", "menor", "par", "mar",
+    "bar", "alfiler", "alquiler", "cadáver", "esfínter", "suéter", "póster", "máster", "chofer", "chófer",
+    "sector", "superior", "inferior", "exterior", "interior", "anterior", "posterior",
+    "irregular", "insular", "tabular", "angular", "rectangular", "ocular", "vulgar", "lumbar",
+    "bienestar", "malestar", "consular", "escolar", "titular", "modular", "celular",
+})
+MEANS_RE = re.compile(r"\b(mediante|a\s+trav[eé]s\s+de|por\s+medio\s+de|por\s+intermedio\s+de)\b", re.I)
+ENDS_RE = re.compile(r"\bpara\s+[a-záéíóúñ]+(ar|er|ir)\b|\bcon\s+el\s+(fin|prop[oó]sito|objetivo)\s+de\b", re.I)
+TARGET_RE = re.compile(r"\d+(?:[.,]\d+)?\s*%")
+NODE_PREFIX_RE = re.compile(r"^(SP|OE|CD|C)\d+\s*[·:.\-]\s*", re.I)
+STOPWORDS = frozenset({
+    "sobre", "entre", "desde", "hasta", "hacia", "segun", "durante", "mediante", "contra", "donde", "cuando",
+    "porque", "aunque", "mismo", "misma", "mismos", "mismas", "otros", "otras", "estos", "estas",
+    "aquellos", "aquellas", "cuales", "parte", "traves", "todos", "todas", "nivel", "niveles", "indice",
+    "indices", "grado", "altos", "altas", "bajos", "bajas", "elevado", "elevados", "elevada", "elevadas",
+    "escaso", "escasa", "escasos", "escasas", "deficiente", "deficientes", "limitado", "limitada",
+    "limitados", "limitadas", "insuficiente", "insuficientes", "mayor", "menor", "mejor", "peor",
+    "general", "especifico", "especifica", "medio", "medios",
+})
+
+
+def normalize_tree_text(text) -> str:
+    """Plain text of a tree node: simple LaTeX removed, `\\n` and line breaks as spaces."""
+    if not isinstance(text, str):
+        return ""
+    text = text.replace("\\n", " ")
+    text = re.sub(r"\\(textbf|textit|emph|texttt|mbox|textsc|underline)\{([^{}]*)\}", r"\2", text)
+    text = re.sub(r"\\[a-zA-Z]+\*?(\[[^\]]*\])?", "", text)
+    text = text.replace("~", " ").replace("{", "").replace("}", "").replace("\\", "")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _node_body(text) -> str:
+    """Normalized text without a leading node id such as «SP1 · »."""
+    return NODE_PREFIX_RE.sub("", normalize_tree_text(text))
+
+
+def _first_word(text: str) -> str:
+    match = re.match(r"[^\W\d_]+", text)
+    return match.group(0).lower() if match else ""
+
+
+def starts_with_infinitive(text) -> bool:
+    word = _first_word(_node_body(text))
+    return bool(INFINITIVE_RE.match(word)) and word not in NOT_INFINITIVES
+
+
+def _fold(word: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", word) if unicodedata.category(c) != "Mn")
+
+
+def _content_words(text) -> set[str]:
+    words = [_fold(w.lower()) for w in re.findall(r"[^\W\d_]+", _node_body(text))]
+    return {w for w in words[1:] if len(w) >= 5 and w not in STOPWORDS}
+
+
+def shared_variable(ref: str, other: str) -> float:
+    """Share of the content words of `ref` (the problem text) that `other` keeps.
+    The first word (the qualifier or the verb) does not count. 1.0 when `ref`
+    has no content words, since there is nothing to lose."""
+    ref_words = _content_words(ref)
+    if not ref_words:
+        return 1.0
+    return len(ref_words & _content_words(other)) / len(ref_words)
+
+
+def _finding(severity: str, code: str, node: str, message: str) -> dict:
+    return {"severity": severity, "code": code, "node": node, "message": message}
+
+
+def _problem_nodes(spec: dict):
+    """(node id, text) of every node of the problem tree."""
+    yield "trunk", (spec.get("trunk") or {}).get("text")
+    yield "crown", (spec.get("crown") or {}).get("text")
+    for group in spec.get("groups") or []:
+        yield str(group.get("id") or ""), group.get("title")
+        for cause in group.get("causes") or []:
+            yield str(cause.get("id") or ""), cause.get("text")
+    for branch in spec.get("branches") or []:
+        yield str(branch.get("id") or ""), branch.get("text")
+
+
+def problem_tree_findings(spec: dict) -> list[dict]:
+    """SGR guide rules for the problem tree; empty texts are not findings."""
+    if not isinstance(spec, dict):
+        return []
+    findings = []
+    for node, raw in _problem_nodes(spec):
+        text = _node_body(raw)
+        if not text:
+            continue
+        if ABSENCE_RE.search(text):
+            findings.append(_finding("error", "arbol-ausencia-de-solucion", node,
+                                     f"{MGA_PROBLEM_RULE}: describe la situación negativa que existe hoy."))
+        if starts_with_infinitive(text):
+            findings.append(_finding("error", "arbol-solucion-en-problema", node,
+                                     "El árbol de problemas describe la situación negativa; la solución va en el "
+                                     "árbol de objetivos."))
+    magnitude = (spec.get("trunk") or {}).get("magnitude")
+    if not (isinstance(magnitude, dict) and str(magnitude.get("indicador") or "").strip()
+            and str(magnitude.get("fuente") or "").strip()):
+        findings.append(_finding("warning", "arbol-sin-magnitud", "trunk",
+                                 "El problema central no registra su magnitud: agrega indicador, valor y fuente "
+                                 "como línea base."))
+    if not spec.get("branches"):
+        findings.append(_finding("error", "arbol-sin-efectos", "trunk",
+                                 "El árbol no tiene efectos directos: cada problema central produce efectos."))
+    for group in spec.get("groups") or []:
+        if not group.get("causes"):
+            findings.append(_finding("warning", "arbol-causa-directa-sin-indirectas", str(group.get("id") or ""),
+                                     "La causa directa no tiene causas indirectas debajo."))
+    if not normalize_tree_text((spec.get("crown") or {}).get("text")):
+        findings.append(_finding("warning", "arbol-sin-efecto-final", "crown",
+                                 "Falta el efecto final (efecto indirecto) en la copa del árbol."))
+    return findings
+
+
+def objective_tree_findings(objectives: dict, problem_spec: dict) -> list[dict]:
+    """SGR guide rules for the objective tree, the positive mirror of `problem_spec`."""
+    if not isinstance(objectives, dict):
+        return []
+    problem_spec = problem_spec if isinstance(problem_spec, dict) else {}
+    findings = []
+    groups = objectives.get("groups") or []
+    branches = objectives.get("branches") or []
+    trunk = normalize_tree_text((objectives.get("trunk") or {}).get("text"))
+
+    positive = [("trunk", trunk), ("crown", (objectives.get("crown") or {}).get("text"))]
+    for group in groups:
+        positive.append((str(group.get("id") or ""), group.get("objective")))
+        positive += [(str(m.get("id") or ""), m.get("text")) for m in group.get("means") or []]
+    positive += [(str(b.get("id") or ""), b.get("text")) for b in branches]
+    for node, raw in positive:
+        if _node_body(raw) and not starts_with_infinitive(raw):
+            findings.append(_finding("error", "arbol-objetivos-no-infinitivo", node,
+                                     "El árbol de objetivos se escribe en positivo y empieza con un verbo en "
+                                     "infinitivo."))
+
+    if trunk:
+        if MEANS_RE.search(trunk):
+            findings.append(_finding("error", "objetivo-general-con-medio", "trunk",
+                                     "El objetivo general no incluye el medio («mediante…, por intermedio de…, a "
+                                     "través de…»): los medios van en las raíces del árbol."))
+        if ENDS_RE.search(trunk):
+            findings.append(_finding("error", "objetivo-general-con-fin", "trunk",
+                                     "El objetivo general no incluye los fines («…para mejorar la calidad de "
+                                     "vida»): los fines van en las ramas del árbol."))
+        if TARGET_RE.search(trunk):
+            findings.append(_finding("error", "objetivo-general-con-meta", "trunk",
+                                     "El objetivo general no incluye metas: la cuantificación va en los "
+                                     "indicadores."))
+
+    pgroups = problem_spec.get("groups") or []
+    pbranches = problem_spec.get("branches") or []
+    group_ids = {str(g.get("id")) for g in pgroups}
+    cause_ids = {str(c.get("id")) for g in pgroups for c in g.get("causes") or []}
+    branch_ids = {str(b.get("id")) for b in pbranches}
+    by_id = {str(g.get("id")): g for g in pgroups}
+
+    def broken(node: str, message: str) -> None:
+        findings.append(_finding("error", "arbol-espejo-roto", node, message))
+
+    if len(groups) != len(pgroups):
+        broken("trunk", f"El árbol de objetivos tiene {len(groups)} objetivos específicos y el de problemas "
+                        f"{len(pgroups)} causas directas: cada causa directa da un objetivo específico.")
+    if len(branches) != len(pbranches):
+        broken("trunk", f"El árbol de objetivos tiene {len(branches)} fines y el de problemas {len(pbranches)} "
+                        "efectos: cada efecto da un fin.")
+    pairs = []
+    for i, group in enumerate(groups):
+        node = str(group.get("id") or "")
+        source = group.get("from")
+        if source is not None and str(source) not in group_ids:
+            broken(node, f"«{source}» no es una causa directa del árbol de problemas.")
+        pgroup = by_id.get(str(source)) if source is not None else None
+        if pgroup is None and source is None and i < len(pgroups):
+            pgroup = pgroups[i]
+        means = group.get("means") or []
+        if pgroup is not None:
+            pairs.append((node, pgroup, group))
+            if len(means) != len(pgroup.get("causes") or []):
+                broken(node, f"{node} tiene {len(means)} medios y su causa directa "
+                             f"{len(pgroup.get('causes') or [])} causas indirectas: cada causa indirecta da un medio.")
+        for mean in means:
+            if mean.get("from") is not None and str(mean.get("from")) not in cause_ids:
+                broken(str(mean.get("id") or ""), f"«{mean.get('from')}» no es una causa indirecta del árbol de "
+                                                  "problemas.")
+    for branch in branches:
+        if branch.get("from") is not None and str(branch.get("from")) not in branch_ids:
+            broken(str(branch.get("id") or ""), f"«{branch.get('from')}» no es un efecto del árbol de problemas.")
+
+    ptrunk = normalize_tree_text((problem_spec.get("trunk") or {}).get("text"))
+    if ptrunk and trunk and shared_variable(ptrunk, trunk) < 0.5:
+        findings.append(_finding("error", "arbol-variable-cambiada", "trunk",
+                                 "El objetivo general cambia la variable del problema central: el espejo positivo "
+                                 "conserva la variable y la población."))
+    for node, pgroup, group in pairs:
+        title, objective = _node_body(pgroup.get("title")), _node_body(group.get("objective"))
+        if title and objective and shared_variable(title, objective) < 0.5:
+            findings.append(_finding("warning", "arbol-variable-cambiada", node,
+                                     "El objetivo específico no conserva la variable de su causa directa."))
+    return findings
+
+
+def _read_json_file(path: Path):
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _latex_plain(tex: str) -> str:
+    text = re.sub(r"\\(textbf|textit|emph|texttt|mbox)\{([^{}]*)\}", r"\2", tex)
+    text = re.sub(r"\\[a-zA-Z]+\*?(\[[^\]]*\])?(\{[^{}]*\})?", "", text)
+    text = text.replace("~", " ").replace("{", "").replace("}", "")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def general_objective_text(tex: str) -> str:
+    """§6 as plain text (same extraction as the dashboard trees)."""
+    clean = "\n".join(strip_comment(l) for l in tex.splitlines())
+    clean = re.sub(r"\\(section|label)\*?\{[^{}]*\}", "", clean)
+    return _latex_plain(clean)
+
+
+def specific_objective_items(tex: str) -> list[str]:
+    """§7 items in order as plain text."""
+    clean = "\n".join(strip_comment(l) for l in tex.splitlines())
+    clean = re.split(r"\\end\{enumerate\}", clean)[0]
+    return [t for t in (_latex_plain(i) for i in re.split(r"\\item\b", clean)[1:]) if t]
+
+
+def _same_text(a, b) -> bool:
+    def key(x) -> str:
+        return normalize_tree_text(x).rstrip(" .;:")
+    return key(a) == key(b)
+
+
+def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections: dict[str, Path],
+                flujo: str) -> None:
+    problem_path = run_root / PROBLEM_SPEC
+    objectives_path = run_root / OBJECTIVES_FILE
+    problem = _read_json_file(problem_path)
+    objectives = _read_json_file(objectives_path)
+    if problem is not None:
+        for f in problem_tree_findings(problem):
+            report.add(f["severity"], f["code"], f["message"], problem_path, node=f["node"])
+    if objectives is None:
+        return
+    if problem is not None:
+        for f in objective_tree_findings(objectives, problem):
+            report.add(f["severity"], f["code"], f["message"], objectives_path, node=f["node"])
+
+    tree_general = normalize_tree_text((objectives.get("trunk") or {}).get("text"))
+    if flujo == "sgr":
+        if "06_objetivo_general" in texts and not _same_text(general_objective_text(texts["06_objetivo_general"]),
+                                                             tree_general):
+            report.add("error", "sgr-objetivo-general-distinto",
+                       "En el flujo SGR §6 es literalmente el objetivo general del árbol de objetivos.",
+                       sections["06_objetivo_general"])
+        if "07_objetivos_especificos" in texts:
+            items = specific_objective_items(texts["07_objetivos_especificos"])
+            tree_items = [g.get("objective") for g in objectives.get("groups") or []]
+            if len(items) != len(tree_items) or not all(_same_text(a, b) for a, b in zip(items, tree_items)):
+                report.add("error", "sgr-objetivos-especificos-distintos",
+                           "En el flujo SGR §7 enumera, en orden, los objetivos específicos del árbol de objetivos.",
+                           sections["07_objetivos_especificos"])
+    elif "06_objetivo_general" in texts and tree_general:
+        if shared_variable(tree_general, general_objective_text(texts["06_objetivo_general"])) < 0.34:
+            report.add("warning", "objetivo-general-sin-variable-del-arbol",
+                       "§6 no conserva la variable del objetivo general del árbol de objetivos.",
+                       sections["06_objetivo_general"])
+
+
+def check_sgr_sections(report: Report, sec_dir: Path, flujo: str, final: bool) -> None:
+    if flujo != "sgr" or not final:
+        return
+    for name in SGR_SECTIONS:
+        if not (sec_dir / f"{name}.tex").is_file():
+            report.add("error", "sgr-anexo-faltante", f"Falta sections/{name}.tex (anexo MGA del flujo SGR).")
+
+
+def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     report = Report(run_root)
+    report.flujo = flujo if flujo in FLUJOS else detect_flujo(run_root)
     red = run_root / "redaccion"
     sec_dir = red / "sections"
     if not sec_dir.is_dir():
@@ -281,6 +638,8 @@ def run_checks(run_root: Path, final: bool) -> Report:
     check_cover(report, red, final)
     check_bibliography(report, sections, texts)
     check_pdf(report, red)
+    check_trees(report, run_root, texts, sections, report.flujo)
+    check_sgr_sections(report, sec_dir, report.flujo, final)
     return report
 
 
@@ -297,15 +656,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run_root", nargs="?", help="run folder (default: the active run)")
     parser.add_argument("--final", action="store_true", help="also require every section, the cover and total floor")
-    parser.add_argument("--json", action="store_true", help="print findings as JSON")
+    parser.add_argument("--json", action="store_true", help="print {flujo, findings} as JSON")
+    parser.add_argument("--flujo", choices=FLUJOS, help="override the flow read from the project config")
     args = parser.parse_args()
 
-    report = run_checks(resolve_run_root(args.run_root), args.final)
+    report = run_checks(resolve_run_root(args.run_root), args.final, args.flujo)
     if args.json:
-        print(json.dumps(report.findings, ensure_ascii=False, indent=2))
+        print(json.dumps({"flujo": report.flujo, "findings": report.findings}, ensure_ascii=False, indent=2))
     else:
         for f in report.findings:
-            where = f["file"] + (f":{f['line']}" if f["line"] else "")
+            where = f["file"] + (f":{f['line']}" if f["line"] else "") + (f" [{f['node']}]" if f.get("node") else "")
             print(f"[{f['severity'].upper()}] {f['code']} {where} {f['message']}".rstrip())
         warnings = len(report.findings) - report.errors()
         print(f"check_run: {report.errors()} errores, {warnings} avisos")

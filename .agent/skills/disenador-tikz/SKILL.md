@@ -39,15 +39,27 @@ explicit message before anything is compiled.
   "kind": "arbol",
   "caption": "Una línea describiendo la figura.",
   "groups": [
-    {"id": "SP1", "title": "Título del grupo",
-     "causes": [{"id": "r1", "text": "Causa raíz."}]}
+    {"id": "SP1", "title": "Causa directa (el subproblema SP1).",
+     "causes": [{"id": "r1", "text": "Causa indirecta."}]}
   ],
-  "trunk":  {"label": "PROBLEMA CENTRAL (TRONCO)", "text": "…"},
-  "branches": [{"id": "b1", "text": "Efecto."}],
-  "crown":  {"label": "SOLUCIÓN (COPA)", "text": "…"}
+  "trunk":  {"label": "PROBLEMA CENTRAL", "text": "…",
+             "magnitude": {"indicador": "…", "valor": "…", "fuente": "…"}},
+  "branches": [{"id": "b1", "text": "Efecto directo."}],
+  "crown":  {"label": "EFECTO FINAL", "text": "Efecto indirecto de mayor nivel."}
 }
 ```
 
+- The tree follows the MGA (guide §3, «Árbol de problemas y árbol de
+  objetivos según la MGA»): `trunk` is the central problem as a negative
+  state (qualifier + variable + population or place), `groups[].title` the
+  direct causes (the subproblemas), `causes` the indirect causes,
+  `branches` the direct effects and `crown` the final indirect effect.
+  **The crown is never the solution**, and no node is written as the absence
+  of a solution ("Falta de…", "Ausencia de…", "Se requiere…") or opens with
+  an infinitive. `trunk.magnitude` (optional for the renderer, expected by
+  the checker) carries the baseline indicator, value and source; the figure
+  does not draw it. `python3 scripts/check_run.py` reports every rule
+  violation on the spec; fix them before the figure loop.
 - `groups[].id` is the subproblem tag (`SP1`, `SP2`, …) and generates the node id
   `tSP1`; `causes[].id` must be `r1`, `r2`, … ; `branches[].id` must be `b1`, `b2`, …
 - Every id must be unique. The generator validates this and refuses duplicates.

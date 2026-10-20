@@ -68,7 +68,7 @@ truth.
 Post-intake order (see `_propuesta-steps.md` for control block fields):
 
 `fase1a` → `fase1b` → `fase1` → `fase2` → `fase3` → `fase4` → `fase5` →
-`fase5_5` → `fase6` → `fase6_4` → `fase6_45` → `fase6_46` → `fase6_5` → `fase7` → `done`
+`fase5_5` → `fase6` → `fase6_4` → `fase6_45` → `fase6_46` → [`fase6_47`, solo flujo SGR] → `fase6_5` → `fase7` → `done`
 
 - **auto** (`/propuesta`): loop all units in one session; stop at gates.
 - **stepped** (`/propuesta-analizar` then `/propuesta-continuar`): one unit per
@@ -153,6 +153,9 @@ Fase 6.46 redactor → §17 articulación comunitaria; §18 apropiación social
         → grant-flow-auditor (pule §17 y §18 con estilo-natural-es)
         ──→ [NUEVO] refresh del índice del vault + bloque `EVIDENCIA DE GRAFO`
         ──→ GATE revisor ──→ user
+Fase 6.47 [solo flujo SGR] redactor → anexos MGA 19-25
+        (`guiaProyectosIA_Agente_Regalias.md`); presupuestador si falta un
+        costo en §13 ──→ GATE revisor ──→ user
 Fase 6.5  redactor → front-matter (Resumen, Resumen ejecutivo, Palabras
         clave); el título e identificación van exclusivamente en el encabezado de `main.tex` (sin sección de cuerpo §1)
         → grant-flow-auditor (pule front-matter con estilo-natural-es)

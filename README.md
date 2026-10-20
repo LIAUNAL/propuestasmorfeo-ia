@@ -79,6 +79,14 @@ morfeo ui
 morfeo status
 ```
 
+Si la propuesta va al Sistema General de Regalías, agrega la bandera `--sgr`:
+
+```bash
+morfeo init ~/propuestas/regalias-ia --title "Plataforma de IA para el agro" --sgr
+```
+
+La bandera guarda `"flujo": "sgr"` en `.morfeo/config.json` y `.marco/config.json`, y el pipeline suma lo que pide la metodología MGA sin reemplazar el flujo base. Sin ella el proyecto queda en `"flujo": "base"`. `morfeo upgrade` conserva el valor, y cada corrida lo registra en su `_run.md`.
+
 Dentro del directorio inicializado puedes ejecutar los comandos del asistente en Claude Code (`/propuesta-init`, `/propuesta-analizar`, `/propuesta-continuar`) o el pipeline de tu runtime preferido.
 
 ---
@@ -87,7 +95,7 @@ Dentro del directorio inicializado puedes ejecutar los comandos del asistente en
 
 | Comando | Descripción |
 |---|---|
-| `morfeo init <dir> [--title] [--preset] [--tools]` | Inicializa un workspace autocontenido con los 73 activos base del marco. |
+| `morfeo init <dir> [--title] [--preset] [--tools] [--sgr]` | Inicializa un workspace autocontenido con los 73 activos base del marco. |
 | `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF. |
 | `morfeo ui [dir] [--port 8080] [--no-open]` | Despliega el Command Center web interactivo en tiempo real (puerto 8080 por defecto, o el siguiente libre). |
 | `morfeo compile [dir] [--docx] [--run <id>]` | Compila el proyecto LaTeX a PDF (`build.sh`) o exporta a Word (`--docx`). |

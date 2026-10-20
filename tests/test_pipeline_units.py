@@ -23,11 +23,12 @@ from morfeo.core.pipeline_units import (  # noqa: E402
     PIPELINE_UNITS,
     canonical_gates,
     normalise_gate,
+    units_for_flujo,
 )
 
 STEPS_DOC = REPO / ".claude" / "commands" / "_propuesta-steps.md"
 
-STEP_UNITS_EXPECTED = 14
+STEP_UNITS_EXPECTED = 15
 
 # Valores de compuerta observados en los artefactos de la corrida de referencia,
 # incluidos los que la tabla no reconoce. El inventario tiene que ubicarlos todos:
@@ -123,7 +124,9 @@ class TestPipelineUnits(unittest.TestCase):
             "G5", "G5.5", "G6.4", "G6.46", "G6.5", "G7",
         ):
             self.assertIn(real, canonical, f"falta {real} en las compuertas canónicas")
-        self.assertEqual(len(canonical), 13, "las compuertas canónicas son trece")
+        # Trece del flujo base más G6.47, la compuerta de los anexos MGA del flujo SGR.
+        self.assertIn("G6.47", canonical)
+        self.assertEqual(len(canonical), 14, "las compuertas canónicas son catorce")
 
     def test_alias_map_places_every_observed_value(self) -> None:
         canonical = {g["id"] for g in canonical_gates()}
@@ -182,6 +185,47 @@ class TestPipelineUnits(unittest.TestCase):
             )
             if prose != canonical:
                 self.assertIn(prose, text, f"{prose!r} ya no aparece en la tabla de pasos")
+
+
+
+class TestUnitsByFlujo(unittest.TestCase):
+    """La unidad de anexos MGA solo existe en el flujo SGR; el flujo base no la ve."""
+
+    def _ids(self, units):
+        return [u["id"] for u in units]
+
+    def test_base_flow_skips_the_sgr_annexes(self) -> None:
+        units = units_for_flujo("base")
+        self.assertNotIn("fase6_47", self._ids(units))
+        nxt = {u["id"]: u.get("next") for u in units}
+        self.assertEqual(nxt["fase6_46"], "fase6_5")
+        self.assertNotIn("G6.47", {g["id"] for g in canonical_gates("base")})
+
+    def test_sgr_flow_runs_the_annexes_between_communities_and_front_matter(self) -> None:
+        units = units_for_flujo("sgr")
+        ids = self._ids(units)
+        self.assertLess(ids.index("fase6_46"), ids.index("fase6_47"))
+        self.assertLess(ids.index("fase6_47"), ids.index("fase6_5"))
+        nxt = {u["id"]: u.get("next") for u in units}
+        self.assertEqual(nxt["fase6_46"], "fase6_47")
+        self.assertEqual(nxt["fase6_47"], "fase6_5")
+        annex = next(u for u in units if u["id"] == "fase6_47")
+        self.assertEqual(annex["gate"], "G6.47")
+        self.assertEqual(annex["sections"], ["19", "20", "21", "22", "23", "24", "25"])
+        self.assertIn("G6.47", {g["id"] for g in canonical_gates("sgr")})
+
+    def test_unknown_flow_is_the_base_flow(self) -> None:
+        self.assertEqual(self._ids(units_for_flujo("otro")), self._ids(units_for_flujo("base")))
+
+    def test_filtering_never_mutates_the_inventory(self) -> None:
+        before = [dict(u) for u in PIPELINE_UNITS]
+        units_for_flujo("base")
+        units_for_flujo("sgr")
+        self.assertEqual([dict(u) for u in PIPELINE_UNITS], before)
+
+    def test_without_a_flow_every_gate_is_listed(self) -> None:
+        """Llamar `canonical_gates()` sin flujo conserva el comportamiento previo."""
+        self.assertIn("G6.47", {g["id"] for g in canonical_gates()})
 
 
 if __name__ == "__main__":

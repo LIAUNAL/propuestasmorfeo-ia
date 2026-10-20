@@ -239,3 +239,93 @@ test('un revision.json dañado se muestra en la pestaña', async (t) => {
   const viewer = await harness(t, payload);
   assert.match(viewer.document.getElementById('treeBanner').textContent, /revision\.json está dañado/);
 });
+
+// --- Reglas de la guía SGR (S2) ---------------------------------------------
+
+function tierTexts(viewer) {
+  return Array.from(viewer.document.querySelectorAll('#treeCanvas .tree-tier, #treeCanvas .tree-subtier')).map(el => el.textContent.trim());
+}
+
+test('el árbol de problemas nombra sus niveles según la MGA', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  const tiers = tierTexts(viewer);
+  for (const label of ['Efecto final', 'Efectos directos', 'Problema central', 'Causas directas', 'Causas indirectas']) {
+    assert.ok(tiers.includes(label), `nivel ${label} en ${JSON.stringify(tiers)}`);
+  }
+  assert.ok(!tiers.some(x => /Soluci/.test(x)), 'la copa ya no es la solución');
+});
+
+test('el árbol de objetivos nombra sus niveles como espejo positivo', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  viewer.viewer('setTreeView', 'objetivos');
+  const tiers = tierTexts(viewer);
+  for (const label of ['Fin último', 'Fines', 'Objetivo general', 'Objetivos específicos', 'Medios']) {
+    assert.ok(tiers.includes(label), `nivel ${label} en ${JSON.stringify(tiers)}`);
+  }
+});
+
+test('la magnitud del problema central se muestra, y su ausencia se advierte', async (t) => {
+  const payload = treesPayload();
+  payload.problem.tree = { ...PROBLEM_TREE, trunk: { ...PROBLEM_TREE.trunk, magnitude: { indicador: 'Tasa de deserción', valor: '12 %', fuente: 'SIMAT 2024' } } };
+  const viewer = await harness(t, payload);
+  const mag = viewer.document.querySelector('#treeCanvas .tree-magnitude');
+  assert.ok(mag, 'bloque de magnitud');
+  assert.match(mag.textContent, /Tasa de deserción/);
+  assert.match(mag.textContent, /12 %/);
+  assert.match(mag.textContent, /SIMAT 2024/);
+
+  const bare = await harness(t, treesPayload());
+  assert.match(bare.document.querySelector('#treeCanvas .tree-magnitude').textContent,
+    /Sin magnitud: agrega indicador, valor y fuente \(línea base\)/);
+});
+
+test('los hallazgos se listan, marcan su nodo y bloquean la aprobación si hay errores', async (t) => {
+  const payload = treesPayload();
+  payload.problem.findings = [
+    { severity: 'error', code: 'arbol-ausencia-de-solucion', node: 'trunk', message: 'Un problema no es la ausencia de su solución' },
+    { severity: 'warning', code: 'arbol-causa-directa-sin-indirectas', node: 'SP2', message: 'Causa directa sin causas indirectas' },
+  ];
+  const viewer = await harness(t, payload);
+  const list = viewer.document.getElementById('treeFindings');
+  assert.match(list.textContent, /Un problema no es la ausencia de su solución/);
+  assert.match(list.textContent, /trunk/);
+  assert.match(list.textContent, /Causa directa sin causas indirectas/);
+  const canvas = viewer.document.getElementById('treeCanvas');
+  assert.ok(canvas.querySelector('[data-node="trunk"]').classList.contains('tree-node--finding-error'));
+  assert.ok(canvas.querySelector('[data-node="SP2"]').classList.contains('tree-node--finding-warning'));
+  assert.ok(!canvas.querySelector('[data-node="r1"]').className.includes('finding'));
+  const approve = viewer.document.getElementById('treeApproveBtn');
+  assert.equal(approve.disabled, true);
+  assert.match(approve.title, /hallazgos/i);
+});
+
+test('solo con avisos el árbol se puede aprobar', async (t) => {
+  const payload = treesPayload();
+  payload.problem.findings = [{ severity: 'warning', code: 'arbol-sin-magnitud', node: 'trunk', message: 'Sin magnitud' }];
+  const viewer = await harness(t, payload);
+  assert.equal(viewer.document.getElementById('treeApproveBtn').disabled, false);
+});
+
+test('la pestaña trae las reglas de la guía SGR, cerradas por defecto', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  const box = viewer.document.getElementById('treeRules');
+  assert.ok(box, 'caja de reglas');
+  assert.equal(box.tagName, 'DETAILS');
+  assert.equal(box.open, false);
+  assert.match(box.querySelector('summary').textContent, /Reglas de la guía SGR/);
+  assert.match(box.textContent, /Instructivo MGA 2023/);
+  assert.match(box.textContent, /Manual conceptual MGA 2015/);
+  assert.doesNotMatch(box.textContent, / — |--/);
+});
+
+test('la cabecera muestra el flujo del proyecto', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  const badge = viewer.document.getElementById('flujoBadge');
+  assert.ok(badge, 'insignia de flujo');
+  viewer.viewer('renderFlujoBadge', { flujo: 'sgr' });
+  assert.equal(badge.textContent.trim(), 'Flujo SGR');
+  viewer.viewer('renderFlujoBadge', {});
+  assert.equal(badge.textContent.trim(), 'Flujo base');
+  viewer.viewer('renderFlujoBadge', { flujo: 'base' });
+  assert.equal(badge.textContent.trim(), 'Flujo base');
+});

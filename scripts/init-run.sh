@@ -147,6 +147,29 @@ if [ ! -e "$RUN_ROOT/artefactos/vault/.cbmignore" ]; then
 EOF
 fi
 
+# --- project flow ----------------------------------------------------------
+# `morfeo init [--sgr]` records the flow ("base" or "sgr") in .morfeo/config.json
+# (legacy: .marco/config.json). A missing file, key or python3 means "base", so
+# this lookup never fails the script.
+read_flujo() {
+  local cfg value
+  for cfg in "$REPO_ROOT/.morfeo/config.json" "$REPO_ROOT/.marco/config.json"; do
+    [ -f "$cfg" ] || continue
+    value="$(python3 -c 'import json,sys
+try:
+    v = json.load(open(sys.argv[1], encoding="utf-8")).get("flujo")
+except Exception:
+    v = None
+print(v if v in ("base", "sgr") else "")' "$cfg" 2>/dev/null || true)"
+    if [ -n "$value" ]; then
+      printf '%s' "$value"
+      return 0
+    fi
+  done
+  printf 'base'
+}
+flujo="$(read_flujo)"
+
 # --- run manifest ----------------------------------------------------------
 today="$(date +%Y-%m-%d)"
 if [ ! -e "$RUN_ROOT/_run.md" ]; then
@@ -160,6 +183,7 @@ if [ ! -e "$RUN_ROOT/_run.md" ]; then
 | cerrada | — |
 | estado | activa |
 | idea | ${idea:-—} |
+| flujo | $flujo |
 | RUN_ROOT | \`proposals/$run_id/\` |
 
 Este es el único archivo en la raíz de la corrida; todo lo demás vive en una de
@@ -216,4 +240,5 @@ else
 fi
 [ "$activate" -eq 1 ] && printf 'active run (proposals/.current-run): %s\n' "$run_id"
 printf 'RUN_ROOT: proposals/%s/  (insumos/ artefactos/ grafos/ redaccion/)\n' "$run_id"
+printf 'flujo: %s\n' "$flujo"
 exit 0

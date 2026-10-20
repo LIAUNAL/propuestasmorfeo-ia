@@ -69,7 +69,7 @@ def arbol_spec(**overrides) -> dict:
             {"id": "b1", "text": "Primer efecto observado."},
             {"id": "b2", "text": "Segundo efecto observado."},
         ],
-        "crown": {"label": "SOLUCIÓN (COPA)", "text": "Solución propuesta por el sistema."},
+        "crown": {"label": "EFECTO FINAL", "text": "Efecto indirecto de mayor nivel."},
     }
     spec.update(overrides)
     return spec
@@ -159,6 +159,18 @@ class TestRenderDeterminism(unittest.TestCase, ProjectFixtureMixin):
             # The line map the autofix resolves against exists and maps the trunk.
             line_map = json.loads((project / "sections" / "diag_arbol_problemas.map.json").read_text())
             self.assertIn("tronco", line_map.values())
+
+    def test_tree_legend_names_the_mga_levels_not_a_solution(self):
+        # MGA: the crown of a problem tree is the final indirect effect, never the solution.
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self.make_project(tmp)
+            self.write_spec(project, "arbol_problemas", arbol_spec())
+            self.assertEqual(self.render(project, "arbol_problemas").returncode, 0)
+            text = (project / "sections" / "diag_arbol_problemas.tex").read_text(encoding="utf-8")
+            self.assertNotIn("SOLUCIÓN", text)
+            flat = re.sub(r"\s+", " ", text.replace("\\", " "))
+            for word in ("EFECTO FINAL", "EFECTOS DIRECTOS", "PROBLEMA CENTRAL", "CAUSAS"):
+                self.assertIn(word, flat)
 
     def test_all_three_kinds_render(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import UserError
-from .pipeline_units import PIPELINE_UNITS, canonical_gates, normalise_gate
+from .pipeline_units import canonical_gates, normalise_gate, units_for_flujo
 
 
 SECTION_TITLES = {
@@ -31,7 +31,35 @@ SECTION_TITLES = {
     "16_bibliografia": "§16 Bibliografía consolidada (APA)",
     "17_articulacion_comunidades": "§17 Articulación con comunidades y actores territoriales",
     "18_apropiacion_social": "§18 Estrategia de acceso y apropiación social del conocimiento",
+    # Anexos MGA del flujo SGR (solo existen cuando la corrida los produce).
+    "19_alineacion_planes": "§19 Alineación con los planes de desarrollo",
+    "20_participantes": "§20 Análisis de participantes",
+    "21_poblacion": "§21 Población afectada y objetivo",
+    "22_alternativas": "§22 Alternativas de solución",
+    "23_cadena_valor": "§23 Cadena de valor",
+    "24_riesgos": "§24 Análisis de riesgos",
+    "25_marco_logico": "§25 Matriz de marco lógico",
 }
+
+VALID_FLUJOS = ("base", "sgr")
+
+
+def read_flujo(target_dir: Path) -> str:
+    """Return the project flow from `.morfeo/config.json`, then `.marco/config.json`.
+
+    A project created before the flag existed has no `flujo` key and is `base`.
+    """
+    for marker in (".morfeo", ".marco"):
+        cfile = target_dir / marker / "config.json"
+        if not cfile.is_file():
+            continue
+        try:
+            value = json.loads(cfile.read_text(encoding="utf-8")).get("flujo")
+        except Exception:
+            continue
+        if value in VALID_FLUJOS:
+            return value
+    return "base"
 
 # La lista canónica se deriva del inventario de unidades, no se escribe aquí. Antes
 # este bloque la duplicaba y las dos copias se contradecían: faltaban G1a y G1b,
@@ -216,7 +244,8 @@ def parse_sections_info(run_dir: Path) -> list[dict[str, Any]]:
     return sections
 
 
-def parse_gates_info(run_dir: Path) -> list[dict[str, Any]]:
+def parse_gates_info(run_dir: Path, flujo: str | None = None) -> list[dict[str, Any]]:
+    """Gate verdicts of a run; with `flujo`, only that flow's gates are listed."""
     estado_file = run_dir / "artefactos" / "estado_propuesta.md"
     pipeline_file = run_dir / "artefactos" / "pipeline" / "_estado.md"
 
@@ -247,7 +276,7 @@ def parse_gates_info(run_dir: Path) -> list[dict[str, Any]]:
                 recorded_gates["G0.5"] = "PASS"
 
     result: list[dict[str, Any]] = []
-    for g in CANONICAL_GATES:
+    for g in (CANONICAL_GATES if flujo is None else canonical_gates(flujo)):
         status = "PENDING"
         gid_lower = g["id"].lower()
         phase_key = g["phase"].lower().replace(" ", "").replace(".", "_")
@@ -426,6 +455,9 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
             return cached[1]
 
     version = _package_version()
+    # Flujo del proyecto (`base` o `sgr`): decide qué unidades y compuertas le tocan.
+    flujo = read_flujo(target_dir)
+    flow_gates = canonical_gates(flujo)
     workspace_title = None
     marker = target_dir / ".morfeo"
     if not marker.is_dir():
@@ -462,7 +494,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
         "total_citations": 0,
         "bibtex_entries": 0,
         "gates_passed": 0,
-        "gates_total": len(CANONICAL_GATES),
+        "gates_total": len(flow_gates),
         "total_tokens": "0",
         "total_tool_uses": 0,
         "pdf_pages": 0,
@@ -498,7 +530,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
 
             # Sections, gates, telemetry, artifacts
             sections = parse_sections_info(run_dir)
-            gates = parse_gates_info(run_dir)
+            gates = parse_gates_info(run_dir, flujo)
             telemetria = parse_telemetry_info(run_dir)
             artifacts = list_artifacts_info(run_dir)
 
@@ -532,7 +564,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
                 "total_citations": total_citations,
                 "bibtex_entries": bib_entries,
                 "gates_passed": gates_passed,
-                "gates_total": len(CANONICAL_GATES),
+                "gates_total": len(flow_gates),
                 "total_tokens": token_display,
                 "total_tool_uses": tool_uses_sum,
                 "pdf_pages": run_info["pdf_pages"],
@@ -555,6 +587,8 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
     result_data = {
         "workspace": str(target_dir),
         "workspace_title": workspace_title,
+        # Flujo del proyecto (`base` o `sgr`), fijado por `morfeo init [--sgr]`.
+        "flujo": flujo,
         # `version` is the workspace kit stamp (`.marco/version`); the running
         # package can be newer, so the dashboard footer shows both.
         "version": version,
@@ -573,7 +607,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
         "control": control,
         # El inventario de unidades viaja en el sobre para que el tablero deje de
         # mantener su propia lista de fases y derive de aquí.
-        "pipeline_units": PIPELINE_UNITS,
+        "pipeline_units": units_for_flujo(flujo),
         "archify_flow_ready": archify_flow_ready,
         "decisions_exists": (target_dir / "DECISIONS.md").is_file(),
         "idea_exists": (target_dir / "idea.md").is_file(),
@@ -592,6 +626,7 @@ def status_project(target_dir: Path, as_json: bool = False) -> int:
     print(f" MORFEO IA — Estado del Espacio de Trabajo ({status['version']})")
     print("======================================================================")
     print(f"Directorio: {status['workspace']}")
+    print(f"Flujo:      {status.get('flujo', 'base')}")
     if status['active_run']:
         details = status['run_details']
         totals = status['totals']

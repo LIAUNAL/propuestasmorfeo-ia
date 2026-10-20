@@ -82,7 +82,7 @@ Cualquier cifra socioeconómica, tecnológica o ambiental que soporte la relevan
 
 * **Párrafo 1:** Presentar un contexto general de la problemática. Introduce el problema desde el sector de aplicación, contextualizando las principales limitaciones o desafíos operativos, económicos o sociales.
 * **Párrafo 2:** Dar contexto a los desafíos técnicos desde la perspectiva de la inteligencia artificial, el aprendizaje automático o el procesamiento de señales. El párrafo debe terminar listando (en ítems) dos o tres subproblemas técnicos a resolver. Estos deben diseñarse de forma que, más adelante, cada uno mapee 1:1 con un objetivo específico (§7); esa alineación es un requisito de diseño del agente, no algo que se mencione textualmente en el párrafo (ver "Regla de autocontención científica" abajo).
-  **Formato de cada ítem SP1/SP2/SP3 (regla permanente).** Cada ítem identifica el subproblema con su rótulo plano (`SP1.`, `SP2.`, `SP3.`) — sin negrita adicional sobre una palabra que resuma el subproblema (nunca `\textbf{SP1 --- Motivación.}`; el rótulo del subproblema no es un título temático). El cuerpo del ítem es una frase corta que señala la limitante o necesidad técnica — nunca la solución: prohibido abrir con un verbo de diseño/construcción de la propia solución ("Diseñar el ecosistema para...", "Dotar al ecosistema de...", "Convertir X en Y..."). En su lugar, usa una construcción de carencia/necesidad ("Falta de un ecosistema multiagente que...", "Limitada capacidad de...", "Se requiere superar...", "Ausencia de...", "Opacidad que impide..."), seguida de la limitación técnica concreta. El SUBPROBLEMA describe qué falta o qué limita al estudiante/sistema actual; la solución (el ecosistema de agentes como medio) se presenta en §6/§7, nunca aquí.
+  **Formato de cada ítem SP1/SP2/SP3 (regla permanente).** Cada ítem identifica el subproblema con su rótulo plano (`SP1.`, `SP2.`, `SP3.`) — sin negrita adicional sobre una palabra que resuma el subproblema (nunca `\textbf{SP1 --- Motivación.}`; el rótulo del subproblema no es un título temático). El cuerpo del ítem es una frase corta que señala la limitante o necesidad técnica — nunca la solución: prohibido abrir con un verbo de diseño/construcción de la propia solución ("Diseñar el ecosistema para...", "Dotar al ecosistema de...", "Convertir X en Y..."). En su lugar, enuncia un estado negativo existente: un calificativo negativo seguido de la variable afectada y de su ámbito ("Limitada capacidad de...", "Baja precisión de...", "Deficiente trazabilidad de...", "Opacidad que impide..."). Prohibido formularlo como la ausencia de la solución ("Falta de un ecosistema...", "Ausencia de...", "Carencia de...", "Inexistencia de...", "No existe...", "Se requiere...", "Necesidad de..."): según la MGA, «un problema no es la ausencia de su solución, sino un estado existente negativo». El SUBPROBLEMA describe la situación negativa que hoy limita al usuario o al sistema; la solución (el ecosistema de agentes como medio) se presenta en §6/§7, nunca aquí. Cada subproblema es una causa directa del árbol de problemas (ver la regla del árbol más abajo).
 * **Párrafo 3:** Describir las causas, limitaciones tecnológicas y conceptos principales asociados al **subproblema 1**.
 * **Párrafo 4:** Describir las causas, limitaciones tecnológicas y conceptos principales asociados al **subproblema 2**.
 * **Párrafo 5:** Describir las causas, limitaciones tecnológicas y conceptos principales asociados al **subproblema 3** (si aplica).
@@ -90,7 +90,25 @@ Cualquier cifra socioeconómica, tecnológica o ambiental que soporte la relevan
 
 Esta sección **no incluye** revisión de literatura ni hipótesis: el sustento bibliográfico de los subproblemas se desarrolla en Estado del arte (§4), y la hipótesis se formula en su propia sección (§5).
 
-**Diagrama del árbol de problemas (regla permanente).** El contenido del diagrama (raíces/causas por subproblema, tronco, ramas/efectos y copa/solución) se especifica como bloque comentado al final de `redaccion/sections/03_descripcion_problema.tex` — mismo patrón que usa Bibliografo-Propuesta para el diagrama de estado del arte en §4 —; Diseñador-TikZ lo traduce a `redaccion/sections/diag_arbol_problemas.tex`. Aplican las reglas de conexión (la copa nunca se conecta con las raíces, sí con las ramas), anclaje de flechas e hyphenation definidas en Convenciones técnicas de LaTeX más abajo.
+**Diagrama del árbol de problemas (regla permanente).** El contenido del diagrama (raíces/causas indirectas por subproblema, causas directas, tronco, ramas/efectos directos y copa/efecto final) se especifica como bloque comentado al final de `redaccion/sections/03_descripcion_problema.tex`, el mismo patrón que usa Bibliografo-Propuesta para el diagrama de estado del arte en §4; Diseñador-TikZ lo traduce a `redaccion/sections/diag_arbol_problemas.tex`. Aplican las reglas de conexión (la copa nunca se conecta con las raíces, sí con las ramas), anclaje de flechas e hyphenation definidas en Convenciones técnicas de LaTeX más abajo.
+
+**Árbol de problemas y árbol de objetivos según la MGA (regla permanente, ambos flujos).** Los dos árboles siguen la metodología general ajustada del DNP (Instructivo MGA 2023, cap. 2; Manual conceptual MGA 2015, pp. 15-30), tanto en el flujo base como en el flujo SGR. `scripts/check_run.py` verifica estas reglas sobre `redaccion/specs/arbol_problemas.spec.json` y `artefactos/arboles/arbol_objetivos.json`, y el tablero no aprueba un árbol con hallazgos de error.
+
+| Nivel del árbol de problemas | Campo de la spec | Se convierte en (árbol de objetivos) |
+|---|---|---|
+| Problema central (tronco) | `trunk` | Objetivo general |
+| Causas directas (= subproblemas SP1-SP3) | `groups[].title` | Objetivos específicos |
+| Causas indirectas (raíces) | `groups[].causes` | Medios |
+| Efectos directos (ramas) | `branches` | Fines |
+| Efecto final, indirecto (copa) | `crown` | Fin último |
+
+* **Problema central.** Es el efecto visible principal, no una causa raíz ni una consecuencia lejana. Se redacta como estado negativo: calificativo + variable medible + población o lugar (p. ej. «Bajo aprovechamiento de los residuos sólidos domiciliarios de la zona urbana de X»). Nunca como la falta de una solución: «un error frecuente surge cuando se describe como la falta o ausencia de una solución… si decimos "me falta un abrigo", cuando el verdadero problema es que "tengo frío"» (Instructivo MGA 2023, p. 23). Tampoco abre con un verbo en infinitivo, que ya enuncia la solución.
+* **Causas.** Las directas son los hechos que dan origen al problema central y quedan en el primer nivel debajo del tronco; las indirectas originan a las directas y van desde el segundo nivel. Todas se redactan en negativo, con las mismas prohibiciones del problema central. El número de causas directas fija el número de objetivos específicos.
+* **Efectos.** Los directos son consecuencias de la situación negativa y cuelgan del problema central, nunca de una causa; el efecto final (copa) es la consecuencia indirecta de mayor nivel. La copa no es la solución ni el medio integrador.
+* **Magnitud del problema.** El tronco lleva su línea base en `trunk.magnitude` (`indicador`, `valor`, `fuente`), con dato local verificable; esa misma magnitud se vuelve el indicador de resultado del objetivo general. Causas y efectos pueden llevar la suya.
+* **Prueba de consistencia.** Leído de abajo hacia arriba, cada nivel responde «sí» a la pregunta «¿si existe X, entonces sucede Y?».
+* **Árbol de objetivos (espejo positivo).** Cada nodo se reescribe en positivo y conserva su variable: «Bajo aprovechamiento de…» pasa a «Aumentar el aprovechamiento de…». El objetivo general se enuncia con un verbo en infinitivo + objeto + elementos descriptivos y no incluye el medio («mediante…», «a través de…»), los fines («…para mejorar la calidad de vida»), el producto ni las metas. Solo las causas directas se vuelven objetivos específicos; las indirectas son medios y dicen el qué, no el cómo. Los fines salen de los efectos. Investigador escribe este árbol en `artefactos/arboles/arbol_objetivos.json` en la Fase 4, antes de redactar §6 y §7.
+* **Relación con §6 y §7.** En el flujo base, §6 y §7 conservan sus verbos rectores de IA (ver §6), pero deben tratar la misma variable que el árbol de objetivos. En el flujo SGR, §6 y §7 son literalmente los textos del árbol de objetivos.
 
 **Estructura de redacción recomendada:** párrafos 1-2 (contexto general y desafíos técnicos, cerrando con la lista de subproblemas) → párrafos 3-5 (detalle de cada subproblema) → párrafo 6 (cierre, pregunta de investigación y figura de árbol de problemas).
 
@@ -229,6 +247,8 @@ Cierra la sección con un **párrafo de síntesis** que resuma las estrategias m
 **Sin metas fijas de porcentaje o rendimiento (regla permanente).** Ni la hipótesis (§5), ni el objetivo general, ni los objetivos específicos fijan un umbral numérico de porcentaje, exactitud, concordancia o tamaño de efecto (p. ej. "concordancia ≥0,70", "mejora del 20%", "menos del 5% de error"). La forma de verificación se describe de manera cualitativa o direccional (p. ej. "diferencias estadísticamente significativas frente a un grupo de contraste", "mejora consistente en las tres dimensiones evaluadas", "reducción sustancial de afirmaciones no verificables"), dejando cualquier umbral operativo concreto, si llega a necesitarse, para el diseño experimental de la Metodología (§10), nunca como una meta fija declarada en §5, §6 o §7.
 
 El objetivo general debe derivarse directamente y ser la respuesta exacta a la pregunta de investigación formulada al final de §3 (Descripción del problema), en coherencia con la hipótesis planteada en §5. Debe ser ambicioso pero totalmente alcanzable en el tiempo de duración de la convocatoria. Además, debe reflejar claramente la innovación propuesta y el valor agregado en IA, y el impacto tecnológico esperado en términos funcionales (sin nombrar el TRL, ver regla arriba).
+
+**Coherencia con el árbol de objetivos (regla permanente).** Investigador escribe primero el árbol de objetivos (`artefactos/arboles/arbol_objetivos.json`, reglas MGA en §3) y después §6 y §7. En el flujo base, el objetivo general y cada objetivo específico conservan los verbos rectores de esta sección, pero tratan la misma variable que su nodo del árbol de objetivos: si el árbol dice «Aumentar la precisión del diagnóstico temprano de…», §6 puede decir «Desarrollar un modelo de IA que aumente la precisión del diagnóstico temprano de…», nunca otra variable. En el flujo SGR, §6 y §7 copian literalmente los textos del árbol (ver `guiaProyectosIA_Agente_Regalias.md`).
 
 **Sin mención textual de la duración del proyecto (regla permanente).** El objetivo general no menciona la ventana de ejecución ni ninguna cifra de duración (p. ej. "dentro de una ventana de dieciocho meses", "en 18 meses"). La alcanzabilidad dentro del plazo de la convocatoria es un requisito de diseño que el agente debe satisfacer al redactarlo, no un dato que se declare textualmente en la oración; la duración explícita se reserva para el Cronograma de actividades (§14).
 
@@ -499,16 +519,17 @@ script `redaccion/scripts/compile_tikz.py`, así que este requisito aplica sin
 distinción de runtime.
 
 **Árbol de problemas — la copa NUNCA se conecta visualmente con las raíces,
-pero SÍ con las ramas (regla permanente).** La copa (nodo solución/medio
-integrador) no lleva ninguna flecha, curva ni línea (punteada o continua)
-que la conecte directamente con las raíces (causas/subproblemas) — un cruce
-de líneas desde la copa (arriba) hasta las raíces (abajo), atravesando el
-tronco y las ramas, satura visualmente el árbol y contradice su lectura
-jerárquica de abajo hacia arriba. La intervención del medio integrador sobre
-las causas raíz se explica en el pie de figura (`\caption{}`) y en el cuerpo
-de §3, nunca como conector adicional. En cambio, el árbol SÍ debe mostrar el
-flujo vertical completo hasta su culminación: cada bloque de las ramas
-(efectos) se conecta con el bloque copa (solución) — el único flujo visual
+pero SÍ con las ramas (regla permanente).** La copa (nodo del efecto final,
+indirecto; nunca la solución) no lleva ninguna flecha, curva ni línea
+(punteada o continua) que la conecte directamente con las raíces
+(causas indirectas): un cruce de líneas desde la copa (arriba) hasta las
+raíces (abajo), atravesando el tronco y las ramas, satura visualmente el
+árbol y contradice su lectura jerárquica de abajo hacia arriba. La relación
+entre las causas raíz y el efecto final se explica en el pie de figura
+(`\caption{}`) y en el cuerpo de §3, nunca como conector adicional. En
+cambio, el árbol SÍ debe mostrar el flujo vertical completo hasta su
+culminación: cada bloque de las ramas (efectos directos) se conecta con el
+bloque copa (efecto final), y ese es el único flujo visual
 de conectores es raíces → tronco → ramas → copa, de abajo hacia arriba sin
 saltos. Agentes responsables: `.claude/agents/disenador-tikz.md` (nunca
 proponer copa↔raíces; sí conectar ramas→copa) y

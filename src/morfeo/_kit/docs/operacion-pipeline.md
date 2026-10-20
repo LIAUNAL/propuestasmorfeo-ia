@@ -54,6 +54,10 @@ Fase 6.45 Redactor → §14 cronograma de actividades (Gantt); §15 productos es
 Fase 6.46 Redactor → §17 articulación comunitaria; §18 apropiación social
           → Grant-Flow-Auditor (pule §17 y §18 con estilo-natural-es)
           ──→ GATE Revisor ──→ user
+Fase 6.47 Solo flujo SGR (`morfeo init --sgr`): Redactor → anexos MGA 19 a 25
+          (alineación con planes, participantes, población, alternativas,
+          cadena de valor, riesgos, marco lógico), Presupuestador si un costo
+          falta en §13 ──→ GATE Revisor ──→ user. El flujo base la salta.
 Fase 6.5  Redactor → front-matter (Resumen, Resumen ejecutivo, Palabras clave);
           el título e identificación van exclusivamente en el encabezado de `main.tex` (sin sección de cuerpo §1)
           → Grant-Flow-Auditor (pule front-matter con estilo-natural-es)

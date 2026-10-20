@@ -89,6 +89,12 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "reviewer": "Revisor",
         "criteria": "Estrategia de anclaje territorial y apropiación social del conocimiento.",
     },
+    "G6.47": {
+        "name": "Anexos MGA (flujo SGR)",
+        "phase": "Fase 6.47",
+        "reviewer": "Revisor",
+        "criteria": "Alineación con planes, participantes, población, alternativas, cadena de valor, riesgos y marco lógico según la MGA.",
+    },
     "G6.5": {
         "name": "Front-Matter y Síntesis",
         "phase": "Fase 6.5",
@@ -108,6 +114,7 @@ GATE_INFO: dict[str, dict[str, str]] = {
 GATE_ALIASES: dict[str, str] = {
     "G budget": "G6.4",
     "G comunidades": "G6.46",
+    "G anexos": "G6.47",
     "G front": "G6.5",
     "G final": "G7",
 }
@@ -145,6 +152,8 @@ def normalise_gate(raw: Any) -> str | None:
 # `sections`: secciones del manuscrito que produce, por número, tal como aparecen
 # en `redaccion/sections/NN_*.tex`.
 # `skills`: skills del marco que la unidad levanta.
+# `flujo`: solo en las unidades exclusivas de un flujo (hoy, los anexos MGA del
+# flujo SGR). Las demás corren en todos los flujos; ver `units_for_flujo`.
 
 PIPELINE_UNITS: list[dict[str, Any]] = [
     {
@@ -299,6 +308,18 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "sections": ["17", "18"],
         "agents": ["redactor", "grant-flow-auditor", "revisor"],
         "skills": ["estilo-natural-es", "depuracion-redundancias-es"],
+        "next": "fase6_47",
+    },
+    {
+        "id": "fase6_47",
+        "kind": "step",
+        "flujo": "sgr",
+        "name": "Anexos MGA",
+        "desc": "Solo flujo SGR: alineación con los planes de desarrollo, participantes, población, alternativas, cadena de valor, riesgos y matriz de marco lógico.",
+        "gate": "G6.47",
+        "sections": ["19", "20", "21", "22", "23", "24", "25"],
+        "agents": ["redactor", "presupuestador", "revisor"],
+        "skills": ["estilo-natural-es"],
         "next": "fase6_5",
     },
     {
@@ -326,15 +347,37 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
 ]
 
 
-def canonical_gates() -> list[dict[str, Any]]:
+def units_for_flujo(flujo: str | None) -> list[dict[str, Any]]:
+    """Inventario de unidades de un flujo (`base` o `sgr`), en orden de pipeline.
+
+    Un flujo desconocido es el base. Las unidades exclusivas de otro flujo se
+    omiten y el `next` de la unidad previa salta sobre ellas, de modo que el
+    flujo base nunca espera una compuerta que no le corresponde. Devuelve copias:
+    el inventario canónico no se toca.
+    """
+    flujo = flujo if flujo in ("base", "sgr") else "base"
+    kept = [dict(u) for u in PIPELINE_UNITS if u.get("flujo", flujo) == flujo]
+    ids = {u["id"] for u in kept}
+    by_id = {u["id"]: u for u in PIPELINE_UNITS}
+    for unit in kept:
+        nxt = unit.get("next")
+        while nxt and nxt not in ids and nxt in by_id:
+            nxt = by_id[nxt].get("next")
+        if "next" in unit:
+            unit["next"] = nxt
+    return kept
+
+
+def canonical_gates(flujo: str | None = None) -> list[dict[str, Any]]:
     """Compuertas en orden de pipeline, una por unidad que declare una.
 
     El orden es el del pipeline y no el alfabético: la lista alimenta el
-    flujograma del tablero y su numeración visible.
+    flujograma del tablero y su numeración visible. Con `flujo`, solo las
+    compuertas de ese flujo; sin él, todas.
     """
     gates: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for unit in PIPELINE_UNITS:
+    for unit in (PIPELINE_UNITS if flujo is None else units_for_flujo(flujo)):
         gate = unit.get("gate")
         if not gate or gate in seen:
             continue
