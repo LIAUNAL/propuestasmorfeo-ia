@@ -582,8 +582,9 @@ def build_arbol(spec: dict, over: dict) -> tuple[str, list[int], dict[int, str]]
     # overlapping. An even pitch over the real figure height cannot collide,
     # because the pitch is always several times any label's own height.
     labels = [
-        ("SOLUCIÓN", "(COPA)"),
-        ("EFECTOS", "(RAMAS)"),
+        # MGA levels: the crown is the final indirect effect, never the solution.
+        ("EFECTO", "FINAL"),
+        ("EFECTOS", "DIRECTOS"),
         ("PROBLEMA", "CENTRAL"),
         ("CAUSAS", "(RAÍCES)"),
     ]

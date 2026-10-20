@@ -113,6 +113,19 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
   articulation with §15:** the three type-C products must be anchored to these
   actions, each with its responsable and its §14 delivery moment. Mark any
   non-insumo item `[inferido]`.
+- **Anexos MGA 19-25 (SGR flow only, Fase 6.47)** — one file each in
+  `redaccion/sections/`: `19_alineacion_planes`, `20_participantes`,
+  `21_poblacion`, `22_alternativas`, `23_cadena_valor`, `24_riesgos`,
+  `25_marco_logico`. Content and table shape come from the `### SGR A19`…
+  `### SGR A25` blocks of `guiaProyectosIA_Agente_Regalias.md`, injected in
+  the Task's guide fragment. Build them from the approved trees, §10, §11
+  (result indicator), §13, §14 and §15; never invent a figure, population or
+  plan goal (`[supuesto]` when not derivable). Tables use `xltabular`. Never
+  write these files in a base-flow project.
+- **SGR flow, existing sections.** When the Task's guide fragment carries a
+  `### SGR §N` block, it adds requirements to that section and wins over the
+  base guide where they conflict (e.g. §11 result indicator with a numeric
+  target, §14 activities by stage, §15 products from the DNP catalogue).
 
 ## Hard constraints
 

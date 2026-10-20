@@ -675,6 +675,14 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
             reemplaza ni se reinyecta como el `guide_fingerprint` de
             `insumos-observador`, que siempre referencia la guía BASE, sin
             excepción.
+        ──→ FLUJO SGR (solo si el proyecto se creó con `morfeo init --sgr`):
+        leé el flujo en `.morfeo/config.json` (si falta, en
+        `.marco/config.json`; sin archivo o sin clave, el flujo es `base`).
+        Con `"flujo": "sgr"`, en esta misma precarga leé además, con un
+        único `Read` completo, `guiaProyectosIA_Agente_Regalias.md` (el
+        complemento SGR) y retené sus bloques: **Directrices Generales SGR**
+        y cada `### SGR §N` / `### SGR A19`…`### SGR A25`. Precedencia: TDR
+        > complemento SGR > guía base. Con el flujo `base` no lo leas.
         ──→ FALLBACK DE IDENTIFICACIÓN INSEGURA: si para una sección
         puntual que una Task necesita no podés identificar con confianza el
         bloque correspondiente (marcador/encabezado ausente, renombrado de
@@ -707,6 +715,9 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
 
         [<Convenciones técnicas de LaTeX, verbatim — SOLO si la Task
          REDACTA un archivo .tex>]
+
+        [<SOLO flujo SGR: Directrices Generales SGR y el bloque
+         `### SGR §N` de cada sección listada que lo tenga, verbatim>]
         ```
 
         Reglas: Directrices Generales va SIEMPRE, sin excepción. Las
@@ -965,9 +976,14 @@ Fase 1  (en AMBAS rutas) Task → bibliografo-propuesta MODE=explore → mapa de
         comportamiento previo al cambio.
         ──→ luego bucle de figura `<name>` = `arbol_problemas`,
         procedimiento canónico completo en "Bucle de figuras (canónico)".
-        Contenido autorizado: el bloque del Investigador (9 causas en 3
-        grupos, tronco, 4 ramas, copa). La copa NUNCA se conecta con las
-        raíces.
+        Contenido autorizado: el bloque del Investigador (causas
+        indirectas en 3 grupos encabezados por las causas directas, tronco
+        con su magnitud, ramas de efectos directos y copa de efecto final),
+        con las reglas MGA de la guía (§3, «Árbol de problemas y árbol de
+        objetivos según la MGA»): ningún nodo como ausencia de la solución
+        y la copa nunca es la solución. La copa NUNCA se conecta con las
+        raíces. Antes del gate, `scripts/check_run.py` no debe reportar
+        hallazgos `arbol-*` de error sobre la spec.
         `artefactos/vault/secciones/03_descripcion_problema.md` cambió en esta fase
         (recién escrita/actualizada por `investigador`); si no cambió,
         reutiliza el reporte de grafo existente sin
@@ -1048,11 +1064,21 @@ Fase 3  Task → redactor → §2 justificación y pertinencia. Antes de despach
         `artefactos/pipeline/40-fase3.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
         de uso acumulados de la fase (ver "Telemetría de uso por fase").
-Fase 4  Task → investigador → §6 objetivo general + §7 objetivos específicos.
-        Antes de despachar esta Task, el dispatcher arma el bloque `##
-        FRAGMENTO DE GUÍA` con Directrices Generales + §6 (Objetivo
-        general) + §7 (Objetivos específicos) + Convenciones técnicas de
-        LaTeX y lo inyecta inline al inicio del prompt.
+Fase 4  Task → investigador → árbol de objetivos
+        (`artefactos/arboles/arbol_objetivos.json`, espejo MGA de
+        `redaccion/specs/arbol_problemas.spec.json`, ver `investigador.md`
+        constraint 14) y DESPUÉS §6 objetivo general + §7 objetivos
+        específicos. Flujo base: §6/§7 con los verbos rectores de la guía y
+        la misma variable del árbol. Flujo SGR: §6/§7 copian literalmente
+        el árbol. Antes de despachar esta Task, el dispatcher arma el
+        bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §3
+        (Descripción del problema, por la regla de los árboles) + §6
+        (Objetivo general) + §7 (Objetivos específicos) + Convenciones
+        técnicas de LaTeX y lo inyecta inline al inicio del prompt. Antes
+        del gate, `scripts/check_run.py` no debe reportar hallazgos
+        `arbol-*`, `objetivo-general-*` ni `sgr-objetivo*` de error; el
+        operador revisa y aprueba los dos árboles en la pestaña de árboles
+        del tablero.
         ──→ [NUEVO] DISPATCHER: guardia — re-indexa el vault solo si
         `artefactos/vault/secciones/06_objetivo_general.md` o
         `artefactos/vault/secciones/07_objetivos_especificos.md` cambiaron en esta
@@ -1275,6 +1301,28 @@ Fase 6.46 Task → redactor → §17 Estrategia de articulación con comunidades
         ──→ GATE Task → revisor (valida §17 y §18 contra la guía; verifica que
         §18 ancle los 3 productos de tipo C de §15 y que §17 declare actores,
         mecanismos, responsables y momentos) ──→ usuario. NO avances sin aprobación.
+Fase 6.47 [SOLO FLUJO SGR] Anexos MGA. Con el flujo `base` esta unidad no
+        corre: al aprobar G6.46 se pasa directo a la Fase 6.5. Con
+        `"flujo": "sgr"`: Task → redactor → los siete anexos de
+        `guiaProyectosIA_Agente_Regalias.md` (bloques `### SGR A19` a
+        `### SGR A25`), cada uno en su archivo de `redaccion/sections/`:
+        `19_alineacion_planes.tex`, `20_participantes.tex`,
+        `21_poblacion.tex`, `22_alternativas.tex`, `23_cadena_valor.tex`,
+        `24_riesgos.tex` y `25_marco_logico.tex`. `main.tex` ya los
+        incluye si existen. El redactor parte de los árboles aprobados, §10,
+        §11 (indicador de resultado), §13, §14 y §15. Si un riesgo de A24 o
+        una estrategia de participantes de A20 no tiene costo en §13,
+        Task → presupuestador ajusta §13 (vuelve a pasar su recomputo
+        aritmético) antes del gate. Antes de despachar cada Task, el
+        dispatcher arma el bloque `## FRAGMENTO DE GUÍA` con Directrices
+        Generales + Directrices Generales SGR + el bloque `### SGR A<n>` +
+        Convenciones técnicas de LaTeX. Mismo mirror de vault que el resto
+        de secciones del redactor.
+        ──→ GATE G6.47 Task → revisor (valida cada anexo contra su bloque
+        SGR; la suma de costos de A23 coincide con §13; al menos un riesgo
+        por nivel en A24; la fila del propósito de A25 usa el objetivo
+        general y el indicador de resultado de §11) ──→ usuario. NO avances
+        sin aprobación.
 Fase 6.5 Task → redactor → secciones preliminares (front-matter), como
         síntesis del documento completo (§2–§18 ya aprobadas): Resumen
         (redaccion/sections/00_resumen.tex, máx. 400 palabras), Resumen

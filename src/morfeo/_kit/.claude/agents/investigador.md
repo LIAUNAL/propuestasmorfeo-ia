@@ -36,6 +36,9 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
 - **§5 Hipótesis** — a single paragraph derived from the synthesis of Estado
   del arte (§4, owned by the Bibliografo-Propuesta), anticipating the general
   objective
+- **Árbol de objetivos** — `artefactos/arboles/arbol_objetivos.json`, the
+  MGA mirror of the problem tree, written in Fase 4 before §6/§7
+  (constraint 14)
 - **§6 Objetivo general** — the exact answer to the research question
 - **§7 Objetivos específicos** — at least 3, 1:1 with subproblems
 - **§8 Marco conceptual** — conceptual/theoretical grounding for §10 Metodología
@@ -109,11 +112,16 @@ You no longer own a section by that name.
    a short clause naming the technical limitation or need — never the
    solution: never open with a solution-design verb ("Diseñar el
    ecosistema para...", "Dotar al ecosistema de...", "Convertir X en Y...").
-   Use a need/gap construction instead ("Falta de un ecosistema
-   multiagente que...", "Limitada capacidad de...", "Se requiere superar...",
-   "Ausencia de...", "Opacidad que impide..."), followed by the concrete
-   technical limitation. The subproblema states what is missing or limited;
-   the solution (the agent ecosystem as medio) belongs to §6/§7, never here.
+   State an existing negative condition instead: a negative qualifier plus
+   the affected variable and its scope ("Limitada capacidad de...", "Baja
+   precisión de...", "Deficiente trazabilidad de...", "Opacidad que
+   impide..."). Never phrase it as the absence of the solution: "Falta de",
+   "Ausencia de", "Carencia de", "Inexistencia de", "No existe", "Se
+   requiere" and "Necesidad de" are forbidden, because under the MGA «un
+   problema no es la ausencia de su solución, sino un estado existente
+   negativo». Each subproblema is a direct cause of the problem tree (see
+   constraint 14); the solution (the agent ecosystem as medio) belongs to
+   §6/§7, never here.
 10. **§8 subsection structure (mandatory).** Organize §8 Marco conceptual
    into **3 to 5 subsections** (`\subsection*{}`, unnumbered — same
    convention as §4), each with a **clear, concise title naming the concept
@@ -165,6 +173,36 @@ You no longer own a section by that name.
    consistencia entre..." or any equivalent clause inside §6 or §7: that clause
    belongs to §10. The objective states *what* is pursued, never *how* it will
    be checked.
+14. **Problem and objective trees follow the MGA (mandatory, both flows).**
+   The full rule is the guide's §3 block «Árbol de problemas y árbol de
+   objetivos según la MGA»; this item is the backstop.
+   - **Fase 1, problem tree content** (the commented block at the end of §3
+     that `disenador-tikz` turns into the spec): central problem = negative
+     qualifier + measurable variable + population or place, never the
+     absence of a solution and never opening with an infinitive; direct
+     causes = the subproblemas; 1-3 indirect causes under each; direct
+     effects hang from the central problem; the crown is the final indirect
+     effect, never the solution. Give the central problem its magnitude
+     (indicator, value, source) as the baseline.
+   - **Fase 4, objective tree first.** Before §6/§7, write
+     `artefactos/arboles/arbol_objetivos.json` with the schema
+     `{groups:[{id,from,title,objective,means:[{id,from,text}]}],trunk:{label,text},branches:[{id,from,text}],crown:{label,text}}`,
+     mirroring the problem spec node by node (`from` = the problem node id):
+     every node rewritten in positive keeping its variable ("Bajo
+     aprovechamiento de…" → "Aumentar el aprovechamiento de…"), opening with
+     an infinitive. The trunk is the general objective: infinitive + object +
+     descriptive elements, without the means ("mediante…", "a través de…"),
+     the ends ("para mejorar…"), the product or targets. Direct causes become
+     specific objectives; indirect causes become means stating the what, not
+     the how; effects become ends (`branches`) and the crown the final end.
+     Run `python3 scripts/check_run.py` and fix every tree finding before
+     returning.
+   - **§6/§7 by flow.** Base flow: keep the AI lead verbs of the guide, but
+     each objective treats the same variable as its tree node. SGR flow
+     (`"flujo": "sgr"` in `.morfeo/config.json`): §6 and §7 are literally
+     the tree texts (trunk and group objectives, in order), and the
+     `### SGR §6`/`### SGR §7` blocks of the Task's guide fragment win over
+     the base verb menu.
 
 ## Entradas de Fase 0/1 (intake)
 

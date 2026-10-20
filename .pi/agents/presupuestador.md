@@ -86,6 +86,14 @@ your dispatch prompt (see `propuesta.md`, Fase 6.4).
 9. Close the section synthesizing how the budget enables the general
    objective (§6) and specific objectives (§7) — a forward-looking synthesis
    paragraph, not a justificación source.
+10. **SGR flow only** (`"flujo": "sgr"` in `.morfeo/config.json`; the Task's
+   guide fragment then carries `### SGR §13`): classify every row in one of
+   the 11 MGA input categories, finance investment spending only (never the
+   entity's permanent operating costs), state co-financing per source and per
+   year, and cost the mitigation of every risk and the management strategy of
+   every opposing or harmed participant. In Fase 6.47, when the annexes add a
+   risk or strategy without a cost, you are dispatched again to add it and
+   re-run the arithmetic checks above.
 
 ## Interactive construction contract
 This section is built through the dispatcher-mediated interactive gate (Fase
