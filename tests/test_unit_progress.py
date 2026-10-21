@@ -159,5 +159,44 @@ class UnitProgressTest(unittest.TestCase):
         self.assertNotEqual(status["unit_progress"]["fase2"]["state"], "running")
 
 
+    def test_a_folder_artifact_needs_at_least_one_visible_file(self) -> None:
+        self.control("fase1b", "fase1a")
+        self.gates(("fase1a", "G1a", "PASS"))
+        papers = self.run / "artefactos" / "scoping" / "papers"
+        papers.mkdir(parents=True)
+        (papers / ".DS_Store").write_text("x", encoding="utf-8")
+        progress = self.status()["unit_progress"]["fase1a"]
+        self.assertEqual(progress["state"], "partial")
+        self.assertTrue(any("artefactos/scoping/papers/*" in m for m in progress["missing"]), progress["missing"])
+        paper = self.write("artefactos/scoping/papers/paper-01.md")
+        progress = self.status()["unit_progress"]["fase1a"]
+        self.assertEqual(progress["state"], "verified")
+        folder = progress["artifacts"][0]
+        self.assertEqual(folder["count"], 1)
+        self.assertAlmostEqual(folder["mtime"], paper.stat().st_mtime, places=3)
+
+    def test_a_heartbeat_with_unexpected_types_is_cleaned_not_fatal(self) -> None:
+        self.control("fase2", "fase1")
+        beat = {"fase": "fase2", "agentes": {"a": 1}, "skill": ["x"], "inicio": 12345, "nota": {"n": 1}, "artefacto_esperado": 7}
+        self.write("artefactos/pipeline/_en_curso.json", json.dumps(beat))
+        en_curso = self.status()["en_curso"]
+        self.assertEqual(en_curso["fase"], "fase2")
+        self.assertEqual(en_curso["agentes"], [])
+        self.assertIsNone(en_curso["skill"])
+        self.assertIsNone(en_curso["inicio"])
+        self.assertIsNone(en_curso["nota"])
+        self.assertIsNone(en_curso["artefacto_esperado"])
+        self.assertFalse(en_curso["stale"])
+
+    def test_a_heartbeat_whose_unit_is_not_text_is_ignored(self) -> None:
+        self.control("fase2", "fase1")
+        self.write("artefactos/pipeline/_en_curso.json", json.dumps({"fase": {"id": "fase2"}}))
+        self.assertIsNone(self.status()["en_curso"])
+
+    def test_a_heartbeat_with_an_out_of_range_date_is_not_fatal(self) -> None:
+        self.control("fase2", "fase1")
+        self.write("artefactos/pipeline/_en_curso.json", json.dumps({"fase": "fase2", "inicio": "0001-01-01T00:00:00"}))
+        self.assertIn(self.status()["en_curso"]["stale"], (True, False))
+
 if __name__ == "__main__":
     unittest.main()

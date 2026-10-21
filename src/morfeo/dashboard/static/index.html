@@ -3580,6 +3580,9 @@
       skipped: 'omitida (no aplica en esta corrida)',
     };
     const PHASE_RUN_KEY = 'morfeo.phaseRun';
+    // Sin latido en este tiempo, el envío probablemente no abrió la unidad: se
+    // avisa y se vuelve al sondeo de 5 s (un latido tardío se retoma igual).
+    const PHASE_RUN_SIGNAL_TIMEOUT_MS = 10 * 60 * 1000;
     let PHASE_RUN = null;
     let PHASE_RUN_DISMISSED = null;
     let PHASE_RUN_TICK = null;
@@ -3655,7 +3658,8 @@
       const state = running ? 'running' : resolvePhaseState(p, data);
       const settled = !running && (run.seenRunning || (run.initialState !== null && state !== run.initialState) || run.initialState === null && state !== 'pending');
       // Cualquier cierre (cumplida, FAIL o incompleta) apaga el sondeo rápido; el de 5 s sigue.
-      if (PHASE_RUN && settled && !PHASE_RUN.finished) { PHASE_RUN.finished = true; savePhaseRun(); }
+      const silent = !running && !settled && !!run.sentAt && Date.now() - run.sentAt > PHASE_RUN_SIGNAL_TIMEOUT_MS;
+      if (PHASE_RUN && (settled || silent) && !PHASE_RUN.finished) { PHASE_RUN.finished = true; savePhaseRun(); }
 
       const step = (cls, title, body) => `<li class="phase-run__step ${cls}"><span class="phase-run__step-title">${title}</span>${body ? `<div class="phase-run__step-body">${body}</div>` : ''}</li>`;
       const sentAt = run.sentAt ? new Date(run.sentAt) : null;
@@ -3673,6 +3677,9 @@
           <div>Tiempo transcurrido: <span data-elapsed-from="${since}">${formatElapsed(Date.now() - since)}</span></div>`);
       } else if (settled) {
         live = step('is-done', '2. Ejecución terminada', '');
+      } else if (silent) {
+        live = step('is-bad', '2. Sin señal del asistente',
+          `<span class="phase-exec-note">No llegó el latido artefactos/pipeline/_en_curso.json en ${PHASE_RUN_SIGNAL_TIMEOUT_MS / 60000} min. Revisa la terminal del asistente: puede estar esperando una respuesta o el comando no se envió. El tablero sigue revisando cada 5 s.</span>`);
       } else {
         live = step('is-active', '2. Esperando a que el asistente abra la unidad',
           `<span class="phase-exec-note">Aparece en cuanto escribe su latido artefactos/pipeline/_en_curso.json. Sigue la conversación en la terminal del asistente.</span>${run.sentAt ? ` · <span data-elapsed-from="${run.sentAt}">${formatElapsed(Date.now() - run.sentAt)}</span>` : ''}`);
