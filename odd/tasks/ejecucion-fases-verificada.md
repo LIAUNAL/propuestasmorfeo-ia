@@ -14,9 +14,9 @@ Rama: `feat/ejecucion-fases-verificada` · Entrega: merge local a `main` (como l
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |----|-------|------|--------|-----------|
-| T1 | S2, S3, S4 | inline | pendiente | — |
-| T2 | S1 | inline | pendiente | — |
-| T3 | S1–S4 | inline | pendiente | — |
+| T1 | S2, S3, S4 | inline | hecha | af8aa22; RED 13 → GREEN, 14 tests en tests/test_unit_progress.py |
+| T2 | S1 | inline | hecha | 807da24; ports y kit sin deriva (--check) |
+| T3 | S1–S4 | inline | hecha | commit T3; RED 6/7 → GREEN, tests/js/phase.tracker.test.mjs |
 
 - T1: servidor. Manifiesto `artifacts` por unidad, `unit_progress` en `/api/status`, latido obsoleto y `mtime` en los artefactos.
 - T2: prompts. El latido explícito en `propuesta-continuar.md` y `propuesta-analizar.md` y la `nota` de avance en `_propuesta-steps.md`, más los ports y el kit.
@@ -28,3 +28,5 @@ Ruta: inline, porque no se dispara el Writer trigger (las unidades comparten el 
 
 - L1 (2026-10-20): «revisa las etapas de la pestaña Fases del Pipeline Metodológico de Redacción, al dar ejecutar, genera un visualizacion del proceso que se va ejecutando, al dar ejecutar, y asegurate de poder asegurar que la etapa si se cumplio, y que se habiliten las etapas posterioes, y se iluminen y se actualicen los artefactos respectivos»
 - L2: Mapa. El comando va como pulsaciones a un PTY (`/ws/terminal`) y el servidor no registra la salida. El estado en curso solo puede venir del latido. La firma de re-render de `loadStatus` excluye `en_curso`, `control` y los artefactos. Ningún prompt de comando escribe el latido; solo lo especifica `_propuesta-steps.md`. No existe un manifiesto de artefactos por unidad.
+- L3: El intake sin TDR deja G0.5 omitida, así que en las unidades `pre` la compuerta solo cuenta cuando falla; fase0 se verifica con `intake_complete` e `insumos.md`.
+- L4: Verificación. JS 94/94; Python 361 OK (se actualizó a propósito el contrato `EN_CURSO = liveHeartbeat(data)` de test_dashboard_viewer). Prueba visual en un workspace demo en :8090 con captura headless: seguidor «En curso» con agentes, nota, artefacto esperado y cronómetro; tras escribir PASS, control, secciones y evento, Fase 2 se ilumina (6 superadas).
