@@ -945,18 +945,26 @@
       color: #ffffff;
       border: 2px solid #34d399;
       box-shadow:
-        0 0 16px rgba(16, 185, 129, 0.8),
-        0 0 32px rgba(56, 189, 248, 0.6),
+        0 0 14px rgba(16, 185, 129, 0.7),
+        0 0 25px rgba(56, 189, 248, 0.5),
         inset 0 0 10px rgba(255, 255, 255, 0.7);
+    }
+    /* El pulso neón anima la opacidad de una capa con el brillo fuerte ya
+       pintado: se compone en la GPU sin repintar sombras en cada cuadro, que
+       es lo que costaba animar box-shadow en cada etapa encendida. */
+    .flujo-step--lit .flujo-beacon::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      box-shadow: 0 0 22px rgba(16, 185, 129, 1), 0 0 42px rgba(56, 189, 248, 0.8);
+      pointer-events: none;
+      opacity: 0;
       animation: neon-pulse 2.5s infinite alternate;
     }
     @keyframes neon-pulse {
-      0% {
-        box-shadow: 0 0 14px rgba(16, 185, 129, 0.7), 0 0 25px rgba(56, 189, 248, 0.5), inset 0 0 8px rgba(255, 255, 255, 0.6);
-      }
-      100% {
-        box-shadow: 0 0 22px rgba(16, 185, 129, 1), 0 0 42px rgba(56, 189, 248, 0.8), inset 0 0 14px rgba(255, 255, 255, 0.9);
-      }
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
     .flujo-step--lit .flujo-beacon::after {
       content: '';
@@ -1934,7 +1942,6 @@
       border: 1px solid #38bdf8 !important;
       font-weight: 700 !important;
       box-shadow: 0 0 14px rgba(2, 132, 199, 0.4) !important;
-      animation: execute-glow 3s infinite alternate;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1972,6 +1979,7 @@
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
     /* ========================================================
        ASISTENTE FLOTANTE MORFEO (FAB) Y TERMINAL WEB PTY
        ======================================================== */
@@ -2009,6 +2017,13 @@
     }
     .morfeo-fab.is-active .morfeo-fab__pulse {
       display: none;
+    }
+    /* Página en segundo plano o sin movimiento pedido: las animaciones en bucle se detienen. */
+    html.is-page-hidden *, html.is-page-hidden *::before, html.is-page-hidden *::after {
+      animation-play-state: paused !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-iteration-count: 1 !important; }
     }
     @keyframes fabPulse {
       0% { transform: scale(0.95); opacity: 0.9; }
@@ -2411,7 +2426,7 @@
             <a href="/api/flow" target="_blank" class="btn btn--primary">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
-        <iframe id="flowIframe" class="iframe-viewer" src="/api/flow?theme=dark"></iframe>
+        <iframe id="flowIframe" class="iframe-viewer" src="about:blank" data-src="/api/flow?theme=dark" title="Flujo Archify"></iframe>
       </div>
 
       <!-- Panel de Propósito de la Etapa Seleccionada en el Diagrama Archify -->
@@ -2674,7 +2689,7 @@
             <a id="linkOpenGraph" href="/api/graph/papers" target="_blank" class="btn">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
-        <iframe id="graphIframe" class="iframe-viewer" src="/api/graph/papers"></iframe>
+        <iframe id="graphIframe" class="iframe-viewer" src="about:blank" title="Grafo de conocimiento"></iframe>
       </div>
     </div>
 
@@ -2753,7 +2768,7 @@
               <p>Cargando documento PDF...</p>
             </div>
             <div class="pdf-pages-strip" id="pdfPagesStrip"></div>
-            <iframe id="pdfNativeIframe" class="iframe-viewer" src="/api/pdf" style="display: none; height: 850px; width: 100%;"></iframe>
+            <iframe id="pdfNativeIframe" class="iframe-viewer" src="about:blank" style="display: none; height: 850px; width: 100%;"></iframe>
           </div>
         </div>
 
@@ -3766,6 +3781,7 @@
       try { localStorage.removeItem(PHASE_RUN_STOP_KEY); } catch (err) { /* sin almacenamiento */ }
       renderPhaseRunTracker(data);
       setTimeout(() => loadStatus(), 1500);
+      scheduleStatusPoll();  // pasa al sondeo de 2 s
     }
 
     function phaseRunActive() {
@@ -3786,6 +3802,7 @@
     const PHASE_RUN_STOP_KEY = 'morfeo.phaseRunStopped';
     let PHASE_RUN_PANEL_OPEN = false;
     let PHASE_RUN_RENDER_KEY = null;
+    let PHASE_RUN_PAINT = null;
     let PHASE_RUN_IDLE_NOTIFIED = false;
     let PHASE_RUN_NOTICE_TIMER = null;
 
@@ -4001,17 +4018,25 @@
         panel.hidden = true; panel.innerHTML = '';
         PHASE_RUN_PANEL_OPEN = false;
         PHASE_RUN_RENDER_KEY = null;
+        PHASE_RUN_PAINT = null;
         if (PHASE_RUN_TICK) { clearInterval(PHASE_RUN_TICK); PHASE_RUN_TICK = null; }
         return;
       }
-      if (box) {
+      const run = view.run;
+      const lingering = !run.finished || (run.finishedAt && Date.now() - run.finishedAt < PHASE_RUN_DOCK_LINGER_MS) || view.running;
+      // Sin cambios en lo que se muestra, no se reconstruye nada: el sondeo pasa
+      // por aquí cada pocos segundos y los tiempos los actualiza tickPhaseRun.
+      const paint = JSON.stringify([phaseRunRenderKey(view), lingering, view.prog, view.beat, run.command, run.stoppedAt, run.agent, run.sessionId,
+        view.settled ? [data.control || null, data.unit_progress || null] : null]);
+      const fresh = paint !== PHASE_RUN_PAINT || (box && box.hidden);
+      PHASE_RUN_PAINT = paint;
+      if (box && fresh) {
         box.hidden = false;
         box.innerHTML = phaseRunBody(view, data, false);
       }
-
-      const run = view.run;
-      const lingering = !run.finished || (run.finishedAt && Date.now() - run.finishedAt < PHASE_RUN_DOCK_LINGER_MS) || view.running;
-      if (lingering) {
+      if (!fresh) {
+        PHASE_RUN_RENDER_KEY = phaseRunRenderKey(view);
+      } else if (lingering) {
         const since = view.running && Date.parse(view.beat.inicio || '') || run.sentAt;
         dock.hidden = false;
         dock.classList.toggle('is-idle', view.idle || view.sessionGone);
@@ -4025,7 +4050,9 @@
         dock.hidden = true;
         dock.innerHTML = '';
       }
-      if (PHASE_RUN_PANEL_OPEN) {
+      if (!fresh) {
+        // nada que repintar
+      } else if (PHASE_RUN_PANEL_OPEN) {
         panel.hidden = false;
         panel.innerHTML = phaseRunBody(view, data, true);
       } else {
@@ -4575,7 +4602,16 @@
         : '🌙 <span class="btn__label">Oscuro</span>';
       const flow = document.getElementById('flowIframe');
       const flowSrc = `/api/flow?theme=${theme}`;
-      if (flow && flow.getAttribute('src') !== flowSrc) flow.setAttribute('src', flowSrc);
+      if (!flow) return;
+      flow.setAttribute('data-src', flowSrc);
+      // Cargado ya, se recarga con el tema; si no, espera a que se abra su pestaña.
+      if (flow.getAttribute('src') !== 'about:blank' && flow.getAttribute('src') !== flowSrc) flow.setAttribute('src', flowSrc);
+    }
+
+    // El flujo (unos 880 KB) se carga la primera vez que su pestaña está a la vista.
+    function ensureFlowLoaded() {
+      const flow = document.getElementById('flowIframe');
+      if (flow && flow.getAttribute('src') === 'about:blank') flow.setAttribute('src', flow.getAttribute('data-src'));
     }
 
     function toggleTheme() {
@@ -4625,12 +4661,23 @@
 
       if (tabId === 'mga') loadMgaResumido();
 
+      if (tabId === 'flow') ensureFlowLoaded();
+
       if (tabId === 'preview') {
         initPdfViewer();
       } else if (tabId === 'atlas') {
         setTimeout(() => {
           const iframe = document.getElementById('graphIframe');
           if (!iframe) return;
+          // El grafo (WebGL, unos 700 KB con three.js) se carga al abrir la pestaña,
+          // no al abrir el tablero.
+          if (!iframe.getAttribute('src') || iframe.getAttribute('src') === 'about:blank') {
+            iframe.dataset.requestedAt = String(Date.now());
+            iframe.src = `/api/graph/${currentGraphKind}`;
+            return;
+          }
+          // Una carga recién pedida todavía no tiene lienzo: no se la reinicia.
+          if (Date.now() - Number(iframe.dataset.requestedAt || 0) < 5000) return;
           try {
             if (iframe.contentWindow) {
               iframe.contentWindow.dispatchEvent(new Event('resize'));
@@ -5008,8 +5055,32 @@
       el.title = sgr ? 'Proyecto con el flujo del Sistema General de Regalías (MGA)' : 'Proyecto con el flujo base';
     }
 
-    async function loadStatus() {
-      if (document.hidden) return; // Pausa el sondeo cuando la pestaña está en segundo plano
+    // Un solo pedido de estado a la vez: quien llama mientras hay uno en vuelo
+    // recibe ese mismo resultado en lugar de lanzar otro.
+    let STATUS_IN_FLIGHT = null;
+    let STATUS_POLL_TIMER = null;
+
+    function loadStatus() {
+      if (document.hidden) return Promise.resolve(); // Pausa el sondeo cuando la pestaña está en segundo plano
+      if (!STATUS_IN_FLIGHT) {
+        STATUS_IN_FLIGHT = loadStatusNow().finally(() => { STATUS_IN_FLIGHT = null; });
+      }
+      return STATUS_IN_FLIGHT;
+    }
+
+    // El sondeo se reprograma solo: cada 2 s mientras una fase corre, cada 5 s si
+    // no, y se detiene con la página oculta (al volver, visibilitychange lo reanuda).
+    function scheduleStatusPoll() {
+      if (STATUS_POLL_TIMER) clearTimeout(STATUS_POLL_TIMER);
+      STATUS_POLL_TIMER = setTimeout(async () => {
+        STATUS_POLL_TIMER = null;
+        if (document.hidden) return;
+        await loadStatus();
+        scheduleStatusPoll();
+      }, phaseRunActive() ? 2000 : 5000);
+    }
+
+    async function loadStatusNow() {
       try {
         const res = await fetch('/api/status');
         if (!res.ok) return;
@@ -5020,7 +5091,10 @@
           const footerRun = document.getElementById('terminalFooterRun');
           if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;
         }
-        if (typeof isTerminalOpen !== 'undefined' && isTerminalOpen && typeof ensureTerminalConnected === 'function') {
+        // Solo se reconecta una terminal caída: reajustarla en cada sondeo forzaba
+        // un cálculo de layout y un cambio de tamaño en el agente cada vez.
+        if (typeof isTerminalOpen !== 'undefined' && isTerminalOpen && typeof ensureTerminalConnected === 'function'
+            && (!terminalSocket || terminalSocket.readyState > 1)) {
           ensureTerminalConnected(false);
         }
 
@@ -6312,7 +6386,10 @@
         console.error("Error cargando PDF con PDF.js:", err);
         const strip = document.getElementById('pdfPagesStrip');
         if (strip) strip.style.display = 'none';
-        document.getElementById('pdfNativeIframe').style.display = 'block';
+        const nativeFrame = document.getElementById('pdfNativeIframe');
+        // El visor nativo solo se carga cuando hace falta: si PDF.js no pudo.
+        nativeFrame.src = `/api/pdf?t=${Date.now()}`;
+        nativeFrame.style.display = 'block';
       } finally {
         // El sello se baja recién cuando la tira nueva quedó construida (o el
         // camino de error terminó): a partir de aquí el observer nuevo vuelve a
@@ -6786,6 +6863,7 @@
         btn.textContent = 'Visor PDF.js';
       } else {
         iframe.style.display = 'none';
+        iframe.src = 'about:blank';  // libera el visor nativo y su copia del PDF
         if (strip) strip.style.display = 'flex';
         if (bar) bar.style.display = 'flex';
         btn.textContent = 'Visor Nativo';
@@ -8918,6 +8996,8 @@
       if (hash && ['pipeline', 'flow', 'sections', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
+      const flowPane = document.getElementById('pane-flow');
+      if (flowPane && flowPane.classList.contains('active')) ensureFlowLoaded();
       loadStatus();
       loadPendingInstructionsQueue();
       loadExecutionHistory();
@@ -8926,13 +9006,14 @@
       resumeTerminalSession();
       // Polling every 5 seconds for live status; every 2 s while a phase runs.
       restorePhaseRun();
-      setInterval(loadStatus, 5000);
-      setInterval(() => { if (phaseRunActive()) loadStatus(); }, 2000);
+      scheduleStatusPoll();
     });
 
     document.addEventListener('visibilitychange', () => {
+      document.documentElement.classList.toggle('is-page-hidden', document.hidden);
       if (!document.hidden) {
         loadStatus();
+        scheduleStatusPoll();
         if (isTerminalOpen || terminalSessionId) {
           ensureTerminalConnected(true);
         }
@@ -8956,9 +9037,10 @@
       }
     });
 
+    // navigateTab escribe el hash: ese cambio no vuelve a navegar (recargaba el grafo).
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash) navigateTab(hash);
+      if (hash && hash !== activeTab) navigateTab(hash);
     });
   </script>
 </body>

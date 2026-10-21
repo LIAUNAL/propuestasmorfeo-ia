@@ -1766,21 +1766,34 @@ TEMPLATE = """<!DOCTYPE html>
   // Animation Loop with Smooth Damping and Pulse
   var clock = new THREE.Clock();
 
+  // Last frame drawn, in seconds of the clock; idle auto-rotation draws at 30 fps.
+  var lastFrameAt = -1;
+  var IDLE_FRAME_SEC = 1 / 30;
+
   function animate() {
     requestAnimationFrame(animate);
 
-    if (stageEl && stageEl.clientWidth > 0 && stageEl.clientHeight > 0) {
-      if (stageEl.clientWidth !== lastRenderWidth || stageEl.clientHeight !== lastRenderHeight) {
-        onWindowResize();
-      }
+    // Nothing to draw while the page, or the dashboard tab holding the graph, is hidden.
+    if (document.hidden || !stageEl || stageEl.clientWidth === 0 || stageEl.clientHeight === 0) {
+      return;
+    }
+    if (stageEl.clientWidth !== lastRenderWidth || stageEl.clientHeight !== lastRenderHeight) {
+      onWindowResize();
     }
 
-    var delta = clock.getDelta();
     var time = clock.getElapsedTime();
+    // Interaction and camera moves keep the full frame rate; the slow idle spin
+    // looks the same at 30 fps and costs half the GPU work.
+    var busy = isDragging || hoveredNode || selectedNode || targetOrbitCenter || targetRadius !== null;
+    if (!busy && lastFrameAt >= 0 && time - lastFrameAt < IDLE_FRAME_SEC) {
+      return;
+    }
+    var spin = lastFrameAt >= 0 ? Math.min(time - lastFrameAt, 0.1) * 60 : 1;
+    lastFrameAt = time;
 
     // Pause the spin while a node is hovered so it stays under the cursor
     if (autoRotate && !isDragging && !selectedNode && !hoveredNode) {
-      spherical.theta += 0.0035;
+      spherical.theta += 0.0035 * spin;  // same angular speed at any frame rate
     }
 
     // Camera smoothing toward focus / fit targets
