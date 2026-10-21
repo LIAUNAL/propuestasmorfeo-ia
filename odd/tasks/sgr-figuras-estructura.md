@@ -17,8 +17,8 @@ Objetivo: en el flujo SGR, las figuras (árboles, metodología, cronograma) sigu
 |---|---|---|---|---|
 | T1 | S1, S2 | inline | hecha | dfc9c68; RED 5F+3E → GREEN 12/12; suites relacionadas 136 OK |
 | T2 | S3 | inline | hecha | d8eb8e7; RED 10E → GREEN 11/11; bootstrap sobre copia de la guía viva: 30 capítulos |
-| T3 | S4 | inline | hecha | RED 7F → GREEN 15/15; «dos o más actividades por producto» queda sin verificación mecánica (Gantt de forma libre) |
-| T4 | S1-S5 | inline | pendiente | dispatcher, agentes, docs, ports, kit |
+| T3 | S4 | inline | hecha | cd1efe9; RED 7F → GREEN 15/15; «dos o más actividades por producto» queda sin verificación mecánica (Gantt de forma libre) |
+| T4 | S1-S5 | inline | hecha | dispatcher, agentes, docs, ports y kit; suite completa 465 OK |
 | T5 | S6 | inline | pendiente | propuesta de guía; edición tras aprobación |
 
 Ruta inline en las cuatro: no hay unidades paralelas que justifiquen un escritor delegado. Estimación cercana a 900 líneas; estrategia `exception-ok`, porque el usuario integra con commit, merge y push directo a `main`.
@@ -30,3 +30,4 @@ Ruta inline en las cuatro: no hay unidades paralelas que justifiquen un escritor
 - **L3 (decisión):** los scripts nuevos viven en `scripts/` de la raíz y reciben `<RUN_ROOT>`, como `check_run.py`. Así una corrida existente los usa después de `morfeo upgrade` sin recopiar `redaccion/scripts/`. El árbol de objetivos se convierte a una spec `kind: arbol` y se compila con el renderizador existente, que una corrida vieja ya tiene.
 - **L4 (2026-10-21, usuario):** «ajsuta tambien, para que los subproblemas par acuando es regalias, estan alineadas con las reglas del arbol de problemas y las cuasas, explorar como ajustar y resume como podria ser la guia para definir mejor problema, subproblema (causas en lenguaje sgr), segun las reglas planteadas para arbol de problemas»
 - **L5 (T2):** sobre una copia de `guia_ajustada_TDR.md` de la corrida viva, `--from-guide` leyó los 30 capítulos. Los capítulos 2 y 3 comparten `00_frontmatter` y el 19 menciona `17_articulacion_comunidades` (no se produce). El dispatcher debe dar a cada capítulo numerado su propio archivo; `tdr-capitulo-secciones` lo advierte.
+- **L6 (T4):** suite completa 465 tests en verde (14 omitidos por dependencias opcionales). Ports y kit pasan `--check`. Nada se escribió en `proposals/` de regalias-56UNAL; esa corrida recibe estos cambios con `morfeo upgrade`, que no toca `proposals/`.

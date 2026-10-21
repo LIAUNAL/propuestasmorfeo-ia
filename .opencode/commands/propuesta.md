@@ -606,6 +606,15 @@ Fase 0.5 [COMPUERTA G0.5] Solo aplica si el campo "Archivo TDR" de la tabla
             secciones definitivas" con el formato exacto que exige
             `investigador.md` ("Generación de la guía ajustada") — es un
             requisito de forma del entregable, no opcional.
+            Si `artefactos/insumos.md` registra «TDR especifica secciones:
+            Sí», la misma Task escribe además
+            `artefactos/estructura_tdr.json` (formato en
+            `scripts/ensamblar_main.py`): un capítulo por capítulo del TDR,
+            en su orden, con `titulo` copiado textualmente del TDR y
+            `archivos` en el orden en que se imprimen. Cada capítulo
+            numerado tiene su propio archivo y abre un único `\section`;
+            dos capítulos no comparten archivo (por ejemplo, Resumen y
+            Palabras clave van en archivos distintos si el TDR los numera).
         ──→ GATE G0.5: presenta `artefactos/guia_ajustada_TDR.md` al usuario
         para aprobación explícita. La presentación de este gate NO es un
         resumen en prosa: el dispatcher copia la "Tabla de secciones
@@ -720,6 +729,12 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
         [<SOLO flujo SGR: Directrices Generales SGR y el bloque
          `### SGR §N` de cada sección listada que lo tenga, verbatim>]
         ```
+
+        Con `artefactos/estructura_tdr.json`, cada bloque `### SGR §N`
+        acompaña al capítulo que contiene el archivo de §N (por ejemplo,
+        `### SGR §6` y `### SGR §7` van con el capítulo que lista
+        `06_objetivo_general` y `07_objetivos_especificos`), nunca al
+        capítulo que lleva el número N.
 
         Reglas: Directrices Generales va SIEMPRE, sin excepción. Las
         secciones listadas en el título del bloque son las que esa Task
@@ -869,6 +884,20 @@ Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         "G1b — Árboles de problemas y de objetivos": rutas de los dos
         árboles, problema central, indicador de magnitud del tronco y Estado
         G1b); la Fase 1 y la Fase 4 leen esa sub-tabla.
+        (d) SOLO flujo SGR, después de la aprobación en el panel: las dos
+        figuras de árbol salen de los archivos que el panel muestra y
+        aprueba, nunca de un texto redactado aparte.
+          - Árbol de objetivos: `python3 scripts/arbol_objetivos.py
+            <RUN_ROOT>` convierte `artefactos/arboles/arbol_objetivos.json`
+            en `redaccion/specs/arbol_objetivos.spec.json`; luego
+            `python3 redaccion/scripts/figura.py arbol_objetivos --spec
+            redaccion/specs/arbol_objetivos.spec.json --project redaccion`.
+            Su caption concreto va en
+            `redaccion/sections/diag_arbol_objetivos_caption.tex`.
+          - Si un árbol cambia en el panel después de compilado,
+            `scripts/check_run.py` reporta `figura-desincronizada` (error)
+            y `arbol-sin-aprobar-panel` (advertencia): vuelve a aprobarlo y
+            a compilar su figura con `figura.py`.
         ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
         `artefactos/pipeline/11-fase1b.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
@@ -1201,7 +1230,12 @@ Fase 5.5 [NUEVO] Task → redactor → §10 metodología (compuerta propia,
         §10 (Metodología) + Convenciones técnicas de LaTeX y lo inyecta
         inline al inicio del prompt. Luego bucle de figura `<name>` =
         `metodologico`, procedimiento canónico completo en "Bucle de
-        figuras (canónico)". El diagrama NUNCA incluye personal
+        figuras (canónico)". En el flujo SGR cada fase de la spec
+        `metodologico` declara `etapa` (`preinversion`, `inversion` u
+        `operacion`) y `oe` (los ids OE del árbol de objetivos que atiende),
+        para leerse como cadena de valor por etapa (guía SGR §10); el
+        render imprime la etapa en la caja y `check_run.py` advierte
+        `sgr-metodologia-sin-etapa` / `sgr-metodologia-sin-oe`. El diagrama NUNCA incluye personal
         responsable dentro de sus bloques (ver `disenador-tikz.md`).
         `artefactos/vault/secciones/10_metodologia.md` cambió en esta fase; si no
         cambió, reutiliza el reporte de grafo existente sin
@@ -1309,7 +1343,10 @@ Fase 6.45 Task → redactor → §14 cronograma de actividades (Gantt) (sin gate
         que la Fase 6). Antes de despachar esta Task, el dispatcher arma el
         bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §14
         (Cronograma de actividades) + Convenciones técnicas de LaTeX y lo
-        inyecta inline al inicio del prompt.
+        inyecta inline al inicio del prompt. En el flujo SGR el Gantt agrupa
+        las actividades por etapa y marca la ruta crítica (guía SGR §14);
+        `check_run.py` advierte `sgr-cronograma-sin-etapas` /
+        `sgr-cronograma-sin-ruta-critica`.
         Task → redactor → §15 productos esperados (ídem, sin gate propio).
         Antes de despachar esta Task, el dispatcher arma el bloque
         `## FRAGMENTO DE GUÍA` con Directrices Generales + §15 (Productos
@@ -1437,7 +1474,16 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         `plantilla/logos-opcionales/logo_utp.png` a `redaccion/logos/` solo si
         la propuesta declara esa alianza, y correr
         `python3 scripts/check_run.py <RUN_ROOT> --final` hasta que salga sin
-        errores. Si la corrida trae un `main.tex` anterior a la plantilla,
+        errores. Cuando el TDR fija capítulos (existe
+        `artefactos/estructura_tdr.json`, o `insumos.md` registra «TDR
+        especifica secciones: Sí»), el cuerpo de `main.tex` no sigue el
+        orden base: corre `python3 scripts/ensamblar_main.py <RUN_ROOT>`.
+        Si la estructura todavía no existe (corridas cuya G0.5 es anterior
+        a este paso), agrega `--from-guide` para derivarla de la tabla de
+        capítulos de `guia_ajustada_TDR.md`, completa cada `titulo` con el
+        título textual del TDR tomado de `insumos.md` y vuelve a correr el
+        script. `check_run.py` reporta `tdr-main-desactualizado`,
+        `tdr-titulo-capitulo` y `tdr-capitulo-secciones`. Si la corrida trae un `main.tex` anterior a la plantilla,
         reemplazalo por la plantilla y trasladá su portada a
         `datos_proyecto.tex` y sus captions a los archivos `_caption.tex`.
         Tras ensamblar y compilar `redaccion/main.pdf` (`redaccion/build.sh`),

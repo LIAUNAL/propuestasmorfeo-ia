@@ -55,6 +55,16 @@ los anexos MGA 19 a 25. Los árboles de problemas y de objetivos siguen la MGA
 en **ambos** flujos (guía, §3); en el SGR, además, §6 y §7 copian literalmente
 el árbol de objetivos.
 
+En el SGR las figuras de los dos árboles salen del panel de árboles del
+tablero, nunca de un texto redactado aparte: el de problemas es la spec que el
+panel aprueba y el de objetivos lo genera `scripts/arbol_objetivos.py` desde
+`artefactos/arboles/arbol_objetivos.json`. `scripts/check_run.py` marca como
+error una figura compilada desde una spec anterior. La metodología declara la
+etapa MGA y los OE de cada fase, y el cronograma agrupa por etapa y marca la
+ruta crítica. Cuando el TDR fija sus capítulos (el Anexo 2, por ejemplo),
+`scripts/ensamblar_main.py` arma el cuerpo de `main.tex` en ese orden desde
+`artefactos/estructura_tdr.json`, con los títulos textuales del TDR.
+
 ## Reglas globales
 
 1. **Idioma:** Los *system prompts* de los agentes están en inglés, pero toda
