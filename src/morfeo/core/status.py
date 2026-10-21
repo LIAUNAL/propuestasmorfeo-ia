@@ -10,6 +10,7 @@ from typing import Any
 
 from ..errors import UserError
 from .pipeline_units import canonical_gates, normalise_gate, units_for_flujo
+from .unit_progress import heartbeat_is_stale, unit_progress
 
 
 SECTION_TITLES = {
@@ -423,10 +424,12 @@ def list_artifacts_info(run_dir: Path) -> list[dict[str, Any]]:
 
     items: list[dict[str, Any]] = []
     for f in sorted(art_dir.glob("*.md")):
+        st = f.stat()
         items.append({
             "name": f.name,
             "rel_path": f"artefactos/{f.name}",
-            "size": f.stat().st_size,
+            "size": st.st_size,
+            "mtime": st.st_mtime,
         })
     return items
 
@@ -488,6 +491,8 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
     artifacts: list[dict[str, Any]] = []
     en_curso: dict[str, Any] | None = None
     control: dict[str, Any] | None = None
+    progress: dict[str, dict[str, Any]] = {}
+    units = units_for_flujo(flujo)
     totals: dict[str, Any] = {
         "sections_count": 0,
         "total_words": 0,
@@ -533,6 +538,9 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
             gates = parse_gates_info(run_dir, flujo)
             telemetria = parse_telemetry_info(run_dir)
             artifacts = list_artifacts_info(run_dir)
+            if en_curso is not None:
+                en_curso["stale"] = heartbeat_is_stale(en_curso, units, control)
+            progress = unit_progress(run_dir, units, gates, telemetria, control, en_curso)
 
             # BibTeX entries
             bib_file = run_dir / "redaccion" / "refs.bib"
@@ -607,7 +615,9 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
         "control": control,
         # El inventario de unidades viaja en el sobre para que el tablero deje de
         # mantener su propia lista de fases y derive de aquí.
-        "pipeline_units": units_for_flujo(flujo),
+        "pipeline_units": units,
+        # Si cada unidad se cumplió de verdad: compuerta, control y archivos.
+        "unit_progress": progress,
         "archify_flow_ready": archify_flow_ready,
         "decisions_exists": (target_dir / "DECISIONS.md").is_file(),
         "idea_exists": (target_dir / "idea.md").is_file(),
