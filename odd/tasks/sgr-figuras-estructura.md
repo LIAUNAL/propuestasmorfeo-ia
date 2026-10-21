@@ -16,8 +16,8 @@ Objetivo: en el flujo SGR, las figuras (árboles, metodología, cronograma) sigu
 | ID | Specs | Ruta | Estado | Evidencia |
 |---|---|---|---|---|
 | T1 | S1, S2 | inline | hecha | dfc9c68; RED 5F+3E → GREEN 12/12; suites relacionadas 136 OK |
-| T2 | S3 | inline | hecha | RED 10E → GREEN 11/11; bootstrap sobre copia de la guía viva: 30 capítulos |
-| T3 | S4 | inline | pendiente | |
+| T2 | S3 | inline | hecha | d8eb8e7; RED 10E → GREEN 11/11; bootstrap sobre copia de la guía viva: 30 capítulos |
+| T3 | S4 | inline | hecha | RED 7F → GREEN 15/15; «dos o más actividades por producto» queda sin verificación mecánica (Gantt de forma libre) |
 | T4 | S1-S5 | inline | pendiente | dispatcher, agentes, docs, ports, kit |
 | T5 | S6 | inline | pendiente | propuesta de guía; edición tras aprobación |
 

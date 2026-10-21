@@ -833,6 +833,45 @@ def check_tdr_structure(report: Report, run_root: Path, final: bool) -> None:
                        f"(el TDR conserva los títulos); dice «{found}».", path)
 
 
+SGR_STAGES = ("preinversion", "inversion", "operacion")
+
+
+def check_sgr_methodology_schedule(report: Report, run_root: Path, texts: dict[str, str],
+                                   sections: dict[str, Path], flujo: str) -> None:
+    """Guía SGR §10 (value chain by stage, every OE covered) and §14 (stages, critical path)."""
+    if flujo != "sgr":
+        return
+    spec_path = run_root / "redaccion" / "specs" / "metodologico.spec.json"
+    spec = _read_json_file(spec_path)
+    if spec is not None:
+        phases = spec.get("phases") or []
+        staged = [p for p in phases if _fold(str(p.get("etapa") or "")).strip().lower() in SGR_STAGES]
+        if len(staged) != len(phases):
+            missing = [str(p.get("id")) for p in phases if p not in staged]
+            report.add("warning", "sgr-metodologia-sin-etapa",
+                       "En el flujo SGR cada fase de la metodología nombra su etapa MGA (\"etapa\": preinversion, "
+                       f"inversion u operacion). Fases sin etapa válida: {', '.join(missing)}.", spec_path)
+        objectives = _read_json_file(run_root / OBJECTIVES_FILE) or {}
+        expected = [str(g.get("id")) for g in objectives.get("groups") or [] if g.get("id")]
+        covered = {str(oe) for p in phases for oe in (p.get("oe") or [])}
+        uncovered = [oe for oe in expected if oe not in covered]
+        if uncovered:
+            report.add("warning", "sgr-metodologia-sin-oe",
+                       "En el flujo SGR cada producto de la cadena de valor responde a un objetivo específico: "
+                       f"ninguna fase declara \"oe\" para {', '.join(uncovered)}.", spec_path)
+
+    name = "14_cronograma_actividades"
+    if name in texts:
+        plain = _fold("\n".join(strip_comment(line) for line in texts[name].splitlines())).lower()
+        if not any(re.search(rf"\b{stage}\b", plain) for stage in SGR_STAGES):
+            report.add("warning", "sgr-cronograma-sin-etapas",
+                       "En el flujo SGR el cronograma agrupa las actividades por etapa (preinversión, inversión, "
+                       "operación).", sections[name])
+        if not re.search(r"ruta\s+critica", plain):
+            report.add("warning", "sgr-cronograma-sin-ruta-critica",
+                       "En el flujo SGR el cronograma marca las actividades de la ruta crítica.", sections[name])
+
+
 def check_sgr_sections(report: Report, sec_dir: Path, flujo: str, final: bool) -> None:
     if flujo != "sgr" or not final:
         return
@@ -876,6 +915,7 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_trees(report, run_root, texts, sections, report.flujo)
     check_tree_figures(report, run_root, report.flujo)
     check_tdr_structure(report, run_root, final)
+    check_sgr_methodology_schedule(report, run_root, texts, sections, report.flujo)
     check_sgr_sections(report, sec_dir, report.flujo, final)
     return report
 
