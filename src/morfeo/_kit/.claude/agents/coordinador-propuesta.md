@@ -116,7 +116,8 @@ Fase 1c [GATE COMBINADO G1c] Expansión de corpus SOTA: bibliografo-propuesta
         `propuesta.md`, Fase 1c y "Grafo de coherencia del vault", para el
         detalle completo que ejecuta el dispatcher real.
 Fase 1  investigador → MGA resumido (`artefactos/mga_resumido.md`:
-        problema central textual del árbol, contexto general, una causa
+        problema central textual del árbol, descripción de la situación
+        existente, una causa
         directa por párrafo, magnitud con tabla de indicadores y la línea
         base resaltada) → §3 descripción del problema + pregunta, derivada
         del MGA resumido

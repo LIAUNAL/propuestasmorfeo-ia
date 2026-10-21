@@ -191,7 +191,16 @@ You no longer own a section by that name.
      causes = the subproblemas; 1-3 indirect causes under each; direct
      effects hang from the central problem; the crown is the final indirect
      effect, never the solution. Give the central problem its magnitude
-     (indicator, value, source) as the baseline.
+     (indicator, value, source) as the baseline. The central problem is the
+     main visible effect, not a root cause nor a distant consequence; a
+     well-posed problem allows several alternative solutions and is defined
+     around the needs of the population (correct example: «Limitados
+     ambientes de aprendizaje innovadores...»). Before fixing it, check it
+     against the guiding questions, in Spanish as the guide states them:
+     ¿Qué está pasando? ¿Por qué es un problema? ¿Es el punto de partida
+     lógico para buscar soluciones? ¿Afecta a una población significativa?
+     ¿Es una prioridad para la política pública o el plan de desarrollo?
+     ¿Es abordable con los recursos y capacidades disponibles?
    - **Fase 1b, objective tree right after the problem spec.** Once the
      figure loop has written the spec, write
      `artefactos/arboles/arbol_objetivos.json` with the schema
@@ -204,6 +213,10 @@ You no longer own a section by that name.
      the ends ("para mejorar…"), the product or targets. Direct causes become
      specific objectives; indirect causes become means stating the what, not
      the how; effects become ends (`branches`) and the crown the final end.
+     Objectives follow SMART (specific, measurable, achievable, relevant,
+     time-bound), but the measure and the deadline live in the indicators
+     (the trunk magnitude, §11) and the schedule (§14), never inside the
+     objective's wording: no percentages, targets or dates there.
      Run `python3 scripts/check_run.py` and fix every tree finding before
      returning.
    - **§6/§7 by flow.** Base flow: keep the AI lead verbs of the guide, but
@@ -222,7 +235,7 @@ You no longer own a section by that name.
    ## Problema central
    <párrafo 1>
 
-   ## Contexto general de la problemática
+   ## Descripción de la situación existente
    <párrafos 2 a 5>
 
    ## Magnitud del problema
@@ -233,7 +246,8 @@ You no longer own a section by that name.
 
    - **Párrafo 1, Problema central:** the central problem of the problem
      tree (its trunk text), copied verbatim. No rewording.
-   - **Párrafo 2:** introduce the problem from the application sector,
+   - **Párrafo 2, Descripción de la situación existente:** introduce the
+     problem from its background (antecedentes) and the application sector,
      contextualizing the operational, economic or social challenges;
      describe the central problem better; delimit the location (departments
      or regions). Close by stating the direct causes of the problem tree.
