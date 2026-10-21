@@ -1121,6 +1121,44 @@
       content: '▶ ';
       color: var(--ok);
     }
+    .phase-run__actions { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.65rem; }
+    .phase-run__idle { color: var(--warn, #f59e0b); font-weight: 600; }
+    .phase-run__step.is-stopped { border-color: var(--text-muted); }
+    /* Barra de avance y panel de seguimiento: flotan sobre cualquier pestaña. */
+    .phase-dock { position: fixed; left: 24px; bottom: 24px; z-index: 99990; max-width: calc(100vw - 140px); }
+    .phase-dock[hidden], .phase-run-panel[hidden], .phase-run-notice[hidden] { display: none; }
+    .phase-dock__item {
+      display: grid; gap: 0.3rem; min-width: 240px; text-align: left; cursor: pointer;
+      background: var(--surface); color: var(--text); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.5rem 0.7rem; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); font: inherit;
+    }
+    .phase-dock__item:hover { border-color: #38bdf8; }
+    .phase-dock__name { font-weight: 600; font-size: 0.85rem; }
+    .phase-dock__state { font-size: 0.75rem; color: var(--text-muted); }
+    .phase-dock__bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+    .phase-dock__seg { height: 6px; border-radius: 3px; background: var(--border); }
+    .phase-dock__seg.is-on { background: #38bdf8; }
+    .phase-dock__seg.is-ok { background: var(--ok); }
+    .phase-dock__seg.is-bad { background: var(--bad, #ef4444); }
+    .phase-dock.is-idle .phase-dock__state { color: var(--warn, #f59e0b); }
+    .phase-run-panel {
+      position: fixed; left: 24px; bottom: 96px; z-index: 99991;
+      width: min(560px, calc(100vw - 48px)); max-height: 70vh; overflow: auto;
+      margin: 0; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    }
+    .phase-run-notice {
+      position: fixed; left: 24px; bottom: 96px; z-index: 99992; max-width: min(460px, calc(100vw - 48px));
+      background: var(--surface); border: 1px solid var(--warn, #f59e0b); border-radius: 8px;
+      padding: 0.55rem 0.8rem; font-size: 0.85rem; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .phase-run-notice.is-bad { border-color: var(--bad, #ef4444); }
+    .phase-exec-agent { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.65rem; }
+    .phase-exec-fresh { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.85rem; }
+    .phase-exec-error {
+      margin-top: 0.65rem; padding: 0.5rem 0.7rem; border-radius: 6px;
+      border: 1px solid var(--bad, #ef4444); background: rgba(239, 68, 68, 0.12); color: var(--bad, #ef4444); font-weight: 600;
+    }
+    .phase-exec-error[hidden] { display: none; }
 
     /* =========================================================
        VISOR PDF INTERACTIVO CON HERRAMIENTAS EDITORIALES
@@ -3304,6 +3342,8 @@
     // sin `unit_progress` solo da el veredicto de la compuerta.
     function resolvePhaseState(p, data) {
       const prog = data && data.unit_progress ? data.unit_progress[p.id] : null;
+      // El servidor la ve en curso por su latido; si el operador la detuvo, ya no lo está.
+      if (prog && prog.state === 'running' && !liveHeartbeat(data)) return prog.verdict === 'PASS' ? 'partial' : 'pending';
       if (prog && prog.state) return prog.state;
       const v = resolvePhaseVerdict(p, data);
       if (v === 'PASS') return 'verified';
@@ -3314,7 +3354,12 @@
     // cortada: se informa, pero no bloquea el pipeline.
     function liveHeartbeat(data) {
       const beat = data && data.en_curso;
-      return beat && beat.fase && !beat.stale ? beat : null;
+      if (!beat || !beat.fase || beat.stale) return null;
+      // «Detener proceso» deja el latido de la unidad interrumpida: no cuenta como
+      // en curso. Una nueva ejecución escribe un latido posterior y vuelve a contar.
+      const stop = stoppedPhaseRun();
+      if (stop && stop.unit === beat.fase && (!beat.inicio || Date.parse(beat.inicio) <= stop.at)) return null;
+      return beat;
     }
 
     // Qué falta para que una unidad pase: su compuerta y las secciones que produce.
@@ -3503,10 +3548,22 @@
            <textarea id="phaseExecInput" class="tree-textarea" rows="4" placeholder="${escapeHtml(guide.placeholder || 'Indicaciones para el agente de esta fase…')}"></textarea>
            ${PHASE_EXEC_IDEA ? '<p class="phase-exec-note" id="phaseExecIdeaSource"></p>' : '<p class="phase-exec-note">Lo que escribas se agrega al comando como indicaciones para los agentes de la fase; no salta compuertas ni cambia las reglas de la guía.</p>'}`
         : '';
+      const agents = phaseAgentOptions();
+      const agent = phaseDefaultAgent(agents);
+      const picker = v.allowed
+        ? `<div class="phase-exec-agent">
+             <label for="phaseExecAgent">Agente</label>
+             <select id="phaseExecAgent">${agents.map(a => `<option value="${escapeHtml(a)}"${a === agent ? ' selected' : ''}>${escapeHtml(terminalAgentLabel(a))}</option>`).join('')}</select>
+             <label class="phase-exec-fresh"><input type="checkbox" id="phaseExecFresh"> Nueva sesión</label>
+           </div>
+           <p class="phase-exec-note" id="phaseExecAgentNote">${escapeHtml(phaseAgentNote(agent, false))}</p>`
+        : '';
       const body = v.allowed
         ? `<p>${escapeHtml(v.reason)}</p>
-           <p style="margin-top: 0.65rem;">Se enviará a la terminal del asistente (Claude Code por defecto):</p>
+           <p style="margin-top: 0.65rem;">Se enviará a la terminal del asistente:</p>
            <code class="phase-exec-cmd">${escapeHtml(v.command)} ${PHASE_EXEC_IDEA ? '&lt;idea inicial&gt;' : '[indicaciones]'}</code>
+           ${picker}
+           <div class="phase-exec-error" id="phaseExecError" role="alert" hidden></div>
            ${input}
            ${v.note ? `<p class="phase-exec-note">${escapeHtml(v.note)}</p>` : ''}
            <p class="phase-exec-note">Las compuertas siguen deteniendo el flujo hasta tu aprobación.</p>
@@ -3524,7 +3581,19 @@
         closePhaseExecModal();
         navigateTab(btn.getAttribute('data-panel'));
       }));
-      document.getElementById('phaseExecConfirmBtn').style.display = v.allowed ? '' : 'none';
+      const refreshNote = () => {
+        const sel = document.getElementById('phaseExecAgent');
+        const fresh = document.getElementById('phaseExecFresh');
+        const note = document.getElementById('phaseExecAgentNote');
+        if (sel && note) note.textContent = phaseAgentNote(sel.value, !!(fresh && fresh.checked));
+      };
+      ['phaseExecAgent', 'phaseExecFresh'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', refreshNote);
+      });
+      const confirmBtn = document.getElementById('phaseExecConfirmBtn');
+      confirmBtn.style.display = v.allowed ? '' : 'none';
+      confirmBtn.disabled = false;
       document.getElementById('phaseExecModal').classList.add('is-open');
       if (PHASE_EXEC_IDEA) await fillPhaseExecIdea();
     }
@@ -3536,10 +3605,87 @@
       document.getElementById('phaseExecModal').classList.remove('is-open');
     }
 
-    // Los slash commands del marco existen en Claude Code, OpenCode y Pi; Herdr
-    // refleja el panel del agente. En Shell o AGY se cambia a Claude Code, el
-    // runtime canónico, y se espera a que arranque antes de escribir.
-    function confirmPhaseExecution() {
+    // Agentes que pueden ejecutar la fase: los que entienden los slash commands
+    // del marco y están instalados (sin la lista del servidor, se ofrecen todos).
+    function phaseAgentOptions() {
+      const installed = Array.isArray(cachedTerminalAgents)
+        ? cachedTerminalAgents.filter(a => a.installed).map(a => a.id) : null;
+      const options = TERMINAL_COMMAND_AGENTS.filter(id => !installed || installed.includes(id));
+      return options.length ? options : ['claude'];
+    }
+
+    // Por defecto, el agente de la sesión abierta; si no hay, el último elegido
+    // para una fase, el del selector del CLI o Claude Code.
+    function phaseDefaultAgent(options) {
+      const live = terminalSessionLive() ? (terminalSessionAgent || selectedAgent) : null;
+      let remembered = null;
+      try { remembered = localStorage.getItem('morfeo.phaseAgent'); } catch (err) { /* sin almacenamiento */ }
+      return [live, remembered, selectedAgent, 'claude'].find(a => a && options.includes(a)) || options[0];
+    }
+
+    function phaseAgentNote(agent, fresh) {
+      const current = terminalSessionAgent || selectedAgent;
+      if (terminalSessionLive() && agent === current && !fresh) {
+        return `Sigue en la sesión abierta de ${terminalAgentLabel(current)}: el agente conserva la conversación de las fases anteriores.`;
+      }
+      if (terminalSessionLive()) {
+        return `Cierra la sesión abierta de ${terminalAgentLabel(current)} y abre ${agent === current ? 'una nueva' : `una de ${terminalAgentLabel(agent)}`}; antes se pide confirmación.`;
+      }
+      return `Abre una sesión de ${terminalAgentLabel(agent)}.`;
+    }
+
+    function showPhaseExecError(message) {
+      const box = document.getElementById('phaseExecError');
+      if (!box) return;
+      box.textContent = message ? `✗ ${message}` : '';
+      box.hidden = !message;
+    }
+
+    // Resuelve true en cuanto la terminal conecta, false si no lo hace a tiempo.
+    // Cuenta ticks en lugar de leer el reloj: mismo plazo y determinista en las pruebas.
+    function waitTerminalOpen() {
+      const isOpen = () => !!(terminalSocket && terminalSocket.readyState === 1);
+      if (isOpen()) return Promise.resolve(true);
+      return new Promise(resolve => {
+        const tick = Math.min(200, TERMINAL_READY_TIMEOUT_MS);
+        let ticks = Math.ceil(TERMINAL_READY_TIMEOUT_MS / tick);
+        const wait = setInterval(() => {
+          ticks -= 1;
+          if (!isOpen() && ticks > 0) return;
+          clearInterval(wait);
+          resolve(isOpen());
+        }, tick);
+      });
+    }
+
+    // Envía el comando de una fase al agente elegido. Conserva la sesión abierta
+    // cuando es del mismo agente; cerrarla pide confirmación. Un agente recién
+    // abierto se deja arrancar, y si la pantalla muestra una pregunta de arranque
+    // no se escribe nada: el Enter del comando la respondería a ciegas.
+    async function deliverPhaseCommand(cmd, opts = {}) {
+      const agent = opts.agent || selectedAgent;
+      const current = terminalSessionAgent || selectedAgent;
+      const continues = terminalSessionLive() && current === agent && !opts.fresh;
+      if (!useTerminalAgent(agent, { fresh: !!opts.fresh, connect: true })) {
+        return { ok: false, refusal: 'kept', message: `Se mantuvo la sesión de ${terminalAgentLabel(current)}; no se envió nada. Elige ese agente o confirma el cambio.` };
+      }
+      if (!isTerminalOpen) openMorfeoTerminal();
+      else ensureTerminalConnected(true);
+      if (!(await waitTerminalOpen())) {
+        return { ok: false, refusal: 'offline', message: `La terminal del asistente no conectó a tiempo, así que ${cmd} no se envió. Abre el asistente y vuelve a ejecutar la etapa.` };
+      }
+      if (!continues && agent !== 'shell') await settleTerminal();
+      const screen = terminalScreenText();
+      if (TERMINAL_STARTUP_QUESTIONS.test(screen)) {
+        return /trust/i.test(screen)
+          ? { ok: false, refusal: 'trust', message: 'El agente pregunta si confías en la carpeta del proyecto. Elige «Yes, I trust this folder» en la terminal y vuelve a pulsar Ejecutar; no se envió nada.' }
+          : { ok: false, refusal: 'question', message: 'El agente espera una respuesta en la terminal. Respóndela y vuelve a pulsar Ejecutar; no se envió nada.' };
+      }
+      sendTerminalQuickCommand(cmd);
+      return { ok: true, agent };
+    }
+
+    async function confirmPhaseExecution() {
       let cmd = PHASE_EXEC_PENDING;
       const unitId = PHASE_EXEC_UNIT;
       const ideaBox = document.getElementById('phaseExecInput');
@@ -3547,23 +3693,23 @@
         const idea = ideaBox.value.split(/\s+/).filter(Boolean).join(' ');
         if (idea) cmd = `${cmd} ${idea}`;
       }
-      closePhaseExecModal();
-      if (!cmd) return;
-      const send = () => {
-        sendTerminalQuickCommand(cmd);
-        startPhaseRun(unitId, cmd);
-      };
-      if (['claude', 'opencode', 'pi', 'herdr'].includes(selectedAgent)) {
-        send();
+      if (!cmd) { closePhaseExecModal(); return; }
+      const agentSel = document.getElementById('phaseExecAgent');
+      const freshBox = document.getElementById('phaseExecFresh');
+      const agent = agentSel ? agentSel.value : selectedAgent;
+      const btn = document.getElementById('phaseExecConfirmBtn');
+      showPhaseExecError('');
+      if (btn) btn.disabled = true;
+      const res = await deliverPhaseCommand(cmd, { agent, fresh: !!(freshBox && freshBox.checked) });
+      if (btn) btn.disabled = false;
+      if (!res.ok) {
+        // El modal sigue abierto con el motivo: el operador corrige y vuelve a pulsar.
+        showPhaseExecError(res.message);
         return;
       }
-      withCommandAgentReady(send, () => {
-        document.getElementById('phaseExecModalTitle').textContent = 'No se pudo ejecutar';
-        document.getElementById('phaseExecModalIcon').textContent = '⚠️';
-        document.getElementById('phaseExecModalBody').innerHTML = `<p>La terminal del asistente no conectó a tiempo, así que <code>${escapeHtml(cmd)}</code> no se envió. Abre el asistente y vuelve a ejecutar la etapa.</p>`;
-        document.getElementById('phaseExecConfirmBtn').style.display = 'none';
-        document.getElementById('phaseExecModal').classList.add('is-open');
-      });
+      try { localStorage.setItem('morfeo.phaseAgent', agent); } catch (err) { /* sin almacenamiento */ }
+      closePhaseExecModal();
+      startPhaseRun(unitId, cmd);
     }
 
     // --- Seguimiento de la ejecución de una fase --------------------------------
@@ -3610,9 +3756,14 @@
       if (!unitId) return;
       const data = currentStatus || {};
       const prog = data.unit_progress ? data.unit_progress[unitId] : null;
-      PHASE_RUN = { unit: unitId, command, sentAt: Date.now(), initialState: prog ? prog.state : null, seenRunning: false };
+      PHASE_RUN = {
+        unit: unitId, command, sentAt: Date.now(), initialState: prog ? prog.state : null, seenRunning: false,
+        sessionId: terminalSessionId, agent: terminalSessionAgent || selectedAgent,
+      };
       PHASE_RUN_DISMISSED = null;
       savePhaseRun();
+      // Una ejecución nueva cuenta su latido aunque antes se haya detenido otra.
+      try { localStorage.removeItem(PHASE_RUN_STOP_KEY); } catch (err) { /* sin almacenamiento */ }
       renderPhaseRunTracker(data);
       setTimeout(() => loadStatus(), 1500);
     }
@@ -3627,15 +3778,36 @@
       return h ? `${h} h ${m} min` : (m ? `${m} min ${r} s` : `${r} s`);
     }
 
-    function tickPhaseRun() {
-      document.querySelectorAll('#phaseRunTracker [data-elapsed-from]').forEach(el => {
-        el.textContent = formatElapsed(Date.now() - Number(el.getAttribute('data-elapsed-from')));
-      });
+    // Sin salida del agente en este tiempo, con la fase abierta, se avisa: puede
+    // estar esperando una respuesta o una confirmación en la terminal.
+    const PHASE_RUN_IDLE_MS = 20 * 1000;
+    // La barra de avance sigue a la vista un minuto después de que la ejecución cierra.
+    const PHASE_RUN_DOCK_LINGER_MS = 60 * 1000;
+    const PHASE_RUN_STOP_KEY = 'morfeo.phaseRunStopped';
+    let PHASE_RUN_PANEL_OPEN = false;
+    let PHASE_RUN_RENDER_KEY = null;
+    let PHASE_RUN_IDLE_NOTIFIED = false;
+    let PHASE_RUN_NOTICE_TIMER = null;
+
+    // La unidad que el operador detuvo y cuándo: su latido deja de contar como en curso.
+    function stoppedPhaseRun() {
+      try {
+        const rec = JSON.parse(localStorage.getItem(PHASE_RUN_STOP_KEY) || 'null');
+        return rec && rec.unit ? rec : null;
+      } catch (err) { return null; }
     }
 
-    function renderPhaseRunTracker(data) {
-      const box = document.getElementById('phaseRunTracker');
-      if (!box) return;
+    function tickPhaseRun() {
+      document.querySelectorAll('#phaseRunTracker [data-elapsed-from], #phaseRunPanel [data-elapsed-from], #phaseRunDock [data-elapsed-from]').forEach(el => {
+        el.textContent = formatElapsed(Date.now() - Number(el.getAttribute('data-elapsed-from')));
+      });
+      // La espera y la pérdida de la sesión cambian sin que cambie el sobre de estado.
+      const view = phaseRunView(currentStatus || {});
+      if (view && phaseRunRenderKey(view) !== PHASE_RUN_RENDER_KEY) renderPhaseRunTracker(currentStatus);
+    }
+
+    // Todo lo que el seguidor, el panel y la barra muestran de la ejecución seguida.
+    function phaseRunView(data) {
       data = data || {};
       const beat = liveHeartbeat(data);
       const beatKey = beat ? `${beat.fase}@${beat.inicio || ''}` : null;
@@ -3644,37 +3816,105 @@
         // Unidad lanzada fuera del tablero (desde la terminal o el modo auto).
         run = { unit: beat.fase, command: null, sentAt: null, initialState: null, seenRunning: true, external: true };
       }
-      if (!run) {
-        box.hidden = true;
-        box.innerHTML = '';
-        if (PHASE_RUN_TICK) { clearInterval(PHASE_RUN_TICK); PHASE_RUN_TICK = null; }
-        return;
-      }
+      if (!run) return null;
       const units = Array.isArray(data.pipeline_units) ? data.pipeline_units : (PHASES_INFO || []);
       const p = units.find(u => u.id === run.unit) || { id: run.unit, name: run.unit };
       const prog = data.unit_progress ? data.unit_progress[run.unit] : null;
-      const running = !!(beat && beat.fase === run.unit);
+      const stopped = !!run.stoppedAt;
+      const running = !stopped && !!(beat && beat.fase === run.unit);
       if (running && PHASE_RUN && !PHASE_RUN.seenRunning) { PHASE_RUN.seenRunning = true; savePhaseRun(); }
       const state = running ? 'running' : resolvePhaseState(p, data);
-      const settled = !running && (run.seenRunning || (run.initialState !== null && state !== run.initialState) || run.initialState === null && state !== 'pending');
-      // Cualquier cierre (cumplida, FAIL o incompleta) apaga el sondeo rápido; el de 5 s sigue.
-      const silent = !running && !settled && !!run.sentAt && Date.now() - run.sentAt > PHASE_RUN_SIGNAL_TIMEOUT_MS;
-      if (PHASE_RUN && (settled || silent) && !PHASE_RUN.finished) { PHASE_RUN.finished = true; savePhaseRun(); }
+      const settled = !stopped && !running && (run.seenRunning || (run.initialState !== null && state !== run.initialState) || run.initialState === null && state !== 'pending');
+      const silent = !stopped && !running && !settled && !!run.sentAt && Date.now() - run.sentAt > PHASE_RUN_SIGNAL_TIMEOUT_MS;
+      // Cualquier cierre (cumplida, FAIL, incompleta o detenida) apaga el sondeo rápido; el de 5 s sigue.
+      if (PHASE_RUN && (settled || silent || stopped) && !PHASE_RUN.finished) {
+        PHASE_RUN.finished = true;
+        PHASE_RUN.finishedAt = Date.now();
+        savePhaseRun();
+      }
+      const open = !stopped && !settled;
+      const act = terminalActivity();
+      const sessionGone = open && !run.external && !!run.sessionId && act.sessionId !== run.sessionId;
+      const lastSign = Math.max(act.lastOutputAt || 0, run.sentAt || 0);
+      const idle = open && !sessionGone && act.connected && lastSign > 0 && Date.now() - lastSign > PHASE_RUN_IDLE_MS;
+      const outputSeen = running || settled || !!(run.sentAt && act.lastOutputAt > run.sentAt);
+      return { run, beat, beatKey, units, p, prog, stopped, running, state, settled, silent, open, sessionGone, idle, outputSeen, act };
+    }
 
+    function phaseRunRenderKey(view) {
+      return [view.run.unit, view.state, view.running, view.settled, view.silent, view.stopped,
+        view.sessionGone, view.idle, view.outputSeen, PHASE_RUN_PANEL_OPEN].join('|');
+    }
+
+    function showPhaseRunNotice(message, kind = 'warn') {
+      let box = document.getElementById('phaseRunNotice');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'phaseRunNotice';
+        box.className = 'phase-run-notice';
+        box.setAttribute('role', 'status');
+        document.body.appendChild(box);
+      }
+      box.classList.toggle('is-bad', kind === 'bad');
+      box.textContent = message;
+      box.hidden = false;
+      if (PHASE_RUN_NOTICE_TIMER) clearTimeout(PHASE_RUN_NOTICE_TIMER);
+      PHASE_RUN_NOTICE_TIMER = setTimeout(() => { box.hidden = true; }, 8000);
+    }
+
+    // Puntos de control de la ejecución: enviada, el agente escribe, en curso,
+    // verificación y cumplida. Es la barra de avance de la esquina inferior izquierda.
+    function phaseRunSegments(view) {
+      const bad = (view.settled && !['verified', 'skipped'].includes(view.state)) || view.stopped;
+      return [
+        true,
+        view.outputSeen,
+        view.running || view.run.seenRunning || view.settled,
+        view.settled,
+        view.settled && ['verified', 'skipped'].includes(view.state),
+      ].map((on, i) => {
+        const cls = on ? (i === 4 ? 'is-ok' : 'is-on') : (bad && i >= 3 ? 'is-bad' : '');
+        return `<i class="phase-dock__seg ${cls}"></i>`;
+      }).join('');
+    }
+
+    function phaseRunStatusText(view) {
+      if (view.stopped) return 'detenida por el operador';
+      if (view.sessionGone) return 'sin sesión';
+      if (view.idle) return 'esperando en la terminal';
+      if (view.running) return 'en curso';
+      if (view.settled) return view.state === 'verified' ? 'cumplida' : (PHASE_STATE_LABEL[view.state] || view.state);
+      if (view.silent) return 'sin señal del asistente';
+      return 'enviada';
+    }
+
+    function phaseRunBody(view, data, panel) {
+      const { run, p, prog, running, state, settled, silent, stopped, beat } = view;
       const step = (cls, title, body) => `<li class="phase-run__step ${cls}"><span class="phase-run__step-title">${title}</span>${body ? `<div class="phase-run__step-body">${body}</div>` : ''}</li>`;
       const sentAt = run.sentAt ? new Date(run.sentAt) : null;
+      const session = run.agent ? ` · sesión de ${escapeHtml(terminalAgentLabel(run.agent))}` : '';
       const sent = run.external
         ? step('is-done', '1. Unidad lanzada fuera del tablero', '<span class="phase-exec-note">Se detectó por su latido en artefactos/pipeline/_en_curso.json.</span>')
-        : step('is-done', '1. Comando enviado a la terminal', `<code>${escapeHtml(run.command || '')}</code> · ${sentAt ? sentAt.toLocaleTimeString() : ''}`);
+        : step('is-done', '1. Comando enviado a la terminal', `<code>${escapeHtml(run.command || '')}</code> · ${sentAt ? sentAt.toLocaleTimeString() : ''}${session}`);
 
+      const idleLine = view.idle
+        ? `<div class="phase-run__idle">⏸ El agente no escribe desde hace <span data-elapsed-from="${Math.max(view.act.lastOutputAt || 0, run.sentAt || 0)}">${formatElapsed(Date.now() - Math.max(view.act.lastOutputAt || 0, run.sentAt || 0))}</span>: puede estar esperando en la terminal una respuesta o una confirmación.</div>`
+        : '';
       let live;
-      if (running) {
+      if (stopped) {
+        live = step('is-stopped', '2. ⏹ Detenida por el operador',
+          `A las ${new Date(run.stoppedAt).toLocaleTimeString()}. La sesión del agente sigue abierta; vuelve a ejecutar la etapa cuando quieras.`);
+      } else if (view.sessionGone) {
+        live = step('is-bad', '2. ⚠ Sin sesión',
+          '<span class="phase-exec-note">La sesión del CLI donde se envió la fase ya no existe: se cerró o se reemplazó por otra. Si el agente no la terminó, vuelve a ejecutar la etapa.</span>');
+      } else if (running) {
         const since = Date.parse(beat.inicio || '') || run.sentAt || Date.now();
         live = step('is-active', '2. En curso', `
           <div>Agentes: <strong>${escapeHtml((beat.agentes || []).join(', ') || 'sin registrar')}</strong>${beat.skill ? ` · skill <code>${escapeHtml(beat.skill)}</code>` : ''}</div>
           ${beat.nota ? `<div>Paso: ${escapeHtml(beat.nota)}</div>` : ''}
           ${beat.artefacto_esperado ? `<div>Artefacto esperado: <code>${escapeHtml(beat.artefacto_esperado)}</code></div>` : ''}
-          <div>Tiempo transcurrido: <span data-elapsed-from="${since}">${formatElapsed(Date.now() - since)}</span></div>`);
+          <div>Tiempo transcurrido: <span data-elapsed-from="${since}">${formatElapsed(Date.now() - since)}</span></div>
+          ${idleLine}`);
       } else if (settled) {
         live = step('is-done', '2. Ejecución terminada', '');
       } else if (silent) {
@@ -3682,17 +3922,19 @@
           `<span class="phase-exec-note">No llegó el latido artefactos/pipeline/_en_curso.json en ${PHASE_RUN_SIGNAL_TIMEOUT_MS / 60000} min. Revisa la terminal del asistente: puede estar esperando una respuesta o el comando no se envió. El tablero sigue revisando cada 5 s.</span>`);
       } else {
         live = step('is-active', '2. Esperando a que el asistente abra la unidad',
-          `<span class="phase-exec-note">Aparece en cuanto escribe su latido artefactos/pipeline/_en_curso.json. Sigue la conversación en la terminal del asistente.</span>${run.sentAt ? ` · <span data-elapsed-from="${run.sentAt}">${formatElapsed(Date.now() - run.sentAt)}</span>` : ''}`);
+          `<span class="phase-exec-note">Aparece en cuanto escribe su latido artefactos/pipeline/_en_curso.json. Sigue la conversación en la terminal del asistente.</span>${run.sentAt ? ` · <span data-elapsed-from="${run.sentAt}">${formatElapsed(Date.now() - run.sentAt)}</span>` : ''}${idleLine}`);
       }
 
       const checks = prog && prog.checks && prog.checks.length ? renderPhaseChecks(prog.checks) : '<span class="phase-exec-note">Sin comprobaciones publicadas por el servidor.</span>';
       const verify = step(settled ? (state === 'verified' ? 'is-done' : 'is-bad') : 'is-todo', '3. Verificación de la etapa', checks);
 
       let result;
-      if (!settled) {
+      if (stopped) {
+        result = step('is-todo', '4. Resultado', '<span class="phase-exec-note">La etapa no se verificó porque la ejecución se detuvo.</span>');
+      } else if (!settled) {
         result = step('is-todo', '4. Resultado', '<span class="phase-exec-note">Se decide al cerrar la unidad.</span>');
       } else if (state === 'verified' || state === 'skipped') {
-        const next = units.find(u => u.id !== run.unit && evaluatePhaseExecution(u.id, data).allowed);
+        const next = view.units.find(u => u.id !== run.unit && evaluatePhaseExecution(u.id, data).allowed);
         result = step('is-done', `4. ✔ Etapa cumplida`, next
           ? `Queda habilitada <strong>${escapeHtml(formatPhaseNumber(next.id))} · ${escapeHtml(next.name)}</strong>.
              <button type="button" class="btn btn--sm btn--primary" data-run-next="${escapeHtml(next.id)}">▶ Ejecutar ${escapeHtml(next.name)}</button>`
@@ -3714,30 +3956,154 @@
           }).join('')}</ul></div>`
         : '';
 
-      box.hidden = false;
-      box.innerHTML = `
+      const actions = [
+        view.open && !run.external && !view.sessionGone ? '<button type="button" class="btn btn--sm" data-run-stop>⏹ Detener proceso</button>' : '',
+        '<button type="button" class="btn btn--sm" data-run-terminal>⌨ Ver terminal</button>',
+        panel ? '<button type="button" class="btn btn--sm" data-run-goto>Abrir en Fases</button>' : '',
+      ].join('');
+      const badge = running ? 'info' : (state === 'verified' ? 'ok' : (settled || stopped ? 'bad' : 'warn'));
+      const close = panel
+        ? '<button type="button" class="btn btn--xs" data-panel-close title="Cerrar el panel">✕</button>'
+        : '<button type="button" class="btn btn--xs" data-tracker-close title="Ocultar el seguidor">Ocultar</button>';
+      return `
         <div class="phase-run__head">
           <strong>▶ Ejecución: ${escapeHtml(formatPhaseNumber(p.id))} · ${escapeHtml(p.name)}</strong>
-          <span class="badge badge--${running ? 'info' : (state === 'verified' ? 'ok' : (settled ? 'bad' : 'warn'))}">${escapeHtml(running ? 'EN CURSO' : (settled ? (PHASE_STATE_LABEL[state] || state) : 'ENVIADA'))}</span>
-          <button type="button" class="btn btn--xs" data-tracker-close title="Ocultar el seguidor">Ocultar</button>
+          <span class="badge badge--${badge}">${escapeHtml(running ? 'EN CURSO' : (stopped ? 'DETENIDA' : (settled ? (PHASE_STATE_LABEL[state] || state) : 'ENVIADA')))}</span>
+          ${close}
         </div>
         <ol class="phase-run__steps">${sent}${live}${verify}${result}</ol>
-        ${files}`;
-      box.querySelector('[data-tracker-close]').addEventListener('click', () => {
-        PHASE_RUN_DISMISSED = beatKey;
+        ${files}
+        <div class="phase-run__actions">${actions}</div>`;
+    }
+
+    // Un nodo flotante sobre el body, fuera de las pestañas, para verse desde cualquiera.
+    function floatingNode(id, className) {
+      let node = document.getElementById(id);
+      if (!node) {
+        node = document.createElement('div');
+        node.id = id;
+        node.className = className;
+        node.hidden = true;
+        document.body.appendChild(node);
+      }
+      return node;
+    }
+
+    function renderPhaseRunTracker(data) {
+      const box = document.getElementById('phaseRunTracker');
+      data = data || {};
+      const view = phaseRunView(data);
+      const dock = floatingNode('phaseRunDock', 'phase-dock');
+      const panel = floatingNode('phaseRunPanel', 'phase-run phase-run-panel');
+      if (!view) {
+        if (box) { box.hidden = true; box.innerHTML = ''; }
+        dock.hidden = true; dock.innerHTML = '';
+        panel.hidden = true; panel.innerHTML = '';
+        PHASE_RUN_PANEL_OPEN = false;
+        PHASE_RUN_RENDER_KEY = null;
+        if (PHASE_RUN_TICK) { clearInterval(PHASE_RUN_TICK); PHASE_RUN_TICK = null; }
+        return;
+      }
+      if (box) {
+        box.hidden = false;
+        box.innerHTML = phaseRunBody(view, data, false);
+      }
+
+      const run = view.run;
+      const lingering = !run.finished || (run.finishedAt && Date.now() - run.finishedAt < PHASE_RUN_DOCK_LINGER_MS) || view.running;
+      if (lingering) {
+        const since = view.running && Date.parse(view.beat.inicio || '') || run.sentAt;
+        dock.hidden = false;
+        dock.classList.toggle('is-idle', view.idle || view.sessionGone);
+        dock.innerHTML = `
+          <button type="button" class="phase-dock__item" data-run-dock title="Ver el seguimiento de la fase">
+            <span class="phase-dock__name">▶ ${escapeHtml(formatPhaseNumber(view.p.id))} · ${escapeHtml(view.p.name)}</span>
+            <span class="phase-dock__bar">${phaseRunSegments(view)}</span>
+            <span class="phase-dock__state">${escapeHtml(phaseRunStatusText(view))}${since && view.open ? ` · <span data-elapsed-from="${since}">${formatElapsed(Date.now() - since)}</span>` : ''}</span>
+          </button>`;
+      } else {
+        dock.hidden = true;
+        dock.innerHTML = '';
+      }
+      if (PHASE_RUN_PANEL_OPEN) {
+        panel.hidden = false;
+        panel.innerHTML = phaseRunBody(view, data, true);
+      } else {
+        panel.hidden = true;
+        panel.innerHTML = '';
+      }
+
+      // Un aviso por pausa: vuelve a salir tras la siguiente pausa del agente.
+      if (view.idle && !PHASE_RUN_IDLE_NOTIFIED) {
+        PHASE_RUN_IDLE_NOTIFIED = true;
+        showPhaseRunNotice(`${formatPhaseNumber(view.p.id)} · ${view.p.name}: el agente no escribe hace un rato. Puede estar esperando una respuesta en la terminal.`);
+      } else if (!view.idle) {
+        PHASE_RUN_IDLE_NOTIFIED = false;
+      }
+
+      PHASE_RUN_RENDER_KEY = phaseRunRenderKey(view);
+      if (!PHASE_RUN_TICK && view.open) PHASE_RUN_TICK = setInterval(tickPhaseRun, 1000);
+      if (PHASE_RUN_TICK && !view.open && !view.running) { clearInterval(PHASE_RUN_TICK); PHASE_RUN_TICK = null; }
+    }
+
+    // «Detener proceso»: interrumpe el turno del agente y conserva la sesión.
+    async function stopPhaseRun() {
+      if (!PHASE_RUN || PHASE_RUN.stoppedAt) return;
+      const units = Array.isArray((currentStatus || {}).pipeline_units) ? currentStatus.pipeline_units : (PHASES_INFO || []);
+      const p = units.find(u => u.id === PHASE_RUN.unit) || { id: PHASE_RUN.unit, name: PHASE_RUN.unit };
+      if (!window.confirm(`¿Detener ${formatPhaseNumber(p.id)} · ${p.name}? Se interrumpe el turno del agente (Esc o Ctrl-C); la sesión sigue abierta.`)) return;
+      const res = await interruptTerminalSession(PHASE_RUN.sessionId);
+      if (!res.ok && !res.gone) {
+        showPhaseRunNotice(`No se pudo detener la fase: ${res.error}. Sigue en seguimiento.`, 'bad');
+        return;
+      }
+      if (res.gone) showPhaseRunNotice('La sesión de la fase ya no existe: no quedaba nada que detener.');
+      const at = Date.now();
+      PHASE_RUN.stoppedAt = at;
+      PHASE_RUN.finished = true;
+      PHASE_RUN.finishedAt = at;
+      savePhaseRun();
+      try { localStorage.setItem(PHASE_RUN_STOP_KEY, JSON.stringify({ unit: PHASE_RUN.unit, at })); } catch (err) { /* sin almacenamiento */ }
+      lastStatusSignature = null;
+      renderPhaseRunTracker(currentStatus);
+      loadStatus();
+    }
+
+    // Los botones del seguidor, del panel y de la barra se atienden en la fase de
+    // captura: un contenedor con stopPropagation no se los traga.
+    document.addEventListener('click', (event) => {
+      const target = event.target && event.target.closest
+        ? event.target.closest('[data-run-dock], [data-run-stop], [data-run-terminal], [data-run-goto], [data-panel-close], [data-tracker-close], [data-run-next], [data-open-artifact]')
+        : null;
+      if (!target || !target.closest('#phaseRunTracker, #phaseRunPanel, #phaseRunDock')) return;
+      if (target.hasAttribute('data-run-dock')) {
+        PHASE_RUN_PANEL_OPEN = !PHASE_RUN_PANEL_OPEN;
+        renderPhaseRunTracker(currentStatus);
+      } else if (target.hasAttribute('data-run-stop')) {
+        stopPhaseRun();
+      } else if (target.hasAttribute('data-run-terminal')) {
+        openMorfeoTerminal();
+      } else if (target.hasAttribute('data-run-goto')) {
+        PHASE_RUN_PANEL_OPEN = false;
+        navigateTab('pipeline');
+        renderPhaseRunTracker(currentStatus);
+      } else if (target.hasAttribute('data-panel-close')) {
+        PHASE_RUN_PANEL_OPEN = false;
+        renderPhaseRunTracker(currentStatus);
+      } else if (target.hasAttribute('data-tracker-close')) {
+        const view = phaseRunView(currentStatus || {});
+        PHASE_RUN_DISMISSED = view ? view.beatKey : null;
         PHASE_RUN = null;
+        PHASE_RUN_PANEL_OPEN = false;
         savePhaseRun();
         renderPhaseRunTracker(currentStatus);
-      });
-      const nextBtn = box.querySelector('[data-run-next]');
-      if (nextBtn) nextBtn.addEventListener('click', () => runPhaseExecution(nextBtn.getAttribute('data-run-next')));
-      box.querySelectorAll('[data-open-artifact]').forEach(btn => btn.addEventListener('click', () => {
+      } else if (target.hasAttribute('data-run-next')) {
+        runPhaseExecution(target.getAttribute('data-run-next'));
+      } else if (target.hasAttribute('data-open-artifact')) {
         navigateTab('artifacts');
-        loadArtifact(btn.getAttribute('data-open-artifact'));
-      }));
-      if (!PHASE_RUN_TICK && (running || !settled)) PHASE_RUN_TICK = setInterval(tickPhaseRun, 1000);
-      if (PHASE_RUN_TICK && settled && !running) { clearInterval(PHASE_RUN_TICK); PHASE_RUN_TICK = null; }
-    }
+        loadArtifact(target.getAttribute('data-open-artifact'));
+      }
+    }, true);
 
     // --- Árbol de problemas y objetivos ---------------------------------------
     // El árbol de problemas sale de la spec de Fase 1 y el de objetivos es su
@@ -4150,14 +4516,11 @@
     // saber que el agente no recibió nada.
     function withCommandAgentReady(fn, onFail) {
       const isOpen = () => terminalSocket && terminalSocket.readyState === 1;
-      const capable = ['claude', 'opencode', 'pi', 'herdr'].includes(selectedAgent);
+      const capable = TERMINAL_COMMAND_AGENTS.includes(selectedAgent);
       if (capable && isOpen()) { fn(); return; }
-      if (!capable) {
-        const select = document.getElementById('terminalAgentSelect');
-        if (select) select.value = 'claude';
-      }
+      // Cambiar a Claude Code cierra la sesión viva de Shell o AGY: solo con confirmación.
+      if (!capable && !useTerminalAgent('claude', { connect: true })) { if (onFail) onFail(); return; }
       if (!isTerminalOpen) openMorfeoTerminal();
-      if (!capable) onTerminalAgentChange();
       else if (!isOpen()) ensureTerminalConnected(true);
       // Se cuentan ticks en lugar de leer el reloj de pared: mismo plazo en el
       // navegador y determinista bajo el reloj manual de las pruebas.
@@ -7793,6 +8156,180 @@
     let monitoredProjectPath = '';
     let activeAgentPaneId = null;
 
+    // La sesión del agente vive en el servidor (terminal.py, TerminalSession): el
+    // tablero recuerda su id y se reconecta a ella al recargar o al perder la
+    // conexión, y el servidor redibuja su salida reciente una vez. Cerrar la
+    // ventana del CLI o cambiar de pestaña no la termina; cambiar de agente o
+    // reiniciar sí, y por eso se pide confirmación.
+    const TERMINAL_SESSION_KEY = `morfeo.terminalSession@${window.location.host}`;
+    // La ráfaga del redibujado no cuenta como que el agente esté trabajando.
+    const TERMINAL_REPLAY_QUIET_MS = 800;
+    const TERMINAL_AGENT_LABELS = {
+      herdr: 'Herdr (Workspace Manager)',
+      claude: 'Claude Code',
+      opencode: 'OpenCode',
+      pi: 'Pi',
+      agy: 'Antigravity (AGY)',
+      shell: 'Shell (Zsh/Bash)'
+    };
+    // Agentes que entienden los slash commands del marco (Herdr refleja el panel del agente).
+    const TERMINAL_COMMAND_AGENTS = ['claude', 'opencode', 'pi', 'herdr'];
+    // Preguntas de arranque del agente: el Enter del comando las respondería a ciegas.
+    const TERMINAL_STARTUP_QUESTIONS = /trust this folder|Do you trust|Enter to confirm/i;
+    let terminalSessionId = null;
+    let terminalSessionAgent = null;
+    let terminalSessionStartedAt = 0;
+    let terminalLastOutputAt = 0;
+    let terminalQuietUntil = 0;
+    let terminalSessionTaken = false;
+    let cachedTerminalAgents = null;
+
+    function terminalAgentLabel(agent) {
+      return TERMINAL_AGENT_LABELS[agent] || agent;
+    }
+
+    function storedTerminalSession() {
+      try {
+        const rec = JSON.parse(localStorage.getItem(TERMINAL_SESSION_KEY) || 'null');
+        return rec && rec.id ? rec : null;
+      } catch (err) { return null; }
+    }
+
+    function rememberTerminalSession(id, agent) {
+      try { localStorage.setItem(TERMINAL_SESSION_KEY, JSON.stringify({ id, agent })); } catch (err) { /* sin almacenamiento */ }
+    }
+
+    function forgetTerminalSession(id) {
+      const rec = storedTerminalSession();
+      try { if (rec && (!id || rec.id === id)) localStorage.removeItem(TERMINAL_SESSION_KEY); } catch (err) { /* sin almacenamiento */ }
+      if (!id || terminalSessionId === id) { terminalSessionId = null; terminalSessionAgent = null; }
+    }
+
+    function terminalSessionLive() {
+      return !!terminalSessionId && !terminalProcessExited;
+    }
+
+    // Termina la sesión en el servidor (cambio de agente, reinicio o cierre de la página).
+    function closeTerminalSession(keepalive = false) {
+      const id = terminalSessionId;
+      if (!id) return;
+      forgetTerminalSession(id);
+      if (typeof fetch === 'undefined') return;
+      try {
+        fetch(`/api/terminal/sessions/${encodeURIComponent(id)}`, { method: 'DELETE', keepalive }).catch(() => {});
+      } catch (err) { /* la sesión se recoge sola al vencer */ }
+    }
+
+    // «Detener proceso»: Esc para claude, opencode y pi; Ctrl-C para shell y herdr
+    // (lo decide el servidor). La sesión sigue abierta para la fase siguiente.
+    async function interruptTerminalSession(id) {
+      const sid = id || terminalSessionId;
+      if (!sid) return { ok: false, error: 'No hay una sesión del agente abierta.' };
+      try {
+        const res = await fetch(`/api/terminal/sessions/${encodeURIComponent(sid)}/interrupt`, { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+        return res.ok ? { ok: true, key: data.key } : { ok: false, gone: res.status === 404, error: data.error || `HTTP ${res.status}` };
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    }
+
+    // Lo que el seguidor de fases lee para saber si el agente está escribiendo.
+    function terminalActivity() {
+      return {
+        sessionId: terminalSessionId,
+        agent: terminalSessionAgent || selectedAgent,
+        lastOutputAt: terminalLastOutputAt,
+        connected: !!(terminalSocket && terminalSocket.readyState === 1)
+      };
+    }
+
+    // Tras recargar: si la sesión recordada sigue viva, se reconecta en segundo
+    // plano (sin abrir la ventana) para que el seguidor vea la actividad.
+    async function resumeTerminalSession() {
+      const rec = storedTerminalSession();
+      if (!rec || typeof fetch === 'undefined') return false;
+      try {
+        const res = await fetch(`/api/terminal/sessions/${encodeURIComponent(rec.id)}`);
+        if (res.status === 404) { forgetTerminalSession(rec.id); return false; }
+        const info = await res.json();
+        if (!info || !info.alive) { forgetTerminalSession(rec.id); return false; }
+        selectedAgent = info.agent;
+        const select = document.getElementById('terminalAgentSelect');
+        if (select) select.value = info.agent;
+        terminalSessionId = info.id;
+        terminalSessionAgent = info.agent;
+        if (!terminalInstance) setupTerminal();
+        else ensureTerminalConnected(true);
+        return true;
+      } catch (err) {
+        // Un fallo pasajero conserva el registro: la próxima carga puede reconectarse.
+        return false;
+      }
+    }
+
+    // Cambia el agente del CLI. Con una sesión viva de otro agente, o con `fresh`,
+    // la sesión se cierra, y eso nunca pasa sin confirmación. Devuelve false si
+    // el operador decide conservarla.
+    function useTerminalAgent(agent, opts = {}) {
+      const live = terminalSessionLive();
+      const current = terminalSessionAgent || selectedAgent;
+      const restart = agent !== current || (opts.fresh && live);
+      if (!restart) {
+        if (agent !== selectedAgent) selectedAgent = agent;
+        return true;
+      }
+      if (live) {
+        const question = agent === current
+          ? `Esto cierra la sesión actual de ${terminalAgentLabel(current)} y abre una nueva; se pierde su conversación. ¿Continuar?`
+          : `Esto cierra la sesión de ${terminalAgentLabel(current)} y abre ${terminalAgentLabel(agent)}; se pierde su conversación. ¿Continuar?`;
+        if (!window.confirm(question)) {
+          const select = document.getElementById('terminalAgentSelect');
+          if (select) select.value = current;
+          return false;
+        }
+      }
+      selectedAgent = agent;
+      try { localStorage.setItem('morfeo_terminal_agent', agent); } catch (err) { /* sin almacenamiento */ }
+      const select = document.getElementById('terminalAgentSelect');
+      if (select) select.value = agent;
+      closeTerminalSession();
+      if (terminalInstance) {
+        terminalInstance.reset();
+        terminalInstance.write(`\r\n\x1b[36m⚡ Conectando terminal con ${terminalAgentLabel(agent)}...\x1b[0m\r\n`);
+      }
+      if (terminalInstance && (isTerminalOpen || opts.connect)) connectTerminalWs(agent, { fresh: true });
+      return true;
+    }
+
+    // La pantalla visible como texto, para no responder una pregunta de arranque
+    // con el Enter del comando.
+    function terminalScreenText() {
+      const buffer = terminalInstance && terminalInstance.buffer && terminalInstance.buffer.active;
+      if (!buffer) return '';
+      const lines = [];
+      for (let y = 0; y < terminalInstance.rows; y++) {
+        const line = buffer.getLine(buffer.viewportY + y);
+        if (line) lines.push(line.translateToString(true));
+      }
+      return lines.join('\n');
+    }
+
+    // Un agente recién abierto pinta su prompt antes de leer: se espera su primera
+    // salida y luego una pausa breve, con un tope.
+    let TERMINAL_SETTLE_MAX_MS = 12000;
+    function settleTerminal(maxMs = TERMINAL_SETTLE_MAX_MS) {
+      return new Promise(resolve => {
+        const tick = Math.min(250, Math.max(1, maxMs));
+        let ticks = Math.ceil(maxMs / tick);
+        const wait = setInterval(() => {
+          ticks -= 1;
+          const quiet = terminalLastOutputAt > 0 && terminalLastOutputAt >= terminalSessionStartedAt && Date.now() - terminalLastOutputAt > 900;
+          if (quiet || ticks <= 0) { clearInterval(wait); resolve(); }
+        }, tick);
+      });
+    }
+
     async function checkTerminalTools() {
       if (typeof fetch === 'undefined') {
         return { ready: true, preferred_terminal: 'ghostty', herdr: { installed: true, client_running: true } };
@@ -7849,6 +8386,7 @@
           .then(r => r.json())
           .then(data => {
             if (data && data.ok && Array.isArray(data.agents)) {
+              cachedTerminalAgents = data.agents;
               const selectEl = document.getElementById('terminalAgentSelect');
               if (selectEl) {
                 const currentVal = selectedAgent || selectEl.value;
@@ -8000,7 +8538,7 @@
     let terminalProcessExited = false;
 
     function ensureTerminalConnected(forceRedraw = false) {
-      if (!isTerminalOpen) return;
+      if (!isTerminalOpen && !terminalSessionId) return;
       if (!terminalInstance) {
         setupTerminal();
         return;
@@ -8012,11 +8550,11 @@
       if (sockDead) {
         terminalProcessExited = false;
         connectTerminalWs(selectedAgent);
-      } else if (terminalSocket.readyState === WebSocket.OPEN) {
+      } else if (terminalSocket.readyState === WebSocket.OPEN && isTerminalOpen) {
         if (fitAddonInstance) fitAddonInstance.fit();
         sendTerminalResize(forceRedraw);
       }
-      terminalInstance.focus();
+      if (isTerminalOpen) terminalInstance.focus();
     }
 
     function openMorfeoTerminal() {
@@ -8110,13 +8648,15 @@
       setTimeout(() => {
         if (fitAddonInstance) fitAddonInstance.fit();
         connectTerminalWs(selectedAgent);
-        terminalInstance.focus();
+        // Reconectado en segundo plano no toma el foco: el teclado seguiría en la terminal oculta.
+        if (isTerminalOpen) terminalInstance.focus();
       }, 100);
 
       terminalInstance.onData(data => {
         if (terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {
           terminalSocket.send(data);
         } else if (isTerminalOpen) {
+          terminalSessionTaken = false;
           ensureTerminalConnected(true);
         }
       });
@@ -8128,7 +8668,7 @@
       });
     }
 
-    function connectTerminalWs(agent) {
+    function connectTerminalWs(agent, opts = {}) {
       if (terminalReconnectTimer) {
         clearTimeout(terminalReconnectTimer);
         terminalReconnectTimer = null;
@@ -8148,12 +8688,19 @@
       }
 
       terminalProcessExited = false;
+      terminalSessionTaken = false;
       updateTerminalStatus('connecting', agent);
 
+      // Se reconecta a la sesión viva del mismo agente; el servidor abre una nueva
+      // si ya no existe o si `fresh` la descarta.
+      const stored = storedTerminalSession();
+      const resumeId = opts.fresh ? null
+        : (terminalSessionId && terminalSessionAgent === agent ? terminalSessionId
+          : (stored && stored.agent === agent ? stored.id : null));
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const cols = terminalInstance ? terminalInstance.cols : 80;
       const rows = terminalInstance ? terminalInstance.rows : 24;
-      const wsUrl = `${proto}//${window.location.host}/ws/terminal?agent=${encodeURIComponent(agent)}&cols=${cols}&rows=${rows}`;
+      const wsUrl = `${proto}//${window.location.host}/ws/terminal?agent=${encodeURIComponent(agent)}&cols=${cols}&rows=${rows}${resumeId ? `&session=${encodeURIComponent(resumeId)}` : ''}`;
 
       let ws = null;
       try {
@@ -8170,8 +8717,11 @@
       ws.onopen = () => {
         if (terminalSocket !== ws) return;
         updateTerminalStatus('connected', agent);
-        if (fitAddonInstance) fitAddonInstance.fit();
-        sendTerminalResize(true);
+        // Oculta, la terminal no tiene medidas reales: no se le cambia el tamaño al agente.
+        if (isTerminalOpen) {
+          if (fitAddonInstance) fitAddonInstance.fit();
+          sendTerminalResize(true);
+        }
         if (isTerminalOpen && terminalInstance) {
           terminalInstance.focus();
         }
@@ -8186,12 +8736,42 @@
 
       ws.onmessage = (event) => {
         if (terminalSocket !== ws || !terminalInstance) return;
+        if (typeof event.data === 'string' && event.data.startsWith('{"type"')) {
+          let msg = null;
+          try { msg = JSON.parse(event.data); } catch (_) {}
+          if (msg && msg.type === 'session') {
+            // El servidor anuncia la sesión y enseguida redibuja su salida reciente:
+            // se limpia antes, para que se dibuje una sola vez.
+            if (msg.id !== terminalSessionId || !msg.reattached) terminalSessionStartedAt = Date.now();
+            terminalSessionId = msg.id;
+            terminalSessionAgent = msg.agent;
+            rememberTerminalSession(msg.id, msg.agent);
+            terminalInstance.reset();
+            terminalQuietUntil = Date.now() + TERMINAL_REPLAY_QUIET_MS;
+            return;
+          }
+          if (msg && msg.type === 'ended') {
+            // Se cerró en el servidor (otra pestaña, el tope de sesiones): no se reconecta a ella.
+            terminalProcessExited = true;
+            forgetTerminalSession(terminalSessionId);
+            terminalInstance.write('\r\n\x1b[33m[Morfeo] La sesión se cerró. Vuelve a abrir el asistente o reinícialo para empezar otra.\x1b[0m\r\n');
+            return;
+          }
+          if (msg && msg.type === 'detached') {
+            // Otra pestaña tomó la sesión; reconectarse aquí se la quitaría.
+            terminalSessionTaken = true;
+            terminalInstance.write('\r\n\x1b[33m[Morfeo] La sesión se abrió en otra pestaña. Escribe aquí o vuelve a abrir el asistente para retomarla.\x1b[0m\r\n');
+            return;
+          }
+        }
+        if (Date.now() >= terminalQuietUntil) terminalLastOutputAt = Date.now();
         if (event.data instanceof ArrayBuffer) {
           const bytes = new Uint8Array(event.data);
           try {
             const textSample = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
             if (textSample.includes('[Morfeo] Sesión finalizada')) {
               terminalProcessExited = true;
+              forgetTerminalSession(terminalSessionId);
             }
           } catch (_) {}
           terminalInstance.write(bytes);
@@ -8210,9 +8790,11 @@
             terminalPingTimer = null;
           }
           updateTerminalStatus('disconnected', agent);
-          if (isTerminalOpen && !terminalProcessExited && !document.hidden) {
+          // Se reconecta a la misma sesión (la conexión cayó, el agente sigue).
+          const wanted = () => (isTerminalOpen || terminalSessionId) && !terminalProcessExited && !terminalSessionTaken;
+          if (wanted() && !document.hidden) {
             terminalReconnectTimer = setTimeout(() => {
-              if (isTerminalOpen && terminalSocket === ws) {
+              if (wanted() && terminalSocket === ws) {
                 connectTerminalWs(selectedAgent);
               }
             }, 600);
@@ -8287,33 +8869,20 @@
     function onTerminalAgentChange() {
       const select = document.getElementById('terminalAgentSelect');
       if (!select) return;
-      selectedAgent = select.value;
-      localStorage.setItem('morfeo_terminal_agent', selectedAgent);
-      if (terminalInstance) {
-        terminalInstance.reset();
-        terminalInstance.clear();
-        const agentMap = {
-          'herdr': 'Herdr (Workspace Manager)',
-          'claude': 'Claude Code',
-          'opencode': 'OpenCode',
-          'pi': 'Pi',
-          'agy': 'Antigravity (AGY)',
-          'shell': 'Shell (Zsh/Bash)'
-        };
-        const agentLabel = agentMap[selectedAgent] || selectedAgent;
-        terminalInstance.write(`\r\n\x1b[36m⚡ Conectando terminal con ${agentLabel}...\x1b[0m\r\n`);
-      }
-      connectTerminalWs(selectedAgent);
-      if (terminalInstance) terminalInstance.focus();
+      if (!useTerminalAgent(select.value, { connect: true })) return;
+      if (!terminalInstance && isTerminalOpen) setupTerminal();
+      if (terminalInstance && isTerminalOpen) terminalInstance.focus();
     }
 
     function restartTerminalSession() {
+      if (terminalSessionLive() && !window.confirm(`Esto cierra la sesión de ${terminalAgentLabel(terminalSessionAgent || selectedAgent)} y abre una nueva; se pierde su conversación. ¿Continuar?`)) return;
+      closeTerminalSession();
       if (terminalInstance) {
         terminalInstance.reset();
         terminalInstance.clear();
         terminalInstance.write('\r\n\x1b[36m⚡ Reiniciando sesión de terminal...\x1b[0m\r\n');
       }
-      connectTerminalWs(selectedAgent);
+      connectTerminalWs(selectedAgent, { fresh: true });
       if (terminalInstance) terminalInstance.focus();
     }
 
@@ -8354,6 +8923,7 @@
       loadExecutionHistory();
       updateUndoRedoUI();
       initTerminalUI();
+      resumeTerminalSession();
       // Polling every 5 seconds for live status; every 2 s while a phase runs.
       restorePhaseRun();
       setInterval(loadStatus, 5000);
@@ -8363,17 +8933,21 @@
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         loadStatus();
-        if (isTerminalOpen) {
+        if (isTerminalOpen || terminalSessionId) {
           ensureTerminalConnected(true);
         }
       }
     });
 
     window.addEventListener('focus', () => {
-      if (isTerminalOpen) {
+      if (isTerminalOpen || terminalSessionId) {
         ensureTerminalConnected(true);
       }
     });
+
+    // Recargar o cerrar la página no termina la sesión: al volver, el tablero se
+    // reconecta a ella. Otra pestaña puede estar usándola, así que no se cierra
+    // desde aquí; el servidor recoge la que nadie retoma (12 h) y limita a 4 las vivas.
 
     window.addEventListener('resize', () => {
       if (isTerminalOpen && terminalInstance) {

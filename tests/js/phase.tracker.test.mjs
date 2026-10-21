@@ -55,7 +55,7 @@ async function harness(t, initial) {
   viewer.window.fetch = async (url) => String(url).includes('/api/status')
     ? { ok: true, status: 200, json: async () => state.data, text: async () => JSON.stringify(state.data) }
     : { ok: true, status: 200, json: async () => ({}), text: async () => 'contenido' };
-  viewer.window.eval(`window.__sent = []; sendTerminalQuickCommand = (cmd) => window.__sent.push(cmd);`);
+  viewer.window.eval(`window.__sent = []; sendTerminalQuickCommand = (cmd) => window.__sent.push(cmd); terminalSocket = { readyState: 1, send: () => {} }; openMorfeoTerminal = () => {}; ensureTerminalConnected = () => {}; TERMINAL_SETTLE_MAX_MS = 1;`);
   const load = async (data) => {
     if (data) state.data = data;
     await viewer.viewer('loadStatus');
@@ -100,6 +100,9 @@ test('al ejecutar aparece el seguidor y sigue la unidad hasta verificarla', asyn
   const { viewer, load } = await harness(t, envelope());
   await viewer.viewer('runPhaseExecution', 'fase2');
   viewer.document.getElementById('phaseExecConfirmBtn').click();
+  await flush();
+  await viewer.advance(50);
+  await flush();
   assert.deepEqual(Array.from(viewer.window.__sent), ['/propuesta-continuar']);
 
   const tracker = viewer.document.getElementById('phaseRunTracker');
@@ -147,6 +150,9 @@ test('una compuerta en FAIL se informa en el seguidor', async (t) => {
   const { viewer, load } = await harness(t, envelope());
   await viewer.viewer('runPhaseExecution', 'fase2');
   viewer.document.getElementById('phaseExecConfirmBtn').click();
+  await flush();
+  await viewer.advance(50);
+  await flush();
   await load(envelope({ unit_progress: { ...envelope().unit_progress, fase2: progress('failed', { missing: ['Compuerta G2 en PASS'] }) } }));
   assert.match(viewer.document.getElementById('phaseRunTracker').textContent, /FAIL/);
 });
@@ -173,6 +179,9 @@ test('una ejecución que cierra incompleta deja de sondear rápido', async (t) =
   const { viewer, load } = await harness(t, envelope());
   await viewer.viewer('runPhaseExecution', 'fase2');
   viewer.document.getElementById('phaseExecConfirmBtn').click();
+  await flush();
+  await viewer.advance(50);
+  await flush();
   await load(envelope({
     en_curso: { fase: 'fase2', agentes: ['bibliografo-propuesta'], inicio: new Date().toISOString(), stale: false },
     unit_progress: { ...envelope().unit_progress, fase2: progress('running') },
@@ -187,6 +196,9 @@ test('sin latido tras 10 minutos el seguidor avisa y deja de sondear rápido', a
   const { viewer, load } = await harness(t, envelope());
   await viewer.viewer('runPhaseExecution', 'fase2');
   viewer.document.getElementById('phaseExecConfirmBtn').click();
+  await flush();
+  await viewer.advance(50);
+  await flush();
   assert.equal(viewer.viewer('phaseRunActive'), true, 'recién enviado sondea rápido');
   viewer.window.eval('PHASE_RUN.sentAt = Date.now() - 11 * 60 * 1000;');
   await load();

@@ -109,7 +109,8 @@ test('el intake ofrece la idea inicial de idea.md y la envía con /propuesta-ana
   };
   viewer.window.eval(`currentStatus = ${JSON.stringify(envelope({ active_run: null, control: null }))}; setPhasesInfo(currentStatus.pipeline_units);
     window.__sent = [];
-    sendTerminalQuickCommand = (cmd) => window.__sent.push(cmd);`);
+    sendTerminalQuickCommand = (cmd) => window.__sent.push(cmd);
+    terminalSocket = { readyState: 1, send: () => {} }; openMorfeoTerminal = () => {}; ensureTerminalConnected = () => {}; TERMINAL_SETTLE_MAX_MS = 1;`);
   await viewer.viewer('runPhaseExecution', 'fase0');
   await flush();
   const idea = viewer.document.getElementById('phaseExecInput');
@@ -117,6 +118,9 @@ test('el intake ofrece la idea inicial de idea.md y la envía con /propuesta-ana
   assert.equal(idea.value, 'Problema: baja cobertura del monitoreo hídrico en Caldas.');
   idea.value = 'Problema: baja cobertura\ndel monitoreo hídrico.';
   viewer.document.getElementById('phaseExecConfirmBtn').click();
+  await flush();
+  await viewer.advance(50);
+  await flush();
   assert.deepEqual(Array.from(viewer.window.__sent), ['/propuesta-analizar Problema: baja cobertura del monitoreo hídrico.']);
 });
 
@@ -152,11 +156,15 @@ test('el modal de la unidad habilitada ofrece el comando y lo envía a la termin
   const viewer = await harness(t);
   viewer.window.eval(`currentStatus = ${JSON.stringify(envelope())}; setPhasesInfo(currentStatus.pipeline_units);
     window.__sent = [];
-    sendTerminalQuickCommand = (cmd) => window.__sent.push(cmd);`);
-  viewer.viewer('runPhaseExecution', 'fase2');
+    sendTerminalQuickCommand = (cmd) => window.__sent.push(cmd);
+    terminalSocket = { readyState: 1, send: () => {} }; openMorfeoTerminal = () => {}; ensureTerminalConnected = () => {}; TERMINAL_SETTLE_MAX_MS = 1;`);
+  await viewer.viewer('runPhaseExecution', 'fase2');
   const confirm = viewer.document.getElementById('phaseExecConfirmBtn');
   assert.notEqual(confirm.style.display, 'none');
   confirm.click();
+  await flush();
+  await viewer.advance(50);
+  await flush();
   assert.deepEqual(Array.from(viewer.window.__sent), ['/propuesta-continuar']);
   assert.ok(!viewer.document.getElementById('phaseExecModal').classList.contains('is-open'));
 });
@@ -165,13 +173,17 @@ test('la unidad habilitada abre un recuadro con la guía de la fase y envía las
   const viewer = await harness(t);
   viewer.window.eval(`currentStatus = ${JSON.stringify(envelope())}; setPhasesInfo(currentStatus.pipeline_units);
     window.__sent = [];
-    sendTerminalQuickCommand = (cmd) => window.__sent.push(cmd);`);
+    sendTerminalQuickCommand = (cmd) => window.__sent.push(cmd);
+    terminalSocket = { readyState: 1, send: () => {} }; openMorfeoTerminal = () => {}; ensureTerminalConnected = () => {}; TERMINAL_SETTLE_MAX_MS = 1;`);
   await viewer.viewer('runPhaseExecution', 'fase2');
   const box = viewer.document.getElementById('phaseExecInput');
   assert.ok(box, 'el recuadro de indicaciones existe');
   assert.match(box.getAttribute('placeholder'), /estado del arte/i);
   box.value = 'Priorizar  modelos\nfundacionales.';
   viewer.document.getElementById('phaseExecConfirmBtn').click();
+  await flush();
+  await viewer.advance(50);
+  await flush();
   assert.deepEqual(Array.from(viewer.window.__sent), ['/propuesta-continuar Priorizar modelos fundacionales.']);
 });
 
