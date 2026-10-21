@@ -85,9 +85,10 @@ def _parse_iso(value: Any) -> datetime | None:
         return None
     try:
         moment = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
-    except ValueError:
+        return moment if moment.tzinfo else moment.astimezone()
+    except (ValueError, OverflowError, OSError):
+        # Unparseable or out of the platform's range (year 1, for one).
         return None
-    return moment if moment.tzinfo else moment.astimezone()
 
 
 def heartbeat_is_stale(en_curso: dict[str, Any], units: list[dict[str, Any]], control: dict[str, Any] | None) -> bool:
@@ -98,7 +99,10 @@ def heartbeat_is_stale(en_curso: dict[str, Any], units: list[dict[str, Any]], co
     started = _parse_iso(en_curso.get("inicio"))
     if started is None:
         return False
-    age = datetime.now(timezone.utc) - started.astimezone(timezone.utc)
+    try:
+        age = datetime.now(timezone.utc) - started.astimezone(timezone.utc)
+    except (OverflowError, OSError):
+        return True
     return age.total_seconds() > STALE_HEARTBEAT_HOURS * 3600
 
 

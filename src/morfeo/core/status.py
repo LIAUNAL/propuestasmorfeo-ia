@@ -358,19 +358,27 @@ def parse_in_progress(run_dir: Path) -> dict[str, Any] | None:
         data = json.loads(beat.read_text(encoding="utf-8", errors="replace"))
     except Exception:
         return None
-    if not isinstance(data, dict) or not data.get("fase"):
+    if not isinstance(data, dict) or not isinstance(data.get("fase"), str) or not data["fase"].strip():
         return None
+
+    # The model writes this file by hand, so each field keeps only the type the
+    # dashboard expects; anything else is dropped instead of reaching the page.
+    def text(key: str) -> str | None:
+        value = data.get(key)
+        return value.strip() or None if isinstance(value, str) else None
 
     agentes = data.get("agentes") or []
     if isinstance(agentes, str):
         agentes = [agentes]
+    if not isinstance(agentes, list):
+        agentes = []
     return {
-        "fase": str(data.get("fase")),
-        "agentes": [str(a) for a in agentes],
-        "skill": data.get("skill") or None,
-        "artefacto_esperado": data.get("artefacto_esperado") or None,
-        "inicio": data.get("inicio") or None,
-        "nota": data.get("nota") or None,
+        "fase": data["fase"].strip(),
+        "agentes": [a for a in agentes if isinstance(a, str) and a.strip()],
+        "skill": text("skill"),
+        "artefacto_esperado": text("artefacto_esperado"),
+        "inicio": text("inicio"),
+        "nota": text("nota"),
     }
 
 

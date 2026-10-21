@@ -182,3 +182,22 @@ test('una ejecución que cierra incompleta deja de sondear rápido', async (t) =
   assert.match(viewer.document.getElementById('phaseRunTracker').textContent, /sin todas las pruebas/);
   assert.equal(viewer.viewer('phaseRunActive'), false);
 });
+
+test('sin latido tras 10 minutos el seguidor avisa y deja de sondear rápido', async (t) => {
+  const { viewer, load } = await harness(t, envelope());
+  await viewer.viewer('runPhaseExecution', 'fase2');
+  viewer.document.getElementById('phaseExecConfirmBtn').click();
+  assert.equal(viewer.viewer('phaseRunActive'), true, 'recién enviado sondea rápido');
+  viewer.window.eval('PHASE_RUN.sentAt = Date.now() - 11 * 60 * 1000;');
+  await load();
+  const tracker = viewer.document.getElementById('phaseRunTracker');
+  assert.match(tracker.textContent, /Sin señal/);
+  assert.match(tracker.textContent, /terminal/);
+  assert.equal(viewer.viewer('phaseRunActive'), false);
+
+  await load(envelope({
+    en_curso: { fase: 'fase2', agentes: ['bibliografo-propuesta'], inicio: new Date().toISOString(), stale: false },
+    unit_progress: { ...envelope().unit_progress, fase2: progress('running') },
+  }));
+  assert.match(tracker.textContent, /En curso/, 'si el latido llega tarde, el seguidor lo retoma');
+});
