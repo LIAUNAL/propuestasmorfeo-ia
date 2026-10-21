@@ -4150,14 +4150,11 @@
     // saber que el agente no recibió nada.
     function withCommandAgentReady(fn, onFail) {
       const isOpen = () => terminalSocket && terminalSocket.readyState === 1;
-      const capable = ['claude', 'opencode', 'pi', 'herdr'].includes(selectedAgent);
+      const capable = TERMINAL_COMMAND_AGENTS.includes(selectedAgent);
       if (capable && isOpen()) { fn(); return; }
-      if (!capable) {
-        const select = document.getElementById('terminalAgentSelect');
-        if (select) select.value = 'claude';
-      }
+      // Cambiar a Claude Code cierra la sesión viva de Shell o AGY: solo con confirmación.
+      if (!capable && !useTerminalAgent('claude', { connect: true })) { if (onFail) onFail(); return; }
       if (!isTerminalOpen) openMorfeoTerminal();
-      if (!capable) onTerminalAgentChange();
       else if (!isOpen()) ensureTerminalConnected(true);
       // Se cuentan ticks en lugar de leer el reloj de pared: mismo plazo en el
       // navegador y determinista bajo el reloj manual de las pruebas.
@@ -7793,6 +7790,180 @@
     let monitoredProjectPath = '';
     let activeAgentPaneId = null;
 
+    // La sesión del agente vive en el servidor (terminal.py, TerminalSession): el
+    // tablero recuerda su id y se reconecta a ella al recargar o al perder la
+    // conexión, y el servidor redibuja su salida reciente una vez. Cerrar la
+    // ventana del CLI o cambiar de pestaña no la termina; cambiar de agente o
+    // reiniciar sí, y por eso se pide confirmación.
+    const TERMINAL_SESSION_KEY = `morfeo.terminalSession@${window.location.host}`;
+    // La ráfaga del redibujado no cuenta como que el agente esté trabajando.
+    const TERMINAL_REPLAY_QUIET_MS = 800;
+    const TERMINAL_AGENT_LABELS = {
+      herdr: 'Herdr (Workspace Manager)',
+      claude: 'Claude Code',
+      opencode: 'OpenCode',
+      pi: 'Pi',
+      agy: 'Antigravity (AGY)',
+      shell: 'Shell (Zsh/Bash)'
+    };
+    // Agentes que entienden los slash commands del marco (Herdr refleja el panel del agente).
+    const TERMINAL_COMMAND_AGENTS = ['claude', 'opencode', 'pi', 'herdr'];
+    // Preguntas de arranque del agente: el Enter del comando las respondería a ciegas.
+    const TERMINAL_STARTUP_QUESTIONS = /trust this folder|Do you trust|Enter to confirm/i;
+    let terminalSessionId = null;
+    let terminalSessionAgent = null;
+    let terminalSessionStartedAt = 0;
+    let terminalLastOutputAt = 0;
+    let terminalQuietUntil = 0;
+    let terminalSessionTaken = false;
+    let cachedTerminalAgents = null;
+
+    function terminalAgentLabel(agent) {
+      return TERMINAL_AGENT_LABELS[agent] || agent;
+    }
+
+    function storedTerminalSession() {
+      try {
+        const rec = JSON.parse(localStorage.getItem(TERMINAL_SESSION_KEY) || 'null');
+        return rec && rec.id ? rec : null;
+      } catch (err) { return null; }
+    }
+
+    function rememberTerminalSession(id, agent) {
+      try { localStorage.setItem(TERMINAL_SESSION_KEY, JSON.stringify({ id, agent })); } catch (err) { /* sin almacenamiento */ }
+    }
+
+    function forgetTerminalSession(id) {
+      const rec = storedTerminalSession();
+      try { if (rec && (!id || rec.id === id)) localStorage.removeItem(TERMINAL_SESSION_KEY); } catch (err) { /* sin almacenamiento */ }
+      if (!id || terminalSessionId === id) { terminalSessionId = null; terminalSessionAgent = null; }
+    }
+
+    function terminalSessionLive() {
+      return !!terminalSessionId && !terminalProcessExited;
+    }
+
+    // Termina la sesión en el servidor (cambio de agente, reinicio o cierre de la página).
+    function closeTerminalSession(keepalive = false) {
+      const id = terminalSessionId;
+      if (!id) return;
+      forgetTerminalSession(id);
+      if (typeof fetch === 'undefined') return;
+      try {
+        fetch(`/api/terminal/sessions/${encodeURIComponent(id)}`, { method: 'DELETE', keepalive }).catch(() => {});
+      } catch (err) { /* la sesión se recoge sola al vencer */ }
+    }
+
+    // «Detener proceso»: Esc para claude, opencode y pi; Ctrl-C para shell y herdr
+    // (lo decide el servidor). La sesión sigue abierta para la fase siguiente.
+    async function interruptTerminalSession(id) {
+      const sid = id || terminalSessionId;
+      if (!sid) return { ok: false, error: 'No hay una sesión del agente abierta.' };
+      try {
+        const res = await fetch(`/api/terminal/sessions/${encodeURIComponent(sid)}/interrupt`, { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+        return res.ok ? { ok: true, key: data.key } : { ok: false, gone: res.status === 404, error: data.error || `HTTP ${res.status}` };
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    }
+
+    // Lo que el seguidor de fases lee para saber si el agente está escribiendo.
+    function terminalActivity() {
+      return {
+        sessionId: terminalSessionId,
+        agent: terminalSessionAgent || selectedAgent,
+        lastOutputAt: terminalLastOutputAt,
+        connected: !!(terminalSocket && terminalSocket.readyState === 1)
+      };
+    }
+
+    // Tras recargar: si la sesión recordada sigue viva, se reconecta en segundo
+    // plano (sin abrir la ventana) para que el seguidor vea la actividad.
+    async function resumeTerminalSession() {
+      const rec = storedTerminalSession();
+      if (!rec || typeof fetch === 'undefined') return false;
+      try {
+        const res = await fetch(`/api/terminal/sessions/${encodeURIComponent(rec.id)}`);
+        if (res.status === 404) { forgetTerminalSession(rec.id); return false; }
+        const info = await res.json();
+        if (!info || !info.alive) { forgetTerminalSession(rec.id); return false; }
+        selectedAgent = info.agent;
+        const select = document.getElementById('terminalAgentSelect');
+        if (select) select.value = info.agent;
+        terminalSessionId = info.id;
+        terminalSessionAgent = info.agent;
+        if (!terminalInstance) setupTerminal();
+        else ensureTerminalConnected(true);
+        return true;
+      } catch (err) {
+        // Un fallo pasajero conserva el registro: la próxima carga puede reconectarse.
+        return false;
+      }
+    }
+
+    // Cambia el agente del CLI. Con una sesión viva de otro agente, o con `fresh`,
+    // la sesión se cierra, y eso nunca pasa sin confirmación. Devuelve false si
+    // el operador decide conservarla.
+    function useTerminalAgent(agent, opts = {}) {
+      const live = terminalSessionLive();
+      const current = terminalSessionAgent || selectedAgent;
+      const restart = agent !== current || (opts.fresh && live);
+      if (!restart) {
+        if (agent !== selectedAgent) selectedAgent = agent;
+        return true;
+      }
+      if (live) {
+        const question = agent === current
+          ? `Esto cierra la sesión actual de ${terminalAgentLabel(current)} y abre una nueva; se pierde su conversación. ¿Continuar?`
+          : `Esto cierra la sesión de ${terminalAgentLabel(current)} y abre ${terminalAgentLabel(agent)}; se pierde su conversación. ¿Continuar?`;
+        if (!window.confirm(question)) {
+          const select = document.getElementById('terminalAgentSelect');
+          if (select) select.value = current;
+          return false;
+        }
+      }
+      selectedAgent = agent;
+      try { localStorage.setItem('morfeo_terminal_agent', agent); } catch (err) { /* sin almacenamiento */ }
+      const select = document.getElementById('terminalAgentSelect');
+      if (select) select.value = agent;
+      closeTerminalSession();
+      if (terminalInstance) {
+        terminalInstance.reset();
+        terminalInstance.write(`\r\n\x1b[36m⚡ Conectando terminal con ${terminalAgentLabel(agent)}...\x1b[0m\r\n`);
+      }
+      if (terminalInstance && (isTerminalOpen || opts.connect)) connectTerminalWs(agent, { fresh: true });
+      return true;
+    }
+
+    // La pantalla visible como texto, para no responder una pregunta de arranque
+    // con el Enter del comando.
+    function terminalScreenText() {
+      const buffer = terminalInstance && terminalInstance.buffer && terminalInstance.buffer.active;
+      if (!buffer) return '';
+      const lines = [];
+      for (let y = 0; y < terminalInstance.rows; y++) {
+        const line = buffer.getLine(buffer.viewportY + y);
+        if (line) lines.push(line.translateToString(true));
+      }
+      return lines.join('\n');
+    }
+
+    // Un agente recién abierto pinta su prompt antes de leer: se espera su primera
+    // salida y luego una pausa breve, con un tope.
+    let TERMINAL_SETTLE_MAX_MS = 12000;
+    function settleTerminal(maxMs = TERMINAL_SETTLE_MAX_MS) {
+      return new Promise(resolve => {
+        const tick = Math.min(250, Math.max(1, maxMs));
+        let ticks = Math.ceil(maxMs / tick);
+        const wait = setInterval(() => {
+          ticks -= 1;
+          const quiet = terminalLastOutputAt > 0 && terminalLastOutputAt >= terminalSessionStartedAt && Date.now() - terminalLastOutputAt > 900;
+          if (quiet || ticks <= 0) { clearInterval(wait); resolve(); }
+        }, tick);
+      });
+    }
+
     async function checkTerminalTools() {
       if (typeof fetch === 'undefined') {
         return { ready: true, preferred_terminal: 'ghostty', herdr: { installed: true, client_running: true } };
@@ -7849,6 +8020,7 @@
           .then(r => r.json())
           .then(data => {
             if (data && data.ok && Array.isArray(data.agents)) {
+              cachedTerminalAgents = data.agents;
               const selectEl = document.getElementById('terminalAgentSelect');
               if (selectEl) {
                 const currentVal = selectedAgent || selectEl.value;
@@ -8000,7 +8172,7 @@
     let terminalProcessExited = false;
 
     function ensureTerminalConnected(forceRedraw = false) {
-      if (!isTerminalOpen) return;
+      if (!isTerminalOpen && !terminalSessionId) return;
       if (!terminalInstance) {
         setupTerminal();
         return;
@@ -8012,11 +8184,11 @@
       if (sockDead) {
         terminalProcessExited = false;
         connectTerminalWs(selectedAgent);
-      } else if (terminalSocket.readyState === WebSocket.OPEN) {
+      } else if (terminalSocket.readyState === WebSocket.OPEN && isTerminalOpen) {
         if (fitAddonInstance) fitAddonInstance.fit();
         sendTerminalResize(forceRedraw);
       }
-      terminalInstance.focus();
+      if (isTerminalOpen) terminalInstance.focus();
     }
 
     function openMorfeoTerminal() {
@@ -8110,13 +8282,15 @@
       setTimeout(() => {
         if (fitAddonInstance) fitAddonInstance.fit();
         connectTerminalWs(selectedAgent);
-        terminalInstance.focus();
+        // Reconectado en segundo plano no toma el foco: el teclado seguiría en la terminal oculta.
+        if (isTerminalOpen) terminalInstance.focus();
       }, 100);
 
       terminalInstance.onData(data => {
         if (terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {
           terminalSocket.send(data);
         } else if (isTerminalOpen) {
+          terminalSessionTaken = false;
           ensureTerminalConnected(true);
         }
       });
@@ -8128,7 +8302,7 @@
       });
     }
 
-    function connectTerminalWs(agent) {
+    function connectTerminalWs(agent, opts = {}) {
       if (terminalReconnectTimer) {
         clearTimeout(terminalReconnectTimer);
         terminalReconnectTimer = null;
@@ -8148,12 +8322,19 @@
       }
 
       terminalProcessExited = false;
+      terminalSessionTaken = false;
       updateTerminalStatus('connecting', agent);
 
+      // Se reconecta a la sesión viva del mismo agente; el servidor abre una nueva
+      // si ya no existe o si `fresh` la descarta.
+      const stored = storedTerminalSession();
+      const resumeId = opts.fresh ? null
+        : (terminalSessionId && terminalSessionAgent === agent ? terminalSessionId
+          : (stored && stored.agent === agent ? stored.id : null));
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const cols = terminalInstance ? terminalInstance.cols : 80;
       const rows = terminalInstance ? terminalInstance.rows : 24;
-      const wsUrl = `${proto}//${window.location.host}/ws/terminal?agent=${encodeURIComponent(agent)}&cols=${cols}&rows=${rows}`;
+      const wsUrl = `${proto}//${window.location.host}/ws/terminal?agent=${encodeURIComponent(agent)}&cols=${cols}&rows=${rows}${resumeId ? `&session=${encodeURIComponent(resumeId)}` : ''}`;
 
       let ws = null;
       try {
@@ -8170,8 +8351,11 @@
       ws.onopen = () => {
         if (terminalSocket !== ws) return;
         updateTerminalStatus('connected', agent);
-        if (fitAddonInstance) fitAddonInstance.fit();
-        sendTerminalResize(true);
+        // Oculta, la terminal no tiene medidas reales: no se le cambia el tamaño al agente.
+        if (isTerminalOpen) {
+          if (fitAddonInstance) fitAddonInstance.fit();
+          sendTerminalResize(true);
+        }
         if (isTerminalOpen && terminalInstance) {
           terminalInstance.focus();
         }
@@ -8186,12 +8370,35 @@
 
       ws.onmessage = (event) => {
         if (terminalSocket !== ws || !terminalInstance) return;
+        if (typeof event.data === 'string' && event.data.startsWith('{"type"')) {
+          let msg = null;
+          try { msg = JSON.parse(event.data); } catch (_) {}
+          if (msg && msg.type === 'session') {
+            // El servidor anuncia la sesión y enseguida redibuja su salida reciente:
+            // se limpia antes, para que se dibuje una sola vez.
+            if (msg.id !== terminalSessionId || !msg.reattached) terminalSessionStartedAt = Date.now();
+            terminalSessionId = msg.id;
+            terminalSessionAgent = msg.agent;
+            rememberTerminalSession(msg.id, msg.agent);
+            terminalInstance.reset();
+            terminalQuietUntil = Date.now() + TERMINAL_REPLAY_QUIET_MS;
+            return;
+          }
+          if (msg && msg.type === 'detached') {
+            // Otra pestaña tomó la sesión; reconectarse aquí se la quitaría.
+            terminalSessionTaken = true;
+            terminalInstance.write('\r\n\x1b[33m[Morfeo] La sesión se abrió en otra pestaña. Escribe aquí o vuelve a abrir el asistente para retomarla.\x1b[0m\r\n');
+            return;
+          }
+        }
+        if (Date.now() >= terminalQuietUntil) terminalLastOutputAt = Date.now();
         if (event.data instanceof ArrayBuffer) {
           const bytes = new Uint8Array(event.data);
           try {
             const textSample = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
             if (textSample.includes('[Morfeo] Sesión finalizada')) {
               terminalProcessExited = true;
+              forgetTerminalSession(terminalSessionId);
             }
           } catch (_) {}
           terminalInstance.write(bytes);
@@ -8210,9 +8417,11 @@
             terminalPingTimer = null;
           }
           updateTerminalStatus('disconnected', agent);
-          if (isTerminalOpen && !terminalProcessExited && !document.hidden) {
+          // Se reconecta a la misma sesión (la conexión cayó, el agente sigue).
+          const wanted = () => (isTerminalOpen || terminalSessionId) && !terminalProcessExited && !terminalSessionTaken;
+          if (wanted() && !document.hidden) {
             terminalReconnectTimer = setTimeout(() => {
-              if (isTerminalOpen && terminalSocket === ws) {
+              if (wanted() && terminalSocket === ws) {
                 connectTerminalWs(selectedAgent);
               }
             }, 600);
@@ -8287,33 +8496,20 @@
     function onTerminalAgentChange() {
       const select = document.getElementById('terminalAgentSelect');
       if (!select) return;
-      selectedAgent = select.value;
-      localStorage.setItem('morfeo_terminal_agent', selectedAgent);
-      if (terminalInstance) {
-        terminalInstance.reset();
-        terminalInstance.clear();
-        const agentMap = {
-          'herdr': 'Herdr (Workspace Manager)',
-          'claude': 'Claude Code',
-          'opencode': 'OpenCode',
-          'pi': 'Pi',
-          'agy': 'Antigravity (AGY)',
-          'shell': 'Shell (Zsh/Bash)'
-        };
-        const agentLabel = agentMap[selectedAgent] || selectedAgent;
-        terminalInstance.write(`\r\n\x1b[36m⚡ Conectando terminal con ${agentLabel}...\x1b[0m\r\n`);
-      }
-      connectTerminalWs(selectedAgent);
-      if (terminalInstance) terminalInstance.focus();
+      if (!useTerminalAgent(select.value, { connect: true })) return;
+      if (!terminalInstance && isTerminalOpen) setupTerminal();
+      if (terminalInstance && isTerminalOpen) terminalInstance.focus();
     }
 
     function restartTerminalSession() {
+      if (terminalSessionLive() && !window.confirm(`Esto cierra la sesión de ${terminalAgentLabel(terminalSessionAgent || selectedAgent)} y abre una nueva; se pierde su conversación. ¿Continuar?`)) return;
+      closeTerminalSession();
       if (terminalInstance) {
         terminalInstance.reset();
         terminalInstance.clear();
         terminalInstance.write('\r\n\x1b[36m⚡ Reiniciando sesión de terminal...\x1b[0m\r\n');
       }
-      connectTerminalWs(selectedAgent);
+      connectTerminalWs(selectedAgent, { fresh: true });
       if (terminalInstance) terminalInstance.focus();
     }
 
@@ -8354,6 +8550,7 @@
       loadExecutionHistory();
       updateUndoRedoUI();
       initTerminalUI();
+      resumeTerminalSession();
       // Polling every 5 seconds for live status; every 2 s while a phase runs.
       restorePhaseRun();
       setInterval(loadStatus, 5000);
@@ -8363,16 +8560,23 @@
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         loadStatus();
-        if (isTerminalOpen) {
+        if (isTerminalOpen || terminalSessionId) {
           ensureTerminalConnected(true);
         }
       }
     });
 
     window.addEventListener('focus', () => {
-      if (isTerminalOpen) {
+      if (isTerminalOpen || terminalSessionId) {
         ensureTerminalConnected(true);
       }
+    });
+
+    // Al recargar o cerrar la página se conserva la sesión de una fase en curso
+    // (y se reconecta al volver); sin fase en curso se termina, para que no quede
+    // un agente abierto que nadie ve.
+    window.addEventListener('beforeunload', () => {
+      if (terminalSessionId && !phaseRunActive()) closeTerminalSession(true);
     });
 
     window.addEventListener('resize', () => {

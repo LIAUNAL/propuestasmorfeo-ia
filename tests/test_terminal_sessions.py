@@ -147,6 +147,16 @@ class TerminalSessionTest(unittest.TestCase):
         second.pump(until=b"SAME_")
         self.assertEqual(len(SESSIONS.ids()), 1, "no second agent was spawned")
 
+    def test_a_second_viewer_takes_the_session_and_the_first_is_told(self) -> None:
+        first, sid = self.open_shell()
+        self.addCleanup(first.close)
+        second = Client(self.port, f"agent=shell&session={sid}")
+        self.addCleanup(second.close)
+        second.pump()
+        self.assertTrue(second.texts[0]["reattached"])
+        first.pump(until=b"<no such output>", seconds=1.5)
+        self.assertIn({"type": "detached", "reason": "taken"}, first.texts)
+
     def test_an_unknown_session_id_opens_a_new_session(self) -> None:
         client = Client(self.port, "agent=shell&session=deadbeef")
         self.addCleanup(client.close)

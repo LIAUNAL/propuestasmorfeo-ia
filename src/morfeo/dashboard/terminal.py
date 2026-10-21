@@ -838,7 +838,9 @@ class TerminalSession:
             self.detached_at = None
             replay = bytes(self._buffer)
         if previous is not None and previous is not client:
-            # One viewer at a time: the newer tab takes the session.
+            # One viewer at a time: the newer tab takes the session, and the
+            # older one is told so it does not reconnect and take it back.
+            previous.send(b'{"type":"detached","reason":"taken"}', 0x1)
             previous.send(b"", 0x8)
         hello = {"type": "session", "id": self.id, "agent": self.agent, "reattached": reattached}
         client.send(json.dumps(hello).encode("utf-8"), 0x1)
