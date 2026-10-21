@@ -2411,7 +2411,7 @@
             <a href="/api/flow" target="_blank" class="btn btn--primary">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
-        <iframe id="flowIframe" class="iframe-viewer" src="/api/flow?theme=dark"></iframe>
+        <iframe id="flowIframe" class="iframe-viewer" src="about:blank" data-src="/api/flow?theme=dark" title="Flujo Archify"></iframe>
       </div>
 
       <!-- Panel de Propósito de la Etapa Seleccionada en el Diagrama Archify -->
@@ -2674,7 +2674,7 @@
             <a id="linkOpenGraph" href="/api/graph/papers" target="_blank" class="btn">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
-        <iframe id="graphIframe" class="iframe-viewer" src="/api/graph/papers"></iframe>
+        <iframe id="graphIframe" class="iframe-viewer" src="about:blank" title="Grafo de conocimiento"></iframe>
       </div>
     </div>
 
@@ -2753,7 +2753,7 @@
               <p>Cargando documento PDF...</p>
             </div>
             <div class="pdf-pages-strip" id="pdfPagesStrip"></div>
-            <iframe id="pdfNativeIframe" class="iframe-viewer" src="/api/pdf" style="display: none; height: 850px; width: 100%;"></iframe>
+            <iframe id="pdfNativeIframe" class="iframe-viewer" src="about:blank" style="display: none; height: 850px; width: 100%;"></iframe>
           </div>
         </div>
 
@@ -4575,7 +4575,16 @@
         : '🌙 <span class="btn__label">Oscuro</span>';
       const flow = document.getElementById('flowIframe');
       const flowSrc = `/api/flow?theme=${theme}`;
-      if (flow && flow.getAttribute('src') !== flowSrc) flow.setAttribute('src', flowSrc);
+      if (!flow) return;
+      flow.setAttribute('data-src', flowSrc);
+      // Cargado ya, se recarga con el tema; si no, espera a que se abra su pestaña.
+      if (flow.getAttribute('src') !== 'about:blank' && flow.getAttribute('src') !== flowSrc) flow.setAttribute('src', flowSrc);
+    }
+
+    // El flujo (unos 880 KB) se carga la primera vez que su pestaña está a la vista.
+    function ensureFlowLoaded() {
+      const flow = document.getElementById('flowIframe');
+      if (flow && flow.getAttribute('src') === 'about:blank') flow.setAttribute('src', flow.getAttribute('data-src'));
     }
 
     function toggleTheme() {
@@ -4625,12 +4634,23 @@
 
       if (tabId === 'mga') loadMgaResumido();
 
+      if (tabId === 'flow') ensureFlowLoaded();
+
       if (tabId === 'preview') {
         initPdfViewer();
       } else if (tabId === 'atlas') {
         setTimeout(() => {
           const iframe = document.getElementById('graphIframe');
           if (!iframe) return;
+          // El grafo (WebGL, unos 700 KB con three.js) se carga al abrir la pestaña,
+          // no al abrir el tablero.
+          if (!iframe.getAttribute('src') || iframe.getAttribute('src') === 'about:blank') {
+            iframe.dataset.requestedAt = String(Date.now());
+            iframe.src = `/api/graph/${currentGraphKind}`;
+            return;
+          }
+          // Una carga recién pedida todavía no tiene lienzo: no se la reinicia.
+          if (Date.now() - Number(iframe.dataset.requestedAt || 0) < 5000) return;
           try {
             if (iframe.contentWindow) {
               iframe.contentWindow.dispatchEvent(new Event('resize'));
@@ -6312,7 +6332,10 @@
         console.error("Error cargando PDF con PDF.js:", err);
         const strip = document.getElementById('pdfPagesStrip');
         if (strip) strip.style.display = 'none';
-        document.getElementById('pdfNativeIframe').style.display = 'block';
+        const nativeFrame = document.getElementById('pdfNativeIframe');
+        // El visor nativo solo se carga cuando hace falta: si PDF.js no pudo.
+        nativeFrame.src = `/api/pdf?t=${Date.now()}`;
+        nativeFrame.style.display = 'block';
       } finally {
         // El sello se baja recién cuando la tira nueva quedó construida (o el
         // camino de error terminó): a partir de aquí el observer nuevo vuelve a
@@ -6786,6 +6809,7 @@
         btn.textContent = 'Visor PDF.js';
       } else {
         iframe.style.display = 'none';
+        iframe.src = 'about:blank';  // libera el visor nativo y su copia del PDF
         if (strip) strip.style.display = 'flex';
         if (bar) bar.style.display = 'flex';
         btn.textContent = 'Visor Nativo';
@@ -8918,6 +8942,8 @@
       if (hash && ['pipeline', 'flow', 'sections', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
+      const flowPane = document.getElementById('pane-flow');
+      if (flowPane && flowPane.classList.contains('active')) ensureFlowLoaded();
       loadStatus();
       loadPendingInstructionsQueue();
       loadExecutionHistory();
@@ -8956,9 +8982,10 @@
       }
     });
 
+    // navigateTab escribe el hash: ese cambio no vuelve a navegar (recargaba el grafo).
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash) navigateTab(hash);
+      if (hash && hash !== activeTab) navigateTab(hash);
     });
   </script>
 </body>
