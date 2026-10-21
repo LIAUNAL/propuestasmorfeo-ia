@@ -945,18 +945,26 @@
       color: #ffffff;
       border: 2px solid #34d399;
       box-shadow:
-        0 0 16px rgba(16, 185, 129, 0.8),
-        0 0 32px rgba(56, 189, 248, 0.6),
+        0 0 14px rgba(16, 185, 129, 0.7),
+        0 0 25px rgba(56, 189, 248, 0.5),
         inset 0 0 10px rgba(255, 255, 255, 0.7);
+    }
+    /* El pulso neón anima la opacidad de una capa con el brillo fuerte ya
+       pintado: se compone en la GPU sin repintar sombras en cada cuadro, que
+       es lo que costaba animar box-shadow en cada etapa encendida. */
+    .flujo-step--lit .flujo-beacon::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      box-shadow: 0 0 22px rgba(16, 185, 129, 1), 0 0 42px rgba(56, 189, 248, 0.8);
+      pointer-events: none;
+      opacity: 0;
       animation: neon-pulse 2.5s infinite alternate;
     }
     @keyframes neon-pulse {
-      0% {
-        box-shadow: 0 0 14px rgba(16, 185, 129, 0.7), 0 0 25px rgba(56, 189, 248, 0.5), inset 0 0 8px rgba(255, 255, 255, 0.6);
-      }
-      100% {
-        box-shadow: 0 0 22px rgba(16, 185, 129, 1), 0 0 42px rgba(56, 189, 248, 0.8), inset 0 0 14px rgba(255, 255, 255, 0.9);
-      }
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
     .flujo-step--lit .flujo-beacon::after {
       content: '';
@@ -1934,7 +1942,6 @@
       border: 1px solid #38bdf8 !important;
       font-weight: 700 !important;
       box-shadow: 0 0 14px rgba(2, 132, 199, 0.4) !important;
-      animation: execute-glow 3s infinite alternate;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1972,6 +1979,7 @@
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
     /* ========================================================
        ASISTENTE FLOTANTE MORFEO (FAB) Y TERMINAL WEB PTY
        ======================================================== */
@@ -2009,6 +2017,13 @@
     }
     .morfeo-fab.is-active .morfeo-fab__pulse {
       display: none;
+    }
+    /* Página en segundo plano o sin movimiento pedido: las animaciones en bucle se detienen. */
+    html.is-page-hidden *, html.is-page-hidden *::before, html.is-page-hidden *::after {
+      animation-play-state: paused !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-iteration-count: 1 !important; }
     }
     @keyframes fabPulse {
       0% { transform: scale(0.95); opacity: 0.9; }
@@ -3766,6 +3781,7 @@
       try { localStorage.removeItem(PHASE_RUN_STOP_KEY); } catch (err) { /* sin almacenamiento */ }
       renderPhaseRunTracker(data);
       setTimeout(() => loadStatus(), 1500);
+      scheduleStatusPoll();  // pasa al sondeo de 2 s
     }
 
     function phaseRunActive() {
@@ -3786,6 +3802,7 @@
     const PHASE_RUN_STOP_KEY = 'morfeo.phaseRunStopped';
     let PHASE_RUN_PANEL_OPEN = false;
     let PHASE_RUN_RENDER_KEY = null;
+    let PHASE_RUN_PAINT = null;
     let PHASE_RUN_IDLE_NOTIFIED = false;
     let PHASE_RUN_NOTICE_TIMER = null;
 
@@ -4001,17 +4018,25 @@
         panel.hidden = true; panel.innerHTML = '';
         PHASE_RUN_PANEL_OPEN = false;
         PHASE_RUN_RENDER_KEY = null;
+        PHASE_RUN_PAINT = null;
         if (PHASE_RUN_TICK) { clearInterval(PHASE_RUN_TICK); PHASE_RUN_TICK = null; }
         return;
       }
-      if (box) {
+      const run = view.run;
+      const lingering = !run.finished || (run.finishedAt && Date.now() - run.finishedAt < PHASE_RUN_DOCK_LINGER_MS) || view.running;
+      // Sin cambios en lo que se muestra, no se reconstruye nada: el sondeo pasa
+      // por aquí cada pocos segundos y los tiempos los actualiza tickPhaseRun.
+      const paint = JSON.stringify([phaseRunRenderKey(view), lingering, view.prog, view.beat, run.command, run.stoppedAt, run.agent, run.sessionId,
+        view.settled ? [data.control || null, data.unit_progress || null] : null]);
+      const fresh = paint !== PHASE_RUN_PAINT || (box && box.hidden);
+      PHASE_RUN_PAINT = paint;
+      if (box && fresh) {
         box.hidden = false;
         box.innerHTML = phaseRunBody(view, data, false);
       }
-
-      const run = view.run;
-      const lingering = !run.finished || (run.finishedAt && Date.now() - run.finishedAt < PHASE_RUN_DOCK_LINGER_MS) || view.running;
-      if (lingering) {
+      if (!fresh) {
+        PHASE_RUN_RENDER_KEY = phaseRunRenderKey(view);
+      } else if (lingering) {
         const since = view.running && Date.parse(view.beat.inicio || '') || run.sentAt;
         dock.hidden = false;
         dock.classList.toggle('is-idle', view.idle || view.sessionGone);
@@ -4025,7 +4050,9 @@
         dock.hidden = true;
         dock.innerHTML = '';
       }
-      if (PHASE_RUN_PANEL_OPEN) {
+      if (!fresh) {
+        // nada que repintar
+      } else if (PHASE_RUN_PANEL_OPEN) {
         panel.hidden = false;
         panel.innerHTML = phaseRunBody(view, data, true);
       } else {
@@ -5028,8 +5055,32 @@
       el.title = sgr ? 'Proyecto con el flujo del Sistema General de Regalías (MGA)' : 'Proyecto con el flujo base';
     }
 
-    async function loadStatus() {
-      if (document.hidden) return; // Pausa el sondeo cuando la pestaña está en segundo plano
+    // Un solo pedido de estado a la vez: quien llama mientras hay uno en vuelo
+    // recibe ese mismo resultado en lugar de lanzar otro.
+    let STATUS_IN_FLIGHT = null;
+    let STATUS_POLL_TIMER = null;
+
+    function loadStatus() {
+      if (document.hidden) return Promise.resolve(); // Pausa el sondeo cuando la pestaña está en segundo plano
+      if (!STATUS_IN_FLIGHT) {
+        STATUS_IN_FLIGHT = loadStatusNow().finally(() => { STATUS_IN_FLIGHT = null; });
+      }
+      return STATUS_IN_FLIGHT;
+    }
+
+    // El sondeo se reprograma solo: cada 2 s mientras una fase corre, cada 5 s si
+    // no, y se detiene con la página oculta (al volver, visibilitychange lo reanuda).
+    function scheduleStatusPoll() {
+      if (STATUS_POLL_TIMER) clearTimeout(STATUS_POLL_TIMER);
+      STATUS_POLL_TIMER = setTimeout(async () => {
+        STATUS_POLL_TIMER = null;
+        if (document.hidden) return;
+        await loadStatus();
+        scheduleStatusPoll();
+      }, phaseRunActive() ? 2000 : 5000);
+    }
+
+    async function loadStatusNow() {
       try {
         const res = await fetch('/api/status');
         if (!res.ok) return;
@@ -5040,7 +5091,10 @@
           const footerRun = document.getElementById('terminalFooterRun');
           if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;
         }
-        if (typeof isTerminalOpen !== 'undefined' && isTerminalOpen && typeof ensureTerminalConnected === 'function') {
+        // Solo se reconecta una terminal caída: reajustarla en cada sondeo forzaba
+        // un cálculo de layout y un cambio de tamaño en el agente cada vez.
+        if (typeof isTerminalOpen !== 'undefined' && isTerminalOpen && typeof ensureTerminalConnected === 'function'
+            && (!terminalSocket || terminalSocket.readyState > 1)) {
           ensureTerminalConnected(false);
         }
 
@@ -8952,13 +9006,14 @@
       resumeTerminalSession();
       // Polling every 5 seconds for live status; every 2 s while a phase runs.
       restorePhaseRun();
-      setInterval(loadStatus, 5000);
-      setInterval(() => { if (phaseRunActive()) loadStatus(); }, 2000);
+      scheduleStatusPoll();
     });
 
     document.addEventListener('visibilitychange', () => {
+      document.documentElement.classList.toggle('is-page-hidden', document.hidden);
       if (!document.hidden) {
         loadStatus();
+        scheduleStatusPoll();
         if (isTerminalOpen || terminalSessionId) {
           ensureTerminalConnected(true);
         }
