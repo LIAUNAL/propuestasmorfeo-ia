@@ -3654,7 +3654,8 @@
       if (running && PHASE_RUN && !PHASE_RUN.seenRunning) { PHASE_RUN.seenRunning = true; savePhaseRun(); }
       const state = running ? 'running' : resolvePhaseState(p, data);
       const settled = !running && (run.seenRunning || (run.initialState !== null && state !== run.initialState) || run.initialState === null && state !== 'pending');
-      if (PHASE_RUN && settled && !PHASE_RUN.finished && ['verified', 'failed', 'skipped'].includes(state)) { PHASE_RUN.finished = true; savePhaseRun(); }
+      // Cualquier cierre (cumplida, FAIL o incompleta) apaga el sondeo rápido; el de 5 s sigue.
+      if (PHASE_RUN && settled && !PHASE_RUN.finished) { PHASE_RUN.finished = true; savePhaseRun(); }
 
       const step = (cls, title, body) => `<li class="phase-run__step ${cls}"><span class="phase-run__step-title">${title}</span>${body ? `<div class="phase-run__step-body">${body}</div>` : ''}</li>`;
       const sentAt = run.sentAt ? new Date(run.sentAt) : null;

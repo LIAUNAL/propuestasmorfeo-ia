@@ -168,3 +168,17 @@ test('un cambio de los artefactos repinta la lista de artefactos', async (t) => 
   ] }));
   assert.equal(viewer.document.querySelectorAll('#artifactsList .sidebar-item').length, 2);
 });
+
+test('una ejecución que cierra incompleta deja de sondear rápido', async (t) => {
+  const { viewer, load } = await harness(t, envelope());
+  await viewer.viewer('runPhaseExecution', 'fase2');
+  viewer.document.getElementById('phaseExecConfirmBtn').click();
+  await load(envelope({
+    en_curso: { fase: 'fase2', agentes: ['bibliografo-propuesta'], inicio: new Date().toISOString(), stale: false },
+    unit_progress: { ...envelope().unit_progress, fase2: progress('running') },
+  }));
+  assert.equal(viewer.viewer('phaseRunActive'), true);
+  await load(envelope({ unit_progress: { ...envelope().unit_progress, fase2: progress('partial', { missing: ['redaccion/sections/04_*.tex existe'] }) } }));
+  assert.match(viewer.document.getElementById('phaseRunTracker').textContent, /sin todas las pruebas/);
+  assert.equal(viewer.viewer('phaseRunActive'), false);
+});
