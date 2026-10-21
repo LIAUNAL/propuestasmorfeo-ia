@@ -48,3 +48,9 @@ Ruta: inline (no se dispara el Writer trigger).
   - Las capturas de la pestaña Fases antes y después son iguales a la vista.
   - Los grafos ya generados en las corridas conservan el bucle viejo hasta que se regeneren.
 - L6: JS 124/124. Python: 376 tests, con 5 fallas que no vienen de este cambio. Las causa la entrada `banco-lia` que otro actor agregó a `.mcp.json` sin commitear, igual que en la feature anterior.
+- L7: El verificador independiente no encontró bloqueantes; S1 y S2 se cumplen. Dejó avisos, y estos se corrigieron en `fix/sondeo-avisos` (RED 3/3 → GREEN, más la prueba inestable):
+  - quien acaba de cambiar algo (cambio de corrida, «Detener», fin de ejecución, ⟳) espera el pedido en vuelo y luego pide otro: `loadStatus({ fresh: true })`;
+  - un pedido de estado colgado se aborta a los 15 s;
+  - la firma del seguidor incluye `sentAt`;
+  - la prueba del orden del redibujado descarta la última línea cortada, porque ya fallaba con carga de CPU en la base.
+  - Quedan sin cambio dos detalles visuales menores: con «reducir movimiento», el indicador de carga da una sola vuelta, y tras soltar el grafo arrastrado, la cámara tarda un poco más en asentarse.

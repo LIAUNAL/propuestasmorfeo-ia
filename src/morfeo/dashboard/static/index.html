@@ -2384,7 +2384,7 @@
         <option value="">Cargando corridas...</option>
       </select>
       <button class="btn" onclick="toggleTheme()" id="themeBtn" title="Cambiar tema" aria-label="Cambiar tema">☀️ <span class="btn__label">Claro</span></button>
-      <button class="btn btn--primary" onclick="loadStatus()" title="Actualizar datos" aria-label="Actualizar datos">⟳ <span class="btn__label">Actualizar</span></button>
+      <button class="btn btn--primary" onclick="loadStatus({ fresh: true })" title="Actualizar datos" aria-label="Actualizar datos">⟳ <span class="btn__label">Actualizar</span></button>
     </div>
   </header>
 
@@ -4026,7 +4026,7 @@
       const lingering = !run.finished || (run.finishedAt && Date.now() - run.finishedAt < PHASE_RUN_DOCK_LINGER_MS) || view.running;
       // Sin cambios en lo que se muestra, no se reconstruye nada: el sondeo pasa
       // por aquí cada pocos segundos y los tiempos los actualiza tickPhaseRun.
-      const paint = JSON.stringify([phaseRunRenderKey(view), lingering, view.prog, view.beat, run.command, run.stoppedAt, run.agent, run.sessionId,
+      const paint = JSON.stringify([phaseRunRenderKey(view), lingering, view.prog, view.beat, run.command, run.sentAt, run.stoppedAt, run.agent, run.sessionId,
         view.settled ? [data.control || null, data.unit_progress || null] : null]);
       const fresh = paint !== PHASE_RUN_PAINT || (box && box.hidden);
       PHASE_RUN_PAINT = paint;
@@ -4093,7 +4093,7 @@
       try { localStorage.setItem(PHASE_RUN_STOP_KEY, JSON.stringify({ unit: PHASE_RUN.unit, at })); } catch (err) { /* sin almacenamiento */ }
       lastStatusSignature = null;
       renderPhaseRunTracker(currentStatus);
-      loadStatus();
+      loadStatus({ fresh: true });
     }
 
     // Los botones del seguidor, del panel y de la barra se atienden en la fase de
@@ -5031,7 +5031,7 @@
         if (data.ok) {
           lastStatusSignature = '';
           initialArtifactLoaded = false;
-          await loadStatus();
+          await loadStatus({ fresh: true });
           if (activeTab === 'atlas') {
             switchGraph(currentGraphKind);
           } else if (activeTab === 'preview') {
@@ -5060,8 +5060,11 @@
     let STATUS_IN_FLIGHT = null;
     let STATUS_POLL_TIMER = null;
 
-    function loadStatus() {
+    // `fresh`: quien acaba de cambiar algo (corrida, detener, ⟳) espera al pedido
+    // en vuelo y luego pide otro; ese pedido pudo leer el estado de antes.
+    function loadStatus(opts) {
       if (document.hidden) return Promise.resolve(); // Pausa el sondeo cuando la pestaña está en segundo plano
+      if (opts && opts.fresh && STATUS_IN_FLIGHT) return STATUS_IN_FLIGHT.then(() => loadStatus());
       if (!STATUS_IN_FLIGHT) {
         STATUS_IN_FLIGHT = loadStatusNow().finally(() => { STATUS_IN_FLIGHT = null; });
       }
@@ -5080,9 +5083,14 @@
       }, phaseRunActive() ? 2000 : 5000);
     }
 
+    // Un pedido colgado no detiene el sondeo: a los 15 s se aborta y el siguiente lo reintenta.
+    const STATUS_TIMEOUT_MS = 15000;
+
     async function loadStatusNow() {
+      const abort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = abort ? setTimeout(() => abort.abort(), STATUS_TIMEOUT_MS) : null;
       try {
-        const res = await fetch('/api/status');
+        const res = await fetch('/api/status', abort ? { signal: abort.signal } : undefined);
         if (!res.ok) return;
         const data = await res.json();
         currentStatus = data;
@@ -5424,6 +5432,8 @@
 
       } catch (err) {
         console.error("Error cargando estado:", err);
+      } finally {
+        if (timer) clearTimeout(timer);
       }
     }
 
@@ -8097,7 +8107,7 @@
         await initPdfViewer(true);
         loadPendingInstructionsQueue();
         loadExecutionHistory();
-        loadStatus();
+        loadStatus({ fresh: true });
 
       } catch (err) {
         document.getElementById('executingProgressModal').classList.remove('active');
