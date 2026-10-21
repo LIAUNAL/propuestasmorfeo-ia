@@ -46,6 +46,11 @@
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "banco-lia": {
+      "type": "stdio",
+      "command": "bancoLIA",
+      "args": ["mcp"]
     }
   }
 }
