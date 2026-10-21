@@ -54,3 +54,4 @@ Ruta: inline. Las tres unidades comparten el contrato de sesión, así que no se
   - Quedan como avisos: la sesión anterior sigue viva cuando se reconecta con otro agente, y al cambiar de ventana la sesión pasa de una pestaña a otra.
   - Esto se aparta a propósito de papersmith, que cierra la sesión al recargar si no hay fase en curso.
 - L7: Python 371 tests con 5 fallas en `test_pi_port`, `test_kit_integrity` y `test_pypi_publishing`. Vienen de la entrada `banco-lia` que otro actor agregó a `.mcp.json` sin commitear. Con el `.mcp.json` versionado pasan (21 OK). JS 113/113.
+- L8: Revisión RDD (consentida: «Revisar este cambio»), lentes de resiliencia y confiabilidad sobre la rama hasta f8b3ba0: aprobada, reconocida y su autoridad quemada (lineage review-9fab31da6c5bad40).
