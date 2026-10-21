@@ -213,3 +213,21 @@ test('clic en la caja del pipeline abre el recuadro de ejecución de esa fase', 
   assert.ok(viewer.document.getElementById('phaseExecModal').classList.contains('is-open'));
   assert.ok(viewer.document.getElementById('phaseExecInput'));
 });
+
+test('la caja del intake se ve activa cuando es la fase inicial ejecutable', async (t) => {
+  const viewer = await harness(t);
+  const data = envelope({ active_run: null, control: null });
+  viewer.window.fetch = async (url) => String(url).includes('/api/status')
+    ? { ok: true, status: 200, json: async () => data, text: async () => JSON.stringify(data) }
+    : { ok: false, status: 503, json: async () => ({}), text: async () => '' };
+  await viewer.viewer('loadStatus');
+  await flush();
+  const cards = Array.from(viewer.document.querySelectorAll('#pipelineGrid .phase-card'));
+  const intake = cards.find(c => /Intake/.test(c.textContent));
+  assert.ok(intake.classList.contains('phase-card--ready'), intake.className);
+  assert.ok(!intake.classList.contains('phase-card--unlit'), 'no se pinta apagada');
+  assert.match(intake.textContent, /LISTA PARA EJECUTAR/);
+  const scoping = cards.find(c => /Scoping/.test(c.textContent));
+  assert.ok(scoping.classList.contains('phase-card--unlit'), 'las bloqueadas siguen apagadas');
+  assert.ok(!scoping.classList.contains('phase-card--ready'));
+});

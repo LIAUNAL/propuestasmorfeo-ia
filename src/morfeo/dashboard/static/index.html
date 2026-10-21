@@ -1078,6 +1078,15 @@
     .phase-card--unlit .phase-card__name::before {
       content: '⚫ ';
     }
+    .phase-card--ready {
+      border: 1px solid var(--ok) !important;
+      border-top: 3px solid var(--ok) !important;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.25) !important;
+    }
+    .phase-card--ready .phase-card__name::before {
+      content: '▶ ';
+      color: var(--ok);
+    }
 
     /* =========================================================
        VISOR PDF INTERACTIVO CON HERRAMIENTAS EDITORIALES
@@ -4558,16 +4567,18 @@
 
           const card = document.createElement('div');
           const enCurso = !!(EN_CURSO && EN_CURSO.fase === p.id);
-          card.className = `phase-card ${isLit ? 'phase-card--lit' : 'phase-card--unlit'}`;
+          const exec = evaluatePhaseExecution(p.id, data);
+          // La unidad que se puede lanzar ahora (el intake al inicio) se ve activa, no apagada.
+          const isReady = !isLit && !enCurso && exec.allowed;
+          card.className = `phase-card ${isLit ? 'phase-card--lit' : (isReady ? 'phase-card--ready' : 'phase-card--unlit')}`;
           card.onclick = () => runPhaseExecution(p.id);
           card.title = 'Clic para ejecutar esta fase con tus indicaciones';
-          const exec = evaluatePhaseExecution(p.id, data);
           card.innerHTML = `
             <button type="button" class="phase-card__run ${exec.allowed ? 'is-ready' : 'is-blocked'}" data-unit="${escapeHtml(p.id)}"
               title="${exec.allowed ? `Ejecutar ${exec.command}` : 'Aún no ejecutable: clic para ver qué falta'}">▶ Ejecutar</button>
             <div class="phase-card__head">
               <span class="phase-card__name">${p.name}</span>
-              <span class="badge badge--${enCurso ? 'info' : badgeTone}">${enCurso ? '⏳ EN CURSO' : `${isLit ? '💡 ' : ''}${p.gateLabel}: ${gateStatus}`}</span>
+              <span class="badge badge--${enCurso ? 'info' : (isReady ? 'ok' : badgeTone)}">${enCurso ? '⏳ EN CURSO' : (isReady ? '▶ LISTA PARA EJECUTAR' : `${isLit ? '💡 ' : ''}${p.gateLabel}: ${gateStatus}`)}</span>
             </div>
             <p class="phase-card__desc">${p.desc}</p>
             <div class="phase-card__foot">
