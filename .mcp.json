@@ -49,8 +49,8 @@
     },
     "banco-lia": {
       "type": "stdio",
-      "command": "bancoLIA",
-      "args": ["mcp"]
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/LIAUNAL/bancoProyectosPapersLIA", "banco-lia-mcp"]
     }
   }
 }

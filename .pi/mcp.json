@@ -10,9 +10,11 @@
     },
     "banco-lia": {
       "type": "stdio",
-      "command": "bancoLIA",
+      "command": "uvx",
       "args": [
-        "mcp"
+        "--from",
+        "git+https://github.com/LIAUNAL/bancoProyectosPapersLIA",
+        "banco-lia-mcp"
       ]
     },
     "codegraph": {
