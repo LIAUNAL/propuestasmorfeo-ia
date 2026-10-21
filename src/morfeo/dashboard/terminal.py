@@ -7,6 +7,7 @@ the Morfeo Command Center web dashboard. Zero external dependencies.
 
 from __future__ import annotations
 
+import atexit
 import base64
 import fcntl
 import hashlib
@@ -14,6 +15,7 @@ import json
 import os
 import pty
 import re
+import secrets
 import select
 import shutil
 import signal
@@ -21,6 +23,7 @@ import socket
 import struct
 import subprocess
 import termios
+import threading
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -610,17 +613,30 @@ def run_pane_mirror_session(
                 pass
 
 
-def run_pty_session(
-    sock: socket.socket,
-    workspace_dir: Path,
-    agent_id: str = "claude",
-    init_rows: int = 24,
-    init_cols: int = 80,
-) -> None:
-    """Stream bidirectional I/O between an xterm.js WebSocket and a child process PTY."""
-    cmd_args, resolved_name, warning_banner = build_agent_command(agent_id)
 
-    # Set up child environment
+# --- Persistent agent sessions --------------------------------------------------
+# The agent process belongs to a session, not to the WebSocket that opened it. A
+# reload, a closed CLI window or a dropped connection only detaches the browser;
+# the agent keeps working, and the dashboard reattaches with `?session=<id>` and
+# receives the recent output once.
+
+# Recent output kept per session and replayed on reattach.
+SESSION_BUFFER_BYTES = 256 * 1024
+# Live agent processes at once; the oldest detached one is closed first.
+MAX_SESSIONS = 4
+# A session nobody reattached to in this time is closed.
+DETACHED_SESSION_TTL_S = 12 * 3600
+
+# Esc interrupts the turn of a TUI agent without closing it; Ctrl-C would quit it.
+_ESC_INTERRUPT_AGENTS = {"claude", "opencode", "pi", "agy", "antigravity"}
+
+
+def interrupt_key(agent_id: str) -> bytes:
+    """The keystroke that stops the agent's current turn but keeps the session."""
+    return b"\x1b" if (agent_id or "").lower() in _ESC_INTERRUPT_AGENTS else b"\x03"
+
+
+def _agent_env(workspace_dir: Path, agent_id: str) -> dict[str, str]:
     env = os.environ.copy()
     env["TERM"] = "xterm-256color"
     env["COLORTERM"] = "truecolor"
@@ -648,248 +664,384 @@ def run_pty_session(
         if active_run:
             env["RUN_ROOT"] = f"proposals/{active_run}"
             env["ACTIVE_RUN"] = active_run
+    return env
 
-    master_fd, slave_fd = pty.openpty()
-    current_rows = max(1, init_rows)
-    current_cols = max(2, init_cols)
-    set_terminal_size(master_fd, rows=current_rows, cols=current_cols)
 
-    try:
-        proc = subprocess.Popen(
-            cmd_args,
-            stdin=slave_fd,
-            stdout=slave_fd,
-            stderr=slave_fd,
-            cwd=str(workspace_dir),
-            env=env,
-            close_fds=True,
-            preexec_fn=os.setsid,
-        )
-    finally:
-        os.close(slave_fd)
-
-    def send_ws(payload: bytes, opcode: int = 0x2) -> bool:
-        frame = encode_ws_frame(payload, opcode)
+def _answer_terminal_queries(master_fd: int, chunk: bytes) -> bytes:
+    """Answer the capability queries crossterm and ratatui TUIs send, and strip them."""
+    replies = (
+        (b"]11;?", b"\x1b]11;rgb:0808/0c0c/1414\x1b\\"),
+        (b"]10;?", b"\x1b]10;rgb:f1f1/f5f5/f9f9\x1b\\"),
+        (b"[?u", b"\x1b[?0u"),
+        (b"[?996n", b"\x1b[?996;1n"),
+        (b"[16t", b"\x1b[6;16;8t"),
+    )
+    if b"\x1b[c" in chunk:
         try:
-            sock.sendall(frame)
-            return True
-        except (socket.timeout, BlockingIOError):
+            os.write(master_fd, b"\x1b[?62;22c")
+        except Exception:
+            pass
+        chunk = chunk.replace(b"\x1b[c", b"")
+    for query, reply in replies:
+        if query in chunk:
             try:
-                time.sleep(0.005)
-                sock.sendall(frame)
-                return True
+                os.write(master_fd, reply)
             except Exception:
-                return False
-        except (OSError, socket.error):
-            return False
+                pass
+    if b"\x1b" in chunk:
+        chunk = _ANSI_QUERY_STRIP_RE.sub(b"", chunk)
+    return chunk
 
-    sock.settimeout(2.0)
 
-    try:
-        # Send startup message banner to client only for plain shell to avoid TUI artifacts
+def _is_capability_echo(payload: bytes) -> bool:
+    """xterm.js answers to capability queries, which TUIs would read as keypresses."""
+    if payload.startswith(b"\x1b[?") and payload.endswith((b"c", b"u", b"n")):
+        return True
+    if payload.startswith((b"\x1b[6;", b"\x1b[4;")) and payload.endswith(b"t"):
+        return True
+    return payload.startswith((b"\x1b]>", b"\x1b]11;", b"\x1b]10;", b"\x1b]4;"))
+
+
+class _WsClient:
+    """One browser connection; sends are serialized between the reader and the socket loop."""
+
+    def __init__(self, sock: socket.socket) -> None:
+        self.sock = sock
+        self._lock = threading.Lock()
+
+    def send(self, payload: bytes, opcode: int = 0x2) -> bool:
+        frame = encode_ws_frame(payload, opcode)
+        with self._lock:
+            for _ in range(2):
+                try:
+                    self.sock.sendall(frame)
+                    return True
+                except (socket.timeout, BlockingIOError):
+                    time.sleep(0.005)
+                except (OSError, socket.error):
+                    return False
+        return False
+
+
+class TerminalSession:
+    """An agent process on a PTY, with its recent output and at most one viewer."""
+
+    def __init__(self, workspace_dir: Path, agent_id: str, rows: int, cols: int) -> None:
+        self.id = secrets.token_hex(8)
+        self.agent = agent_id
+        self.workspace_dir = workspace_dir
+        self.rows, self.cols = max(1, rows), max(2, cols)
+        self.created_at = time.time()
+        self.detached_at: float | None = time.time()
+        self.ended = False
+        self._buffer = bytearray()
+        self._lock = threading.Lock()
+        self._client: _WsClient | None = None
+
+        cmd_args, self.resolved_name, warning_banner = build_agent_command(agent_id)
+        env = _agent_env(workspace_dir, agent_id)
+        self.master_fd, slave_fd = pty.openpty()
+        set_terminal_size(self.master_fd, rows=self.rows, cols=self.cols)
+        try:
+            self.proc = subprocess.Popen(
+                cmd_args,
+                stdin=slave_fd,
+                stdout=slave_fd,
+                stderr=slave_fd,
+                cwd=str(workspace_dir),
+                env=env,
+                close_fds=True,
+                preexec_fn=os.setsid,
+            )
+        finally:
+            os.close(slave_fd)
+
+        # Startup banner only for plain shell, to avoid TUI artifacts
         if agent_id == "shell":
-            welcome_banner = (
+            self._record((
                 f"\r\n\x1b[1;36m┌──────────────────────────────────────────────────────────────┐\x1b[0m\r\n"
                 f"\x1b[1;36m│\x1b[0m  \x1b[1;35mMorfeo Command Center\x1b[0m: Terminal interactivo activo         \x1b[1;36m│\x1b[0m\r\n"
-                f"\x1b[1;36m│\x1b[0m  Agente: \x1b[1;32m{resolved_name:<49}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
+                f"\x1b[1;36m│\x1b[0m  Agente: \x1b[1;32m{self.resolved_name:<49}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
                 f"\x1b[1;36m│\x1b[0m  Directorio: \x1b[90m{str(workspace_dir)[-45:]:<45}\x1b[0m \x1b[1;36m│\x1b[0m\r\n"
                 f"\x1b[1;36m└──────────────────────────────────────────────────────────────┘\x1b[0m\r\n\r\n"
-            )
-            send_ws(welcome_banner.encode("utf-8"), 0x2)
+            ).encode("utf-8"))
         elif warning_banner:
-            send_ws(warning_banner.encode("utf-8"), 0x2)
+            self._record(warning_banner.encode("utf-8"))
 
-        in_buffer = bytearray()
-        utf8_remainder = b""
-        should_exit = False
+        threading.Thread(target=self._read_loop, name=f"pty-{self.id}", daemon=True).start()
 
-        while not should_exit:
-            # Check child process lifecycle
-            if proc.poll() is not None:
-                # Drain remaining PTY output
-                try:
-                    r, _, _ = select.select([master_fd], [], [], 0.05)
-                    if master_fd in r:
-                        leftover = os.read(master_fd, 16384)
-                        if leftover:
-                            send_ws(utf8_remainder + leftover, 0x2)
-                            utf8_remainder = b""
-                except Exception:
-                    pass
+    @property
+    def alive(self) -> bool:
+        return not self.ended and self.proc.poll() is None
 
-                if utf8_remainder:
-                    send_ws(utf8_remainder, 0x2)
-                    utf8_remainder = b""
+    @property
+    def attached(self) -> bool:
+        return self._client is not None
 
-                exit_msg = (
-                    f"\r\n\x1b[33m[Morfeo] Sesión finalizada (código de salida: {proc.returncode}).\x1b[0m\r\n"
-                    f"\x1b[90mPuedes reiniciar la sesión desde el selector de agente o cerrar el panel.\x1b[0m\r\n"
-                )
-                send_ws(exit_msg.encode("utf-8"), 0x2)
-                send_ws(b"", 0x8)  # WebSocket close
-                break
+    def describe(self) -> dict[str, Any]:
+        return {"ok": True, "id": self.id, "agent": self.agent, "alive": self.alive, "attached": self.attached}
 
-            # Wait for either PTY output or WebSocket input
+    def _record(self, data: bytes) -> None:
+        """Keep `data` for the replay and forward it to the viewer, if any."""
+        with self._lock:
+            self._buffer.extend(data)
+            if len(self._buffer) > SESSION_BUFFER_BYTES:
+                cut = len(self._buffer) - SESSION_BUFFER_BYTES
+                # Start the replay at a line so it does not open mid escape sequence.
+                newline = self._buffer.find(b"\n", cut)
+                del self._buffer[: newline + 1 if 0 <= newline < cut + 4096 else cut]
+            client = self._client
+        if client is not None:
+            client.send(data)
+
+    def _read_loop(self) -> None:
+        remainder = b""
+        while True:
             try:
-                rlist, _, _ = select.select([master_fd, sock.fileno()], [], [], 0.05)
-            except (select.error, OSError):
+                r, _, _ = select.select([self.master_fd], [], [], 0.2)
+            except (select.error, OSError, ValueError):
                 break
-
-            # Process PTY output -> send to WebSocket client
-            if master_fd in rlist:
+            if self.master_fd in r:
                 try:
-                    raw_chunk = os.read(master_fd, 16384)
+                    raw = os.read(self.master_fd, 16384)
                 except OSError:
+                    raw = b""
+                if not raw:
                     break
-                if not raw_chunk:
-                    break
-
-                chunk = utf8_remainder + raw_chunk
-
-                # Automatic terminal capability responses for crossterm and ratatui full-screen TUIs
-                if b"\x1b[c" in chunk:
-                    try:
-                        os.write(master_fd, b"\x1b[?62;22c")
-                    except Exception:
-                        pass
-                    chunk = chunk.replace(b"\x1b[c", b"")
-
-                if b"]11;?" in chunk:
-                    try:
-                        os.write(master_fd, b"\x1b]11;rgb:0808/0c0c/1414\x1b\\")
-                    except Exception:
-                        pass
-
-                if b"]10;?" in chunk:
-                    try:
-                        os.write(master_fd, b"\x1b]10;rgb:f1f1/f5f5/f9f9\x1b\\")
-                    except Exception:
-                        pass
-
-                if b"[?u" in chunk:
-                    try:
-                        os.write(master_fd, b"\x1b[?0u")
-                    except Exception:
-                        pass
-
-                if b"[?996n" in chunk:
-                    try:
-                        os.write(master_fd, b"\x1b[?996;1n")
-                    except Exception:
-                        pass
-
-                if b"[16t" in chunk:
-                    try:
-                        os.write(master_fd, b"\x1b[6;16;8t")
-                    except Exception:
-                        pass
-
-                if b"\x1b" in chunk:
-                    chunk = _ANSI_QUERY_STRIP_RE.sub(b"", chunk)
-
-                chunk_to_send, utf8_remainder = split_complete_utf8(chunk)
-                if chunk_to_send:
-                    if not send_ws(chunk_to_send, 0x2):
-                        break
-
-            # Process WebSocket input from client -> write to PTY
-            if sock.fileno() in rlist:
-                try:
-                    raw_data = sock.recv(8192)
-                except (BlockingIOError, socket.timeout):
-                    raw_data = None
-                except (OSError, socket.error):
-                    break
-
-                if raw_data is not None:
-                    if not raw_data:
-                        # Client disconnected
-                        break
-                    in_buffer.extend(raw_data)
-
-                    while True:
-                        frame_res, consumed = decode_ws_client_frame(in_buffer)
-                        if frame_res is None:
-                            break
-                        del in_buffer[:consumed]
-                        opcode, payload = frame_res
-
-                        if opcode == 0x8:  # WS Close
-                            should_exit = True
-                            break
-                        elif opcode == 0x9:  # WS Ping -> Pong
-                            send_ws(payload, 0xA)
-                        elif opcode in (0x1, 0x2):
-                            # Inspect for control JSON (resize / ping)
-                            handled_control = False
-                            if payload.startswith(b'{"type"') or payload.startswith(b'{"type "'):
-                                try:
-                                    msg = json.loads(payload.decode("utf-8"))
-                                    mtype = msg.get("type")
-                                    if mtype == "resize":
-                                        cols = max(2, int(msg.get("cols", 80)))
-                                        rows = max(1, int(msg.get("rows", 24)))
-                                        force_redraw = bool(msg.get("redraw"))
-                                        size_changed = (rows != current_rows or cols != current_cols)
-                                        current_rows, current_cols = rows, cols
-                                        set_terminal_size(master_fd, rows=rows, cols=cols)
-                                        if force_redraw and not size_changed and proc.poll() is None:
-                                            try:
-                                                os.killpg(os.getpgid(proc.pid), signal.SIGWINCH)
-                                            except Exception:
-                                                pass
-                                        handled_control = True
-                                    elif mtype == "ping":
-                                        send_ws(b"pong", 0xA)
-                                        handled_control = True
-                                except Exception:
-                                    pass
-
-                            # Filter out terminal capability echoes from xterm.js
-                            # so that Herdr and other TUIs don't misinterpret them as keypresses
-                            if not handled_control:
-                                if payload.startswith(b"\x1b[?") and (
-                                    payload.endswith(b"c") or payload.endswith(b"u") or payload.endswith(b"n")
-                                ):
-                                    handled_control = True
-                                elif (
-                                    payload.startswith(b"\x1b[6;") or payload.startswith(b"\x1b[4;")
-                                ) and payload.endswith(b"t"):
-                                    handled_control = True
-                                elif (
-                                    payload.startswith(b"\x1b]>")
-                                    or payload.startswith(b"\x1b]11;")
-                                    or payload.startswith(b"\x1b]10;")
-                                    or payload.startswith(b"\x1b]4;")
-                                ):
-                                    handled_control = True
-
-                            if not handled_control:
-                                try:
-                                    os.write(master_fd, payload)
-                                except OSError:
-                                    should_exit = True
-                                    break
-    finally:
-        # Cleanup subprocess and descriptors unconditionally
+                chunk = _answer_terminal_queries(self.master_fd, remainder + raw)
+                complete, remainder = split_complete_utf8(chunk)
+                if complete:
+                    self._record(complete)
+            elif self.proc.poll() is not None:
+                break
+        if remainder:
+            self._record(remainder)
         try:
-            if proc.poll() is None:
+            self.proc.wait(timeout=1.0)
+        except Exception:
+            pass
+        self.ended = True
+        self._record((
+            f"\r\n\x1b[33m[Morfeo] Sesión finalizada (código de salida: {self.proc.returncode}).\x1b[0m\r\n"
+            f"\x1b[90mPuedes reiniciar la sesión desde el selector de agente o cerrar el panel.\x1b[0m\r\n"
+        ).encode("utf-8"))
+        with self._lock:
+            client = self._client
+        if client is not None:
+            client.send(b"", 0x8)  # WebSocket close
+
+    def attach(self, client: _WsClient, reattached: bool) -> None:
+        """Make `client` the viewer: announce the session, then replay its output."""
+        with self._lock:
+            previous = self._client
+            self._client = client
+            self.detached_at = None
+            replay = bytes(self._buffer)
+        if previous is not None and previous is not client:
+            # One viewer at a time: the newer tab takes the session.
+            previous.send(b"", 0x8)
+        hello = {"type": "session", "id": self.id, "agent": self.agent, "reattached": reattached}
+        client.send(json.dumps(hello).encode("utf-8"), 0x1)
+        if replay:
+            client.send(replay)
+
+    def detach(self, client: _WsClient) -> None:
+        with self._lock:
+            if self._client is client:
+                self._client = None
+                self.detached_at = time.time()
+
+    def write(self, data: bytes) -> bool:
+        try:
+            os.write(self.master_fd, data)
+            return True
+        except OSError:
+            return False
+
+    def interrupt(self) -> bytes:
+        key = interrupt_key(self.agent)
+        self.write(key)
+        return key
+
+    def resize(self, rows: int, cols: int, redraw: bool) -> None:
+        size_changed = (rows, cols) != (self.rows, self.cols)
+        self.rows, self.cols = rows, cols
+        set_terminal_size(self.master_fd, rows=rows, cols=cols)
+        if redraw and not size_changed and self.proc.poll() is None:
+            try:
+                os.killpg(os.getpgid(self.proc.pid), signal.SIGWINCH)
+            except Exception:
+                pass
+
+    def close(self) -> None:
+        """Terminate the agent's process group and release the PTY."""
+        try:
+            if self.proc.poll() is None:
+                # SIGHUP as a closed terminal would; interactive shells ignore SIGTERM.
+                for sig in (signal.SIGHUP, signal.SIGTERM):
+                    try:
+                        os.killpg(os.getpgid(self.proc.pid), sig)
+                    except (ProcessLookupError, PermissionError):
+                        pass
                 try:
-                    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-                except (ProcessLookupError, PermissionError):
-                    pass
-                try:
-                    proc.wait(timeout=1.0)
+                    self.proc.wait(timeout=1.0)
                 except Exception:
                     try:
-                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                        os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
                     except Exception:
                         pass
         except Exception:
             pass
-
+        self.ended = True
+        with self._lock:
+            client, self._client = self._client, None
+        if client is not None:
+            client.send(b"", 0x8)
         try:
-            os.close(master_fd)
+            os.close(self.master_fd)
         except OSError:
             pass
 
+
+class SessionRegistry:
+    def __init__(self) -> None:
+        self._sessions: dict[str, TerminalSession] = {}
+        self._lock = threading.Lock()
+
+    def ids(self) -> list[str]:
+        with self._lock:
+            return list(self._sessions)
+
+    def get(self, session_id: str | None) -> TerminalSession | None:
+        if not session_id:
+            return None
+        with self._lock:
+            return self._sessions.get(session_id)
+
+    def _reap(self) -> list[TerminalSession]:
+        """Drop ended sessions and detached ones past their TTL; call with the lock held."""
+        now = time.time()
+        gone = [s for s in self._sessions.values()
+                if not s.alive or (s.detached_at is not None and now - s.detached_at > DETACHED_SESSION_TTL_S)]
+        for s in gone:
+            del self._sessions[s.id]
+        return gone
+
+    def create(self, workspace_dir: Path, agent_id: str, rows: int, cols: int) -> TerminalSession:
+        with self._lock:
+            evicted = self._reap()
+            while len(self._sessions) >= MAX_SESSIONS:
+                pool = [s for s in self._sessions.values() if not s.attached] or list(self._sessions.values())
+                oldest = min(pool, key=lambda s: s.detached_at or s.created_at)
+                del self._sessions[oldest.id]
+                evicted.append(oldest)
+        for s in evicted:
+            s.close()
+        session = TerminalSession(workspace_dir, agent_id, rows, cols)
+        with self._lock:
+            self._sessions[session.id] = session
+        return session
+
+    def remove(self, session_id: str) -> bool:
+        with self._lock:
+            session = self._sessions.pop(session_id, None)
+        if session is None:
+            return False
+        session.close()
+        return True
+
+    def close_all(self) -> None:
+        with self._lock:
+            sessions, self._sessions = list(self._sessions.values()), {}
+        for s in sessions:
+            s.close()
+
+
+SESSIONS = SessionRegistry()
+atexit.register(SESSIONS.close_all)
+
+
+def run_pty_session(
+    sock: socket.socket,
+    workspace_dir: Path,
+    agent_id: str = "claude",
+    init_rows: int = 24,
+    init_cols: int = 80,
+    session_id: str | None = None,
+) -> None:
+    """Attach an xterm.js WebSocket to an agent session, reusing `session_id` when it is live.
+
+    A session is reused only for the same workspace and agent. Closing the socket
+    detaches it; the agent keeps running until it exits, is closed over HTTP, or
+    the registry evicts it.
+    """
+    session = SESSIONS.get(session_id)
+    reattached = bool(session and session.alive and session.agent == agent_id
+                      and session.workspace_dir == workspace_dir)
+    if not reattached:
+        session = SESSIONS.create(workspace_dir, agent_id, init_rows, init_cols)
+    assert session is not None
+    client = _WsClient(sock)
+    sock.settimeout(2.0)
+    session.attach(client, reattached)
+
+    in_buffer = bytearray()
+    try:
+        while session.alive:
+            try:
+                rlist, _, _ = select.select([sock.fileno()], [], [], 0.2)
+            except (select.error, OSError, ValueError):
+                break
+            if not rlist:
+                continue
+            try:
+                raw_data = sock.recv(8192)
+            except (BlockingIOError, socket.timeout):
+                continue
+            except (OSError, socket.error):
+                break
+            if not raw_data:
+                break  # Client disconnected
+            in_buffer.extend(raw_data)
+
+            closing = False
+            while True:
+                frame_res, consumed = decode_ws_client_frame(in_buffer)
+                if frame_res is None:
+                    break
+                del in_buffer[:consumed]
+                opcode, payload = frame_res
+                if opcode == 0x8:  # WS Close
+                    closing = True
+                    break
+                if opcode == 0x9:  # WS Ping -> Pong
+                    client.send(payload, 0xA)
+                    continue
+                if opcode not in (0x1, 0x2):
+                    continue
+                # Inspect for control JSON (resize / ping)
+                if payload.startswith(b'{"type"'):
+                    try:
+                        msg = json.loads(payload.decode("utf-8"))
+                    except Exception:
+                        msg = None
+                    if isinstance(msg, dict) and msg.get("type") == "resize":
+                        try:
+                            cols = max(2, int(msg.get("cols", 80)))
+                            rows = max(1, int(msg.get("rows", 24)))
+                        except (TypeError, ValueError):
+                            continue
+                        session.resize(rows, cols, bool(msg.get("redraw")))
+                        continue
+                    if isinstance(msg, dict) and msg.get("type") == "ping":
+                        client.send(b"pong", 0xA)
+                        continue
+                if _is_capability_echo(payload):
+                    continue
+                if not session.write(payload):
+                    closing = True
+                    break
+            if closing:
+                break
+    finally:
+        session.detach(client)

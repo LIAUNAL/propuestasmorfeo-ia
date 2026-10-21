@@ -123,6 +123,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_terminal_tools()
         elif path == "/ws/terminal":
             self.handle_terminal_ws()
+        elif path.startswith("/api/terminal/sessions/"):
+            self.handle_terminal_session("GET", path)
         elif path == "/api/flow":
             self.serve_flow()
         elif path == "/api/pdf":
@@ -150,12 +152,42 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_graph_build()
         elif path == "/api/terminal/launch-external":
             self.handle_launch_external_terminal()
+        elif path.startswith("/api/terminal/sessions/"):
+            self.handle_terminal_session("POST", path)
         elif path == "/api/trees/feedback":
             self.handle_trees_feedback()
         elif path == "/api/trees/approve":
             self.handle_trees_approve()
         else:
             self.send_error(404, "Not Found")
+
+    def do_DELETE(self) -> None:
+        path = self.path.split("?")[0]
+        if path.startswith("/api/terminal/sessions/"):
+            self.handle_terminal_session("DELETE", path)
+        else:
+            self.send_error(404, "Not Found")
+
+    def handle_terminal_session(self, method: str, path: str) -> None:
+        """GET describes, POST …/interrupt stops the agent's turn, DELETE closes the session."""
+        from .terminal import SESSIONS
+
+        parts = path[len("/api/terminal/sessions/"):].strip("/").split("/")
+        session = SESSIONS.get(parts[0])
+        action = parts[1] if len(parts) > 1 else ""
+        if session is None or not session.alive:
+            self._send_json(404, {"ok": False, "error": "La sesión ya no existe"})
+            return
+        if method == "GET" and not action:
+            self._send_json(200, session.describe())
+        elif method == "POST" and action == "interrupt":
+            key = session.interrupt()
+            self._send_json(200, {"ok": True, "id": session.id, "key": "esc" if key == b"\x1b" else "ctrl-c"})
+        elif method == "DELETE" and not action:
+            SESSIONS.remove(session.id)
+            self._send_json(200, {"ok": True, "id": session.id})
+        else:
+            self._send_json(404, {"ok": False, "error": "Operación desconocida"})
 
     def serve_static_asset(self, req_path: str) -> None:
         rel_path = req_path.replace("/static/", "", 1)
@@ -644,13 +676,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(400, "Missing Sec-WebSocket-Key")
             return
 
-        from .terminal import (
-            find_executable,
-            get_current_agent_pane_id,
-            run_pane_mirror_session,
-            run_pty_session,
-            ws_handshake_accept,
-        )
+        from .terminal import run_pty_session, ws_handshake_accept
 
         accept_token = ws_handshake_accept(key)
         response = (
@@ -666,6 +692,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(parsed.query)
         agent = qs.get("agent", ["herdr"])[0]
+        session_id = qs.get("session", [None])[0]
         try:
             cols = int(qs.get("cols", [80])[0])
         except (ValueError, TypeError):
@@ -683,6 +710,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             agent_id=agent,
             init_rows=rows,
             init_cols=cols,
+            session_id=session_id,
         )
 
     def serve_pdf(self) -> None:
