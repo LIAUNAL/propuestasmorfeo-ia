@@ -20,7 +20,7 @@ Rama: `perf/tablero-recursos` · Entrega: merge local a `main` · Tests: `npm te
 - T1: memoria. Los iframes del grafo y del PDF nativo se cargan al abrir su pestaña, no al abrir la página. El bucle WebGL del grafo (`scripts/graph_html.py`) no dibuja con la página oculta ni con el lienzo en tamaño 0.
 - T2: GPU. El brillo neón y el halo animan la opacidad de una capa con la sombra fija, no `box-shadow`. Las animaciones se pausan con la página oculta y respetan `prefers-reduced-motion`. Se agregan los keyframes que faltaban (`spin`).
 - T3: CPU del cliente. Un solo sondeo de estado que se reprograma solo (2 s durante una ejecución, 5 s si no), sin pedidos solapados y en pausa con la página oculta. El seguidor se repinta solo si cambió. El sondeo no reajusta la terminal si la conexión está viva.
-- T4: CPU del servidor. La caché de estado dura más que el intervalo de sondeo, el JSON va compacto, y el búfer de la sesión se recorta por bloques en lugar de a cada fragmento.
+- T4: CPU del servidor. El JSON de estado va compacto, y el búfer de la sesión se recorta por bloques en lugar de a cada fragmento. La caché de estado se dejó igual (ver L4).
 
 Ruta: inline (no se dispara el Writer trigger).
 
