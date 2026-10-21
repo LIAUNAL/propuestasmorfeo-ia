@@ -230,6 +230,27 @@ class TerminalSessionTest(unittest.TestCase):
             numbers = [int(n) for n in re.findall(r"^L(\d+)\r?$", text, re.M)]
             self.assertEqual(numbers, sorted(numbers), "live output never precedes the replay")
 
+    def test_the_replay_buffer_is_trimmed_in_blocks_and_keeps_the_newest_output(self) -> None:
+        from src.morfeo.dashboard import terminal
+
+        session = SESSIONS.create(Path(__file__).resolve().parent.parent, "shell", 24, 80)
+        cap = terminal.SESSION_BUFFER_BYTES
+        line = b"x" * 99 + b"\n"
+        for i in range(int(cap * 1.5) // len(line)):
+            session._record(line)
+        session._record(b"LAST\n")
+        size = len(session._buffer)
+        self.assertLessEqual(size, cap + cap // 4)
+        self.assertGreaterEqual(size, cap // 2)
+        self.assertTrue(bytes(session._buffer).endswith(b"LAST\n"))
+
+    def test_status_is_served_as_compact_json(self) -> None:
+        req = urllib.request.Request(f"http://127.0.0.1:{self.port}/api/status")
+        with urllib.request.urlopen(req, timeout=5) as res:
+            body = res.read()
+        self.assertNotIn(b"\n  ", body)
+        self.assertIsInstance(json.loads(body), dict)
+
     def test_the_interrupt_key_depends_on_the_agent(self) -> None:
         self.assertEqual(interrupt_key("claude"), b"\x1b")
         self.assertEqual(interrupt_key("opencode"), b"\x1b")

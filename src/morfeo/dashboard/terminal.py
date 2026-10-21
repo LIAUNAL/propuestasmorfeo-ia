@@ -790,7 +790,8 @@ class TerminalSession:
         """
         with self._lock:
             self._buffer.extend(data)
-            if len(self._buffer) > SESSION_BUFFER_BYTES:
+            # Trimmed in blocks: cutting the front on every chunk copied the whole buffer each time.
+            if len(self._buffer) > SESSION_BUFFER_BYTES + SESSION_BUFFER_BYTES // 4:
                 cut = len(self._buffer) - SESSION_BUFFER_BYTES
                 # Start the replay at a line so it does not open mid escape sequence.
                 newline = self._buffer.find(b"\n", cut)

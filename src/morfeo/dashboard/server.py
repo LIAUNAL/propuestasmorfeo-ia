@@ -626,7 +626,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
     def serve_api_status(self) -> None:
         response_data = get_project_status(self.workspace_dir)
-        body = json.dumps(response_data, indent=2).encode("utf-8")
+        # Compacto: el tablero lo pide cada 2 a 5 s, y la sangría solo engordaba el cuerpo.
+        body = json.dumps(response_data, separators=(",", ":")).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
