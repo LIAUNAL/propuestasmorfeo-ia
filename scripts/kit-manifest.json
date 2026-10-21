@@ -59,6 +59,7 @@
     "requirements.txt",
     "scripts/agent-models.json",
     "scripts/apa.csl",
+    "scripts/arbol_objetivos.py",
     "scripts/build_manuscript_graph.py",
     "scripts/check-agent-models.py",
     "scripts/check_run.py",

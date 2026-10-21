@@ -451,7 +451,7 @@ def build_arbol(spec: dict, over: dict) -> tuple[str, list[int], dict[int, str]]
             line_map[len(lines)] = node
 
     emit("% " + "=" * 69)
-    emit("% ÁRBOL DE PROBLEMAS — §3 Descripción del problema")
+    emit("% " + (spec.get("header") or "ÁRBOL DE PROBLEMAS — §3 Descripción del problema"))
     emit("% GENERADO por plantilla/scripts/render_tikz.py desde la spec JSON.")
     emit("% No editar a mano: la geometría la calcula el script (anchos que")
     emit("% caben el token más largo, anclas reales, columnas equiespaciadas).")

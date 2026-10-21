@@ -45,6 +45,8 @@ these constants and the guide in step.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import importlib.util
 import json
 import re
 import shutil
@@ -75,6 +77,9 @@ SGR_SECTIONS = (
 FLUJOS = ("base", "sgr")
 PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
 OBJECTIVES_FILE = Path("artefactos") / "arboles" / "arbol_objetivos.json"
+REVIEW_FILE = Path("artefactos") / "arboles" / "revision.json"
+# Tree figures that must be compiled from the spec the panel shows.
+TREE_FIGURES = {"arbol_problemas": "problemas", "arbol_objetivos": "objetivos"}
 
 # Environments whose content is not narrative prose (tables, drawings, code, math)
 NON_PROSE_ENVS = (
@@ -677,6 +682,91 @@ def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections:
                        sections["06_objetivo_general"])
 
 
+def panel_tree_hash(tree_key: str, data: dict) -> str:
+    """Hash the dashboard panel approves (src/morfeo/core/trees.py `_hash`): the
+    problem tree is normalised from its spec, the objective tree is hashed as is."""
+    if tree_key == "problemas":
+        def magnitude(node: dict, source: dict) -> dict:
+            if isinstance(source.get("magnitude"), dict):
+                node["magnitude"] = source["magnitude"]
+            return node
+
+        data = {
+            "caption": data.get("caption") or "",
+            "groups": [
+                magnitude({
+                    "id": g.get("id"),
+                    "title": g.get("title") or g.get("id"),
+                    "causes": [{"id": c.get("id"), "text": c.get("text")} for c in g.get("causes") or []],
+                }, g)
+                for g in data.get("groups") or []
+            ],
+            "trunk": data.get("trunk") or {"label": "PROBLEMA CENTRAL", "text": None},
+            "branches": [magnitude({"id": b.get("id"), "text": b.get("text")}, b) for b in data.get("branches") or []],
+            "crown": data.get("crown") or {"label": "EFECTO FINAL", "text": None},
+        }
+    raw = json.dumps(data, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _run_renderer(red: Path):
+    """The run's own render_tikz.py (the one that compiled its figures), else the framework's."""
+    for path in (red / "scripts" / "render_tikz.py",
+                 Path(__file__).resolve().parent.parent / "plantilla" / "scripts" / "render_tikz.py"):
+        if path.is_file():
+            module_spec = importlib.util.spec_from_file_location("run_render_tikz", path)
+            module = importlib.util.module_from_spec(module_spec)
+            try:
+                module_spec.loader.exec_module(module)
+            except Exception:
+                return None
+            return module
+    return None
+
+
+def check_tree_figures(report: Report, run_root: Path, flujo: str) -> None:
+    """A tree figure is the panel's tree: re-render its spec and compare."""
+    red = run_root / "redaccion"
+    renderer = None
+    for name in TREE_FIGURES:
+        spec_path = red / "specs" / f"{name}.spec.json"
+        diag = red / "sections" / f"diag_{name}.tex"
+        spec = _read_json_file(spec_path)
+        if spec is None or not diag.is_file():
+            continue
+        renderer = renderer or _run_renderer(red)
+        if renderer is None:
+            return
+        overrides_path = spec_path.with_name(f"{name}.overrides.json")
+        overrides = renderer.load_overrides(overrides_path) if hasattr(renderer, "load_overrides") else {}
+        try:
+            expected, _ = renderer.render(spec, overrides)
+        except (SystemExit, Exception) as exc:
+            report.add("error", "figura-spec-invalida", f"specs/{name}.spec.json no se puede renderizar: {exc}", spec_path)
+            continue
+        if expected.rstrip() != diag.read_text(encoding="utf-8", errors="replace").rstrip():
+            report.add("error", "figura-desincronizada",
+                       f"diag_{name}.tex no corresponde a specs/{name}.spec.json, el árbol que muestra el panel. "
+                       f"Vuelve a compilarla: python3 redaccion/scripts/figura.py {name} "
+                       f"--spec redaccion/specs/{name}.spec.json --project redaccion", diag)
+
+    if flujo != "sgr":
+        return
+    review = _read_json_file(run_root / REVIEW_FILE) or {}
+    sources = {"problemas": run_root / PROBLEM_SPEC, "objetivos": run_root / OBJECTIVES_FILE}
+    for name, key in TREE_FIGURES.items():
+        data = _read_json_file(sources[key])
+        if data is None or (key == "objetivos" and not (red / "sections" / f"diag_{name}.tex").is_file()
+                            and not (red / "specs" / f"{name}.spec.json").is_file()):
+            continue
+        approved = (review.get(key) or {}).get("approved_hash")
+        if approved != panel_tree_hash(key, data):
+            state = "quedó desactualizada" if approved else "no existe"
+            report.add("warning", "arbol-sin-aprobar-panel",
+                       f"En el flujo SGR la figura del árbol de {key} sale del árbol aprobado en el panel del tablero, "
+                       f"y esa aprobación {state}. Revísalo y apruébalo en la pestaña de árboles.", sources[key])
+
+
 def check_sgr_sections(report: Report, sec_dir: Path, flujo: str, final: bool) -> None:
     if flujo != "sgr" or not final:
         return
@@ -718,6 +808,7 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_bibliography(report, sections, texts)
     check_pdf(report, red)
     check_trees(report, run_root, texts, sections, report.flujo)
+    check_tree_figures(report, run_root, report.flujo)
     check_sgr_sections(report, sec_dir, report.flujo, final)
     return report
 
