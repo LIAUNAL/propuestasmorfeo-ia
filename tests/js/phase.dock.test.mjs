@@ -139,6 +139,8 @@ test('«Detener proceso» interrupts the session, keeps it and unblocks the phas
   assert.equal(viewer.viewer('evaluatePhaseExecution', 'fase2', running()).allowed, true, 'the stopped heartbeat no longer blocks');
   assert.equal(viewer.viewer('phaseRunActive'), false);
 
+  await execute(viewer);
+  assert.equal(viewer.window.localStorage.getItem('morfeo.phaseRunStopped'), null, 'a new run clears the stop mark');
   const later = running({ en_curso: { fase: 'fase2', agentes: [], inicio: new Date(Date.now() + 60000).toISOString(), stale: false } });
   assert.equal(viewer.viewer('evaluatePhaseExecution', 'fase2', later).allowed, false, 'a new run of the phase counts again');
 });

@@ -3762,6 +3762,8 @@
       };
       PHASE_RUN_DISMISSED = null;
       savePhaseRun();
+      // Una ejecución nueva cuenta su latido aunque antes se haya detenido otra.
+      try { localStorage.removeItem(PHASE_RUN_STOP_KEY); } catch (err) { /* sin almacenamiento */ }
       renderPhaseRunTracker(data);
       setTimeout(() => loadStatus(), 1500);
     }
@@ -8748,6 +8750,13 @@
             terminalQuietUntil = Date.now() + TERMINAL_REPLAY_QUIET_MS;
             return;
           }
+          if (msg && msg.type === 'ended') {
+            // Se cerró en el servidor (otra pestaña, el tope de sesiones): no se reconecta a ella.
+            terminalProcessExited = true;
+            forgetTerminalSession(terminalSessionId);
+            terminalInstance.write('\r\n\x1b[33m[Morfeo] La sesión se cerró. Vuelve a abrir el asistente o reinícialo para empezar otra.\x1b[0m\r\n');
+            return;
+          }
           if (msg && msg.type === 'detached') {
             // Otra pestaña tomó la sesión; reconectarse aquí se la quitaría.
             terminalSessionTaken = true;
@@ -8936,12 +8945,9 @@
       }
     });
 
-    // Al recargar o cerrar la página se conserva la sesión de una fase en curso
-    // (y se reconecta al volver); sin fase en curso se termina, para que no quede
-    // un agente abierto que nadie ve.
-    window.addEventListener('beforeunload', () => {
-      if (terminalSessionId && !phaseRunActive()) closeTerminalSession(true);
-    });
+    // Recargar o cerrar la página no termina la sesión: al volver, el tablero se
+    // reconecta a ella. Otra pestaña puede estar usándola, así que no se cierra
+    // desde aquí; el servidor recoge la que nadie retoma (12 h) y limita a 4 las vivas.
 
     window.addEventListener('resize', () => {
       if (isTerminalOpen && terminalInstance) {

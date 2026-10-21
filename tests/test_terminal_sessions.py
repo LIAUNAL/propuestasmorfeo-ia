@@ -192,6 +192,7 @@ class TerminalSessionTest(unittest.TestCase):
         client.close()
         status, body = self.http("DELETE", f"/api/terminal/sessions/{sid}")
         self.assertEqual((status, body["ok"]), (200, True))
+        self.assertNotIn(sid, SESSIONS.ids())
         status, body = self.http("GET", f"/api/terminal/sessions/{sid}")
         self.assertEqual((status, body["ok"]), (404, False))
 
@@ -199,6 +200,35 @@ class TerminalSessionTest(unittest.TestCase):
         self.assertEqual(self.http("GET", "/api/terminal/sessions/nope")[0], 404)
         self.assertEqual(self.http("POST", "/api/terminal/sessions/nope/interrupt")[0], 404)
         self.assertEqual(self.http("DELETE", "/api/terminal/sessions/nope")[0], 404)
+
+    def test_a_reattach_replays_before_any_newer_output(self) -> None:
+        import re
+        from src.morfeo.dashboard import terminal
+
+        class Recorder(terminal._WsClient):
+            def __init__(self) -> None:
+                self.frames: list[tuple[int, bytes]] = []
+                self._lock = threading.Lock()
+
+            def send(self, payload: bytes, opcode: int = 0x2) -> bool:
+                if opcode == 0x1:
+                    time.sleep(0.01)  # a slow socket widens the hello-to-replay gap
+                with self._lock:
+                    self.frames.append((opcode, payload))
+                return True
+
+        session = SESSIONS.create(Path(__file__).resolve().parent.parent, "shell", 24, 80)
+        session.write(b"i=0; while :; do echo L$i; i=$((i+1)); done\n")
+        time.sleep(0.3)
+        for _ in range(15):
+            viewer = Recorder()
+            session.attach(viewer, True)
+            time.sleep(0.02)
+            session.detach(viewer)
+            self.assertEqual(viewer.frames[0][0], 0x1, "the hello comes first")
+            text = b"".join(p for op, p in viewer.frames[1:] if op == 0x2).decode("utf-8", "replace")
+            numbers = [int(n) for n in re.findall(r"^L(\d+)\r?$", text, re.M)]
+            self.assertEqual(numbers, sorted(numbers), "live output never precedes the replay")
 
     def test_the_interrupt_key_depends_on_the_agent(self) -> None:
         self.assertEqual(interrupt_key("claude"), b"\x1b")

@@ -21,9 +21,9 @@ Rama: `feat/sesion-cli-seguimiento` · Entrega: merge local a `main` · Tests: `
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |----|-------|------|--------|-----------|
-| T1 | S2 | inline | pendiente | |
-| T2 | S2, S3 | inline | pendiente | |
-| T3 | S1, S3, S4 | inline | pendiente | |
+| T1 | S2 | inline | hecha | 5c7352d; RED (import) → GREEN, 9 tests en tests/test_terminal_sessions.py |
+| T2 | S2, S3 | inline | hecha | 1e508be; 8 tests en tests/js/terminal.session.test.mjs (escritos tras el código, sin RED previo) |
+| T3 | S1, S3, S4 | inline | hecha | 0697998; RED 8/8 → GREEN, tests/js/phase.dock.test.mjs |
 
 - T1: servidor. Registro de sesiones PTY con identificador y búfer. El WebSocket se desacopla al cerrar y se reconecta con `?session=<id>`. Se agregan `GET` y `DELETE /api/terminal/sessions/<id>` y el tope de sesiones.
 - T2: CLI del tablero. Recordar la sesión, reconectarse, redibujar una vez, confirmar el cambio de agente, registrar la actividad de salida, detectar preguntas de arranque y enviar la interrupción.
@@ -35,3 +35,22 @@ Ruta: inline. Las tres unidades comparten el contrato de sesión, así que no se
 
 - L1 (2026-10-21): «revisa la interaccion con las fases que hcimos esta mañana en Documents/papers_smith, relacionado con incluir barra de avance, manejo de cli, indicacion de proceso por fases, etc, e implementalo de forma similar aca en morfeo. revisa muy bien interaccion con cli, botones de ejecucion, apertura o no de sesiones de cli, etc»
 - L2: Mapa. papersmith (`skills/_core/command_center`) guarda las sesiones PTY en un `TerminalManager` con id y búfer. El cliente guarda `{id, agent}` y se reconecta con `GET /api/terminal/sessions/{id}`. Hace `term.reset()` antes de redibujar. El dock está en `phase-run.js`, con interrupción y aviso de inactividad, y el guardia de preguntas de arranque en `cli-console.js:466-531`. En Morfeo, `run_pty_session` (`terminal.py:613-894`) crea un proceso por WebSocket y lo mata al desconectarse: una recarga pierde el agente. El seguidor solo existe en `#pane-pipeline`. En Morfeo no se porta el prefijo `!` de papersmith: todos los comandos de fase son slash commands.
+- L3: El sh interactivo ignora SIGTERM, así que `close()` manda primero SIGHUP, como hace una terminal al cerrarse. Con el zsh del usuario, el agente «shell» abre Herdr con las sesiones reales de Claude: las pruebas y la verificación en vivo usan `SHELL=/bin/sh`.
+- L4: Verificación. JS 112/112, Python 374 OK, kit sin deriva. En vivo, en :8090 con `SHELL=/bin/sh`:
+  - con una fase abierta, la recarga reconectó a la misma sesión en segundo plano y `LIVE_42` se dibujó una sola vez;
+  - con la fase ya cerrada, la recarga terminó la sesión;
+  - en la pestaña Artefactos, la barra de avance abrió el panel flotante;
+  - «Detener proceso» interrumpió el `sleep` y la sesión siguió viva.
+- L5: `gentle-ai review assess` da riesgo alto (`high_risk`). Se lanzó un verificador independiente antes de la revisión RDD.
+- L6: El verificador independiente encontró tres bloqueantes.
+  1. Al cerrar una segunda pestaña, su `beforeunload` borraba la sesión compartida.
+  2. Recargar sin una fase en curso terminaba la sesión, en contra de S2.
+  3. Una carrera: salida en vivo entre el anuncio de la sesión y el redibujado.
+  - Corrección, en una tanda: la página ya no cierra la sesión al descargarse (el servidor la recoge a las 12 h, con un tope de 4). El anuncio, el redibujado y la salida en vivo salen bajo el mismo cerrojo. RED con el código anterior → GREEN, con un bucle de salida sin fin.
+  - Avisos atendidos:
+    - `close()` avisa `{"type":"ended"}` y el cliente no se reconecta;
+    - `close()` espera al hilo lector antes de cerrar el fd;
+    - lanzar una fase borra la marca de «detenida».
+  - Quedan como avisos: la sesión anterior sigue viva cuando se reconecta con otro agente, y al cambiar de ventana la sesión pasa de una pestaña a otra.
+  - Esto se aparta a propósito de papersmith, que cierra la sesión al recargar si no hay fase en curso.
+- L7: Python 371 tests con 5 fallas en `test_pi_port`, `test_kit_integrity` y `test_pypi_publishing`. Vienen de la entrada `banco-lia` que otro actor agregó a `.mcp.json` sin commitear. Con el `.mcp.json` versionado pasan (21 OK). JS 113/113.

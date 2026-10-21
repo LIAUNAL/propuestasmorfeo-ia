@@ -768,7 +768,8 @@ class TerminalSession:
         elif warning_banner:
             self._record(warning_banner.encode("utf-8"))
 
-        threading.Thread(target=self._read_loop, name=f"pty-{self.id}", daemon=True).start()
+        self._reader = threading.Thread(target=self._read_loop, name=f"pty-{self.id}", daemon=True)
+        self._reader.start()
 
     @property
     def alive(self) -> bool:
@@ -782,7 +783,11 @@ class TerminalSession:
         return {"ok": True, "id": self.id, "agent": self.agent, "alive": self.alive, "attached": self.attached}
 
     def _record(self, data: bytes) -> None:
-        """Keep `data` for the replay and forward it to the viewer, if any."""
+        """Keep `data` for the replay and forward it to the viewer, if any.
+
+        The send happens under the lock `attach` holds while it replays, so a
+        live chunk never reaches the viewer before the replay of older output.
+        """
         with self._lock:
             self._buffer.extend(data)
             if len(self._buffer) > SESSION_BUFFER_BYTES:
@@ -790,9 +795,8 @@ class TerminalSession:
                 # Start the replay at a line so it does not open mid escape sequence.
                 newline = self._buffer.find(b"\n", cut)
                 del self._buffer[: newline + 1 if 0 <= newline < cut + 4096 else cut]
-            client = self._client
-        if client is not None:
-            client.send(data)
+            if self._client is not None:
+                self._client.send(data)
 
     def _read_loop(self) -> None:
         remainder = b""
@@ -832,20 +836,20 @@ class TerminalSession:
 
     def attach(self, client: _WsClient, reattached: bool) -> None:
         """Make `client` the viewer: announce the session, then replay its output."""
+        hello = {"type": "session", "id": self.id, "agent": self.agent, "reattached": reattached}
         with self._lock:
             previous = self._client
             self._client = client
             self.detached_at = None
-            replay = bytes(self._buffer)
-        if previous is not None and previous is not client:
-            # One viewer at a time: the newer tab takes the session, and the
-            # older one is told so it does not reconnect and take it back.
-            previous.send(b'{"type":"detached","reason":"taken"}', 0x1)
-            previous.send(b"", 0x8)
-        hello = {"type": "session", "id": self.id, "agent": self.agent, "reattached": reattached}
-        client.send(json.dumps(hello).encode("utf-8"), 0x1)
-        if replay:
-            client.send(replay)
+            if previous is not None and previous is not client:
+                # One viewer at a time: the newer tab takes the session, and the
+                # older one is told so it does not reconnect and take it back.
+                previous.send(b'{"type":"detached","reason":"taken"}', 0x1)
+                previous.send(b"", 0x8)
+            # Hello and replay go out before any newer output (see `_record`).
+            client.send(json.dumps(hello).encode("utf-8"), 0x1)
+            if self._buffer:
+                client.send(bytes(self._buffer))
 
     def detach(self, client: _WsClient) -> None:
         with self._lock:
@@ -898,7 +902,12 @@ class TerminalSession:
         with self._lock:
             client, self._client = self._client, None
         if client is not None:
+            # Told explicitly, the viewer forgets the session instead of reconnecting to it.
+            client.send(b'{"type":"ended"}', 0x1)
             client.send(b"", 0x8)
+        # The reader owns reads on the fd: let it finish before the fd number can be reused.
+        if threading.current_thread() is not self._reader:
+            self._reader.join(timeout=1.5)
         try:
             os.close(self.master_fd)
         except OSError:

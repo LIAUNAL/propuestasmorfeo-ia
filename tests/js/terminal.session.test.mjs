@@ -115,18 +115,30 @@ test('changing agent with a live session asks first; declining keeps the session
   assert.doesNotMatch(last(viewer).url, /session=/);
 });
 
-test('a reload ends an idle session but keeps the one of a running phase', async (t) => {
+test('a reload or a closed tab never ends the session: another tab may be using it', async (t) => {
   const viewer = await harness(t);
   viewer.window.eval(`selectedAgent = 'claude';`);
   const sock = await openCli(viewer);
   viewer.window.__hello(sock, 'abc123', 'claude', false);
-  viewer.window.eval(`PHASE_RUN = { unit: 'fase2', command: '/propuesta-continuar', sentAt: Date.now(), finished: false };`);
-  viewer.window.dispatchEvent(new viewer.window.Event('beforeunload'));
-  assert.ok(!viewer.window.__calls.some(c => c.startsWith('DELETE')), 'a running phase keeps its session');
-
   viewer.window.eval(`PHASE_RUN = null;`);
   viewer.window.dispatchEvent(new viewer.window.Event('beforeunload'));
-  assert.ok(viewer.window.__calls.includes('DELETE /api/terminal/sessions/abc123'));
+  assert.ok(!viewer.window.__calls.some(c => c.startsWith('DELETE')));
+  assert.ok(viewer.window.localStorage.getItem(`morfeo.terminalSession@${viewer.window.location.host}`));
+});
+
+test('a session the server ended is forgotten and not reconnected', async (t) => {
+  const viewer = await harness(t);
+  viewer.window.eval(`selectedAgent = 'claude';`);
+  const sock = await openCli(viewer);
+  viewer.window.__hello(sock, 'abc123', 'claude', false);
+  sock.onmessage({ data: '{"type":"ended"}' });
+  const count = viewer.window.__sockets.length;
+  sock.readyState = 3;
+  sock.onclose();
+  await viewer.advance(2000);
+  assert.equal(viewer.window.__sockets.length, count, 'no silent new agent');
+  assert.equal(viewer.window.eval('terminalSessionId'), null);
+  assert.equal(viewer.window.localStorage.getItem(`morfeo.terminalSession@${viewer.window.location.host}`), null);
 });
 
 test('after a reload the page reattaches in the background to a live session', async (t) => {
