@@ -125,3 +125,47 @@ test('a hidden page pauses the looping animations', async (t) => {
   viewer.document.dispatchEvent(new viewer.window.Event('visibilitychange'));
   assert.ok(!viewer.document.documentElement.classList.contains('is-page-hidden'));
 });
+
+test('a fresh reload after a change waits for the in-flight request and asks again', async (t) => {
+  const { viewer, state } = await harness(t);
+  state.hold = true;
+  state.data = envelope({ active_run: 'old' });
+  const polling = viewer.viewer('loadStatus');
+  await flush();
+  const after = viewer.viewer('loadStatus', { fresh: true });
+  state.data = envelope({ active_run: 'new' });
+  state.hold = false;
+  state.release();
+  await polling;
+  await after;
+  assert.equal(state.calls, 2, 'a second request after the stale one');
+  assert.equal(viewer.window.eval('currentStatus.active_run'), 'new');
+});
+
+test('a hung status request is aborted and polling goes on', async (t) => {
+  const { viewer, state } = await harness(t);
+  viewer.window.fetch = (url, opts = {}) => {
+    if (!String(url).includes('/api/status')) return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+    state.calls += 1;
+    if (state.calls === 1) {
+      return new Promise((_, reject) => opts.signal.addEventListener('abort', () => reject(new Error('aborted'))));
+    }
+    return Promise.resolve({ ok: true, status: 200, json: async () => state.data });
+  };
+  const hung = viewer.viewer('loadStatus');
+  await viewer.advance(15100);
+  await hung;
+  await viewer.viewer('loadStatus');
+  assert.equal(state.calls, 2, 'the next poll makes a new request');
+});
+
+test('re-sending the same phase restarts the tracker clock', async (t) => {
+  const { viewer } = await harness(t);
+  const first = viewer.window.eval('Date.now() - 5000');
+  viewer.window.eval(`PHASE_RUN = { unit: 'fase2', command: '/propuesta-continuar', sentAt: ${first}, initialState: 'pending', finished: false };`);
+  await viewer.viewer('loadStatus');
+  const second = first + 4000;
+  viewer.window.eval(`PHASE_RUN.sentAt = ${second};`);
+  viewer.viewer('renderPhaseRunTracker', viewer.window.eval('currentStatus'));
+  assert.ok(viewer.document.querySelector(`#phaseRunTracker [data-elapsed-from="${second}"]`), 'the tracker shows the new send');
+});

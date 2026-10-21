@@ -227,6 +227,8 @@ class TerminalSessionTest(unittest.TestCase):
             session.detach(viewer)
             self.assertEqual(viewer.frames[0][0], 0x1, "the hello comes first")
             text = b"".join(p for op, p in viewer.frames[1:] if op == 0x2).decode("utf-8", "replace")
+            # The viewer may detach mid-line: a cut-off last line is not a number to compare.
+            text = text.rsplit("\n", 1)[0]
             numbers = [int(n) for n in re.findall(r"^L(\d+)\r?$", text, re.M)]
             self.assertEqual(numbers, sorted(numbers), "live output never precedes the replay")
 
