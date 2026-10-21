@@ -124,10 +124,16 @@ Nombres claros ayudan a la clasificación (p. ej. `TDR-MinCiencias-2026.pdf`).
 Template vacío o solo placeholders de init **no** cuenta como idea. Con TDR +
 idea: la idea se alinea a la convocatoria; no se ignora el TDR.
 
-**Cómo el agente “lee” PDF/DOCX:** no hay un CLI de conversión obligatorio.
-`insumos-observador` extrae texto con **pymupdf4llm/markdownify** (PDF),
-**markitdown** (DOCX, PPTX, XLSX; con fallback a `textutil`/`unzip`), y opcionalmente **pixelshot** + visión para tablas
-malformadas; el resultado estructurado queda en `artefactos/insumos.md`.
+**Cómo el agente “lee” PDF/DOCX:** para los PDF, `insumos-observador` corre
+`scripts/pdf_to_md.py`. El script clasifica cada página (con texto, escaneada,
+con fórmulas, con tablas), extrae con pypdfium2 y pdfplumber o, si no están,
+con `pdftotext`, aplica OCR con tesseract solo a las páginas escaneadas,
+limita los tokens y cachea por SHA-256 en `artefactos/insumos-cache/md/`.
+Todos los motores tienen licencias permisivas, sin límites por ingresos. Los
+DOCX, PPTX y XLSX pasan por **markitdown**, con fallback a `textutil`/`unzip`.
+Solo las páginas marcadas en `needs_visual_pages` se abren con visión
+(`Read` con `pages` o **pixelshot**). El resultado estructurado queda en
+`artefactos/insumos.md`.
 
 ### 2.3 Arrancar el pipeline (slash commands)
 
