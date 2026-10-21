@@ -8,6 +8,13 @@
         "@cyanheads/arxiv-mcp-server"
       ]
     },
+    "banco-lia": {
+      "type": "stdio",
+      "command": "bancoLIA",
+      "args": [
+        "mcp"
+      ]
+    },
     "codegraph": {
       "type": "stdio",
       "command": "codegraph",
