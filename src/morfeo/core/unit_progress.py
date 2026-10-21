@@ -121,7 +121,12 @@ def unit_progress(
         files += [_section(run_dir, num) for num in unit.get("sections", [])]
 
         checks: list[dict[str, Any]] = []
-        if unit.get("gate"):
+        if unit.get("kind") == "pre":
+            # G0.5 is optional (it only runs with a TDR); the intake closes with
+            # intake_complete, and the gate only counts against it when it fails.
+            if verdict in ("FAIL", "BLOCKED"):
+                checks.append({"id": "gate", "label": f"Compuerta {unit['gate']} sin FAIL", "ok": False})
+        elif unit.get("gate"):
             checks.append({"id": "gate", "label": f"Compuerta {unit['gate']} en PASS", "ok": verdict == "PASS"})
         else:
             checks.append({"id": "event", "label": f"Evento artefactos/pipeline/NN-{uid}.md registrado", "ok": event is not None})

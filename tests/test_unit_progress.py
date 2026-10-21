@@ -117,6 +117,11 @@ class UnitProgressTest(unittest.TestCase):
         self.gates(("fase0", "G0.5", "PASS"))
         self.assertEqual(self.status()["unit_progress"]["fase0"]["state"], "verified")
 
+    def test_an_intake_without_tdr_is_verified_although_g0_5_was_omitted(self) -> None:
+        self.control("fase1a", "fase0")
+        self.write("artefactos/insumos.md")
+        self.assertEqual(self.status()["unit_progress"]["fase0"]["state"], "verified")
+
     def test_the_optional_tdr_guide_is_skipped_when_the_intake_closed_without_it(self) -> None:
         self.control("fase1a", "fase0")
         self.assertEqual(self.status()["unit_progress"]["g0_5"]["state"], "skipped")
