@@ -277,6 +277,22 @@ TEMPLATE = """<!DOCTYPE html>
   #stage3d.dragging { cursor: grabbing; }
   #stage3d canvas { display: block; width: 100%; height: 100%; }
 
+  /* Constellation names: one pooled HTML layer over the canvas */
+  .graph-names { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .graph-names.off { display: none; }
+  .graph-name {
+    position: absolute;
+    left: 0; top: 0;
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    color: #c7cde0;
+    text-shadow: 0 0 3px #0a0a10, 0 0 6px #0a0a10;
+  }
+  .graph-name.grp { color: #f3d98b; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
+  .graph-name.lit { color: #ffffff; }
+  .view-note { color: #f3d98b; }
+
   /* 3D HUD overlay */
   .hud-overlay {
     position: absolute;
@@ -616,6 +632,7 @@ TEMPLATE = """<!DOCTYPE html>
     </h1>
     <div class="meta">
       <code>__PROJECT__</code> · __NODES__ nodos / __EDGES__ aristas__FRESH__
+      <span class="view-note" id="viewNote"></span>
     </div>
   </div>
 
@@ -625,6 +642,8 @@ TEMPLATE = """<!DOCTYPE html>
     </div>
     <button class="btn-hud" id="btnAutoRotate" onclick="toggleAutoRotate()">⟳ Auto-Giro</button>
     <button class="btn-hud" onclick="resetCamera()">🎯 Centrar</button>
+    <button class="btn-hud active" id="btnNames" onclick="toggleNames()" title="Mostrar u ocultar los nombres de la constelación">Aa Nombres</button>
+    <button class="btn-hud" id="btnViewMode" onclick="toggleViewMode()" title="Cambiar entre la constelación 3D (GPU) y la 2D (liviana)">◐ Vista 2D</button>
     <button class="btn-hud active" id="btnToggleSide" onclick="toggleSidebar()" title="Mostrar/ocultar panel de métricas">▤ Panel Datos</button>
   </div>
 </header>
@@ -692,6 +711,68 @@ TEMPLATE = """<!DOCTYPE html>
 
   var DATA = JSON.parse(document.getElementById("graph-data").textContent);
   var PAL = __PALETTE__;
+  var BACKGROUND = "#0a0a10";
+
+  // 3D needs a WebGL context without a major performance caveat (a software
+  // rasterizer counts as one) and a machine that reports enough memory and
+  // cores, for a graph of reasonable size; anything less opens the 2D
+  // constellation. ?view=2d|3d and the
+  // header button override the heuristics, but never a missing WebGL.
+  // view-mode:begin
+  function chooseViewMode(env) {
+    var m = /[?&]view=(2d|3d)(?:&|#|$)/i.exec(env.search || "");
+    if (env.gl === "none") return { mode: "2d", reason: "none" };
+    if (m) return { mode: m[1].toLowerCase(), reason: "url" };
+    if (env.saved === "2d" || env.saved === "3d") return { mode: env.saved, reason: "user" };
+    if (env.gl !== "ok") return { mode: "2d", reason: "weak" };
+    if ((env.memory && env.memory < 4) || (env.cores && env.cores <= 2)) return { mode: "2d", reason: "resources" };
+    // Each node is one mesh and one halo: past this size the draw calls alone
+    // keep a CPU core busy while the 3D view spins.
+    if (env.nodes > 1500) return { mode: "2d", reason: "large" };
+    return { mode: "3d", reason: "gpu" };
+  }
+  // view-mode:end
+
+  function webglSupport() {
+    try {
+      var probe = document.createElement("canvas");
+      var strict = { failIfMajorPerformanceCaveat: true };
+      var g = probe.getContext("webgl2", strict) || probe.getContext("webgl", strict);
+      if (g) {
+        var lose = g.getExtension("WEBGL_lose_context");
+        if (lose) lose.loseContext();
+        return "ok";
+      }
+      var any = document.createElement("canvas");
+      var weak = any.getContext("webgl2") || any.getContext("webgl");
+      if (weak) {
+        var loseWeak = weak.getExtension("WEBGL_lose_context");
+        if (loseWeak) loseWeak.loseContext();
+        return "weak";
+      }
+    } catch (_) {}
+    return "none";
+  }
+
+  var VIEW_PREF_KEY = "morfeo.graphView";
+  var NAMES_PREF_KEY = "morfeo.graphNames";
+  function readPref(key) {
+    try { return window.localStorage.getItem(key) || ""; } catch (_) { return ""; }
+  }
+  function writePref(key, value) {
+    try { window.localStorage.setItem(key, value); } catch (_) {}
+  }
+
+  var glSupport = webglSupport();
+  var rawNodeCount = (DATA.nodes || []).length;
+  var viewChoice = chooseViewMode({
+    search: window.location.search,
+    saved: readPref(VIEW_PREF_KEY),
+    gl: glSupport,
+    memory: navigator.deviceMemory,
+    cores: navigator.hardwareConcurrency,
+    nodes: rawNodeCount
+  });
 
   // Nodes & Edges Setup
   var rawNodes = DATA.nodes || [];
@@ -709,7 +790,7 @@ TEMPLATE = """<!DOCTYPE html>
     var color = groupIndex >= 0 ? PAL[groupIndex % PAL.length] : "#00f0ff";
     var size = (n.type === "Subseccion" || n.type === "Branch") ? 7.5 : 4.5;
     var labelStr = String(n.label || n.id || "");
-    var summaryStr = String(n.summary || n.group || labelStr).replace(/\s+/g, " ").trim();
+    var summaryStr = String(n.summary || n.group || labelStr).replace(/\\s+/g, " ").trim();
     var nodeObj = {
       id: n.id,
       label: labelStr,
@@ -796,9 +877,12 @@ TEMPLATE = """<!DOCTYPE html>
       });
     });
 
-    // 3D Relaxation Simulation to settle nodes into celestial balance
-    for (var it = 0; it < 160; it++) {
-      var cool = 1 - it / 160;
+    // 3D Relaxation Simulation to settle nodes into celestial balance. The
+    // repulsion pass is quadratic, so large graphs get fewer passes: the golden
+    // spiral already places them, and the page must not freeze on load.
+    var relaxIters = Math.max(40, Math.min(160, Math.round(160 * 600 / Math.max(nodes.length, 1))));
+    for (var it = 0; it < relaxIters; it++) {
+      var cool = 1 - it / relaxIters;
       // Repulsion between all nodes
       for (var i = 0; i < nodes.length; i++) {
         var a = nodes[i];
@@ -848,22 +932,27 @@ TEMPLATE = """<!DOCTYPE html>
 
   init3DPositions();
 
-  // Procedural Glowing Texture Generator for Luminous Orbs
-  function createGlowTexture(colorHex) {
+  // One white radial halo shared by every node; each sprite material tints it
+  // with the node color, instead of one canvas and one GPU texture per node.
+  // color is a #rrggbb string; the 2D view caches one canvas per color.
+  function glowCanvas(color, px) {
     var canvas = document.createElement("canvas");
-    canvas.width = 64;
-    canvas.height = 64;
+    canvas.width = px;
+    canvas.height = px;
     var ctx = canvas.getContext("2d");
-    var grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    grad.addColorStop(0, "#ffffff");
-    grad.addColorStop(0.2, colorHex);
-    grad.addColorStop(0.55, colorHex);
-    grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    var r = px / 2;
+    var grad = ctx.createRadialGradient(r, r, 0, r, r, r);
+    grad.addColorStop(0, color + "ff");
+    grad.addColorStop(0.2, color + "8c");
+    grad.addColorStop(0.5, color + "1f");
+    grad.addColorStop(1, color + "00");
     ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(32, 32, 32, 0, Math.PI * 2);
-    ctx.fill();
-    return new THREE.CanvasTexture(canvas);
+    ctx.fillRect(0, 0, px, px);
+    return canvas;
+  }
+
+  function createGlowTexture() {
+    return new THREE.CanvasTexture(glowCanvas("#ffffff", 128));
   }
 
   // State Management
@@ -947,7 +1036,14 @@ TEMPLATE = """<!DOCTYPE html>
   function createCanvas3DRenderer(initW, initH) {
     var cvs = document.createElement("canvas");
     var ctx = cvs.getContext("2d");
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), 2);
+    // Halo images drawn once per color, so a frame is drawImage calls
+    // instead of one radial gradient per node.
+    var glowByColor = {};
+    function glowFor(color) {
+      if (!glowByColor[color]) glowByColor[color] = glowCanvas(color, 64);
+      return glowByColor[color];
+    }
     var cw = initW, ch = initH;
     var projVec = new THREE.Vector3();
 
@@ -974,14 +1070,16 @@ TEMPLATE = """<!DOCTYPE html>
 
     return {
       domElement: cvs,
-      setPixelRatio: function(p) { dpr = Math.min(p || 1, 2); setSize(cw, ch); },
+      isCanvas2D: true,
+      setPixelRatio: function(p) { dpr = Math.min(Math.max(p || 1, 1), 2); setSize(cw, ch); },
+      dispose: function() { glowByColor = {}; },
       setSize: setSize,
       render: function(scn, cam) {
         if (!ctx) return;
         cam.updateMatrixWorld();
         ctx.save();
         ctx.scale(dpr, dpr);
-        ctx.fillStyle = "#070a13";
+        ctx.fillStyle = BACKGROUND;
         ctx.fillRect(0, 0, cw, ch);
 
         // Project nodes
@@ -1033,16 +1131,11 @@ TEMPLATE = """<!DOCTYPE html>
             ? (!clusterFilterOn() || clusterLit(n.group))
             : (isTarget || selectedNode.neighbors.has(n.id));
           var alpha = (isTarget || isHovered) ? 1.0 : (isConn ? 0.92 : 0.14);
-          var r = Math.max(4.0, n.size * (isTarget ? 2.1 : (isHovered ? 1.75 : (isConn ? 1.35 : 0.85))));
+          var r = Math.max(2.5, n.size * (isTarget ? 1.6 : (isHovered ? 1.3 : (isConn ? 0.8 : 0.55))));
 
-          ctx.globalAlpha = alpha * 0.48;
-          var grad = ctx.createRadialGradient(item.sx, item.sy, 0, item.sx, item.sy, r * 3.2);
-          grad.addColorStop(0, n.color);
-          grad.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(item.sx, item.sy, r * 3.2, 0, Math.PI * 2);
-          ctx.fill();
+          if (item.sx < -r * 4 || item.sy < -r * 4 || item.sx > cw + r * 4 || item.sy > ch + r * 4) return;
+          ctx.globalAlpha = alpha * 0.6;
+          ctx.drawImage(glowFor(n.color), item.sx - r * 3.2, item.sy - r * 3.2, r * 6.4, r * 6.4);
 
           ctx.globalAlpha = alpha;
           ctx.fillStyle = (isTarget || isHovered) ? "#ffffff" : n.color;
@@ -1056,40 +1149,62 @@ TEMPLATE = """<!DOCTYPE html>
     };
   }
 
+  // Radius of the node cloud around its centroid: fog, far plane and the
+  // star shell scale with it, so small and large graphs read the same.
+  function sceneRadius() {
+    var cx = 0, cy = 0, cz = 0, r = 0;
+    nodes.forEach(function(n) { cx += n.x; cy += n.y; cz += n.z; });
+    var k = Math.max(nodes.length, 1);
+    cx /= k; cy /= k; cz /= k;
+    nodes.forEach(function(n) {
+      var dx = n.x - cx, dy = n.y - cy, dz = n.z - cz;
+      r = Math.max(r, Math.sqrt(dx * dx + dy * dy + dz * dz));
+    });
+    return Math.max(r, 400);
+  }
+
+  // Deterministic star shell (an LCG, never Math.random): the same graph
+  // always shows the same sky, and the stars keep a fixed screen size.
+  function addStarfield(radius) {
+    var seed = 1234567;
+    function rand() {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    }
+    var count = 1600;
+    var pos = new Float32Array(count * 3);
+    for (var i = 0; i < count; i++) {
+      var u = rand() * 2 - 1;
+      var th = rand() * Math.PI * 2;
+      var dist = radius * (3 + rand() * 3);
+      var sq = Math.sqrt(1 - u * u);
+      pos[i * 3] = dist * sq * Math.cos(th);
+      pos[i * 3 + 1] = dist * sq * Math.sin(th);
+      pos[i * 3 + 2] = dist * u;
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    var mat = new THREE.PointsMaterial({
+      color: 0x6b7090, size: 1.6, sizeAttenuation: false,
+      transparent: true, opacity: 0.7, depthWrite: false
+    });
+    scene.add(new THREE.Points(geo, mat));
+  }
+
   function initThree() {
     var sz = getStageSize();
     var width = sz.width;
     var height = sz.height;
+    var radius = sceneRadius();
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x070a13);
-    scene.fog = new THREE.FogExp2(0x070a13, 0.00045);
+    scene.background = new THREE.Color(BACKGROUND);
+    scene.fog = new THREE.FogExp2(BACKGROUND, 0.35 / radius);
 
-    camera = new THREE.PerspectiveCamera(52, width / height, 1, 4500);
+    camera = new THREE.PerspectiveCamera(52, width / height, 1, Math.max(4500, radius * 14));
     camera.position.set(0, 120, 750);
 
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    } catch (webglErr) {
-      renderer = createCanvas3DRenderer(width, height);
-    }
-    stageEl.appendChild(renderer.domElement);
-
-    // Subtle 3D Starfield particles (celestial dust)
-    var starGeo = new THREE.BufferGeometry();
-    var starCount = 450;
-    var starPos = new Float32Array(starCount * 3);
-    for (var s = 0; s < starCount * 3; s += 3) {
-      starPos[s] = (Math.random() - 0.5) * 2400;
-      starPos[s+1] = (Math.random() - 0.5) * 2400;
-      starPos[s+2] = (Math.random() - 0.5) * 2400;
-    }
-    starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
-    var starMat = new THREE.PointsMaterial({ color: 0x93c5fd, size: 2.2, transparent: true, opacity: 0.5 });
-    var stars = new THREE.Points(starGeo, starMat);
-    scene.add(stars);
+    addStarfield(radius);
 
     // Warm & Cool Celestial Point Lights + Ambient + Directional Rim
     var ambient = new THREE.AmbientLight(0xdde8ff, 0.65);
@@ -1112,7 +1227,8 @@ TEMPLATE = """<!DOCTYPE html>
     scene.add(rimLight);
 
     // Nodes Construction (Celestial bodies with specular reflection and emissive glow)
-    var sphereGeo = new THREE.SphereGeometry(1, 24, 24);
+    var sphereGeo = new THREE.SphereGeometry(1, 20, 14);
+    var glowTexture = createGlowTexture();
 
     nodes.forEach(function(n) {
       var colorObj = new THREE.Color(n.color);
@@ -1134,9 +1250,9 @@ TEMPLATE = """<!DOCTYPE html>
       n.mesh = mesh;
 
       // Luminous Glow Sprite (Additive Blending)
-      var glowTex = createGlowTexture(n.color);
       var glowMat = new THREE.SpriteMaterial({
-        map: glowTex,
+        map: glowTexture,
+        depthWrite: false,
         color: colorObj,
         transparent: true,
         opacity: 0.72,
@@ -1222,11 +1338,205 @@ TEMPLATE = """<!DOCTYPE html>
       vertexColors: true,
       transparent: true,
       opacity: 0.35,
+      depthWrite: false,
       blending: THREE.AdditiveBlending
     });
     lineSegments = new THREE.LineSegments(lineGeo, lineMat);
     scene.add(lineSegments);
   }
+
+  // --- VIEW MODE: 3D on WebGL, or the 2D constellation on a plain canvas ---
+  var viewMode = null;
+  // A frame is drawn only when something changed, the camera still glides,
+  // or the idle spin is on; every input and state change raises this flag.
+  var frameDirty = true;
+  var cameraMoving = false;
+  function requestFrame() { frameDirty = true; }
+
+  var VIEW_NOTES = {
+    none: "Vista 2D: este equipo no ofrece WebGL",
+    weak: "Vista 2D: la GPU de este equipo no es apropiada para 3D",
+    resources: "Vista 2D: memoria o procesador limitados para 3D",
+    large: "Vista 2D: grafo grande, la vista 3D cargaría el procesador"
+  };
+
+  function createRenderer(mode, w, h) {
+    if (mode === "3d") {
+      try {
+        var gl = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        // Never below 1: zoomed-out browsers on large displays report a
+        // fractional ratio that shrinks points and lines to a quarter.
+        gl.setPixelRatio(Math.min(Math.max(window.devicePixelRatio || 1, 1), 2));
+        gl.setSize(w, h);
+        return gl;
+      } catch (_) {}
+    }
+    return createCanvas3DRenderer(w, h);
+  }
+
+  function setViewMode(mode) {
+    var sz = getStageSize();
+    if (renderer) {
+      if (renderer.domElement && renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+      // Leaving 3D hands the GPU memory and the WebGL context back now,
+      // instead of whenever the garbage collector gets to them.
+      renderer.dispose();
+      if (renderer.forceContextLoss) renderer.forceContextLoss();
+    }
+    renderer = createRenderer(mode, sz.width, sz.height);
+    viewMode = renderer.isCanvas2D ? "2d" : "3d";
+    stageEl.insertBefore(renderer.domElement, stageEl.firstChild);
+    if (namesEl) stageEl.insertBefore(namesEl, renderer.domElement.nextSibling);
+    lastRenderWidth = 0;
+    lastRenderHeight = 0;
+    onWindowResize();
+    updateViewUi();
+    requestFrame();
+  }
+
+  function updateViewUi() {
+    var btn = document.getElementById("btnViewMode");
+    if (btn) {
+      btn.textContent = viewMode === "3d" ? "◐ Vista 2D" : "◑ Vista 3D";
+      btn.disabled = glSupport === "none";
+      btn.title = glSupport === "none"
+        ? "Este equipo no ofrece WebGL: solo hay vista 2D"
+        : (viewMode === "3d" ? "Pasar a la constelación 2D, más liviana" : "Pasar a la constelación 3D (usa la GPU)");
+    }
+    var note = document.getElementById("viewNote");
+    if (note) {
+      var text = viewMode === "2d" ? VIEW_NOTES[viewChoice.reason] : "";
+      note.textContent = text ? " · " + text : "";
+    }
+  }
+
+  window.toggleViewMode = function() {
+    if (glSupport === "none") return;
+    var next = viewMode === "3d" ? "2d" : "3d";
+    writePref(VIEW_PREF_KEY, next);
+    viewChoice = { mode: next, reason: "user" };
+    // The 2D view starts still: its spin redraws the whole canvas on the CPU.
+    if (next === "2d" && autoRotate) toggleAutoRotate();
+    setViewMode(next);
+  };
+
+  // --- CONSTELLATION NAMES: pooled HTML labels over the canvas ---
+  var namesOn = readPref(NAMES_PREF_KEY) !== "off";
+  var namesEl = null;
+  var namePool = [];
+  var nameCandidates = [];
+  var nameVec = null;
+
+  function buildNameCandidates() {
+    var measure = document.createElement("canvas").getContext("2d");
+    function width(text, font) {
+      if (!measure) return text.length * 7;
+      measure.font = font;
+      return measure.measureText(text).width;
+    }
+    var sums = {};
+    nodes.forEach(function(n) {
+      var s = sums[n.group] || (sums[n.group] = { x: 0, y: 0, z: 0, k: 0 });
+      s.x += n.x; s.y += n.y; s.z += n.z; s.k += 1;
+    });
+    // Community names first, then the most connected nodes
+    groups.forEach(function(g) {
+      var s = sums[g];
+      if (!s) return;
+      nameCandidates.push({
+        x: s.x / s.k, y: s.y / s.k, z: s.z / s.k, group: g, node: null, text: g, cls: "grp",
+        base: 3, degree: s.k, w: width(g, "600 12px sans-serif"), h: 12
+      });
+    });
+    nodes.slice().sort(function(a, b) { return b.neighbors.size - a.neighbors.size; })
+      .slice(0, 150)
+      .forEach(function(n) {
+        var text = n.label.length > 28 ? n.label.slice(0, 27) + "…" : n.label;
+        nameCandidates.push({
+          x: n.x, y: n.y, z: n.z, group: n.group, node: n, text: text, cls: "",
+          base: 0, degree: n.neighbors.size, w: width(text, "11px sans-serif"), h: 11
+        });
+      });
+  }
+
+  function initNames() {
+    namesEl = document.createElement("div");
+    namesEl.className = "graph-names";
+    namesEl.setAttribute("aria-hidden", "true");
+    nameVec = new THREE.Vector3();
+    buildNameCandidates();
+    var btn = document.getElementById("btnNames");
+    if (btn) btn.classList.toggle("active", namesOn);
+  }
+
+  // Greedy placement by priority (selected, hovered, lit, nearer, more
+  // connected) within a budget that grows with the stage area; a name that
+  // would leave the stage or touch a placed one is skipped, so zooming in
+  // reveals more names.
+  function placeNames() {
+    if (!namesEl || !camera) return;
+    namesEl.classList.toggle("off", !namesOn);
+    if (!namesOn) return;
+    var w = stageEl.clientWidth;
+    var h = stageEl.clientHeight;
+    var budget = Math.max(12, Math.floor(w * h / 12000));
+    var filtering = Boolean(selectedNode) || clusterFilterOn();
+    var items = [];
+    nameCandidates.forEach(function(c) {
+      var lit;
+      if (c.node) {
+        lit = selectedNode
+          ? (c.node === selectedNode || selectedNode.neighbors.has(c.node.id))
+          : (!clusterFilterOn() || clusterLit(c.group));
+      } else {
+        lit = !selectedNode && (!clusterFilterOn() || clusterLit(c.group));
+      }
+      if (filtering && !lit) return;
+      nameVec.set(c.x, c.y, c.z).project(camera);
+      if (nameVec.z < -1 || nameVec.z > 1) return;
+      var sx = (nameVec.x * 0.5 + 0.5) * w;
+      var sy = (-nameVec.y * 0.5 + 0.5) * h;
+      var boost = c.node && c.node === selectedNode ? 4 : (c.node && c.node === hoveredNode ? 3 : 0);
+      items.push({ c: c, sx: sx, sy: sy, lit: boost > 0, score: c.base + boost + (lit ? 2 : 0) + (1 - nameVec.z) + c.degree * 0.01 });
+    });
+    items.sort(function(a, b) { return b.score - a.score; });
+    var placed = [];
+    for (var i = 0; i < items.length && placed.length < budget; i++) {
+      var it = items[i];
+      var x = it.sx - it.c.w / 2;
+      var y = it.c.node ? it.sy + 9 : it.sy - it.c.h / 2;
+      if (x < 2 || y < 2 || x + it.c.w > w - 2 || y + it.c.h > h - 2) continue;
+      var box = { x: x, y: y, w: it.c.w, h: it.c.h, it: it };
+      var overlaps = placed.some(function(o) {
+        return x < o.x + o.w + 6 && o.x < x + box.w + 6 && y < o.y + o.h + 2 && o.y < y + box.h + 2;
+      });
+      if (!overlaps) placed.push(box);
+    }
+    placed.forEach(function(box, k) {
+      var el = namePool[k];
+      if (!el) {
+        el = document.createElement("span");
+        namesEl.appendChild(el);
+        namePool.push(el);
+      }
+      if (el.textContent !== box.it.c.text) el.textContent = box.it.c.text;
+      var cls = "graph-name" + (box.it.c.cls ? " " + box.it.c.cls : "") + (box.it.lit ? " lit" : "");
+      if (el.className !== cls) el.className = cls;
+      el.style.transform = "translate(" + Math.round(box.x) + "px," + Math.round(box.y) + "px)";
+      el.style.display = "";
+    });
+    for (var k = placed.length; k < namePool.length; k++) namePool[k].style.display = "none";
+  }
+
+  window.toggleNames = function() {
+    namesOn = !namesOn;
+    writePref(NAMES_PREF_KEY, namesOn ? "on" : "off");
+    var btn = document.getElementById("btnNames");
+    if (btn) btn.classList.toggle("active", namesOn);
+    placeNames();
+  };
 
   function escapeHtml(s) {
     return String(s || "")
@@ -1264,7 +1574,7 @@ TEMPLATE = """<!DOCTYPE html>
     );
     var raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
-    var intersects = raycaster.intersectObjects(nodeMeshes);
+    var intersects = viewMode === "3d" ? raycaster.intersectObjects(nodeMeshes) : [];
     if (intersects.length > 0 && intersects[0].object && intersects[0].object.userData) {
       return intersects[0].object.userData.node;
     }
@@ -1321,6 +1631,7 @@ TEMPLATE = """<!DOCTYPE html>
 
   // Connected Nodes Highlighting Logic
   function updateVisualStates() {
+    requestFrame();
     nodes.forEach(function(n) {
       var isConnected = false;
       var isTarget = (selectedNode === n);
@@ -1748,6 +2059,7 @@ TEMPLATE = """<!DOCTYPE html>
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+    requestFrame();
     // The dashboard iframe changes shape with the tab and the side panel;
     // keep the whole graph framed until the user takes the camera.
     if (!cameraTouched) fitCameraToGraph();
@@ -1785,6 +2097,12 @@ TEMPLATE = """<!DOCTYPE html>
     // Interaction and camera moves keep the full frame rate; the slow idle spin
     // looks the same at 30 fps and costs half the GPU work.
     var busy = isDragging || hoveredNode || selectedNode || targetOrbitCenter || targetRadius !== null;
+    // A still view draws nothing: no spin, no glide, no drag and no change.
+    // The selected node only breathes in 3D, where the GPU does the work.
+    var gliding = isDragging || targetOrbitCenter || targetRadius !== null || (selectedNode && viewMode === "3d");
+    if (!autoRotate && !frameDirty && !cameraMoving && !gliding) {
+      return;
+    }
     if (!busy && lastFrameAt >= 0 && time - lastFrameAt < IDLE_FRAME_SEC) {
       return;
     }
@@ -1820,6 +2138,7 @@ TEMPLATE = """<!DOCTYPE html>
     camera.position.x += (cx - camera.position.x) * 0.2;
     camera.position.y += (cy - camera.position.y) * 0.2;
     camera.position.z += (cz - camera.position.z) * 0.2;
+    cameraMoving = Math.abs(cx - camera.position.x) + Math.abs(cy - camera.position.y) + Math.abs(cz - camera.position.z) > 0.05;
     camera.lookAt(orbitCenter.x, orbitCenter.y, orbitCenter.z);
 
     // Luminous Breathing Effect for Nodes
@@ -1840,17 +2159,28 @@ TEMPLATE = """<!DOCTYPE html>
     }
 
     renderer.render(scene, camera);
+    frameDirty = false;
+    placeNames();
   }
 
   // Initialize
   if (typeof THREE !== "undefined") {
     initThree();
+    initNames();
+    if (viewChoice.mode === "2d") autoRotate = false;
+    setViewMode(viewChoice.mode);
+    // Any pointer, wheel or key input may move the camera or the hover state
+    ["pointerdown", "pointermove", "pointerup", "wheel", "click", "dblclick"].forEach(function(type) {
+      stageEl.addEventListener(type, requestFrame, { passive: true, capture: true });
+    });
+    window.addEventListener("keydown", requestFrame);
+    document.addEventListener("visibilitychange", requestFrame);
     fitCameraToGraph();
     // Start framed instead of flying in from a fixed distance
     if (targetOrbitCenter) { orbitCenter = targetOrbitCenter; targetOrbitCenter = null; }
     if (targetRadius !== null) { spherical.radius = targetRadius; targetRadius = null; }
     animate();
-    document.getElementById("btnAutoRotate").classList.add("active");
+    document.getElementById("btnAutoRotate").classList.toggle("active", autoRotate);
   } else {
     stageEl.innerHTML = '<div style="color:var(--cyan); padding:40px; text-align:center;">Cargando motor 3D...</div>';
   }
