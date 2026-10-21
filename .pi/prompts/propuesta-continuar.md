@@ -73,6 +73,14 @@ Mapeo id → bloque en `propuesta.md`:
 | `fase6_5` | Fase 6.5 |
 | `fase7` | Fase 7 |
 
+**Latido (obligatorio).** Al abrir la unidad escribí
+`artefactos/pipeline/_en_curso.json` (`fase`, `agentes`, `skill`,
+`artefacto_esperado`, `inicio` en ISO-8601), reescribilo antes de cada `subagent_run`
+con el despacho que arranca y su `nota`, y borralo al cerrar la unidad, haya
+PASS o FAIL, antes de escribir `artefactos/pipeline/NN-<unidad>.md`. Formato en
+`_propuesta-steps.md`, «Latido de la unidad en curso». El tablero lo usa para
+mostrar la ejecución en vivo.
+
 Usá `subagent_run` a los mismos subagentes, mismas reglas de codebase-memory/Skill, mismos
 gates de aprobación de usuario. **No** encadenes la siguiente unidad en esta
 invocación (aunque no haya gate formal: en stepped, `fase6` y `fase6_45`

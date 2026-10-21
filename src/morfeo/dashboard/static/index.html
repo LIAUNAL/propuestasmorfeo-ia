@@ -1083,6 +1083,40 @@
       border-top: 3px solid var(--ok) !important;
       box-shadow: 0 0 14px rgba(16, 185, 129, 0.25) !important;
     }
+    .phase-card--partial {
+      border: 1px dashed var(--warn, #f59e0b) !important;
+      border-top: 3px solid var(--warn, #f59e0b) !important;
+    }
+    .phase-card--partial .phase-card__name::before { content: '⚠ '; }
+    .phase-run {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--ok);
+      border-radius: var(--radius);
+      background: var(--surface-2);
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .phase-run[hidden] { display: none; }
+    .phase-run__head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .phase-run__head [data-tracker-close] { margin-left: auto; }
+    .phase-run__steps { list-style: none; margin: 0.65rem 0 0; padding: 0; display: grid; gap: 0.45rem; }
+    .phase-run__step { padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); }
+    .phase-run__step-title { font-weight: 600; }
+    .phase-run__step-body { margin-top: 0.25rem; font-size: 0.85rem; display: grid; gap: 0.15rem; }
+    .phase-run__step.is-done { border-color: var(--ok); }
+    .phase-run__step.is-active { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.25); }
+    .phase-run__step.is-active .phase-run__step-title::before { content: '⏳ '; }
+    .phase-run__step.is-bad { border-color: var(--bad, #ef4444); }
+    .phase-run__step.is-todo { opacity: 0.6; }
+    .phase-run__files { margin-top: 0.65rem; font-size: 0.85rem; }
+    .phase-run__files ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+    .phase-run__files li.is-fresh { color: var(--ok); }
+    .phase-run__files li.is-missing { color: var(--bad, #ef4444); }
+    .phase-checks { list-style: none; margin: 0.3rem 0 0; padding: 0; font-size: 0.85rem; }
+    .phase-checks li.is-ok { color: var(--ok); }
+    .phase-checks li.is-missing { color: var(--bad, #ef4444); }
+    /* Mientras la unidad corre, lo que falta todavía no es un fallo. */
+    .phase-run__step.is-todo .phase-checks li.is-missing { color: var(--text-muted); }
     .phase-card--ready .phase-card__name::before {
       content: '▶ ';
       color: var(--ok);
@@ -2407,6 +2441,7 @@
           <div class="panel__title">Fases del Pipeline Metodológico de Redacción</div>
           <span class="panel__meta">Haz clic en cualquier fase para inspeccionar detalles y dependencias</span>
         </div>
+        <div class="phase-run" id="phaseRunTracker" hidden aria-live="polite"></div>
         <div class="pipeline-grid" id="pipelineGrid">
           <!-- Rendered by JS -->
         </div>
@@ -3264,6 +3299,24 @@
       return 'PENDING';
     }
 
+    // Estado verificado de la unidad. El servidor lo calcula con tres pruebas
+    // (compuerta, control de ejecución y archivos en disco); un servidor anterior
+    // sin `unit_progress` solo da el veredicto de la compuerta.
+    function resolvePhaseState(p, data) {
+      const prog = data && data.unit_progress ? data.unit_progress[p.id] : null;
+      if (prog && prog.state) return prog.state;
+      const v = resolvePhaseVerdict(p, data);
+      if (v === 'PASS') return 'verified';
+      return (v === 'FAIL' || v === 'BLOCKED') ? 'failed' : 'pending';
+    }
+
+    // Un latido de una unidad ya cumplida, o demasiado viejo, es una sesión
+    // cortada: se informa, pero no bloquea el pipeline.
+    function liveHeartbeat(data) {
+      const beat = data && data.en_curso;
+      return beat && beat.fase && !beat.stale ? beat : null;
+    }
+
     // Qué falta para que una unidad pase: su compuerta y las secciones que produce.
     function describePendingUnit(u, data) {
       const parts = [`${formatPhaseNumber(u.id)} · ${u.name}`];
@@ -3282,6 +3335,16 @@
     // caso devuelve qué etapas, artefactos o procesos faltan.
     function evaluatePhaseExecution(unitId, data) {
       data = data || {};
+      const res = evaluatePhaseExecutionCore(unitId, data);
+      const beat = data.en_curso;
+      if (res.allowed && beat && beat.fase && beat.stale) {
+        const extra = `Hay un latido obsoleto de «${beat.fase}» en artefactos/pipeline/_en_curso.json (una sesión cortada); no bloquea esta ejecución.`;
+        res.note = res.note ? `${res.note} ${extra}` : extra;
+      }
+      return res;
+    }
+
+    function evaluatePhaseExecutionCore(unitId, data) {
       const units = Array.isArray(data.pipeline_units) ? data.pipeline_units : [];
       const p = units.find(u => u.id === unitId);
       const blocked = (reason, missing = [], missingLabel = 'Falta para habilitarla:') => ({ allowed: false, command: null, reason, missing, missingLabel, note: null });
@@ -3301,8 +3364,8 @@
         ]);
       }
 
-      const enCurso = data.en_curso;
-      if (enCurso && enCurso.fase) {
+      const enCurso = liveHeartbeat(data);
+      if (enCurso) {
         const actual = units.find(u => u.id === enCurso.fase);
         const nombre = actual ? `${formatPhaseNumber(actual.id)} · ${actual.name}` : enCurso.fase;
         if (enCurso.fase === p.id) {
@@ -3396,6 +3459,7 @@
     };
 
     let PHASE_EXEC_PENDING = null;
+    let PHASE_EXEC_UNIT = null;
     let PHASE_EXEC_IDEA = false;
 
     // The initial idea comes from idea.md (or the run's insumos/ideas/idea.md).
@@ -3418,7 +3482,13 @@
       const p = (PHASES_INFO || []).find(u => u.id === unitId) || { id: unitId, name: unitId };
       const v = evaluatePhaseExecution(unitId, data);
       PHASE_EXEC_PENDING = v.allowed ? v.command : null;
+      PHASE_EXEC_UNIT = v.allowed ? unitId : null;
       PHASE_EXEC_IDEA = !!(v.allowed && v.idea);
+      const prog = data.unit_progress ? data.unit_progress[unitId] : null;
+      const checks = prog && prog.checks && prog.checks.length
+        ? `<p style="margin-top: 0.65rem;"><strong>Verificación de la etapa:</strong> ${escapeHtml(PHASE_STATE_LABEL[prog.state] || prog.state)}</p>
+           ${renderPhaseChecks(prog.checks)}`
+        : '';
       const guide = PHASE_GUIDES[unitId] || {};
 
       document.getElementById('phaseExecModalTitle').textContent = `${formatPhaseNumber(p.id)} · ${p.name}`;
@@ -3440,12 +3510,14 @@
            ${input}
            ${v.note ? `<p class="phase-exec-note">${escapeHtml(v.note)}</p>` : ''}
            <p class="phase-exec-note">Las compuertas siguen deteniendo el flujo hasta tu aprobación.</p>
+           ${checks}
            ${panel}`
         : `<p><strong>Aún no se puede ejecutar esta etapa.</strong> ${escapeHtml(v.reason)}</p>
            ${v.missing.length
              ? `<p style="margin-top: 0.65rem;">${escapeHtml(v.missingLabel || 'Falta para habilitarla:')}</p>
                 <ul class="phase-exec-missing">${v.missing.map(m => `<li>${escapeHtml(m)}</li>`).join('')}</ul>`
              : ''}
+           ${checks}
            ${panel}`;
       document.getElementById('phaseExecModalBody').innerHTML = body;
       document.querySelectorAll('#phaseExecModalBody [data-panel]').forEach(btn => btn.addEventListener('click', () => {
@@ -3459,6 +3531,7 @@
 
     function closePhaseExecModal() {
       PHASE_EXEC_PENDING = null;
+      PHASE_EXEC_UNIT = null;
       PHASE_EXEC_IDEA = false;
       document.getElementById('phaseExecModal').classList.remove('is-open');
     }
@@ -3468,6 +3541,7 @@
     // runtime canónico, y se espera a que arranque antes de escribir.
     function confirmPhaseExecution() {
       let cmd = PHASE_EXEC_PENDING;
+      const unitId = PHASE_EXEC_UNIT;
       const ideaBox = document.getElementById('phaseExecInput');
       if (cmd && ideaBox) {
         const idea = ideaBox.value.split(/\s+/).filter(Boolean).join(' ');
@@ -3475,17 +3549,187 @@
       }
       closePhaseExecModal();
       if (!cmd) return;
-      if (['claude', 'opencode', 'pi', 'herdr'].includes(selectedAgent)) {
+      const send = () => {
         sendTerminalQuickCommand(cmd);
+        startPhaseRun(unitId, cmd);
+      };
+      if (['claude', 'opencode', 'pi', 'herdr'].includes(selectedAgent)) {
+        send();
         return;
       }
-      withCommandAgentReady(() => sendTerminalQuickCommand(cmd), () => {
+      withCommandAgentReady(send, () => {
         document.getElementById('phaseExecModalTitle').textContent = 'No se pudo ejecutar';
         document.getElementById('phaseExecModalIcon').textContent = '⚠️';
         document.getElementById('phaseExecModalBody').innerHTML = `<p>La terminal del asistente no conectó a tiempo, así que <code>${escapeHtml(cmd)}</code> no se envió. Abre el asistente y vuelve a ejecutar la etapa.</p>`;
         document.getElementById('phaseExecConfirmBtn').style.display = 'none';
         document.getElementById('phaseExecModal').classList.add('is-open');
       });
+    }
+
+    // --- Seguimiento de la ejecución de una fase --------------------------------
+    // Al pulsar «Ejecutar», el seguidor acompaña la unidad: comando enviado, unidad
+    // en curso (latido `_en_curso.json` con agentes, skill y nota del despacho),
+    // verificación (compuerta, control y archivos, de `unit_progress`) y resultado.
+    // La terminal no devuelve nada al tablero, así que todo sale del sobre de estado.
+    const PHASE_STATE_LABEL = {
+      verified: 'cumplida (compuerta, control y archivos verificados)',
+      partial: 'incompleta: tiene avance, pero falta alguna prueba',
+      failed: 'la compuerta quedó en FAIL o BLOCKED',
+      running: 'en ejecución',
+      pending: 'pendiente',
+      skipped: 'omitida (no aplica en esta corrida)',
+    };
+    const PHASE_RUN_KEY = 'morfeo.phaseRun';
+    let PHASE_RUN = null;
+    let PHASE_RUN_DISMISSED = null;
+    let PHASE_RUN_TICK = null;
+
+    function renderPhaseChecks(checks) {
+      return `<ul class="phase-checks">${checks.map(c =>
+        `<li class="${c.ok ? 'is-ok' : 'is-missing'}">${c.ok ? '✓' : '✗'} ${escapeHtml(c.label)}</li>`).join('')}</ul>`;
+    }
+
+    function savePhaseRun() {
+      try {
+        if (PHASE_RUN) localStorage.setItem(PHASE_RUN_KEY, JSON.stringify(PHASE_RUN));
+        else localStorage.removeItem(PHASE_RUN_KEY);
+      } catch (err) { /* sin almacenamiento: el seguidor vive solo en esta pestaña */ }
+    }
+
+    function restorePhaseRun() {
+      try {
+        const raw = localStorage.getItem(PHASE_RUN_KEY);
+        PHASE_RUN = raw ? JSON.parse(raw) : null;
+      } catch (err) { PHASE_RUN = null; }
+    }
+
+    function startPhaseRun(unitId, command) {
+      if (!unitId) return;
+      const data = currentStatus || {};
+      const prog = data.unit_progress ? data.unit_progress[unitId] : null;
+      PHASE_RUN = { unit: unitId, command, sentAt: Date.now(), initialState: prog ? prog.state : null, seenRunning: false };
+      PHASE_RUN_DISMISSED = null;
+      savePhaseRun();
+      renderPhaseRunTracker(data);
+      setTimeout(() => loadStatus(), 1500);
+    }
+
+    function phaseRunActive() {
+      return !!(PHASE_RUN && !PHASE_RUN.finished) || !!liveHeartbeat(currentStatus);
+    }
+
+    function formatElapsed(ms) {
+      const sec = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), r = sec % 60;
+      return h ? `${h} h ${m} min` : (m ? `${m} min ${r} s` : `${r} s`);
+    }
+
+    function tickPhaseRun() {
+      document.querySelectorAll('#phaseRunTracker [data-elapsed-from]').forEach(el => {
+        el.textContent = formatElapsed(Date.now() - Number(el.getAttribute('data-elapsed-from')));
+      });
+    }
+
+    function renderPhaseRunTracker(data) {
+      const box = document.getElementById('phaseRunTracker');
+      if (!box) return;
+      data = data || {};
+      const beat = liveHeartbeat(data);
+      const beatKey = beat ? `${beat.fase}@${beat.inicio || ''}` : null;
+      let run = PHASE_RUN;
+      if (!run && beat && beatKey !== PHASE_RUN_DISMISSED) {
+        // Unidad lanzada fuera del tablero (desde la terminal o el modo auto).
+        run = { unit: beat.fase, command: null, sentAt: null, initialState: null, seenRunning: true, external: true };
+      }
+      if (!run) {
+        box.hidden = true;
+        box.innerHTML = '';
+        if (PHASE_RUN_TICK) { clearInterval(PHASE_RUN_TICK); PHASE_RUN_TICK = null; }
+        return;
+      }
+      const units = Array.isArray(data.pipeline_units) ? data.pipeline_units : (PHASES_INFO || []);
+      const p = units.find(u => u.id === run.unit) || { id: run.unit, name: run.unit };
+      const prog = data.unit_progress ? data.unit_progress[run.unit] : null;
+      const running = !!(beat && beat.fase === run.unit);
+      if (running && PHASE_RUN && !PHASE_RUN.seenRunning) { PHASE_RUN.seenRunning = true; savePhaseRun(); }
+      const state = running ? 'running' : resolvePhaseState(p, data);
+      const settled = !running && (run.seenRunning || (run.initialState !== null && state !== run.initialState) || run.initialState === null && state !== 'pending');
+      // Cualquier cierre (cumplida, FAIL o incompleta) apaga el sondeo rápido; el de 5 s sigue.
+      if (PHASE_RUN && settled && !PHASE_RUN.finished) { PHASE_RUN.finished = true; savePhaseRun(); }
+
+      const step = (cls, title, body) => `<li class="phase-run__step ${cls}"><span class="phase-run__step-title">${title}</span>${body ? `<div class="phase-run__step-body">${body}</div>` : ''}</li>`;
+      const sentAt = run.sentAt ? new Date(run.sentAt) : null;
+      const sent = run.external
+        ? step('is-done', '1. Unidad lanzada fuera del tablero', '<span class="phase-exec-note">Se detectó por su latido en artefactos/pipeline/_en_curso.json.</span>')
+        : step('is-done', '1. Comando enviado a la terminal', `<code>${escapeHtml(run.command || '')}</code> · ${sentAt ? sentAt.toLocaleTimeString() : ''}`);
+
+      let live;
+      if (running) {
+        const since = Date.parse(beat.inicio || '') || run.sentAt || Date.now();
+        live = step('is-active', '2. En curso', `
+          <div>Agentes: <strong>${escapeHtml((beat.agentes || []).join(', ') || 'sin registrar')}</strong>${beat.skill ? ` · skill <code>${escapeHtml(beat.skill)}</code>` : ''}</div>
+          ${beat.nota ? `<div>Paso: ${escapeHtml(beat.nota)}</div>` : ''}
+          ${beat.artefacto_esperado ? `<div>Artefacto esperado: <code>${escapeHtml(beat.artefacto_esperado)}</code></div>` : ''}
+          <div>Tiempo transcurrido: <span data-elapsed-from="${since}">${formatElapsed(Date.now() - since)}</span></div>`);
+      } else if (settled) {
+        live = step('is-done', '2. Ejecución terminada', '');
+      } else {
+        live = step('is-active', '2. Esperando a que el asistente abra la unidad',
+          `<span class="phase-exec-note">Aparece en cuanto escribe su latido artefactos/pipeline/_en_curso.json. Sigue la conversación en la terminal del asistente.</span>${run.sentAt ? ` · <span data-elapsed-from="${run.sentAt}">${formatElapsed(Date.now() - run.sentAt)}</span>` : ''}`);
+      }
+
+      const checks = prog && prog.checks && prog.checks.length ? renderPhaseChecks(prog.checks) : '<span class="phase-exec-note">Sin comprobaciones publicadas por el servidor.</span>';
+      const verify = step(settled ? (state === 'verified' ? 'is-done' : 'is-bad') : 'is-todo', '3. Verificación de la etapa', checks);
+
+      let result;
+      if (!settled) {
+        result = step('is-todo', '4. Resultado', '<span class="phase-exec-note">Se decide al cerrar la unidad.</span>');
+      } else if (state === 'verified' || state === 'skipped') {
+        const next = units.find(u => u.id !== run.unit && evaluatePhaseExecution(u.id, data).allowed);
+        result = step('is-done', `4. ✔ Etapa cumplida`, next
+          ? `Queda habilitada <strong>${escapeHtml(formatPhaseNumber(next.id))} · ${escapeHtml(next.name)}</strong>.
+             <button type="button" class="btn btn--sm btn--primary" data-run-next="${escapeHtml(next.id)}">▶ Ejecutar ${escapeHtml(next.name)}</button>`
+          : 'No queda otra unidad por ejecutar ahora.');
+      } else if (state === 'failed') {
+        result = step('is-bad', '4. ✗ La compuerta quedó en FAIL o BLOCKED', 'Revisa el informe del revisor en la terminal, corrige y vuelve a ejecutar la etapa.');
+      } else {
+        result = step('is-bad', '4. ⚠ La unidad terminó sin todas las pruebas de cumplimiento',
+          `Falta: ${escapeHtml((prog && prog.missing || []).join('; ') || 'sin detalle')}.`);
+      }
+
+      const files = prog && prog.artifacts && prog.artifacts.length
+        ? `<div class="phase-run__files"><strong>Artefactos de la etapa</strong><ul>${prog.artifacts.map(a => {
+            const fresh = a.exists && run.sentAt && a.mtime && a.mtime * 1000 >= run.sentAt - 1000;
+            const tag = !a.exists ? 'falta' : (fresh ? 'actualizado' : 'sin cambios');
+            const open = a.exists && /^artefactos\/[^/]+\.md$/.test(a.path)
+              ? ` <button type="button" class="btn btn--xs" data-open-artifact="${escapeHtml(a.path)}">Ver</button>` : '';
+            return `<li class="${fresh ? 'is-fresh' : (a.exists ? '' : 'is-missing')}"><code>${escapeHtml(a.path)}</code> · ${tag}${open}</li>`;
+          }).join('')}</ul></div>`
+        : '';
+
+      box.hidden = false;
+      box.innerHTML = `
+        <div class="phase-run__head">
+          <strong>▶ Ejecución: ${escapeHtml(formatPhaseNumber(p.id))} · ${escapeHtml(p.name)}</strong>
+          <span class="badge badge--${running ? 'info' : (state === 'verified' ? 'ok' : (settled ? 'bad' : 'warn'))}">${escapeHtml(running ? 'EN CURSO' : (settled ? (PHASE_STATE_LABEL[state] || state) : 'ENVIADA'))}</span>
+          <button type="button" class="btn btn--xs" data-tracker-close title="Ocultar el seguidor">Ocultar</button>
+        </div>
+        <ol class="phase-run__steps">${sent}${live}${verify}${result}</ol>
+        ${files}`;
+      box.querySelector('[data-tracker-close]').addEventListener('click', () => {
+        PHASE_RUN_DISMISSED = beatKey;
+        PHASE_RUN = null;
+        savePhaseRun();
+        renderPhaseRunTracker(currentStatus);
+      });
+      const nextBtn = box.querySelector('[data-run-next]');
+      if (nextBtn) nextBtn.addEventListener('click', () => runPhaseExecution(nextBtn.getAttribute('data-run-next')));
+      box.querySelectorAll('[data-open-artifact]').forEach(btn => btn.addEventListener('click', () => {
+        navigateTab('artifacts');
+        loadArtifact(btn.getAttribute('data-open-artifact'));
+      }));
+      if (!PHASE_RUN_TICK && (running || !settled)) PHASE_RUN_TICK = setInterval(tickPhaseRun, 1000);
+      if (PHASE_RUN_TICK && settled && !running) { clearInterval(PHASE_RUN_TICK); PHASE_RUN_TICK = null; }
     }
 
     // --- Árbol de problemas y objetivos ---------------------------------------
@@ -4221,7 +4465,11 @@
       document.getElementById('drawerOverlay').classList.remove('active');
     }
 
+    let ARTIFACT_OPEN = null;
+
     async function loadArtifact(relPath) {
+      const listed = ((currentStatus && currentStatus.artifacts) || []).find(a => a.rel_path === relPath);
+      ARTIFACT_OPEN = { path: relPath, mtime: listed ? listed.mtime : null };
       document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
       const activeItem = Array.from(document.querySelectorAll('.sidebar-item')).find(i => i.dataset.path === relPath);
       if (activeItem) activeItem.classList.add('active');
@@ -4413,12 +4661,18 @@
         }
 
         // Firma de datos para evitar reconstrucciones de DOM innecesarias
+        renderPhaseRunTracker(data);
         const signature = JSON.stringify({
           active_run: data.active_run,
           totals: data.totals,
           gates: data.gates,
           sec_count: (data.sections || []).length,
-          tel_count: (data.telemetria || []).length
+          tel_count: (data.telemetria || []).length,
+          // La ejecución en vivo y la verificación también repintan el panel.
+          en_curso: data.en_curso || null,
+          control: data.control || null,
+          unit_progress: data.unit_progress || null,
+          artifacts: (data.artifacts || []).map(a => [a.rel_path, a.size, a.mtime])
         });
 
         if (signature === lastStatusSignature) {
@@ -4499,7 +4753,7 @@
         // Render Illuminated vs Unlit Flujo General
         // El inventario manda: la lista de fases se deriva del sobre de estado,
         // no de una constante escrita aquí.
-        EN_CURSO = data.en_curso || null;
+        EN_CURSO = liveHeartbeat(data);
         setPhasesInfo(data.pipeline_units);
         // Solo la secuencia por pasos: `g0_5` es pre-intake y opcional, y sin fila
         // de telemetría aparecería como pendiente para siempre.
@@ -4512,8 +4766,7 @@
           let unlitCount = 0;
 
           PHASES_INFO.forEach((p, idx) => {
-            const gateStatus = getPhaseVerdict(p);
-            const isLit = (gateStatus === 'PASS');
+            const isLit = resolvePhaseState(p, data) === 'verified';
 
             if (isLit) litCount++;
             else unlitCount++;
@@ -4528,9 +4781,9 @@
             const isLast = (idx === PHASES_INFO.length - 1);
             let nextGateStatus = 'PENDING';
             if (!isLast) {
-              nextGateStatus = getPhaseVerdict(PHASES_INFO[idx + 1]);
+              nextGateStatus = resolvePhaseState(PHASES_INFO[idx + 1], data);
             }
-            const isConnectorLit = isLit && (nextGateStatus === 'PASS');
+            const isConnectorLit = isLit && (nextGateStatus === 'verified');
 
             const phaseLabel = formatPhaseNumber(p.id);
             const shortName = getShortPhaseName(p);
@@ -4562,15 +4815,18 @@
         pipeGrid.innerHTML = '';
         PHASES_INFO.forEach((p, idx) => {
           const gateStatus = getPhaseVerdict(p);
-          const isLit = (gateStatus === 'PASS');
-          const badgeTone = isLit ? 'ok' : (gateStatus === 'BLOCKED' ? 'bad' : 'warn');
+          const phaseState = resolvePhaseState(p, data);
+          // Se ilumina solo lo verificado: un PASS con archivos o control pendientes queda «incompleta».
+          const isLit = phaseState === 'verified';
+          const isPartial = phaseState === 'partial';
+          const badgeTone = isLit ? 'ok' : (gateStatus === 'BLOCKED' || phaseState === 'failed' ? 'bad' : 'warn');
 
           const card = document.createElement('div');
           const enCurso = !!(EN_CURSO && EN_CURSO.fase === p.id);
           const exec = evaluatePhaseExecution(p.id, data);
           // La unidad que se puede lanzar ahora (el intake al inicio) se ve activa, no apagada.
           const isReady = !isLit && !enCurso && exec.allowed;
-          card.className = `phase-card ${isLit ? 'phase-card--lit' : (isReady ? 'phase-card--ready' : 'phase-card--unlit')}`;
+          card.className = `phase-card ${isLit ? 'phase-card--lit' : (isReady ? 'phase-card--ready' : (isPartial ? 'phase-card--partial' : 'phase-card--unlit'))}`;
           card.onclick = () => runPhaseExecution(p.id);
           card.title = 'Clic para ejecutar esta fase con tus indicaciones';
           card.innerHTML = `
@@ -4578,7 +4834,7 @@
               title="${exec.allowed ? `Ejecutar ${exec.command}` : 'Aún no ejecutable: clic para ver qué falta'}">▶ Ejecutar</button>
             <div class="phase-card__head">
               <span class="phase-card__name">${p.name}</span>
-              <span class="badge badge--${enCurso ? 'info' : (isReady ? 'ok' : badgeTone)}">${enCurso ? '⏳ EN CURSO' : (isReady ? '▶ LISTA PARA EJECUTAR' : `${isLit ? '💡 ' : ''}${p.gateLabel}: ${gateStatus}`)}</span>
+              <span class="badge badge--${enCurso ? 'info' : (isReady ? 'ok' : badgeTone)}">${enCurso ? '⏳ EN CURSO' : (isReady ? '▶ LISTA PARA EJECUTAR' : (isPartial ? `⚠ INCOMPLETA · ${p.gateLabel}: ${gateStatus}` : (phaseState === 'skipped' ? 'OMITIDA' : (isLit && gateStatus !== 'PASS' ? '💡 VERIFICADA' : `${isLit ? '💡 ' : ''}${p.gateLabel}: ${gateStatus}`))))}</span>
             </div>
             <p class="phase-card__desc">${p.desc}</p>
             <div class="phase-card__foot">
@@ -4706,7 +4962,13 @@
         artList.innerHTML = '';
         (data.artifacts || []).forEach((art, i) => {
           const div = document.createElement('div');
-          div.className = `sidebar-item ${i === 0 ? 'active' : ''}`;
+          const isOpen = ARTIFACT_OPEN ? ARTIFACT_OPEN.path === art.rel_path : i === 0;
+          div.className = `sidebar-item ${isOpen ? 'active' : ''}`;
+          if (ARTIFACT_OPEN && ARTIFACT_OPEN.path === art.rel_path && art.mtime && ARTIFACT_OPEN.mtime && art.mtime !== ARTIFACT_OPEN.mtime) {
+            // El agente reescribió el artefacto abierto: se recarga solo.
+            ARTIFACT_OPEN.mtime = art.mtime;
+            loadArtifact(art.rel_path);
+          }
           div.dataset.path = art.rel_path;
           div.onclick = () => loadArtifact(art.rel_path);
           div.innerHTML = `
@@ -8085,8 +8347,10 @@
       loadExecutionHistory();
       updateUndoRedoUI();
       initTerminalUI();
-      // Polling every 5 seconds for live status
+      // Polling every 5 seconds for live status; every 2 s while a phase runs.
+      restorePhaseRun();
       setInterval(loadStatus, 5000);
+      setInterval(() => { if (phaseRunActive()) loadStatus(); }, 2000);
     });
 
     document.addEventListener('visibilitychange', () => {

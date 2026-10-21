@@ -46,15 +46,25 @@ mantiene un latido: al abrir una unidad escribe
   "agentes": ["<subagente>", "..."],
   "skill": "<skill o null>",
   "artefacto_esperado": "<ruta que va a escribir>",
-  "inicio": "<ISO-8601>"
+  "inicio": "<ISO-8601>",
+  "nota": "<paso en curso, opcional>"
 }
 ```
 
-en `artefactos/pipeline/_en_curso.json`, y lo **borra** al cerrar la unidad, antes
+en `artefactos/pipeline/_en_curso.json`. Antes de cada `subagent_run` de la unidad lo
+reescribe con `agentes` y `skill` del despacho que arranca y una `nota` corta
+del paso (por ejemplo `"nota": "Task → revisor (G1b)"`), para que el tablero
+muestre el avance dentro de la unidad. Lo **borra** al cerrar la unidad, antes
 de escribir su `NN-fase*.md`. El tablero lo lee y marca «EN CURSO» sobre esa
 unidad, con sus agentes y su skill en el cajón. Un latido que no se borra miente:
 si una unidad queda interrumpida, el latido se queda y el operador ve que ahí se
 cortó, que es justo lo que hay que ver.
+
+El tablero da una unidad por cumplida solo con tres pruebas: su compuerta en
+PASS (o, sin compuerta, su `NN-<id>.md`), `next_step` ya más allá de ella, y sus
+artefactos y secciones en disco (`artifacts` y `sections` de cada unidad en
+`src/morfeo/core/pipeline_units.py`). Un latido de una unidad ya cumplida, o con
+más de 6 h, se muestra como obsoleto y no bloquea el botón «Ejecutar».
 
 ## Step sequence (post-intake)
 

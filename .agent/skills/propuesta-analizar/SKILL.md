@@ -42,6 +42,14 @@ Seguí **exactamente** "RESOLUCIÓN DE RUN-ID", "GUARDIA DE COLISIÓN" y
 
 ### 2. Fingerprint de guía + insumos-observador
 
+Antes del despacho, con la corrida ya creada, escribí el latido
+`artefactos/pipeline/_en_curso.json` con `"fase": "fase0"`,
+`"agentes": ["insumos-observador"]`, `"artefacto_esperado": "artefactos/insumos.md"`
+e `inicio` en ISO-8601 (formato en `_propuesta-steps.md`, «Latido de la unidad
+en curso»). Si después corre la Fase 0.5, reescribilo con `"fase": "g0_5"`.
+Borralo en el paso 6, al escribir el control de ejecución. El tablero lo usa
+para mostrar el intake en vivo.
+
 Calculá `guide_fingerprint` como en `propuesta.md`. Despachá `Task` →
 `insumos-observador` sobre `insumos/` (**recursivo**, drop zones
 `tdr|draft|background|doc-secciones|ideas` — ver agente). Inyectá
@@ -99,6 +107,8 @@ Escribí o actualizá en `artefactos/estado_propuesta.md`:
 
 Si G0.5 quedó `OMITIDA-POR-USUARIO` o no aplica TDR, `last_completed: fase0`
 (o `g0.5-omitida`). Si G0.5 = APROBADA, `last_completed: g0.5`.
+
+Borrá `artefactos/pipeline/_en_curso.json` en cuanto el control quede escrito.
 
 ### 7. DETENTE — no Fase 1a
 

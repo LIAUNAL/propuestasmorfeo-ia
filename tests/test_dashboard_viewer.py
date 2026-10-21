@@ -416,7 +416,8 @@ class TestDashboardViewerContract(unittest.TestCase):
         # El latido `_en_curso.json` es lo único que permite mostrar qué agente se
         # está levantando mientras ocurre: el `NN-fase*.md` se escribe al terminar.
         self.assertPresent("let EN_CURSO = null;")
-        self.assertPresent("EN_CURSO = data.en_curso || null;")
+        # Un latido obsoleto (unidad ya cumplida o de más de 6 h) no cuenta como en curso.
+        self.assertPresent("EN_CURSO = liveHeartbeat(data);")
         self.assertPresent("En ejecución ahora")
         self.assertPresent("${enCurso ? 'EN CURSO' : (isLit ? 'PASS' : 'SIN LUZ')}")
 
