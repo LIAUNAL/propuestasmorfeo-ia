@@ -31,10 +31,16 @@ dropped into a run's `insumos/`:
 
 | Package | Used for | Fallback if absent |
 |---------|----------|--------------------|
-| `pymupdf4llm` | PDF → Markdown preserving tables and structure | none; PDF intake degrades badly |
+| `pdfplumber` (pulls `pypdfium2`) | `scripts/pdf_to_md.py`: fast PDF text plus Markdown tables; permissive licenses (MIT, BSD-3/Apache-2.0) | falls back to poppler `pdftotext -layout` (no table markup) |
 | `markitdown` | Office documents (`.docx`, `.pptx`, `.xlsx`) | `textutil -convert txt` / `unzip -p ... word/document.xml` on macOS |
 | `markdownify` | HTML → Markdown for web-sourced inputs | none |
 | `python-docx` | DOCX structure when Markdown is not enough | same as `markitdown` |
+
+`scripts/pdf_to_md.py` also uses two optional system tools: poppler
+(`pdftotext`, `pdfinfo`, `pdftoppm`; `brew install poppler`) as the engine
+when the Python packages are missing, and tesseract (`brew install tesseract
+tesseract-lang`, Apache-2.0) to OCR scanned pages only. Without tesseract,
+scanned pages are listed in `needs_visual_pages` for the agent to view.
 
 Skip them only if you never feed PDFs or Office documents to a run:
 `insumos-observador` names them as its primary path and the documented

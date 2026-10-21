@@ -76,6 +76,7 @@
     "scripts/graph_html.py",
     "scripts/init-run.sh",
     "scripts/marco_cli.py",
+    "scripts/pdf_to_md.py",
     "tests/__init__.py",
     "tests/test_e2e_framework.py",
     "tests/test_pi_port.py",

@@ -9,11 +9,15 @@
 # (npm: @colbymchenry/codegraph), see REQUIREMENTS.md section 1.
 #
 # Everything below is OPTIONAL and only useful for local, manual conversion of
-# user inputs dropped into a run's insumos/ (PDF/DOCX) when the agent's own Read tool
-# plus `textutil` are not enough. Nothing in the pipeline imports them.
+# user inputs dropped into a run's insumos/ (PDF/DOCX). scripts/pdf_to_md.py
+# uses pdfplumber/pypdfium2 when importable (or via `uv run --with pdfplumber`)
+# and falls back to the pdftotext CLI otherwise.
 
-# PDF parsing (convocatoria PDFs, papers)
-pymupdf4llm>=0.0.17
+# PDF parsing (convocatoria PDFs, papers) for scripts/pdf_to_md.py.
+# Permissive licenses only: pypdfium2 (BSD-3/Apache-2.0) via pdfplumber (MIT).
+# Without them the script falls back to poppler's pdftotext CLI. PyMuPDF and
+# pymupdf4llm are deliberately absent (AGPL; pymupdf4llm 2.0 is an empty shim).
+pdfplumber>=0.11
 markdownify>=0.13
 
 # Office document parsing (DOCX, PPTX, XLSX proposals)
