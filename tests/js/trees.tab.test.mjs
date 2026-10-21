@@ -318,6 +318,52 @@ test('la pestaña trae las reglas de la guía SGR, cerradas por defecto', async 
   assert.doesNotMatch(box.textContent, / — |--/);
 });
 
+test('las reglas del problema central traen el ejemplo, el criterio y las preguntas orientadoras', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  const txt = viewer.document.getElementById('treeRules').textContent;
+  assert.match(txt, /Limitados ambientes de aprendizaje innovadores/);
+  assert.match(txt, /diversas alternativas de solución/);
+  assert.match(txt, /necesidades de la población/);
+  assert.match(txt, /efecto visible principal, no una causa raíz ni una consecuencia lejana/);
+  for (const q of ['¿Qué está pasando?', '¿Por qué es un problema?', '¿Es el punto de partida lógico para buscar soluciones?',
+    '¿Afecta a una población significativa?', '¿Es una prioridad para la política pública o el plan de desarrollo?',
+    '¿Es abordable con los recursos y capacidades disponibles?']) {
+    assert.ok(txt.includes(q), q);
+  }
+});
+
+test('las reglas explican causas y efectos del problema con sus ejemplos', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  const box = viewer.document.getElementById('treeRules');
+  const heads = Array.from(box.querySelectorAll('h4')).map(h => h.textContent.trim());
+  assert.ok(heads.includes('Causas del problema'), heads.join(' | '));
+  assert.ok(heads.includes('Efectos del problema'), heads.join(' | '));
+  const txt = box.textContent;
+  for (const s of ['¿Qué está causando el problema?', 'factores que tienen una relación inmediata con el problema central',
+    'Insuficientes docentes capacitados', 'raíces más profundas o estructurales', 'Escasa inversión en formación docente',
+    '¿Qué pasa como consecuencia de este problema?', 'consecuencia inmediata del problema', 'se derivan de los efectos directos']) {
+    assert.ok(txt.includes(s), s);
+  }
+  assert.doesNotMatch(txt, /Ejemplo: falta de/i);
+});
+
+test('los dos árboles son los títulos principales de las reglas, distintos de sus subtítulos', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  const box = viewer.document.getElementById('treeRules');
+  const trees = Array.from(box.querySelectorAll('h3.tree-rules__tree')).map(h => h.textContent.trim());
+  assert.equal(trees.length, 2);
+  assert.match(trees[0], /Árbol de problemas$/);
+  assert.match(trees[1], /Árbol de objetivos$/);
+  assert.ok(!Array.from(box.querySelectorAll('h4')).some(h => /^Árbol de/.test(h.textContent.trim())), 'los árboles ya no son h4');
+});
+
+test('el árbol de objetivos trae el método SMART y dónde va lo medible', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  const txt = viewer.document.getElementById('treeRules').textContent;
+  assert.ok(txt.includes('Los objetivos deben seguir el método SMART (Specific, Measurable, Achievable, Relevant and Time-bound). Es decir, deben ser claros y definidos, debe ser posible cuantificar el progreso o resultado, deben ser realistas y posibles de lograr, deben ser importantes y alineados con otras metas y deben tener un plazo definido para su cumplimiento.'));
+  assert.ok(txt.includes('Lo medible y el plazo se expresan en los indicadores y en el cronograma, no dentro del enunciado del objetivo (sin porcentajes, metas ni fechas).'));
+});
+
 test('la cabecera muestra el flujo del proyecto', async (t) => {
   const viewer = await harness(t, treesPayload());
   const badge = viewer.document.getElementById('flujoBadge');

@@ -1026,7 +1026,8 @@ Fase 1  (en AMBAS rutas) Task → bibliografo-propuesta MODE=explore → mapa de
         (el de problemas, `artefactos/arboles/arbol_problemas.md` y
         `redaccion/specs/arbol_problemas.spec.json`, y el de objetivos,
         `artefactos/arboles/arbol_objetivos.json`, que inyecta inline): el
-        problema central copiado textual del tronco, el contexto general,
+        problema central copiado textual del tronco, la descripción de la
+        situación existente,
         un párrafo por cada causa directa y la magnitud del problema con su
         tabla de indicadores, resaltando el indicador de línea base que el
         proyecto busca mover. Las cifras de la magnitud salen de fuentes

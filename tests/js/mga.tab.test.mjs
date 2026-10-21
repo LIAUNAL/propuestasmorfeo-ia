@@ -17,7 +17,7 @@ const MGA = `# Planteamiento del problema
 ## Problema central
 Baja cobertura del monitoreo hídrico en Caldas.
 
-## Contexto general de la problemática
+## Descripción de la situación existente
 Contexto del sector.
 
 ## Magnitud del problema
@@ -63,7 +63,7 @@ test('carga artefactos/mga_resumido.md y lo pinta como Markdown', async (t) => {
   const box = viewer.document.getElementById('mgaContent');
   assert.ok(box.classList.contains('is-markdown'));
   const headings = Array.from(box.querySelectorAll('h1, h2')).map(h => h.textContent.trim());
-  assert.deepEqual(headings, ['Planteamiento del problema', 'Problema central', 'Contexto general de la problemática', 'Magnitud del problema']);
+  assert.deepEqual(headings, ['Planteamiento del problema', 'Problema central', 'Descripción de la situación existente', 'Magnitud del problema']);
   assert.ok(box.querySelector('table'), 'la tabla de indicadores se pinta');
   assert.match(box.querySelector('table strong').textContent, /línea base del proyecto/);
 });
@@ -99,7 +99,29 @@ test('la pestaña muestra las reglas de trabajo del MGA resumido', async (t) => 
   assert.ok(rules, 'el desplegable de reglas existe');
   assert.equal(rules.querySelector('summary').textContent.trim(), 'Reglas para construir el MGA resumido');
   const txt = rules.textContent;
-  for (const rule of [/copiado textual/, /departamentos o regiones/, /Causa directa 1/, /plataforma interoperable/, /apropiación social/, /línea base/, /tabla/, /\[cifra por confirmar\]/]) {
+  for (const rule of [/copiado textual/, /Descripción de la situación existente:/, /desde los antecedentes y el sector de aplicación/, /departamentos o regiones/, /Causa directa 1/, /plataforma interoperable/, /apropiación social/, /línea base/, /tabla/, /\[cifra por confirmar\]/]) {
     assert.match(txt, rule);
   }
+  assert.doesNotMatch(txt, /Contexto general/);
+});
+
+test('la regla de la situación existente trae su ejemplo', async (t) => {
+  const { viewer } = await harness(t, () => text(MGA));
+  const ex = viewer.document.querySelector('#mgaRules .mga-rules__example');
+  assert.ok(ex, 'el ejemplo existe');
+  assert.match(ex.textContent, /^\s*Ejemplo/);
+  assert.match(ex.textContent, /En los 12 municipios no certificados del departamento de Risaralda/);
+  assert.match(ex.textContent, /afecta los resultados académicos y la motivación de los estudiantes en estas áreas\./);
+});
+
+test('la magnitud del problema trae su ejemplo', async (t) => {
+  const { viewer } = await harness(t, () => text(MGA));
+  const examples = Array.from(viewer.document.querySelectorAll('#mgaRules .mga-rules__example'));
+  assert.equal(examples.length, 2);
+  const ex = examples[1];
+  assert.match(ex.textContent, /^\s*Ejemplo/);
+  assert.match(ex.textContent, /En Risaralda, según el Sistema de Información Nacional de Educación Básica y Media - SINEB \(2022\)/);
+  assert.match(ex.textContent, /76\.545 estudiantes de la básica primaria y media técnica, 4\.235 docentes y 1\.103 sedes del departamento\./);
+  const magnitudeHead = Array.from(viewer.document.querySelectorAll('#mgaRules h4')).find(h => h.textContent.trim() === 'Magnitud del problema');
+  assert.ok(magnitudeHead.compareDocumentPosition(ex) & viewer.window.Node.DOCUMENT_POSITION_FOLLOWING, 'el ejemplo va en la magnitud');
 });

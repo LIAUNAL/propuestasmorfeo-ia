@@ -56,6 +56,13 @@ you) before reporting a FAIL for a missing artifact.
      problemas y árbol de objetivos según la MGA»): at G1b, FAIL a central
      problem or subproblem phrased as the absence of a solution ("Falta
      de…", "Ausencia de…", "Se requiere…") or a crown that is the solution;
+     FAIL a central problem that is a root cause or a distant consequence
+     instead of the main visible effect, or that admits a single solution
+     instead of several alternatives (guide §3, guiding questions: ¿Qué está
+     pasando? ¿Por qué es un problema? ¿Es el punto de partida lógico para
+     buscar soluciones? ¿Afecta a una población significativa? ¿Es una
+     prioridad para la política pública o el plan de desarrollo? ¿Es
+     abordable con los recursos y capacidades disponibles?);
      also at G1b, FAIL an objective tree that changes the variable of its problem
      node or whose general objective carries the means ("mediante…"), the
      ends ("para mejorar…") or targets. `check_run.py` reports these as
