@@ -767,6 +767,72 @@ def check_tree_figures(report: Report, run_root: Path, flujo: str) -> None:
                        f"y esa aprobación {state}. Revísalo y apruébalo en la pestaña de árboles.", sources[key])
 
 
+SECTION_RE = re.compile(r"\\section(\*?)\s*\{")
+
+
+def _braced(text: str, start: int) -> str:
+    """Content of the {...} group whose opening brace is at text[start - 1]."""
+    depth, i = 1, start
+    while i < len(text) and depth:
+        depth += {"{": 1, "}": -1}.get(text[i], 0)
+        i += 1
+    return text[start:i - 1]
+
+
+def check_tdr_structure(report: Report, run_root: Path, final: bool) -> None:
+    """main.tex in the TDR chapter order (scripts/ensamblar_main.py), verbatim titles."""
+    structure_path = run_root / "artefactos" / "estructura_tdr.json"
+    data = _read_json_file(structure_path)
+    if data is None:
+        return
+    assembler_path = Path(__file__).resolve().parent / "ensamblar_main.py"
+    if not assembler_path.is_file():
+        return
+    module_spec = importlib.util.spec_from_file_location("ensamblar_main", assembler_path)
+    assembler = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(assembler)
+    try:
+        chapters = assembler.validate(data)
+    except assembler.InputError as exc:
+        report.add("error", "tdr-estructura-invalida", str(exc), structure_path)
+        return
+
+    main_tex = run_root / "redaccion" / "main.tex"
+    stamp = f"{assembler.HASH_PREFIX}{assembler.structure_hash(data)}"
+    if main_tex.is_file() and stamp not in main_tex.read_text(encoding="utf-8", errors="replace"):
+        report.add("error", "tdr-main-desactualizado",
+                   "main.tex no sigue artefactos/estructura_tdr.json (el orden de capítulos del TDR). "
+                   f"Ármalo con: python3 scripts/ensamblar_main.py {run_root}", main_tex)
+
+    sec_dir = run_root / "redaccion" / "sections"
+    for chapter in chapters:
+        texts = []
+        for name in chapter["archivos"]:
+            path = sec_dir / f"{name}.tex"
+            if not name.startswith("diag_") and path.is_file():
+                raw = path.read_text(encoding="utf-8", errors="replace")
+                texts.append((path, "\n".join(strip_comment(line) for line in raw.splitlines())))
+        if not texts:
+            continue
+        heads = [(path, m) for path, text in texts for m in SECTION_RE.finditer(text)]
+        numbered = [h for h in heads if not h[1].group(1)]
+        if len(numbered) != 1:
+            report.add("warning", "tdr-capitulo-secciones",
+                       f"El capítulo {chapter['numero']} abre {len(numbered)} \\section numerados; debe abrir uno "
+                       "solo para que LaTeX imprima el número del TDR (los sub-bloques van con \\subsection).",
+                       texts[0][0])
+        title = chapter.get("titulo")
+        if not title or not heads:
+            continue
+        path, match = heads[0]
+        text = dict(texts)[path]
+        found = " ".join(_braced(text, match.end()).split())
+        if found != " ".join(title.split()):
+            report.add("error" if final else "warning", "tdr-titulo-capitulo",
+                       f"El capítulo {chapter['numero']} debe titularse textualmente «{title}» "
+                       f"(el TDR conserva los títulos); dice «{found}».", path)
+
+
 def check_sgr_sections(report: Report, sec_dir: Path, flujo: str, final: bool) -> None:
     if flujo != "sgr" or not final:
         return
@@ -809,6 +875,7 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_pdf(report, red)
     check_trees(report, run_root, texts, sections, report.flujo)
     check_tree_figures(report, run_root, report.flujo)
+    check_tdr_structure(report, run_root, final)
     check_sgr_sections(report, sec_dir, report.flujo, final)
     return report
 

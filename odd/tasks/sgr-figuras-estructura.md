@@ -15,8 +15,8 @@ Objetivo: en el flujo SGR, las figuras (árboles, metodología, cronograma) sigu
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |---|---|---|---|---|
-| T1 | S1, S2 | inline | hecha | RED 5F+3E → GREEN 12/12; suites relacionadas 136 OK |
-| T2 | S3 | inline | pendiente | |
+| T1 | S1, S2 | inline | hecha | dfc9c68; RED 5F+3E → GREEN 12/12; suites relacionadas 136 OK |
+| T2 | S3 | inline | hecha | RED 10E → GREEN 11/11; bootstrap sobre copia de la guía viva: 30 capítulos |
 | T3 | S4 | inline | pendiente | |
 | T4 | S1-S5 | inline | pendiente | dispatcher, agentes, docs, ports, kit |
 | T5 | S6 | inline | pendiente | propuesta de guía; edición tras aprobación |
@@ -29,3 +29,4 @@ Ruta inline en las cuatro: no hay unidades paralelas que justifiquen un escritor
 - **L2 (mapa):** el panel lee el árbol de problemas desde `redaccion/specs/arbol_problemas.spec.json`, la misma spec que compila `figura.py`, pero nada verifica que la figura corresponda a la spec vigente ni a la aprobada. No existe figura del árbol de objetivos. `render_tikz.py` no distingue flujos. `plantilla/main.tex` fija el orden base, y la guía ajustada de la corrida viva (`guia_ajustada_TDR.md:87`) deja pendiente el reordenamiento del Anexo 2.
 - **L3 (decisión):** los scripts nuevos viven en `scripts/` de la raíz y reciben `<RUN_ROOT>`, como `check_run.py`. Así una corrida existente los usa después de `morfeo upgrade` sin recopiar `redaccion/scripts/`. El árbol de objetivos se convierte a una spec `kind: arbol` y se compila con el renderizador existente, que una corrida vieja ya tiene.
 - **L4 (2026-10-21, usuario):** «ajsuta tambien, para que los subproblemas par acuando es regalias, estan alineadas con las reglas del arbol de problemas y las cuasas, explorar como ajustar y resume como podria ser la guia para definir mejor problema, subproblema (causas en lenguaje sgr), segun las reglas planteadas para arbol de problemas»
+- **L5 (T2):** sobre una copia de `guia_ajustada_TDR.md` de la corrida viva, `--from-guide` leyó los 30 capítulos. Los capítulos 2 y 3 comparten `00_frontmatter` y el 19 menciona `17_articulacion_comunidades` (no se produce). El dispatcher debe dar a cada capítulo numerado su propio archivo; `tdr-capitulo-secciones` lo advierte.
