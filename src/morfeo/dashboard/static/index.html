@@ -3829,6 +3829,18 @@
       const beat = liveHeartbeat(data);
       const beatKey = beat ? `${beat.fase}@${beat.inicio || ''}` : null;
       let run = PHASE_RUN;
+      // Un comando que encadena unidades (/propuesta-analizar: fase0 y luego g0_5)
+      // escribe el latido de la siguiente: el seguidor pasa a esa unidad y conserva
+      // la sesión. Un latido anterior al envío es de otra ejecución y no cuenta.
+      const beatAt = beat ? Date.parse(beat.inicio || '') || 0 : 0;
+      if (run && beat && beat.fase !== run.unit && beatKey !== PHASE_RUN_DISMISSED && (!run.sentAt || beatAt >= run.sentAt)) {
+        PHASE_RUN = {
+          unit: beat.fase, command: run.command, sentAt: null, initialState: null, seenRunning: true,
+          external: !!run.external, sessionId: run.sessionId, agent: run.agent, chainedFrom: run.unit,
+        };
+        savePhaseRun();
+        run = PHASE_RUN;
+      }
       if (!run && beat && beatKey !== PHASE_RUN_DISMISSED) {
         // Unidad lanzada fuera del tablero (desde la terminal o el modo auto).
         run = { unit: beat.fase, command: null, sentAt: null, initialState: null, seenRunning: true, external: true };
