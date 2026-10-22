@@ -393,8 +393,8 @@ def _styles(kind: str, widths: dict[str, float]) -> str:
 # STYLE role whose `text width` the node uses, not by the id itself. Getting this
 # wrong sent a fix for `b1` looking for a style called `b1` (observed).
 _ID_ROLE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"^tSP\d+$"), "gtitulo"),
-    (re.compile(r"^r\d+$"), "raiz"),
+    (re.compile(r"^t(?:SP|OE)\d+$"), "gtitulo"),
+    (re.compile(r"^[rm]\d+$"), "raiz"),
     (re.compile(r"^b\d+$"), "rama"),
     (re.compile(r"^tronco$"), "tronco"),
     (re.compile(r"^copa$"), "copa"),
@@ -407,8 +407,13 @@ _ID_ROLE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 
-def role_for_node(node_id: str) -> str:
-    """Map a generated node id to the style role whose width it uses."""
+def role_for_node(node_id: str, kind: str | None = None) -> str:
+    """Map a generated node id to the style role whose width it uses.
+
+    `f<n>` is a methodology phase, except in an `arbol`: the objective tree
+    (scripts/arbol_objetivos.py) names its ends `f<n>`, drawn as branches."""
+    if kind == "arbol" and re.match(r"^f\d+$", node_id):
+        return "rama"
     for pattern, role in _ID_ROLE_PATTERNS:
         if pattern.match(node_id):
             return role
@@ -418,6 +423,15 @@ def role_for_node(node_id: str) -> str:
 # --------------------------------------------------------------------------
 # kind: arbol
 # --------------------------------------------------------------------------
+# Side labels from the crown down to the roots (guía §3, tabla MGA).
+PROBLEM_LEVEL_LABELS = [("EFECTO", "FINAL"), ("EFECTOS", "DIRECTOS"), ("PROBLEMA", "CENTRAL"), ("CAUSAS", "(RAÍCES)")]
+OBJECTIVE_LEVEL_LABELS = [("FIN", "ÚLTIMO"), ("FINES", "DIRECTOS"), ("OBJETIVO", "GENERAL"), ("MEDIOS", "(RAÍCES)")]
+
+
+def is_objective_tree(spec: dict) -> bool:
+    return "OBJETIVOS" in str(spec.get("header") or "").upper()
+
+
 def build_arbol(spec: dict, over: dict) -> tuple[str, list[int], dict[int, str]]:
     groups = spec["groups"]
     branches = spec["branches"]
@@ -582,13 +596,10 @@ def build_arbol(spec: dict, over: dict) -> tuple[str, list[int], dict[int, str]]
     # two adjacent rotated labels can end up millimetres apart (observed) or
     # overlapping. An even pitch over the real figure height cannot collide,
     # because the pitch is always several times any label's own height.
-    labels = [
-        # MGA levels: the crown is the final indirect effect, never the solution.
-        ("EFECTO", "FINAL"),
-        ("EFECTOS", "DIRECTOS"),
-        ("PROBLEMA", "CENTRAL"),
-        ("CAUSAS", "(RAÍCES)"),
-    ]
+    # MGA levels: the crown is the final indirect effect, never the solution.
+    # The objective tree (header «ÁRBOL DE OBJETIVOS», scripts/arbol_objetivos.py)
+    # is the positive mirror, so each level takes its MGA objective name.
+    labels = OBJECTIVE_LEVEL_LABELS if is_objective_tree(spec) else PROBLEM_LEVEL_LABELS
     # Band heights, estimated from the content the renderer itself laid out, so
     # each legend label lands on its own band instead of on an even pitch (the
     # causas band is by far the tallest, which pushed the middle labels off
@@ -1284,7 +1295,7 @@ def apply_overfull_fix(
 
     # The overflowing node's role determines which style width to widen; the
     # increment is converted with that role's type size.
-    role = role_for_node(node)
+    role = role_for_node(node, spec.get("kind"))
 
     increment_cm = max(round(pt * 0.03528 + 0.12, 2), 0.12)
     base = overrides.get(role)

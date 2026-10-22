@@ -4294,7 +4294,7 @@
       const groups = (tree.groups || []).map(g => {
         const leaves = objetivos ? (g.means || []) : (g.causes || []);
         const head = objetivos
-          ? treeNodeHtml(g.id, g.objective ? `${g.title || g.id} · ${g.objective}` : null, 'group tree-group__head', g.from)
+          ? treeNodeHtml(g.id, g.objective || null, 'group tree-group__head', g.from)
           : treeNodeHtml(g.id, g.title, 'group tree-group__head');
         return `<div class="tree-group">${head}<div class="tree-subtier">${tiers.leaves}</div>${leaves.map(n => treeNodeHtml(n.id, n.text, 'leaf', n.from)).join('')}</div>`;
       }).join('');

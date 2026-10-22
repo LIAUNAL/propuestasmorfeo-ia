@@ -187,6 +187,22 @@ class ObjectiveTreeRulesTest(unittest.TestCase):
         for tree in cases:
             self.assertIn("arbol-espejo-roto", codes(check_run.objective_tree_findings(tree, PROBLEM), "error"))
 
+    def test_a_group_title_is_the_oe_label_not_the_cause_text(self) -> None:
+        tree = objectives()
+        tree["groups"][0]["title"] = PROBLEM["groups"][0]["title"]
+        tree["groups"][1]["title"] = "Deficiente recolección selectiva de residuos"
+        findings = check_run.objective_tree_findings(tree, PROBLEM)
+        found = [f for f in findings if f["code"] == "arbol-objetivo-titulo"]
+        self.assertEqual({f["node"] for f in found}, {"OE1", "OE2"})
+        self.assertEqual({f["severity"] for f in found}, {"warning"})
+        self.assertIn("OE1", found[0]["message"])
+
+    def test_an_oe_label_or_a_missing_title_is_not_a_finding(self) -> None:
+        tree = objectives()
+        tree["groups"][0].pop("title")
+        tree["groups"][1]["title"] = "oe2"
+        self.assertEqual(check_run.objective_tree_findings(tree, PROBLEM), [])
+
     def test_a_changed_variable_is_an_error_in_the_trunk_and_a_warning_in_a_group(self) -> None:
         spec = problem(trunk={"label": "PROBLEMA CENTRAL", "text": "Altos niveles de deserción educativa en la zona rural",
                               "magnitude": PROBLEM["trunk"]["magnitude"]})

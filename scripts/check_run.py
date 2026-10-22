@@ -28,13 +28,16 @@ objective trees when their files exist:
   objective tree (artefactos/arboles/arbol_objetivos.json):
     arbol-objetivos-no-infinitivo, objetivo-general-con-medio,
     objetivo-general-con-fin, objetivo-general-con-meta, arbol-espejo-roto,
-    arbol-variable-cambiada (error on the trunk, warning on a group)
+    arbol-variable-cambiada (error on the trunk, warning on a group),
+    arbol-objetivo-titulo (warning: groups[].title is OE<n>, not the cause text)
   base flow: objetivo-general-sin-variable-del-arbol (warning, §6 vs tree)
   SGR flow: sgr-objetivo-general-distinto, sgr-objetivos-especificos-distintos
     (§6/§7 must be the objective tree texts), sgr-titulo-no-derivado (the
     title is the general objective with its verb as a noun), and with --final
     sgr-anexo-faltante for each missing MGA annex in SGR_SECTIONS;
     sgr-causa-sin-magnitud / sgr-efecto-sin-magnitud (warning, guía SGR §3),
+    sgr-magnitud-repetida (warning: a direct cause reuses the trunk or an
+    effect indicator, guía SGR §3),
     arbol-sin-aprobar-panel (warning), sgr-metodologia-sin-etapa,
     sgr-metodologia-sin-oe, sgr-cronograma-sin-etapas,
     sgr-cronograma-sin-ruta-critica (warnings, guía SGR §10 and §14).
@@ -484,6 +487,11 @@ def problem_tree_findings(spec: dict) -> list[dict]:
     return findings
 
 
+# The objective tree's group title is its label (src/morfeo/core/trees.py,
+# _derive_objectives); the objective itself lives in `objective`.
+OE_LABEL_RE = re.compile(r"^OE\s*\d+$", re.IGNORECASE)
+
+
 def objective_tree_findings(objectives: dict, problem_spec: dict) -> list[dict]:
     """SGR guide rules for the objective tree, the positive mirror of `problem_spec`."""
     if not isinstance(objectives, dict):
@@ -557,6 +565,14 @@ def objective_tree_findings(objectives: dict, problem_spec: dict) -> list[dict]:
     for branch in branches:
         if branch.get("from") is not None and str(branch.get("from")) not in branch_ids:
             broken(str(branch.get("id") or ""), f"«{branch.get('from')}» no es un efecto del árbol de problemas.")
+
+    for i, group in enumerate(groups):
+        title = str(group.get("title") or "").strip()
+        if title and title != str(group.get("id") or "") and not OE_LABEL_RE.match(title):
+            label = f"OE{i + 1}"
+            findings.append(_finding("warning", "arbol-objetivo-titulo", str(group.get("id") or label),
+                                     f"groups[].title es el rótulo {label}, nunca el texto de la causa: el panel y "
+                                     "§7 muestran el objetivo limpio, sin preámbulo."))
 
     ptrunk = normalize_tree_text((problem_spec.get("trunk") or {}).get("text"))
     if ptrunk and trunk and shared_variable(ptrunk, trunk) < 0.5:
@@ -673,7 +689,24 @@ def sgr_magnitude_findings(spec: dict) -> list[dict]:
             findings.append(_finding("warning", "sgr-efecto-sin-magnitud", str(branch.get("id") or ""),
                                      "En el flujo SGR cada efecto directo lleva su magnitud (indicador, valor y "
                                      "fuente) en branches[].magnitude."))
+    # Guía SGR §3: one indicator measures one variable, so a direct cause never
+    # reuses the indicator of the central problem or of a direct effect.
+    measured = {_indicator_key(node) for node in [spec.get("trunk") or {}] + list(spec.get("branches") or [])}
+    measured.discard("")
+    for group in spec.get("groups") or []:
+        if _indicator_key(group) in measured:
+            findings.append(_finding("warning", "sgr-magnitud-repetida", str(group.get("id") or ""),
+                                     "La causa directa usa el mismo indicador que el problema central o un efecto: "
+                                     "su magnitud mide la variable de la causa (por ejemplo, la cobertura de la "
+                                     "información en una causa de información)."))
     return findings
+
+
+def _indicator_key(node: dict) -> str:
+    magnitude = node.get("magnitude") if isinstance(node, dict) else None
+    if not isinstance(magnitude, dict):
+        return ""
+    return " ".join(_fold(str(magnitude.get("indicador") or "")).lower().split())
 
 
 def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections: dict[str, Path],

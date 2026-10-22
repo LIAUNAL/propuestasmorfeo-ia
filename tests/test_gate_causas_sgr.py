@@ -109,6 +109,27 @@ class CauseMagnitude(unittest.TestCase):
         self.assertEqual(found.get("sgr-causa-sin-magnitud"), ["warning", "warning"])
         self.assertEqual(found.get("sgr-efecto-sin-magnitud"), ["warning"])
 
+    def test_sgr_warns_when_a_cause_reuses_an_effect_or_trunk_indicator(self) -> None:
+        spec = json.loads(json.dumps(SPEC))
+        health = {"indicador": "Prevalencia de TEPT en estudiantes", "valor": "18 %", "fuente": "Tamizaje 2026"}
+        spec["trunk"]["magnitude"] = health
+        spec["groups"][0]["magnitude"] = {"indicador": " prevalencia de TEPT en  estudiantes", "valor": "18 %",
+                                          "fuente": "Tamizaje 2026"}
+        spec["groups"][1]["magnitude"] = {"indicador": "Tasa de deserción", "valor": "9 %", "fuente": "SPADIES"}
+        spec["branches"][0]["magnitude"] = {"indicador": "Tasa de deserción", "valor": "9 %", "fuente": "SPADIES"}
+        found = self.codes(spec, "sgr")
+        self.assertEqual(found.get("sgr-magnitud-repetida"), ["warning", "warning"])
+
+    def test_distinct_indicators_do_not_warn(self) -> None:
+        spec = json.loads(json.dumps(SPEC))
+        spec["trunk"]["magnitude"] = {"indicador": "Prevalencia de TEPT", "valor": "18 %", "fuente": "Tamizaje"}
+        spec["groups"][0]["magnitude"] = {"indicador": "Cobertura de información", "valor": "20 %", "fuente": "SIVIGILA"}
+        spec["groups"][1]["magnitude"] = {"indicador": "Profesionales por mil", "valor": "0,4", "fuente": "REPS"}
+        spec["branches"][0]["magnitude"] = {"indicador": "Tasa de deserción", "valor": "9 %", "fuente": "SPADIES"}
+        self.assertNotIn("sgr-magnitud-repetida", self.codes(spec, "sgr"))
+        spec["groups"][1]["magnitude"] = spec["branches"][0]["magnitude"]
+        self.assertNotIn("sgr-magnitud-repetida", self.codes(spec, "base"))
+
     def test_base_flow_keeps_cause_magnitude_optional(self) -> None:
         found = self.codes(SPEC, "base")
         self.assertNotIn("sgr-causa-sin-magnitud", found)

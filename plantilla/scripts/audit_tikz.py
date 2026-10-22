@@ -112,6 +112,12 @@ MIN_LEGIBLE_PT = 6.5
 FONTSIZE_RE = re.compile(r"\\fontsize\s*\{([0-9.]+)\}")
 
 
+# Tree node ids for `kind: arbol`: problem tree roots `r<n>` / effects `b<n>`,
+# objective tree means `m<n>` / ends `f<n>`.
+TREE_ROOT_ID = r"\(([rm]\d+)\)"
+TREE_BRANCH_ID = r"\(([bf]\d+)\)"
+
+
 def _check(report: list[dict], name: str, ok: bool, detail: str, blocking: bool = True):
     report.append({"id": name, "ok": bool(ok), "detail": detail, "blocking": blocking})
 
@@ -268,10 +274,13 @@ def audit(
     # `\node[...`, depending on the construct; a plain id-prefix count is the
     # stable signal for every kind, so each role is counted with its own
     # generator's naming convention.
+    # `arbol` covers both trees: the problem tree names causes `r<n>` and
+    # effects `b<n>`; the objective tree (scripts/arbol_objetivos.py) keeps the
+    # panel ids, means `m<n>` and ends `f<n>`, and its groups are `OE<n>`.
     ID_PATTERNS = {
-        "causes": r"\((r\d+)\)",
-        "groups": r"\((tSP\d+)\)",
-        "branches": r"\((b\d+)\)",
+        "causes": TREE_ROOT_ID,
+        "groups": r"\((t(?:SP|OE)\d+)\)",
+        "branches": TREE_BRANCH_ID,
         "papers": r"\(([A-Za-z]+\d*n\d+)\)",
         "clusters": r"\((c\d+)t\)",
         "limitations": r"\((c\d+)lim\)",
@@ -338,7 +347,8 @@ def audit(
         bad = []
         for draw in re.findall(r"\\draw[^\n]*", text):
             touches_crown = "(copa" in draw
-            touches_root = re.search(r"\((r\d+)\)", draw) is not None
+            # A root is named bare `(r1)` or through an anchor `(m1.north)`.
+            touches_root = re.search(r"\([rm]\d+(?:\.\w+)?\)", draw) is not None
             if touches_crown and touches_root:
                 bad.append(draw.strip())
         _check(
@@ -349,7 +359,7 @@ def audit(
         )
         # Every branch must reach the crown.
         branch_ids = [b["id"] for b in spec["branches"]]
-        reach = re.findall(r"\(b\d+\.north\)\s*--", text)
+        reach = re.findall(r"\((?:b|f)\d+\.north\)\s*--", text)
         _check(
             report,
             "every_branch_reaches_crown",
