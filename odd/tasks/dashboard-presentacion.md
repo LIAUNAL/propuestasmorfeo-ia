@@ -21,7 +21,7 @@ Rama: `feat/dashboard-presentacion`. Entrega: un commit por tarea. Pruebas: `PYT
 | ID | Specs | Ruta | Estado | Commit |
 |---|---|---|---|---|
 | T1 | S1 | inline | hecho (RED con la plantilla vieja; GREEN; pdflatex sin citas y con citas: exit 0, 0 citas sin resolver) | ver git log |
-| T2 | S2 | inline | pendiente | |
+| T2 | S2 | inline | hecho (RED: import y botón ausentes; GREEN: 11 Python + 1 JS; suite 587 OK, JS 133/133; revisión visual de las 5 diapositivas con la corrida real) | ver git log |
 
 ## Log
 

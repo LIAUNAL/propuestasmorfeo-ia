@@ -149,6 +149,14 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
    - Cola de renderizado con cancelación de tareas obsoletas, prefetch de páginas contiguas y streaming HTTP por rangos.
    - Navegación fluida mediante teclado (`J`/`K`, flechas, `+`/`-`, `0`).
    - Botón **«⟳ Recompilar»**: corre `build.sh` de la corrida activa (`POST /api/pdf/compile`) y recarga la previsualización. Si la compilación falla, muestra la cola del registro de LaTeX. Solo corre una compilación a la vez.
+   - Botón **«🎞 Presentación»**: abre `/presentacion` en otra pestaña. Es una presentación de la corrida activa con el estilo de [LIAUNAL/AgentPt](https://github.com/LIAUNAL/AgentPt), con cinco diapositivas:
+     1. Convocatoria, título y línea temática.
+     2. Entidad proponente y aliados, con los escudos de `redaccion/logos/` que la portada usa con `\LogoAliado{…}`.
+     3. Árbol de problemas.
+     4. Árbol de objetivos.
+     5. Metodología: se arma con las fases de `10_metodologia.tex`; mientras ese archivo no exista, es preliminar y sale del árbol de objetivos.
+
+     Los datos que faltan se muestran como pendientes. Las imágenes salen por `/api/presentation/asset`, que solo da acceso a `redaccion/logos` y `redaccion/sections/figuras`.
    - Al volver a la pestaña, el visor consulta `GET /api/pdf/version` y recarga solo si `main.pdf` cambió en disco, por ejemplo cuando lo recompiló un agente o la terminal. El PDF se sirve con `Cache-Control: no-cache` y un ETag que distingue reescrituras dentro del mismo segundo.
 
 3. **Herramientas de Anotación y Marcado Editorial sobre el PDF:**

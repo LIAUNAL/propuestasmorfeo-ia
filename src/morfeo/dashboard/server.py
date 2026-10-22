@@ -17,6 +17,7 @@ from typing import Any
 
 from ..core.compile import compile_run_pdf, pdf_version
 from ..core.pdf_annotator import apply_pdf_annotations
+from ..core.presentation import ASSET_TYPES, build_presentation, resolve_asset
 from ..core.status import get_project_status
 from ..core.trees import approve_tree, load_trees, record_feedback
 
@@ -137,6 +138,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_pdf()
         elif path == "/api/pdf/version":
             self.serve_pdf_version()
+        elif path == "/presentacion":
+            self.serve_presentation()
+        elif path == "/api/presentation/asset":
+            self.serve_presentation_asset()
         elif path == "/api/pdf/annotations":
             self.serve_pdf_annotations()
         elif path.startswith("/api/graph/"):
@@ -723,6 +728,39 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             init_cols=cols,
             session_id=session_id,
         )
+
+    def serve_presentation(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self.send_error(404, "No active run")
+            return
+        body = build_presentation(run_dir).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def serve_presentation_asset(self) -> None:
+        from urllib.parse import parse_qs, urlparse
+
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self.send_error(404, "No active run")
+            return
+        rel = (parse_qs(urlparse(self.path).query).get("path") or [""])[0]
+        target, status = resolve_asset(run_dir, rel)
+        if target is None:
+            self.send_error(status, "Access denied" if status == 403 else "Asset not found")
+            return
+        body = target.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", ASSET_TYPES[target.suffix.lower()])
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(body)
 
     def serve_pdf_version(self) -> None:
         run_dir = self._active_run_dir()

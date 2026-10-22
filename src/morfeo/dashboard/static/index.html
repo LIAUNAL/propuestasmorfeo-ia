@@ -2723,6 +2723,7 @@
 
             <div class="pdf-topbar__right">
               <span id="pdfRenderStatus" class="badge badge--warn" style="font-size: 0.72rem; display: none;">⚡ Renderizando...</span>
+              <button class="btn btn--sm" onclick="window.open('/presentacion', '_blank')" id="btnPresentacion" title="Abrir la presentación de la propuesta (convocatoria, alianza, árboles y metodología) con el estilo de AgentPt">🎞 Presentación</button>
               <button class="btn btn--sm" onclick="recompilePdf()" id="btnRecompilePdf" title="Compilar de nuevo main.pdf con build.sh y recargar la previsualización">⟳ Recompilar</button>
               <button class="btn btn--sm" onclick="toggleNativeViewer()" id="btnToggleNative" title="Alternar entre PDF.js y visor nativo del navegador">Visor Nativo</button>
               <a href="/api/pdf" download class="btn btn--sm" title="Descargar main.pdf compilado">⬇ Descargar</a>
