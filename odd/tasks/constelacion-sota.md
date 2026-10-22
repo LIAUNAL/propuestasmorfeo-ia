@@ -13,9 +13,9 @@ Objetivo: el grafo de papers SOTA de Morfeo replica la constelación de papersmi
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |---|---|---|---|---|
-| T1 | S1-S3 | delegada (escritor A, paralelo con T2) | pendiente | port de `check_atlas.py`, `render_atlas.py`, bundle, panel de estudio y reporte |
+| T1 | S1-S3 | delegada (escritor A, paralelo con T2) | hecha | RED 41F+7E → GREEN 50/50; página probada en Chrome headless sin errores |
 | T2 | S4 | delegada (escritor B, paralelo con T1) | hecha | RED 15F+6E → GREEN 21/21; suites de grafo y tablero 66 OK; falta probar en navegador real |
-| T3 | S1 | inline | pendiente | skill `constelacion-sota`, bibliografo, dispatcher Fases 1a y 1c, docs, manifest, ports y kit |
+| T3 | S1 | inline | hecha | skill, MODE=atlas, Fases 1a(d) y 1c(d), AGENTS, ports y kit; suite completa 554 OK |
 
 Ruta: T1 y T2 son unidades independientes con superficies disjuntas, cada una más pesada que lanzar un subagente; van en paralelo en el mismo árbol (la rama la maneja el padre). T3 depende del contrato de T1 y la hace el padre.
 
@@ -30,3 +30,4 @@ Ruta: T1 y T2 son unidades independientes con superficies disjuntas, cada una m�
 
 - **L1 (2026-10-22, usuario):** «ajusta la presentacino de los grafos de sota papers, del proyecto flujo morfeo, tanto para proyectos generales como para proyectos sgr, para qye incluyan la visualizacion y el estudio de constelaciones, con analisis de topic, problema, resultados, etc, segun se trabaja en https://github.com/LIAUNAL/papersmith-ai, asegurate de revisar tambien que se utilice la misma forma de visualiacion e interaccino con nodos y paneles del grafo sota de smith, para que se replique en morfeo, incluye su optimizacin de recursos y todo lo que se ajusto en ese sentido en Documents/papers_smith»
 - **L2 (mapa):** en Morfeo, `paper-N.md` solo trae metadatos y abstract; dos productores escriben `grafos/papers-graph.json` (el dispatcher vía codegraph, con cero aristas en la práctica, y `build_manuscript_graph.py:717`, con grupos por turnos); `graph_html.py` es el único renderizador y no tiene pausa por `visibilitychange` ni watchdog de fps. En papersmith, el agente `sota-grapher` escribe `atlas.json` desde los abstracts, `check_atlas.py` lo valida (incluida la fidelidad de las citas) y `render_atlas.py` lo dibuja con posiciones deterministas; licencia Apache 2.0, solo biblioteca estándar.
+- **L3 (T1-T3):** límites del atlas en `check_atlas.py`: 1 a 7 familias, 20 planetas por sistema y 1 a 200 sistemas (la corrida `2026-09-tept-depresion-ia-portable` ya tiene 106 papers). El visor acepta `atlas-control` y el formato `atlas-command` de papersmith. `build_manuscript_graph.py` dibuja la constelación cuando existe `atlas.json` y el grafo anterior cuando no. Los generadores de ports rechazan rutas `.claude/` en los prompts, por eso la skill se cita por nombre. Suite completa: 554 tests en verde.

@@ -150,6 +150,10 @@ DISPATCHER escribe el dato del grafo y renderiza su vista navegable:
 2. Ejecuta `scripts/graph_html.py grafos/<corpus>-graph.json`, que escribe
    `grafos/<corpus>-graph.html`: autocontenido, sin CDN, abre sin red, y
    determinista (misma entrada, mismo HTML).
+   Excepción: cuando existe `artefactos/scoping/atlas.json`, el HTML del
+   corpus de papers es la constelación de `scripts/render_atlas.py` (skill
+   `constelacion-sota`); no lo sobrescribas con `graph_html.py`. Para
+   `papers` solo se escribe el JSON y el reporte Markdown.
 3. Se generan siempre los dos archivos, también al refrescar el índice del
    vault.
 
@@ -796,15 +800,26 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
         arriba) con Directrices Generales + §3 (Descripción del problema) +
         §4 (Estado del arte) y lo inyecta inline al inicio del prompt de
         esta Task.
+        (d) Task → bibliografo-propuesta MODE=atlas (carga la skill
+        `constelacion-sota`) → constelación SOTA de
+        los 5 papers: `artefactos/scoping/atlas.json` (un sistema por paper,
+        con tema, problema, novedad, resultados y conclusiones citados del
+        abstract), verificada con `scripts/check_atlas.py` y dibujada por
+        `scripts/render_atlas.py` en `grafos/papers-graph.html`, con el
+        estudio en `grafos/papers-constellation-report.md`. Esta página
+        reemplaza el HTML que dibujaba `graph_html.py` para el corpus de
+        papers; el reporte de `codebase-memory` del paso (b) se conserva.
+        Igual en el flujo base y en el SGR.
         ──→ COMPUERTA COMBINADA G1a: presenta juntos, en una sola solicitud
         de aprobación:
           1. Los 5 papers + parámetros de búsqueda (query, filtro de
              cuartil, rango de años, hits por herramienta).
           2. El grafo: la ruta del reporte
-             `grafos/papers-graph-report.md` y su gemelo visual navegable
-             `grafos/papers-graph.html` (abribles por el usuario; el HTML es
-             autocontenido y abre sin red) + sus 3 secciones:
-             Nodos centrales, Comunidades temáticas, Preguntas sugeridas.
+             `grafos/papers-graph-report.md`, la constelación navegable
+             `grafos/papers-graph.html` (autocontenida, abre sin red; también
+             en la pestaña de grafos del tablero) y el estudio de
+             constelaciones `grafos/papers-constellation-report.md`: por
+             familia, sus papers con su problema, novedad y resultados.
              Si el grafo salió degenerado (sin nodos centrales ni
              comunidades), dilo explícitamente: no presentes un grafo vacío
              como si fuera un resultado.
@@ -985,14 +1000,21 @@ Fase 1c [COMPUERTA COMBINADA G1c] Expansión de corpus SOTA: se ejecuta
         (solo después de que el paso (b) complete) → propone 3-5
         subsecciones SOTA como tabla de mapeo paper → subsección →
         SP1/SP2/SP3.
+        (d) Task → bibliografo-propuesta MODE=atlas sobre el corpus
+        ampliado (mismo procedimiento que en la Fase 1a): un sistema por
+        paper y las familias de la tabla de mapeo del paso (c), para que la
+        constelación y las subsecciones de §4 nombren los mismos grupos.
+        Reescribe `atlas.json`, `grafos/papers-graph.html` y
+        `grafos/papers-constellation-report.md`.
         ──→ COMPUERTA COMBINADA G1c: presenta juntos, en una sola solicitud
         de aprobación:
           1. El corpus ampliado: conteo final de papers y parámetros de
              búsqueda (query, filtro de cuartil, rango de años, hits por
              herramienta) del sub-paso corpus.
-          2. El grafo actualizado: la ruta del reporte
-             `grafos/papers-graph-report.md` y su gemelo visual navegable
-             `grafos/papers-graph.html` + sus 3 secciones (Nodos
+          2. El grafo actualizado: la constelación
+             `grafos/papers-graph.html`, el estudio de constelaciones
+             `grafos/papers-constellation-report.md`, y el reporte
+             `grafos/papers-graph-report.md` con sus 3 secciones (Nodos
              centrales, Comunidades temáticas, Preguntas sugeridas) sobre el
              corpus ampliado. Recuerda que el reporte y su HTML ya traen el
              snapshot inmutable de G1a como referencia de diff.
