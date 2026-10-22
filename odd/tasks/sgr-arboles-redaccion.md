@@ -20,7 +20,7 @@ Objetivo: el árbol de objetivos deja de mostrar preámbulos en los objetivos es
 | ID | Specs | Ruta | Estado | Evidencia |
 |---|---|---|---|---|
 | T1 | S2, S3 | delegada | hecha | RED 5F → GREEN 7/7; suites de figuras 72 OK; kit `--check` en verde |
-| T2 | S1 | delegada | pendiente | |
+| T2 | S1 | delegada | hecha | RED 2F Python + 1F JS → GREEN; suites de árboles OK, `trees.tab` 25/25 |
 | T3 | S4, S5 | delegada | pendiente | |
 
 Ruta delegada en las tres: el contexto del asistente primario llegó al tope sugerido y delegó la unidad completa a un escritor acotado. Estimación cercana a 400 líneas propias más los puertos generados.
@@ -30,3 +30,4 @@ Ruta delegada en las tres: el contexto del asistente primario llegó al tope sug
 - **L1 (2026-10-21, usuario):** «Arbol de problemas ok. el arbol de objetivos sigue con preambulos en obj especificos, ajusta. luego, ajusta estos cambios en la forma de escribir arbol de problemas y arbol de objetivos, para otros lanzamientos de morfeo modo sgr, incluyelos en las reglas o arneses del proyecto madre en Documents/Redaccion_Propuestas»
 - **L2 (mapa):** el panel arma la cabecera de cada objetivo con `${g.title || g.id} · ${g.objective}`; en la corrida el investigador escribió el texto negativo de la causa en `groups[].title`, mientras `_derive_objectives` lo define como `OE<n>`. `arbol_objetivos.py` pasa los ids `m<n>` y `f<n>` sin cambio a la spec, y `render_tikz.py` fija los rótulos laterales del árbol de problemas sin mirar el encabezado.
 - **L3 (T1):** la auditoría cuenta en `kind: arbol` las raíces `r<n>|m<n>`, las ramas `b<n>|f<n>` y los grupos `tSP<n>|tOE<n>`; la regla copa↔raíz también reconoce una raíz nombrada con ancla (`(m1.north)`), que antes pasaba sin detectarse. `role_for_node` recibe el `kind` para que el ajuste automático de un desborde ensanche `rama` y no `fase` cuando el nodo es un fin `f<n>`. Los rótulos laterales salen del encabezado: con «ÁRBOL DE OBJETIVOS» se imprimen «FIN ÚLTIMO», «FINES DIRECTOS», «OBJETIVO GENERAL» y «MEDIOS (RAÍCES)». Una figura de objetivos ya compilada queda desincronizada frente al renderizador nuevo y se arregla volviendo a correr `figura.py arbol_objetivos`.
+- **L4 (T2):** el panel arma la cabecera del objetivo específico solo con `objective`; el id `OE<n>` sigue como insignia. `objective_tree_findings` emite `arbol-objetivo-titulo` (advertencia, para no bloquear la compuerta de una corrida en curso) cuando `groups[].title` no es `OE<n>` ni el id del grupo. El esquema lo dicen la restricción 14 del investigador y el prompt de ajuste del tablero.

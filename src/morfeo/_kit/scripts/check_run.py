@@ -28,7 +28,8 @@ objective trees when their files exist:
   objective tree (artefactos/arboles/arbol_objetivos.json):
     arbol-objetivos-no-infinitivo, objetivo-general-con-medio,
     objetivo-general-con-fin, objetivo-general-con-meta, arbol-espejo-roto,
-    arbol-variable-cambiada (error on the trunk, warning on a group)
+    arbol-variable-cambiada (error on the trunk, warning on a group),
+    arbol-objetivo-titulo (warning: groups[].title is OE<n>, not the cause text)
   base flow: objetivo-general-sin-variable-del-arbol (warning, §6 vs tree)
   SGR flow: sgr-objetivo-general-distinto, sgr-objetivos-especificos-distintos
     (§6/§7 must be the objective tree texts), sgr-titulo-no-derivado (the
@@ -484,6 +485,11 @@ def problem_tree_findings(spec: dict) -> list[dict]:
     return findings
 
 
+# The objective tree's group title is its label (src/morfeo/core/trees.py,
+# _derive_objectives); the objective itself lives in `objective`.
+OE_LABEL_RE = re.compile(r"^OE\s*\d+$", re.IGNORECASE)
+
+
 def objective_tree_findings(objectives: dict, problem_spec: dict) -> list[dict]:
     """SGR guide rules for the objective tree, the positive mirror of `problem_spec`."""
     if not isinstance(objectives, dict):
@@ -557,6 +563,14 @@ def objective_tree_findings(objectives: dict, problem_spec: dict) -> list[dict]:
     for branch in branches:
         if branch.get("from") is not None and str(branch.get("from")) not in branch_ids:
             broken(str(branch.get("id") or ""), f"«{branch.get('from')}» no es un efecto del árbol de problemas.")
+
+    for i, group in enumerate(groups):
+        title = str(group.get("title") or "").strip()
+        if title and title != str(group.get("id") or "") and not OE_LABEL_RE.match(title):
+            label = f"OE{i + 1}"
+            findings.append(_finding("warning", "arbol-objetivo-titulo", str(group.get("id") or label),
+                                     f"groups[].title es el rótulo {label}, nunca el texto de la causa: el panel y "
+                                     "§7 muestran el objetivo limpio, sin preámbulo."))
 
     ptrunk = normalize_tree_text((problem_spec.get("trunk") or {}).get("text"))
     if ptrunk and trunk and shared_variable(ptrunk, trunk) < 0.5:

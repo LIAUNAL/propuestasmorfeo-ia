@@ -312,6 +312,7 @@ class TestReviewCycle(unittest.TestCase):
             self.assertIn("magnitud", problem)
             base = record_feedback(run, "objetivos", [], "Ajustar")["prompt"]
             self.assertIn("cada causa directa se vuelve", base)
+            self.assertIn("title es el rótulo OE<n>, nunca el texto de la causa", base)
             self.assertIn("No modifiques §6 ni §7 sin preguntarme; deben conservar la variable del árbol.", base)
             self.assertNotIn("\n", base)
             (Path(tmp) / ".morfeo").mkdir()

@@ -440,7 +440,9 @@ def _record_feedback_locked(
             f"Despacha a investigador para escribir {obj} con el esquema {{groups:[{{id,from,title,objective,means:[{{id,from,text}}]}}],trunk:{{label,text}},branches:[{{id,from,text}}],crown:{{label,text}}}}: "
             "cada causa directa se vuelve un objetivo específico en positivo que conserva la variable, cada causa "
             "indirecta un medio que dice el qué y no el cómo, cada efecto un fin, y el problema central el objetivo "
-            "general en infinitivo, sin el medio, los fines ni las metas. Aplica estilo-natural-es. "
+            "general en infinitivo, sin el medio, los fines ni las metas. "
+            "En groups, title es el rótulo OE<n>, nunca el texto de la causa, y objective lleva el objetivo limpio, "
+            "sin preámbulo ni los calificadores de contexto que ya fija el objetivo general. Aplica estilo-natural-es. "
             + sections_rule
         )
     return {"ok": True, "request": rel.as_posix(), "prompt": prompt, "iteration": n}

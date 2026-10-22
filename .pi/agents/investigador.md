@@ -206,8 +206,13 @@ You no longer own a section by that name.
      figure loop has written the spec, write
      `artefactos/arboles/arbol_objetivos.json` with the schema
      `{groups:[{id,from,title,objective,means:[{id,from,text}]}],trunk:{label,text},branches:[{id,from,text}],crown:{label,text}}`,
-     mirroring the problem spec node by node (`from` = the problem node id):
-     every node rewritten in positive keeping its variable ("Bajo
+     mirroring the problem spec node by node (`from` = the problem node id).
+     In every group, `title` is the label `OE<n>` (`OE1`, `OE2`, `OE3`),
+     never the text of the direct cause; the objective goes alone in
+     `objective`, with no preamble before it. The panel shows `objective`
+     with `OE<n>` as a badge, and `check_run.py` warns
+     (`arbol-objetivo-titulo`) when a title is anything else. Every node is
+     rewritten in positive keeping its variable ("Bajo
      aprovechamiento de…" → "Aumentar el aprovechamiento de…"), opening with
      an infinitive. The trunk is the general objective: infinitive + object +
      descriptive elements, without the means ("mediante…", "a través de…"),

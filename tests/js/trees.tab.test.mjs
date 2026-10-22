@@ -101,6 +101,18 @@ test('el árbol de objetivos marca como pendientes los textos que faltan', async
   assert.ok(!canvas.querySelector('[data-node="m2"]').classList.contains('tree-node--pending'));
 });
 
+test('cada objetivo específico se muestra limpio, sin el texto de la causa como preámbulo', async (t) => {
+  const payload = treesPayload();
+  payload.objectives.tree = structuredClone(OBJECTIVE_TREE);
+  payload.objectives.tree.groups[0].title = 'Insuficiente información sobre la causa uno';
+  const viewer = await harness(t, payload);
+  viewer.viewer('setTreeView', 'objetivos');
+  const head = viewer.document.querySelector('#treeCanvas [data-node="OE1"]');
+  assert.equal(head.querySelector('.tree-node__text').textContent.trim(), 'Desarrollar uno');
+  assert.equal(head.querySelector('.tree-node__id').textContent.trim(), 'OE1', 'el rótulo queda como insignia');
+  assert.doesNotMatch(head.textContent, /Insuficiente información/);
+});
+
 test('comentar un nodo y enviar el ajuste escribe la solicitud y la manda a la terminal', async (t) => {
   const posts = [];
   const viewer = await harness(t, treesPayload(), posts);
