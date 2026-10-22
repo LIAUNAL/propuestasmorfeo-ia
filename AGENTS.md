@@ -71,6 +71,14 @@ MGA. El operador elige el modo plantilla de IA aplicada (levantamiento de
 datos, plataforma y modelos, apropiación) o el modo exploratorio, en el que el
 investigador propone tres causas raíz desde la idea y el estado del arte.
 
+En el SGR, el planteamiento del problema (§3) sigue la «Estructura de §3» de
+la guía SGR, la misma de `artefactos/mga_resumido.md`: Problema central,
+Descripción de la situación existente (con un párrafo por causa directa) y
+Magnitud del problema con su tabla de indicadores. El panel Secciones del
+tablero muestra, en cada sección de un proyecto SGR, el bloque `### SGR §N` de
+la guía del proyecto (servido por `/api/guide/sgr`), el mismo que el
+dispatcher inyecta.
+
 ## Reglas globales
 
 1. **Idioma:** Los *system prompts* de los agentes están en inglés, pero toda

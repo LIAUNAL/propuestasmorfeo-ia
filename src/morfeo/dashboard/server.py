@@ -18,7 +18,8 @@ from typing import Any
 from ..core.compile import compile_run_pdf, pdf_version
 from ..core.pdf_annotator import apply_pdf_annotations
 from ..core.presentation import ASSET_TYPES, build_presentation, resolve_asset
-from ..core.status import get_project_status
+from ..core.sgr_rules import load_sgr_blocks
+from ..core.status import get_project_status, read_flujo
 from ..core.trees import approve_tree, load_trees, record_feedback
 
 
@@ -152,6 +153,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_artifact()
         elif path == "/api/trees":
             self.serve_trees()
+        elif path == "/api/guide/sgr":
+            self.serve_sgr_guide()
         else:
             self.send_error(404, "Not Found")
 
@@ -638,6 +641,11 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
+
+    def serve_sgr_guide(self) -> None:
+        # Bloques «### SGR §N» de la guía del proyecto para el panel Secciones.
+        blocks, source = load_sgr_blocks(self.workspace_dir)
+        self._send_json(200, {"ok": True, "flujo": read_flujo(self.workspace_dir), "source": source, "blocks": blocks})
 
     def serve_api_status(self) -> None:
         response_data = get_project_status(self.workspace_dir)

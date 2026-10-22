@@ -5666,6 +5666,34 @@
             "Prohibido redactar subproblemas como verbos de solución (ej: 'Diseñar...'). Usar fórmulas de carencia ('Falta de...', 'Ausencia de...').",
             "Prohibido el uso de rayas anglosajonas o dobles guiones."
           ]
+        },
+        // Flujo SGR: guía SGR §3, «Estructura de §3» (la misma de artefactos/mga_resumido.md).
+        sgr: {
+          title: "Planteamiento del problema (MGA)",
+          principle: "En el flujo SGR el planteamiento del problema sigue la metodología MGA y la estructura de mga_resumido.md: el problema central del árbol, la situación existente con sus tres causas directas (los subproblemas SP1 a SP3) y la magnitud con su línea base. Las cifras, las causas y la variable son las mismas del árbol de problemas aprobado en el panel.",
+          paragraphs: [
+            { label: "Problema central", title: "Tronco del árbol, literal", desc: "Un párrafo con el problema central del árbol de problemas copiado sin cambios: una sola variable medible, la población o el territorio y el evento, breve, cuando lo hay." },
+            { label: "Situación existente", title: "Contexto general de la problemática", desc: "Antecedentes, sector, zona de estudio, evolución reciente e intervenciones previas; responde cómo, dónde, a quién afecta y desde cuándo, con datos locales, y cierra enunciando las tres causas directas." },
+            { label: "Causa directa C1", title: "Subproblema SP1", desc: "Desarrolla la primera causa directa y sus causas indirectas como estados negativos del territorio y de las instituciones del proyecto." },
+            { label: "Causa directa C2", title: "Subproblema SP2", desc: "Desarrolla la segunda causa directa y sus causas indirectas; una limitación técnica de IA baja a causa indirecta." },
+            { label: "Causa directa C3", title: "Subproblema SP3", desc: "Desarrolla la tercera causa directa y sus causas indirectas, en el orden del árbol." },
+            { label: "Magnitud del problema", title: "Cifras y tabla de indicadores", desc: "Dos o tres párrafos con las cifras del tronco, de cada causa directa y de los efectos directos, cada una con su fuente, y la tabla Indicador, Causa, Valor, Fuente, Año con la línea base en negrita." },
+            { label: "Cierre", title: "Pregunta de investigación y figura", desc: "Formula la pregunta de investigación y cita la figura del árbol de problemas, que sale del panel de árboles." }
+          ],
+          rules: {
+            allowed: [
+              "Tres subsecciones con títulos textuales: Problema central, Descripción de la situación existente y Magnitud del problema.",
+              "Causas directas en lenguaje MGA: calificativo negativo, variable y solo el elemento que la distingue de las otras dos.",
+              "Cada cifra con su fuente (entidad, año, enlace o documento en insumos/); sin fuente verificable, «[cifra por confirmar]».",
+              "Si el TDR fija el capítulo «Planteamiento del problema», su título manda sobre el de la sección."
+            ],
+            forbidden: [
+              "Reescribir el problema central: es el tronco del árbol aprobado, copiado literal.",
+              "Causas indirectas como vacíos de la literatura: esos van en §4 y §2.",
+              "Un mismo indicador para una causa y un efecto, o para una causa y el tronco.",
+              "Prometer un alcance mayor que el del proyecto (por ejemplo, «población latinoamericana»)."
+            ]
+          }
         }
       },
       "04_estado_arte": {
@@ -6250,6 +6278,88 @@
       `;
     }
 
+    // Reglas SGR del panel Secciones: los bloques «### SGR §N» de la guía del
+    // proyecto (/api/guide/sgr), los mismos que el dispatcher inyecta.
+    let sgrGuidePromise = null;
+
+    function isSgrFlujo() {
+      return !!(currentStatus && currentStatus.flujo === 'sgr');
+    }
+
+    function sgrBlockKey(cleanId) {
+      const num = parseInt(String(cleanId).split('_')[0], 10);
+      if (!Number.isFinite(num)) return null;
+      return num >= 19 ? `A${num}` : `§${num}`;
+    }
+
+    function loadSgrGuide() {
+      if (!sgrGuidePromise) {
+        sgrGuidePromise = fetch('/api/guide/sgr')
+          .then(res => (res.ok ? res.json() : { blocks: {} }))
+          .catch(() => ({ blocks: {} }))
+          .then(data => {
+            if (!data || !data.blocks || !Object.keys(data.blocks).length) sgrGuidePromise = null;
+            return (data && data.blocks) || {};
+          });
+      }
+      return sgrGuidePromise;
+    }
+
+    function sgrInline(text) {
+      return escapeHtml(text)
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>');
+    }
+
+    // Markdown mínimo de la guía: viñetas «* », listas numeradas y párrafos.
+    function renderSgrMarkdown(md) {
+      const items = [];
+      let current = null;
+      String(md || '').split('\n').forEach(line => {
+        if (/^\* /.test(line)) {
+          current = { text: line.slice(2).trim(), sub: [] };
+          items.push(current);
+        } else if (/^\s+\d+\.\s/.test(line) && current) {
+          current.sub.push(line.trim().replace(/^\d+\.\s+/, ''));
+        } else if (line.trim() === '') {
+          if (current && current.sub.length) current.sub.push(null);
+        } else if (current) {
+          if (current.sub.length && current.sub[current.sub.length - 1] !== null) current.sub[current.sub.length - 1] += ' ' + line.trim();
+          else if (current.sub.length) current.sub.push('¶' + line.trim());
+          else current.text += ' ' + line.trim();
+        } else {
+          current = { text: line.trim(), sub: [], para: true };
+          items.push(current);
+        }
+      });
+      return items.map(item => {
+        const subs = item.sub.filter(s => s !== null);
+        const numbered = subs.filter(s => !s.startsWith('¶'));
+        const tail = subs.filter(s => s.startsWith('¶')).map(s => `<p style="margin: 0.35rem 0 0;">${sgrInline(s.slice(1))}</p>`).join('');
+        const list = numbered.length ? `<ol style="margin: 0.35rem 0 0 1.1rem; padding: 0;">${numbered.map(s => `<li>${sgrInline(s)}</li>`).join('')}</ol>` : '';
+        if (item.para) return `<p style="margin: 0 0 0.5rem;">${sgrInline(item.text)}</p>`;
+        return `<li style="margin-bottom: 0.45rem;">${sgrInline(item.text)}${list}${tail}</li>`;
+      }).join('').replace(/(<li[\s\S]*<\/li>)/, '<ul style="margin: 0; padding-left: 1.1rem;">$1</ul>');
+    }
+
+    function fillSgrRules(sgrKey) {
+      return loadSgrGuide().then(blocks => {
+        const box = document.getElementById('secModalSgr');
+        if (!box) return;
+        const md = blocks[sgrKey];
+        if (!md) { box.innerHTML = ''; return; }
+        box.innerHTML = `
+          <div class="sec-structure-block sgr-rules-block" data-sgr-key="${escapeHtml(sgrKey)}" style="margin-top: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+              <span style="font-size: 1.15rem;">🏛️</span>
+              <h4 style="margin: 0; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent);">Reglas explícitas de la guía SGR (${escapeHtml(sgrKey)})</h4>
+            </div>
+            <p style="margin: 0 0 0.5rem; font-size: 0.78rem; color: var(--muted);">Del bloque «### SGR ${escapeHtml(sgrKey)}» de guiaProyectosIA_Agente_Regalias.md. Mandan sobre las reglas base; el TDR manda sobre ambas.</p>
+            <div style="font-size: 0.84rem; line-height: 1.5; color: var(--text);">${renderSgrMarkdown(md)}</div>
+          </div>`;
+      });
+    }
+
     function openSectionStructure(secId) {
       if (!secId) return;
       const cleanId = String(secId).trim().toLowerCase().replace('§', '');
@@ -6258,7 +6368,15 @@
         const num = cleanId.split('_')[0].padStart(2, '0');
         key = Object.keys(SECTIONS_STRUCTURE_DATA).find(k => k.startsWith(num));
       }
-      const data = SECTIONS_STRUCTURE_DATA[key] || SECTIONS_STRUCTURE_DATA["03_descripcion_problema"];
+      const sgr = isSgrFlujo();
+      const sgrKey = sgrBlockKey(cleanId);
+      let base = SECTIONS_STRUCTURE_DATA[key];
+      if (!base && sgr && sgrKey && sgrKey.startsWith('A')) {
+        // Anexos MGA del flujo SGR: sin estructura base, solo las reglas de la guía SGR.
+        base = { code: sgrKey, title: `Anexo MGA ${sgrKey.slice(1)}`, principle: 'Anexo MGA del flujo SGR (Fase 6.47). Sus reglas salen de la guía SGR.', connections: { inputs: [], outputs: [] }, paragraphs: [], rules: { allowed: [], forbidden: [] } };
+      }
+      base = base || SECTIONS_STRUCTURE_DATA["03_descripcion_problema"];
+      const data = sgr && base && base.sgr ? { ...base, ...base.sgr } : base;
       if (!data) return;
 
       const modal = document.getElementById('sectionStructureModal');
@@ -6288,7 +6406,11 @@
 
           <!-- 4. Reglas Permitidas y No Permitidas -->
           ${renderRulesGrid(data.rules)}
+
+          <!-- 5. Reglas explícitas de la guía SGR (solo flujo SGR) -->
+          <div id="secModalSgr"></div>
         `;
+        if (sgr && sgrKey) fillSgrRules(sgrKey);
       }
 
       if (modal) {

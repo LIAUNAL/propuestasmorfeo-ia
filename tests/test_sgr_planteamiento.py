@@ -15,13 +15,19 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
+import urllib.request
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tests"))
 
 from test_trees import make_run  # noqa: E402
+
+from morfeo.core.sgr_rules import parse_sgr_blocks  # noqa: E402
+from morfeo.dashboard.server import MorfeoDashboardHandler  # noqa: E402
 
 CHECK = REPO / "scripts" / "check_run.py"
 SUBSECTIONS = ("Problema central", "Descripción de la situación existente", "Magnitud del problema")
@@ -96,6 +102,40 @@ class StructureCheck(unittest.TestCase):
     def test_no_section_3_means_no_finding(self) -> None:
         self.sec3.unlink(missing_ok=True)
         self.assertNotIn("sgr-problema-estructura", self.findings())
+
+
+class PanelGuide(unittest.TestCase):
+    """S1: the sections panel reads the same `### SGR §N` blocks the dispatcher injects."""
+
+    def test_parser_maps_sections_and_annexes_and_stops_at_the_next_heading(self) -> None:
+        blocks = parse_sgr_blocks("# Guía\n\n### SGR §3\n\n* uno\n\n### SGR §10\ndos\n\n"
+                                  "## Anexos MGA\n\nintro\n\n### SGR A19\ntres\n")
+        self.assertEqual(blocks, {"§3": "* uno", "§10": "dos", "A19": "tres"})
+
+    def test_real_guide_has_the_section_3_structure_and_the_annexes(self) -> None:
+        blocks = parse_sgr_blocks((REPO / "guiaProyectosIA_Agente_Regalias.md").read_text(encoding="utf-8"))
+        self.assertIn("**Estructura de §3.**", blocks["§3"])
+        self.assertNotIn("### SGR §6", blocks["§3"])
+        self.assertIn("A25", blocks)
+
+    def test_endpoint_serves_the_project_guide(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        (root / ".morfeo").mkdir()
+        (root / ".morfeo" / "config.json").write_text(json.dumps({"flujo": "sgr"}), encoding="utf-8")
+        (root / "guiaProyectosIA_Agente_Regalias.md").write_text("### SGR §3\nregla del proyecto\n", encoding="utf-8")
+        handler = type("H", (MorfeoDashboardHandler,), {"workspace_dir": root})
+        handler.log_message = lambda *a, **k: None
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        with urllib.request.urlopen(f"http://127.0.0.1:{server.server_address[1]}/api/guide/sgr") as res:
+            data = json.loads(res.read().decode("utf-8"))
+        self.assertEqual(data["flujo"], "sgr")
+        self.assertEqual(data["source"], "guiaProyectosIA_Agente_Regalias.md")
+        self.assertEqual(data["blocks"], {"§3": "regla del proyecto"})
 
 
 if __name__ == "__main__":
