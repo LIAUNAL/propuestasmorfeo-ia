@@ -10,6 +10,7 @@ imágenes en /api/presentation/asset, limitado a logos y figuras de redaccion/.
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 import threading
 import unittest
@@ -97,6 +98,12 @@ class BuildPresentationTest(unittest.TestCase):
         self.assertIn("Árbol de problemas", problems)
         self.assertIn("Árbol de objetivos", objectives)
         self.assertIn("Metodología", method)
+
+    def test_each_rail_title_opens_the_first_slide_of_its_module(self) -> None:
+        html = build_presentation(self.run_dir)
+        firsts = re.findall(r'data-first="(\d+)"', html)
+        indexes = re.findall(r'<article class="slide[^"]*" data-index="(\d+)"', html)
+        self.assertEqual(firsts, indexes)
 
     def test_alliance_slide_shows_proponent_and_existing_ally_logos_only(self) -> None:
         alliance = slides(build_presentation(self.run_dir))[1]

@@ -3,7 +3,7 @@
 Antes de la Fase 6 no existe sections/16_bibliografia.tex y las citas de las
 secciones ya redactadas salían como «?» en el PDF. La plantilla agrega una
 lista provisional desde refs.bib, solo cuando hubo citas, y la figura del árbol
-de objetivos del flujo SGR, que antes nunca se incluía.
+de objetivos del flujo SGR, una sola vez, tras §7.
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ class PlantillaMainTest(unittest.TestCase):
         fig = self.tex.index(r"\DiagramaSiExiste{diag_arbol_objetivos}")
         self.assertLess(sec, fig)
         self.assertLess(fig, self.tex.index(r"\SeccionSiExiste{08_marco_conceptual}"))
+        self.assertEqual(self.tex.count(r"\DiagramaSiExiste{diag_arbol_objetivos}"), 1)
 
     def test_provisional_bibliography_only_without_file_16_and_with_citations(self) -> None:
         self.assertIn(r"\def\citation#1{\global\@HayCitastrue}", self.tex)

@@ -187,7 +187,7 @@ def build_presentation(run_dir: Path) -> str:
         _methodology(run_dir),
     ])
     rail = "".join(
-        f'<div class="rail-module" data-module="{i}"><button class="rail-title" data-first="{i + 1}">'
+        f'<div class="rail-module" data-module="{i}"><button class="rail-title" data-first="{i}">'
         f'{i + 1}. {label}</button><div class="rail-dots" id="dots-{i}"></div></div>'
         for i, label in enumerate(["Propuesta", "Alianza", "Problema", "Objetivos", "Metodología"])
     )
