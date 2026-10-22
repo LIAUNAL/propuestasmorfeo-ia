@@ -15,7 +15,7 @@ Objetivo: en un proyecto SGR, el panel Secciones y el flujo de redacción siguen
 |---|---|---|---|---|
 | T1 | S2, S3 | inline | hecha | 06a08fd; RED 3F+2E → GREEN 8/8; suite 596 OK; kit y puertos `--check` en verde |
 | T2 | S1, S2 | inline | hecha | RED JS 2F con el index anterior → GREEN 3/3; parser y endpoint 3/3; suite 599 OK, JS 136/136 |
-| T3 | S4 | inline | pendiente | |
+| T3 | S4 | inline | hecha | `morfeo upgrade` en regalias-56UNAL; `/api/guide/sgr` en :8082 sirve 17 bloques con «Estructura de §3» |
 
 Ruta inline: una sola línea de trabajo entendida, sin unidades paralelas.
 
@@ -26,3 +26,4 @@ Ruta inline: una sola línea de trabajo entendida, sin unidades paralelas.
 - **L3 (T1):** la guía SGR §3 abre con «Estructura de §3» (tres subsecciones con títulos textuales y el cierre con la pregunta y el árbol); el investigador la aplica al escribir §3 desde `mga_resumido.md`; el fragmento de la Fase 1 suma `### SGR §3`; `check_run.py` emite `sgr-problema-estructura` como advertencia, también con `--final`, para no bloquear una corrida en curso.
 - **L4 (T2):** `/api/guide/sgr` sirve los bloques `### SGR §N` y `### SGR A<n>` de la guía del proyecto (con la copia del kit como respaldo), leídos por `core/sgr_rules.py`. Con `flujo: sgr`, el modal de §3 cambia a la estructura MGA y cada sección suma el bloque «Reglas explícitas de la guía SGR»; los anexos 19 a 25 abren con su bloque en lugar de caer en §3. El flujo base no pide la guía SGR.
 - **L5 (revisión de commits ajenos):** antes de esta rama, el hook de RDD pidió revisar los tres commits de otra sesión en `main` (3c03270, 77b7fc7, 6647955); la revisión halló la figura del árbol de objetivos incluida dos veces en `plantilla/main.tex` y el rail de la presentación desplazado en uno, corregidos en d58d06e y aprobados.
+- **L6 (entrega y T3):** otra sesión rebasó T1 y T2 sobre `main` (14dcc13, c58c64d, tras su a205def) y los publicó; la revisión RDD se rehizo sobre esos commits y quedó aprobada sin correcciones. `morfeo upgrade` llevó la guía y `check_run.py` nuevos a regalias-56UNAL; el tablero de :8082 (ya levantado por otra sesión) sirve `/api/guide/sgr`. El §3 de la corrida trae «Descripción del problema y la situación existente» y «Magnitud actual del problema indicadores de referencia», así que `check_run` advierte `sgr-problema-estructura`; no se tocó `proposals/`.
