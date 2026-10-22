@@ -96,6 +96,22 @@
         \caption{\textbf{[Falta caption: #1]}}\label{fig:#1}}
     \end{figure}}{}}
 
+% Referencias provisionales: mientras no exista sections/16_bibliografia.tex
+% (se escribe en la Fase 6), las citas de las secciones ya redactadas se
+% resuelven contra refs.bib al final del documento. Solo se agrega si el .aux
+% de la pasada anterior registró citas, así una corrida sin citas compila igual.
+\makeatletter
+\newif\if@HayCitas
+\def\citation#1{\global\@HayCitastrue}
+\AtEndDocument{\IfFileExists{sections/16_bibliografia.tex}{}{%
+  \if@HayCitas\IfFileExists{refs.bib}{%
+    \clearpage
+    \section*{Referencias}
+    \renewcommand{\bibsection}{}
+    \bibliographystyle{apalike}
+    \bibliography{refs}}{}\fi}}
+\makeatother
+
 \input{datos_proyecto}
 
 \begin{document}
@@ -124,6 +140,7 @@
 \SeccionSiExiste{05_hipotesis}
 \SeccionSiExiste{06_objetivo_general}
 \SeccionSiExiste{07_objetivos_especificos}
+\DiagramaSiExiste{diag_arbol_objetivos}
 % Árbol de objetivos: solo el flujo SGR lo produce (scripts/arbol_objetivos.py)
 \DiagramaSiExiste{diag_arbol_objetivos}
 \SeccionSiExiste{08_marco_conceptual}
