@@ -1357,8 +1357,75 @@ TEMPLATE = """<!DOCTYPE html>
     none: "Vista 2D: este equipo no ofrece WebGL",
     weak: "Vista 2D: la GPU de este equipo no es apropiada para 3D",
     resources: "Vista 2D: memoria o procesador limitados para 3D",
-    large: "Vista 2D: grafo grande, la vista 3D cargaría el procesador"
+    large: "Vista 2D: grafo grande, la vista 3D cargaría el procesador",
+    slow: "Vista 2D: la vista 3D dibujaba a menos de 20 fps en este equipo"
   };
+
+  // Ported from papersmith-ai's atlas viewer. The loop stops scheduling frames
+  // entirely while nobody can see the graph: the page is hidden (another
+  // browser tab, a minimized window) or the dashboard paused its graph tab
+  // with {type: "atlas-control", cmd: "pause"|"resume"}.
+  // loop-control:begin
+  var pageHidden = !!document.hidden;
+  var dashboardPaused = false;
+  var paused = pageHidden;
+  var looping = false;
+
+  // Called first by every animate() pass: false lets the loop lapse.
+  function loopContinues() {
+    if (paused) { looping = false; return false; }
+    looping = true;
+    return true;
+  }
+
+  function applyVisibility() {
+    paused = pageHidden || dashboardPaused;
+    if (paused) return;
+    requestFrame();
+    if (looping) return;
+    looping = true;  // claimed now, so a second resume cannot start a second loop
+    requestAnimationFrame(animate);
+  }
+
+  function onVisibilityChange() {
+    pageHidden = !!document.hidden;
+    applyVisibility();
+  }
+
+  function onControlMessage(event) {
+    if (window.parent === window || event.source !== window.parent) return;
+    var data = event.data;
+    if (!data || typeof data !== "object" || data.type !== "atlas-control") return;
+    if (data.cmd === "pause") dashboardPaused = true;
+    else if (data.cmd === "resume") dashboardPaused = false;
+    else return;
+    applyVisibility();
+  }
+
+  // A machine that passed the GPU check can still be too slow for 3D: count
+  // frames for 3 s, a second after opening, and fall back to 2D under 20 fps.
+  // Only a 3D view the heuristics chose is watched; ?view=3d or a saved choice
+  // stays as asked.
+  function watchFrameRate() {
+    if (viewMode !== "3d" || viewChoice.reason !== "gpu") return false;
+    var frames = 0, start = 0;
+    var mounted = renderer;
+    function count(t) {
+      if (renderer !== mounted || viewMode !== "3d" || paused) return;
+      if (!start) start = t;
+      frames++;
+      if (t - start < 3000) { requestAnimationFrame(count); return; }
+      if (frames * 1000 / (t - start) < 20) {
+        viewChoice = { mode: "2d", reason: "slow" };
+        // The 2D view starts still: its spin redraws the whole canvas on the CPU.
+        if (autoRotate) toggleAutoRotate();
+        setViewMode("2d");
+      }
+    }
+    setTimeout(function() { requestAnimationFrame(count); }, 1000);
+    return true;
+  }
+  // loop-control:end
 
   function createRenderer(mode, w, h) {
     if (mode === "3d") {
@@ -2083,6 +2150,7 @@ TEMPLATE = """<!DOCTYPE html>
   var IDLE_FRAME_SEC = 1 / 30;
 
   function animate() {
+    if (!loopContinues()) return;
     requestAnimationFrame(animate);
 
     // Nothing to draw while the page, or the dashboard tab holding the graph, is hidden.
@@ -2174,12 +2242,14 @@ TEMPLATE = """<!DOCTYPE html>
       stageEl.addEventListener(type, requestFrame, { passive: true, capture: true });
     });
     window.addEventListener("keydown", requestFrame);
-    document.addEventListener("visibilitychange", requestFrame);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("message", onControlMessage);
     fitCameraToGraph();
     // Start framed instead of flying in from a fixed distance
     if (targetOrbitCenter) { orbitCenter = targetOrbitCenter; targetOrbitCenter = null; }
     if (targetRadius !== null) { spherical.radius = targetRadius; targetRadius = null; }
     animate();
+    watchFrameRate();
     document.getElementById("btnAutoRotate").classList.toggle("active", autoRotate);
   } else {
     stageEl.innerHTML = '<div style="color:var(--cyan); padding:40px; text-align:center;">Cargando motor 3D...</div>';
