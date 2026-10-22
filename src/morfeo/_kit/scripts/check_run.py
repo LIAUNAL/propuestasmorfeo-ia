@@ -40,7 +40,10 @@ objective trees when their files exist:
     effect indicator, guía SGR §3),
     arbol-sin-aprobar-panel (warning), sgr-metodologia-sin-etapa,
     sgr-metodologia-sin-oe, sgr-cronograma-sin-etapas,
-    sgr-cronograma-sin-ruta-critica (warnings, guía SGR §10 and §14).
+    sgr-cronograma-sin-ruta-critica (warnings, guía SGR §10 and §14),
+    sgr-problema-estructura (warning: §3 misses one of the subsections
+    Problema central, Descripción de la situación existente, Magnitud del
+    problema, guía SGR §3).
   tree figures (both flows): figura-desincronizada (error: diag_<tree>.tex is
     not the render of its spec), figura-spec-invalida, figura-sin-verificar.
   TDR chapters (artefactos/estructura_tdr.json, any flow):
@@ -946,6 +949,23 @@ def check_sgr_methodology_schedule(report: Report, run_root: Path, texts: dict[s
                        "En el flujo SGR el cronograma marca las actividades de la ruta crítica.", sections[name])
 
 
+SGR_PROBLEM_SUBSECTIONS = ("Problema central", "Descripción de la situación existente", "Magnitud del problema")
+
+
+def check_sgr_problem_structure(report: Report, texts: dict[str, str], sections: dict[str, Path], flujo: str) -> None:
+    """Guía SGR §3: the problem statement keeps the three subsections of mga_resumido.md."""
+    name = "03_descripcion_problema"
+    if flujo != "sgr" or name not in texts:
+        return
+    body = "\n".join(strip_comment(line) for line in texts[name].splitlines())
+    found = {_fold(title).strip().lower() for title in re.findall(r"\\subsection\*?\{([^}]*)\}", body)}
+    missing = [title for title in SGR_PROBLEM_SUBSECTIONS if _fold(title).lower() not in found]
+    if missing:
+        report.add("warning", "sgr-problema-estructura",
+                   "En el flujo SGR §3 sigue la estructura de mga_resumido.md (guía SGR §3, «Estructura de §3»). "
+                   f"Faltan las subsecciones: {', '.join(missing)}.", sections[name])
+
+
 def check_sgr_sections(report: Report, sec_dir: Path, flujo: str, final: bool) -> None:
     if flujo != "sgr" or not final:
         return
@@ -990,6 +1010,7 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_tree_figures(report, run_root, report.flujo)
     check_tdr_structure(report, run_root, final)
     check_sgr_methodology_schedule(report, run_root, texts, sections, report.flujo)
+    check_sgr_problem_structure(report, texts, sections, report.flujo)
     check_sgr_sections(report, sec_dir, report.flujo, final)
     return report
 

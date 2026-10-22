@@ -315,6 +315,15 @@ You no longer own a section by that name.
      "(línea base del proyecto)". The trunk's `magnitude` in the problem
      spec must name that same indicator.
    - Then write §3 from this document: same variable, causes and magnitude.
+     In the SGR flow, §3 takes the structure of the `### SGR §3` block of
+     your guide fragment ("Estructura de §3") instead of the base guide's six
+     paragraphs: `\subsection{Problema central}`,
+     `\subsection{Descripción de la situación existente}` (context, then one
+     paragraph per direct cause C1 to C3) and
+     `\subsection{Magnitud del problema}` with the indicator table, closing
+     with the research question and the problem tree figure.
+     `scripts/check_run.py` warns `sgr-problema-estructura` when one of the
+     three subsections is missing.
 
 ## Entradas de Fase 0/1 (intake)
 

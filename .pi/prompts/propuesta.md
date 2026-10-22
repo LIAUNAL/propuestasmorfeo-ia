@@ -1098,7 +1098,10 @@ Fase 1  (en AMBAS rutas) Task → bibliografo-propuesta MODE=explore → mapa de
         arma además, antes de despachar esta Task, el bloque `## FRAGMENTO
         DE GUÍA` con Directrices Generales + §3 (Descripción del problema) +
         Convenciones técnicas de LaTeX, y lo inyecta inline al inicio del
-        mismo prompt.
+        mismo prompt. En el flujo SGR el fragmento suma las Directrices
+        Generales SGR y el bloque `### SGR §3` completo, cuya «Estructura de
+        §3» (Problema central, Descripción de la situación existente,
+        Magnitud del problema) reemplaza los seis párrafos de la guía base.
         Si la Fase 1a corrió y su gate cerró con G1a = APROBADA (ver
         `artefactos/estado_propuesta.md`, sub-tabla "G1a — Scoping temprano"),
         inyecta ADEMÁS, inline, el bloque "SUBPROBLEMAS TEMPRANOS APROBADOS

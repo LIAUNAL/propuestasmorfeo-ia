@@ -70,6 +70,30 @@ la meta de cada plan con la que contribuye. La tabla completa va en el anexo
 
 Además de las reglas de la guía base:
 
+* **Estructura de §3.** En el flujo SGR, el planteamiento del problema sigue
+  la estructura de `artefactos/mga_resumido.md` y reemplaza los seis párrafos
+  de la guía base. Lleva tres subsecciones con estos títulos textuales:
+  1. `\subsection{Problema central}`: un párrafo con el tronco del árbol de
+     problemas, copiado literal, con su población o territorio y el evento
+     cuando lo hay.
+  2. `\subsection{Descripción de la situación existente}`: un párrafo de
+     contexto (antecedentes, sector, zona de estudio, evolución reciente e
+     intervenciones previas) que cierra enunciando las tres causas directas,
+     y luego un párrafo por causa directa, C1 a C3, en el orden del árbol.
+     Cada uno desarrolla su causa directa y sus causas indirectas como
+     estados negativos del territorio; esas causas son los subproblemas SP1 a
+     SP3.
+  3. `\subsection{Magnitud del problema}`: dos o tres párrafos con las cifras
+     del tronco, de cada causa directa y de los efectos directos, cada una con
+     su fuente, y la tabla de indicadores (Indicador, Causa, Valor, Fuente,
+     Año) con la línea base del proyecto en negrita.
+
+  La sección cierra con la pregunta de investigación y la cita a la figura del
+  árbol de problemas. Las cifras, las causas y la variable son las mismas de
+  `mga_resumido.md`; si el TDR fija el capítulo «Planteamiento del problema»,
+  su título manda sobre el de la sección. Si falta una de las tres
+  subsecciones, `scripts/check_run.py` lo advierte como
+  `sgr-problema-estructura`.
 * **Descripción de la situación actual.** Cubre las características de la zona
   de estudio, el análisis de cada factor del árbol y de sus relaciones, los
   antecedentes, la evolución reciente del problema y las intervenciones previas
