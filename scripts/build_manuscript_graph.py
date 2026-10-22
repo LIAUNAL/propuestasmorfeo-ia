@@ -714,7 +714,40 @@ def parse_markdown_note(md_text: str, fallback_title: str) -> tuple[str, str, di
     return heading, one_line_summary(first_sent, 115), meta
 
 
+def build_papers_constellation(run_dir: Path, atlas_path: Path) -> dict | None:
+    """Render the SOTA constellation (artefactos/scoping/atlas.json) with
+    render_atlas.py into grafos/papers-graph.html plus the study report
+    grafos/papers-constellation-report.md. Returns None when the renderer is
+    missing or refuses the atlas, so the caller falls back to the legacy graph
+    and the Grafos tab still shows something."""
+    grafos_dir = run_dir / "grafos"
+    grafos_dir.mkdir(parents=True, exist_ok=True)
+    renderer = Path(__file__).resolve().parent / "render_atlas.py"
+    if not renderer.is_file():
+        print("render_atlas.py no está junto a este script; se usa el grafo de papers clásico.")
+        return None
+    out_html = grafos_dir / "papers-graph.html"
+    out_report = grafos_dir / "papers-constellation-report.md"
+    res = subprocess.run(
+        [sys.executable, str(renderer), str(atlas_path), "--out", str(out_html),
+         "--report", str(out_report), "--title", f"Constelación SOTA: {run_dir.name}"],
+        capture_output=True, text=True,
+    )
+    if res.returncode != 0:
+        print(f"Error dibujando la constelación SOTA ({atlas_path}): {res.stderr.strip()}; "
+              "se usa el grafo de papers clásico.")
+        return None
+    print(f"Constelación SOTA generada: {out_html} y {out_report}")
+    return {"corpus": "papers", "source": "atlas", "atlas": str(atlas_path),
+            "html": str(out_html), "report": str(out_report)}
+
+
 def build_papers_graph(run_dir: Path) -> dict:
+    atlas_path = run_dir / "artefactos" / "scoping" / "atlas.json"
+    if atlas_path.is_file():
+        constellation = build_papers_constellation(run_dir, atlas_path)
+        if constellation is not None:
+            return constellation
     grafos_dir = run_dir / "grafos"
     grafos_dir.mkdir(parents=True, exist_ok=True)
     papers_dir = run_dir / "artefactos" / "scoping" / "papers"

@@ -209,7 +209,10 @@ investigador propone tres causas raíz desde la idea y el estado del arte.
    `[[wikilink]]`: el artefacto **citable en las compuertas** es el reporte
    Markdown, los wikilinks rotos se detectan con `Grep`, y el **gemelo visual
    navegable** lo produce el marco con `scripts/graph_html.py` a partir de un
-   JSON que escribe el dispatcher (`grafos/<corpus>-graph.html`). Detalle
+   JSON que escribe el dispatcher (`grafos/<corpus>-graph.html`). El corpus
+   de papers es la excepción: su página es la constelación SOTA de
+   `scripts/render_atlas.py` (skill `constelacion-sota`), con el visor, la
+   interacción y las optimizaciones de papersmith-ai. Detalle
    completo en "Cómo usar `codebase-memory`" de
    `.claude/commands/propuesta.md`.
 11. **Captions de tablas y figuras:**
@@ -254,6 +257,7 @@ que un agente carga cuando la tarea lo pide), con la misma fuente de verdad
 |-------|----------|--------|
 | `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): erradica 35 patrones de IA (aperturas cósmicas, gerundios de cierre, inflación de trascendencia, falsos rangos, regla de tres, monotonía de ritmo), prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional (burstiness) y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No es una herramienta de evasión: no introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
 | `depuracion-redundancias-es` | Auditar y eliminar redundancias conceptuales, léxicas y estructurales dentro de una misma sección, asegurando que cada párrafo aporte avance argumentativo y articulando la aplicación integral de `estilo-natural-es` (humanización y ritmo). | `grant-flow-auditor`, `redactor`, `investigador` y el asistente primario en revisiones integrales de texto |
+| `constelacion-sota` | Construir la constelación SOTA de una corrida: un sistema por paper con planetas tipados (tema de aplicación y de IA, problema, aplicación, novedad, familia, resultados, conclusiones), cada uno con cita textual del abstract, validada por `scripts/check_atlas.py` y dibujada por `scripts/render_atlas.py` en `grafos/papers-graph.html`, con el estudio por familia en `grafos/papers-constellation-report.md`. Port de `plausibility` de papersmith-ai. | `bibliografo-propuesta` (MODE=atlas, Fases 1a y 1c), en ambos flujos |
 
 La skill canónica vive en `.claude/skills/estilo-natural-es/SKILL.md` y de ahí
 se porta de forma determinista: `.pi/skills/` (Pi) y `.agent/skills/`

@@ -2689,7 +2689,7 @@
             <a id="linkOpenGraph" href="/api/graph/papers" target="_blank" class="btn">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
-        <iframe id="graphIframe" class="iframe-viewer" src="about:blank" title="Grafo de conocimiento"></iframe>
+        <iframe id="graphIframe" class="iframe-viewer" src="about:blank" title="Grafo de conocimiento" onload="syncGraphPause()"></iframe>
       </div>
     </div>
 
@@ -4668,6 +4668,7 @@
       if (targetBtn) targetBtn.classList.add('active');
       const targetPane = document.getElementById(`pane-${tabId}`);
       if (targetPane) targetPane.classList.add('active');
+      syncGraphPause();
 
       if (tabId === 'trees') startTreesPolling();
       else stopTreesPolling();
@@ -4707,6 +4708,17 @@
       if (typeof isTerminalOpen !== 'undefined' && isTerminalOpen && typeof ensureTerminalConnected === 'function') {
         setTimeout(() => ensureTerminalConnected(false), 60);
       }
+    }
+
+    // El grafo deja de dibujar mientras su pestaña no se ve: se le envía
+    // {type: 'atlas-control', cmd: 'pause'} al ocultarla y 'resume' al mostrarla.
+    // Un iframe sin cargar (about:blank) no recibe nada.
+    function syncGraphPause() {
+      const iframe = document.getElementById('graphIframe');
+      const src = iframe && iframe.getAttribute('src');
+      if (!src || src === 'about:blank' || !iframe.contentWindow) return;
+      const cmd = activeTab === 'atlas' && !document.hidden ? 'resume' : 'pause';
+      try { iframe.contentWindow.postMessage({ type: 'atlas-control', cmd }, '*'); } catch (_) {}
     }
 
     let currentGraphKind = 'papers';
@@ -9034,6 +9046,7 @@
 
     document.addEventListener('visibilitychange', () => {
       document.documentElement.classList.toggle('is-page-hidden', document.hidden);
+      syncGraphPause();
       if (!document.hidden) {
         loadStatus();
         scheduleStatusPoll();
