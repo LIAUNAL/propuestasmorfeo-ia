@@ -405,6 +405,19 @@
     .tree-magnitude { max-width: 760px; margin: 0.4rem auto 0; font-size: 0.75rem; color: var(--text-muted); text-align: center; overflow-wrap: anywhere; }
     .tree-magnitude strong { color: var(--text); }
     .tree-magnitude--missing { font-style: italic; color: var(--text-dim); }
+    /* Relaciones entre las causas y objetivos: tabla de dos columnas, una
+       franja por causa directa con sus causas indirectas sangradas. */
+    .tree-layout.is-wide { grid-template-columns: minmax(0, 1fr); }
+    .tree-review[hidden] { display: none; }
+    .tree-relations { width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 0.85rem; }
+    .tree-relations th { background: var(--accent); color: #0b0f19; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; }
+    .tree-relations td { padding: 0.55rem 0.75rem; vertical-align: top; line-height: 1.45; overflow-wrap: anywhere; }
+    .tree-relations td:first-child { width: 36%; }
+    .tree-relations .tree-relations__block-0 td { background: var(--accent-dim); }
+    .tree-relations .tree-relations__block-1 td { background: rgba(56, 189, 248, 0.08); }
+    .tree-relations__label { display: block; font-weight: 700; margin-bottom: 0.35rem; }
+    .tree-relations__indirect td:first-child { padding-left: 1.75rem; }
+    .tree-relations__pending { font-style: italic; color: var(--text-dim); }
     .tree-findings:empty { display: none; }
     .tree-findings { margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; font-size: 0.8rem; }
     .tree-findings h4 { margin: 0 0 0.5rem; font-size: 0.8rem; }
@@ -2524,6 +2537,7 @@
           <div class="tree-switch" role="tablist">
             <button class="btn btn--sm" id="treeViewProblemas" onclick="setTreeView('problemas')">🌳 Árbol de problemas</button>
             <button class="btn btn--sm" id="treeViewObjetivos" onclick="setTreeView('objetivos')">🎯 Árbol de objetivos</button>
+            <button class="btn btn--sm" id="treeViewRelaciones" onclick="setTreeView('relaciones')">🔗 Relaciones entre las causas y objetivos</button>
           </div>
           <span class="tree-legend" id="treeLegend"></span>
         </div>
@@ -2582,7 +2596,7 @@
           <div class="tree-findings" id="treeFindings" aria-live="polite"></div>
         </div>
 
-        <aside class="panel tree-review">
+        <aside class="panel tree-review" id="treeReviewPanel">
           <div class="panel__header">
             <div class="panel__title">Revisión con el agente</div>
             <span class="badge" id="treeStatusBadge">—</span>
@@ -4164,7 +4178,7 @@
     function currentTreeEntry() {
       const d = TREES_STATE.data;
       if (!d) return null;
-      return TREES_STATE.view === 'objetivos' ? d.objectives : d.problem;
+      return TREES_STATE.view === 'problemas' ? d.problem : d.objectives;
     }
 
     function treeMessage(text, tone) {
@@ -4214,7 +4228,7 @@
     }
 
     function setTreeView(view) {
-      TREES_STATE.view = view === 'objetivos' ? 'objetivos' : 'problemas';
+      TREES_STATE.view = ['objetivos', 'relaciones'].includes(view) ? view : 'problemas';
       TREES_STATE.selected = null;
       treeMessage('');
       renderTrees();
@@ -4350,6 +4364,38 @@
       return { send: null, approve: findingsMsg };
     }
 
+    // Tabla «Relaciones entre las causas y objetivos»: cada causa directa con
+    // su objetivo específico y cada causa indirecta con el medio que sale de
+    // ella, emparejados por el campo `from` del árbol de objetivos.
+    function treeRelationsHtml(problem, objectives) {
+      const pt = problem && problem.available ? problem.tree : null;
+      if (!pt || !(pt.groups || []).length) {
+        return '<div class="tree-empty"><p>Las relaciones aparecen cuando exista el árbol de problemas.</p></div>';
+      }
+      const groups = (objectives && objectives.available && objectives.tree && objectives.tree.groups) || [];
+      const cell = text => text
+        ? escapeHtml(String(text))
+        : '<span class="tree-relations__pending">Pendiente</span>';
+      const row = (label, cause, target, cls) => `<tr class="${cls}">
+          <td><span class="tree-relations__label">${escapeHtml(label)}</span> ${escapeHtml(cause || '')}</td>
+          <td>${cell(target)}</td>
+        </tr>`;
+      const body = pt.groups.map((g, i) => {
+        const og = groups.find(o => o.from === g.id);
+        const block = `tree-relations__block-${i % 2}`;
+        const rows = [row(`Causa directa ${i + 1}`, g.title, og && og.objective, `tree-relations__direct ${block}`)];
+        (g.causes || []).forEach((c, k) => {
+          const mean = og && (og.means || []).find(m => m.from === c.id);
+          rows.push(row(`Causa indirecta ${i + 1}.${k + 1}`, c.text, mean && mean.text, `tree-relations__indirect ${block}`));
+        });
+        return rows.join('');
+      }).join('');
+      return `<table class="tree-relations">
+        <thead><tr><th>Causa relacionada</th><th>Objetivos específicos</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table>`;
+    }
+
     function renderTrees() {
       const d = TREES_STATE.data;
       if (!d) return;
@@ -4370,7 +4416,20 @@
       ].join('');
       document.getElementById('treeViewProblemas').classList.toggle('btn--primary', view === 'problemas');
       document.getElementById('treeViewObjetivos').classList.toggle('btn--primary', view === 'objetivos');
+      document.getElementById('treeViewRelaciones').classList.toggle('btn--primary', view === 'relaciones');
       document.getElementById('treeLegend').textContent = entry && entry.source ? `Fuente: ${entry.source}` : '';
+
+      // La tabla de relaciones es una lectura de los dos árboles: no se
+      // comenta ni se aprueba, así que el panel de revisión se oculta.
+      const relations = view === 'relaciones';
+      document.getElementById('treeReviewPanel').hidden = relations;
+      document.querySelector('#pane-trees .tree-layout').classList.toggle('is-wide', relations);
+      if (relations) {
+        document.getElementById('treeBanner').textContent = '';
+        document.getElementById('treeCanvas').innerHTML = treeRelationsHtml(d.problem, d.objectives);
+        document.getElementById('treeFindings').innerHTML = '';
+        return;
+      }
 
       let banner = '';
       if (view === 'objetivos' && entry.available) {

@@ -387,3 +387,37 @@ test('la cabecera muestra el flujo del proyecto', async (t) => {
   viewer.viewer('renderFlujoBadge', { flujo: 'base' });
   assert.equal(badge.textContent.trim(), 'Flujo base');
 });
+
+test('la pestaña «Relaciones entre las causas y objetivos» sigue a «Árbol de objetivos»', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  const labels = Array.from(viewer.document.querySelectorAll('.tree-switch button')).map(b => b.textContent.trim());
+  const i = labels.findIndex(l => l.includes('Árbol de objetivos'));
+  assert.ok(labels[i + 1].includes('Relaciones entre las causas y objetivos'));
+});
+
+test('la tabla de relaciones liga cada causa directa e indirecta con su objetivo específico', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  viewer.viewer('setTreeView', 'relaciones');
+  const table = viewer.document.querySelector('#treeCanvas table.tree-relations');
+  assert.ok(table, 'la tabla existe');
+  const heads = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+  assert.deepEqual(heads, ['Causa relacionada', 'Objetivos específicos']);
+  const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr => Array.from(tr.cells).map(c => c.textContent.replace(/\s+/g, ' ').trim()));
+  assert.deepEqual(rows, [
+    ['Causa directa 1 SP1 · Uno', 'Desarrollar uno'],
+    ['Causa indirecta 1.1 Causa uno', 'Pendiente'],
+    ['Causa indirecta 1.2 Causa dos', 'Medio dos'],
+    ['Causa directa 2 SP2 · Dos', 'Pendiente'],
+    ['Causa indirecta 2.1 Causa tres', 'Pendiente'],
+  ]);
+  assert.ok(viewer.document.getElementById('treeViewRelaciones').classList.contains('btn--primary'));
+  assert.ok(viewer.document.getElementById('treeReviewPanel').hidden, 'la tabla no se comenta: se oculta la revisión');
+});
+
+test('volver al árbol de objetivos restaura el lienzo y el panel de revisión', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  viewer.viewer('setTreeView', 'relaciones');
+  viewer.viewer('setTreeView', 'objetivos');
+  assert.ok(viewer.document.querySelector('#treeCanvas [data-node="OE1"]'));
+  assert.ok(!viewer.document.getElementById('treeReviewPanel').hidden);
+});
