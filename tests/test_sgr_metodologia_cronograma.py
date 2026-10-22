@@ -113,11 +113,16 @@ class Methodology(_Run):
         self.assertIn("Preinversión", text)
         self.assertIn("Operación", text)
 
-    def test_renderer_output_without_stage_is_unchanged(self) -> None:
+    def test_spec_without_stages_reaches_the_builder_untouched(self) -> None:
         plain = {"kind": "metodologico", "phases": [{"id": "F1", "title": "Fase 1", "text": "Diagnóstico"}]}
-        with_none = json.loads(json.dumps(plain))
-        self.assertEqual(RENDER.render(plain, {})[0], RENDER.render(with_none, {})[0])
-        self.assertNotIn("Preinversión", RENDER.render(plain, {})[0])
+        self.assertIs(RENDER.with_stage_titles(plain), plain)
+        self.assertNotIn("·", RENDER.render(plain, {})[0].split("Fase 1", 1)[1].split("\n", 1)[0])
+
+    def test_unknown_stage_leaves_that_title_unchanged(self) -> None:
+        spec = json.loads(json.dumps(METODO))
+        spec["phases"][0]["etapa"] = "ejecución"
+        titles = [p["title"] for p in RENDER.with_stage_titles(spec)["phases"]]
+        self.assertEqual(titles, ["Fase 1", "Fase 2 · Inversión", "Fase 3 · Operación"])
 
 
 class Schedule(_Run):

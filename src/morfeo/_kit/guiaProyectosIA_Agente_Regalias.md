@@ -81,6 +81,23 @@ Además de las reglas de la guía base:
   2. Causas… 3. Efectos…», cada uno con su fuente).
 * **Localización.** El problema central nombra la población o el territorio
   (departamento, municipio, zona urbana o rural).
+* **Subproblemas = causas directas.** En el flujo SGR los subproblemas SP1 a
+  SP3 son las causas directas del árbol, y se redactan en lenguaje MGA: un
+  calificativo negativo, la variable afectada y la población o el territorio
+  («Tardía identificación del riesgo psicosocial en estudiantes de Caldas»). No
+  describen una limitación técnica de IA. Esa limitación baja un nivel, como
+  causa indirecta, y desde ahí conecta con el estado del arte (§4) y con la
+  metodología (§10). Cada causa directa pasa la prueba «si existe esta causa,
+  ¿sucede el problema?» y lleva su magnitud.
+* **Compuerta GCausas.** Después de G1a, el operador elige entre dos modos.
+  En el modo plantilla de IA aplicada, las tres causas directas son las causas
+  tipo de un proyecto SGR de IA aplicada: C1 levantamiento y gestión de datos,
+  C2 plataforma y modelos de IA y C3 apropiación social e institucional. Cada
+  subproblema de G1a queda bajo la causa tipo que le corresponde. En el modo
+  exploratorio, el investigador propone tres causas raíz propias a partir de la
+  idea y de los subproblemas del estado del arte. Las tres causas aprobadas
+  quedan en `artefactos/arboles/causas_directas.md` y son las causas directas
+  del árbol de problemas.
 
 ### SGR §6
 

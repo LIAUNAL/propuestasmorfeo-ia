@@ -94,6 +94,14 @@ class ObjectiveTreeSpec(_Run):
         self.assertIn("objetivo general", json.loads(result.stdout)["missing"])
         self.assertFalse((self.run_dir / "redaccion" / "specs" / "arbol_objetivos.spec.json").exists())
 
+    def test_corrupt_problem_spec_exits_2_without_traceback(self) -> None:
+        write_agent_objectives(self.run_dir)
+        (self.run_dir / "redaccion" / "specs" / "arbol_problemas.spec.json").write_text("{bad")
+        result = self.convert()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("arbol_problemas.spec.json", json.loads(result.stdout)["error"])
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_missing_objective_file_exits_2(self) -> None:
         result = self.convert()
         self.assertEqual(result.returncode, 2)
@@ -152,6 +160,13 @@ class PanelApproval(_Run):
     def test_base_flow_does_not_require_panel_approval(self) -> None:
         self.render_to_diag("arbol_problemas")
         self.assertNotIn("arbol-sin-aprobar-panel", _codes(self.run_dir, "base"))
+
+    def test_broken_run_renderer_still_reports_approval_and_says_why(self) -> None:
+        self.render_to_diag("arbol_problemas")
+        (self.run_dir / "redaccion" / "scripts" / "render_tikz.py").write_text("def broken(:\n")
+        codes = _codes(self.run_dir, "sgr")
+        self.assertEqual(codes.get("arbol-sin-aprobar-panel"), "warning")
+        self.assertEqual(codes.get("figura-sin-verificar"), "warning")
 
     def test_check_run_hash_matches_the_panel_hash(self) -> None:
         self.assertEqual(CHECK_RUN.panel_tree_hash("problemas", SPEC),

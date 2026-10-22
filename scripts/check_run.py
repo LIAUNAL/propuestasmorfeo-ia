@@ -33,7 +33,16 @@ objective trees when their files exist:
   SGR flow: sgr-objetivo-general-distinto, sgr-objetivos-especificos-distintos
     (§6/§7 must be the objective tree texts), sgr-titulo-no-derivado (the
     title is the general objective with its verb as a noun), and with --final
-    sgr-anexo-faltante for each missing MGA annex in SGR_SECTIONS.
+    sgr-anexo-faltante for each missing MGA annex in SGR_SECTIONS;
+    sgr-causa-sin-magnitud / sgr-efecto-sin-magnitud (warning, guía SGR §3),
+    arbol-sin-aprobar-panel (warning), sgr-metodologia-sin-etapa,
+    sgr-metodologia-sin-oe, sgr-cronograma-sin-etapas,
+    sgr-cronograma-sin-ruta-critica (warnings, guía SGR §10 and §14).
+  tree figures (both flows): figura-desincronizada (error: diag_<tree>.tex is
+    not the render of its spec), figura-spec-invalida, figura-sin-verificar.
+  TDR chapters (artefactos/estructura_tdr.json, any flow):
+    tdr-main-desactualizado, tdr-estructura-invalida (errors),
+    tdr-titulo-capitulo (warning, error with --final), tdr-capitulo-secciones.
 The tree rule functions (problem_tree_findings, objective_tree_findings,
 shared_variable, detect_flujo) are pure and imported by the dashboard.
 
@@ -643,6 +652,29 @@ def sgr_title_findings(title, general_objective) -> list[dict]:
                      "sustantivo (Fortalecer las capacidades… → Fortalecimiento de las capacidades…).")]
 
 
+def _has_magnitude(node: dict) -> bool:
+    magnitude = node.get("magnitude")
+    return (isinstance(magnitude, dict) and bool(str(magnitude.get("indicador") or "").strip())
+            and bool(str(magnitude.get("fuente") or "").strip()))
+
+
+def sgr_magnitude_findings(spec: dict) -> list[dict]:
+    """Guía SGR §3: in the SGR flow direct causes and direct effects carry their
+    magnitude (indicator and source), not only the central problem."""
+    findings = []
+    for group in spec.get("groups") or []:
+        if not _has_magnitude(group):
+            findings.append(_finding("warning", "sgr-causa-sin-magnitud", str(group.get("id") or ""),
+                                     "En el flujo SGR cada causa directa lleva su magnitud (indicador, valor y "
+                                     "fuente) en groups[].magnitude."))
+    for branch in spec.get("branches") or []:
+        if not _has_magnitude(branch):
+            findings.append(_finding("warning", "sgr-efecto-sin-magnitud", str(branch.get("id") or ""),
+                                     "En el flujo SGR cada efecto directo lleva su magnitud (indicador, valor y "
+                                     "fuente) en branches[].magnitude."))
+    return findings
+
+
 def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections: dict[str, Path],
                 flujo: str) -> None:
     problem_path = run_root / PROBLEM_SPEC
@@ -652,6 +684,9 @@ def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections:
     if problem is not None:
         for f in problem_tree_findings(problem):
             report.add(f["severity"], f["code"], f["message"], problem_path, node=f["node"])
+        if flujo == "sgr":
+            for f in sgr_magnitude_findings(problem):
+                report.add(f["severity"], f["code"], f["message"], problem_path, node=f["node"])
     if objectives is None:
         return
     if problem is not None:
@@ -736,7 +771,10 @@ def check_tree_figures(report: Report, run_root: Path, flujo: str) -> None:
             continue
         renderer = renderer or _run_renderer(red)
         if renderer is None:
-            return
+            report.add("warning", "figura-sin-verificar",
+                       f"No se pudo cargar redaccion/scripts/render_tikz.py para comprobar que diag_{name}.tex "
+                       "corresponde a su spec.", diag)
+            continue
         overrides_path = spec_path.with_name(f"{name}.overrides.json")
         overrides = renderer.load_overrides(overrides_path) if hasattr(renderer, "load_overrides") else {}
         try:

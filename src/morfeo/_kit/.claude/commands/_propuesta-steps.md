@@ -70,7 +70,8 @@ más de 6 h, se muestra como obsoleto y no bloquea el botón «Ejecutar».
 
 | `next_step` | Unit | Gate | On PASS → next |
 |-------------|------|------|----------------|
-| `fase1a` | Early scoping (bibliógrafo MODE=scope, codebase-memory scoping, investigador early) | G1a | `fase1b` |
+| `fase1a` | Early scoping (bibliógrafo MODE=scope, codebase-memory scoping, investigador early) | G1a | `fase1a_sgr` (flujo SGR) o `fase1b` (flujo base) |
+| `fase1a_sgr` | Solo flujo SGR: causas directas en lenguaje MGA (`artefactos/arboles/causas_directas.md`), modo plantilla de IA aplicada (levantamiento de datos, plataforma y modelos, apropiación) o exploratorio; el flujo base la salta | G causas | `fase1b` |
 | `fase1b` | Árbol de problemas (spec + `figura.py`) y árbol de objetivos (`arbol_objetivos.json`) con las reglas MGA, en ambos flujos + revisor | G1b | `fase1c` |
 | `fase1c` | SOTA corpus expansion + WRITE-REFS + vault codebase-memory once | G1c | `fase1` |
 | `fase1` | MGA resumido (`artefactos/mga_resumido.md`) + §3 problema derivada de él + grant-flow-auditor + revisor | G1 | `fase2` |

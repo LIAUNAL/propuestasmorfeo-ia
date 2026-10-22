@@ -99,11 +99,20 @@ def main(argv: list[str] | None = None) -> int:
                 result, code = {"error": "el árbol de objetivos tiene textos sin redactar", "missing": missing}, 2
             else:
                 problem_path = run / PROBLEM_SPEC
-                problem = json.loads(problem_path.read_text(encoding="utf-8")) if problem_path.is_file() else None
-                out = run / OUT_SPEC
-                out.parent.mkdir(parents=True, exist_ok=True)
-                out.write_text(json.dumps(to_spec(tree, problem), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-                result, code = {"spec": str(out), "groups": len(tree["groups"])}, 0
+                try:
+                    problem = json.loads(problem_path.read_text(encoding="utf-8")) if problem_path.is_file() else None
+                except ValueError as exc:
+                    problem, result, code = None, {"error": f"{PROBLEM_SPEC.as_posix()} no es JSON válido: {exc}"}, 2
+                else:
+                    try:
+                        spec = to_spec(tree, problem)
+                    except (KeyError, TypeError, AttributeError) as exc:
+                        result, code = {"error": f"{OBJECTIVES_FILE.as_posix()} no sigue el esquema del panel: {exc!r}"}, 2
+                    else:
+                        out = run / OUT_SPEC
+                        out.parent.mkdir(parents=True, exist_ok=True)
+                        out.write_text(json.dumps(spec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                        result, code = {"spec": str(out), "groups": len(tree["groups"])}, 0
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False))

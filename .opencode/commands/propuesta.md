@@ -849,6 +849,44 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
         `10-fase1a.md` con el acumulador, independiente, de la Fase 1a),
         nunca un valor combinado; ídem las dos filas correspondientes en
         `_estado.md` (ver "Telemetría de uso por fase").
+Fase 1a SGR [COMPUERTA GCausas] Causas directas en lenguaje MGA. SOLO flujo
+        SGR, después de G1a = APROBADA; el flujo base pasa directo a la
+        Fase 1b. En la MGA los subproblemas SP1 a SP3 son las causas
+        directas del problema central: factores que explican por qué la
+        población o el territorio sufren el problema, no limitaciones
+        técnicas de IA. Esta compuerta convierte los 3 subproblemas de G1a
+        en esas causas antes de construir el árbol.
+        ──→ COMPUERTA GCausas, parte 1 (elección del modo): presenta los 3
+        subproblemas aprobados en G1a y pregunta, como solicitud bloqueante
+        de una sola elección, con estas dos opciones y en este orden:
+          1. Plantilla de IA aplicada (recomendada para proyectos SGR de IA
+             aplicada): las 3 causas directas son las causas tipo
+             C1 levantamiento y gestión de datos, C2 plataforma y modelos de
+             IA, C3 apropiación social e institucional. Cada subproblema de
+             G1a se acomoda bajo la causa tipo que le corresponde.
+          2. Exploratorio: el investigador propone 3 causas raíz propias,
+             derivadas de la idea del proyecto y de los 3 subproblemas que
+             salieron del estado del arte.
+        No elijas por el usuario ni continúes sin su respuesta.
+        (a) Task → investigador (rama "Causas directas SGR", ver
+        `investigador.md`) con el modo elegido, la idea, los 3 subproblemas
+        de G1a con su `paper-N`, el problema central tentativo y el bloque
+        `## FRAGMENTO DE GUÍA` con Directrices Generales + §3 + Directrices
+        Generales SGR + `### SGR §3`. Escribe
+        `artefactos/arboles/causas_directas.md` con una tabla de 3 filas:
+        causa directa redactada en lenguaje MGA, causa tipo (C1, C2, C3 o
+        «exploratoria»), subproblema(s) de G1a que absorbe, indicador de
+        magnitud propuesto (indicador, valor y fuente, o «por levantar» con
+        la fuente prevista) y `paper-N` de soporte.
+        ──→ COMPUERTA GCausas, parte 2: presenta la tabla completa, sin
+        resumir, y pide aprobación. Un cambio pedido vuelve a despachar (a)
+        con el comentario exacto del usuario; un cambio de modo vuelve a la
+        parte 1. Al aprobar, escribe `GCausas = APROBADA` en
+        `artefactos/estado_propuesta.md` ("Compuertas tempranas" → fila
+        `| GCausas | APROBADA |` y la tabla aprobada) y el evento
+        `artefactos/pipeline/10-fase1a_sgr.md`. La Fase 1b usa estas 3
+        causas, no los subproblemas crudos de G1a, como causas directas
+        (`groups[].title`) del árbol de problemas.
 Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         base y SGR, con las reglas MGA de la guía, §3, «Árbol de problemas y
         árbol de objetivos según la MGA»). Corre después de G1a y antes del
@@ -857,6 +895,8 @@ Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         (a) Task → investigador → contenido del árbol de problemas en
         `artefactos/arboles/arbol_problemas.md` (ver `investigador.md`,
         constraint 14): las causas directas son los 3 subproblemas de G1a
+        (en el flujo SGR, las 3 causas aprobadas en GCausas, desde
+        `artefactos/arboles/causas_directas.md`)
         (inyecta inline el bloque "SUBPROBLEMAS TEMPRANOS APROBADOS (G1a)";
         si la Fase 1a no corrió, el investigador los propone aquí), de 1 a 3
         causas indirectas bajo cada una, el tronco con su magnitud

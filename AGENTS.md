@@ -65,6 +65,12 @@ ruta crítica. Cuando el TDR fija sus capítulos (el Anexo 2, por ejemplo),
 `scripts/ensamblar_main.py` arma el cuerpo de `main.tex` en ese orden desde
 `artefactos/estructura_tdr.json`, con los títulos textuales del TDR.
 
+En el SGR, después de G1a, la compuerta GCausas (unidad `fase1a_sgr`) convierte
+los tres subproblemas en las causas directas del árbol, redactadas en lenguaje
+MGA. El operador elige el modo plantilla de IA aplicada (levantamiento de
+datos, plataforma y modelos, apropiación) o el modo exploratorio, en el que el
+investigador propone tres causas raíz desde la idea y el estado del arte.
+
 ## Reglas globales
 
 1. **Idioma:** Los *system prompts* de los agentes están en inglés, pero toda
