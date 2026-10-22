@@ -59,6 +59,7 @@ import math
 import pathlib
 import re
 import sys
+import unicodedata
 
 # --------------------------------------------------------------------------
 # Canonical visual constants (single source: the palette and type scale the
@@ -451,7 +452,7 @@ def build_arbol(spec: dict, over: dict) -> tuple[str, list[int], dict[int, str]]
             line_map[len(lines)] = node
 
     emit("% " + "=" * 69)
-    emit("% ÁRBOL DE PROBLEMAS — §3 Descripción del problema")
+    emit("% " + (spec.get("header") or "ÁRBOL DE PROBLEMAS — §3 Descripción del problema"))
     emit("% GENERADO por plantilla/scripts/render_tikz.py desde la spec JSON.")
     emit("% No editar a mano: la geometría la calcula el script (anchos que")
     emit("% caben el token más largo, anclas reales, columnas equiespaciadas).")
@@ -1190,8 +1191,30 @@ def assert_balanced_braces(text: str, kind: str) -> None:
         )
 
 
+# SGR (guía SGR §10): each methodology phase may name its MGA stage.
+STAGE_LABELS = {"preinversion": "Preinversión", "inversion": "Inversión", "operacion": "Operación"}
+
+
+def stage_key(value) -> str:
+    folded = "".join(c for c in unicodedata.normalize("NFD", str(value or "")) if unicodedata.category(c) != "Mn")
+    return folded.strip().lower()
+
+
+def with_stage_titles(spec: dict) -> dict:
+    """Methodology phases that declare a known `etapa` show it after their title."""
+    if spec.get("kind") != "metodologico" or not any(stage_key(p.get("etapa")) in STAGE_LABELS
+                                                     for p in spec.get("phases") or []):
+        return spec
+    phases = []
+    for phase in spec["phases"]:
+        label = STAGE_LABELS.get(stage_key(phase.get("etapa")))
+        phases.append({**phase, "title": f"{phase['title']} · {label}"} if label else phase)
+    return {**spec, "phases": phases}
+
+
 def render(spec: dict, overrides: dict) -> tuple[str, dict[int, str]]:
     validate_spec(spec)
+    spec = with_stage_titles(spec)
     kind = spec["kind"]
     text, _ids, _map = BUILDERS[kind](spec, overrides)
     assert_balanced_braces(text, kind)

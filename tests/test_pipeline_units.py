@@ -28,7 +28,7 @@ from morfeo.core.pipeline_units import (  # noqa: E402
 
 STEPS_DOC = REPO / ".claude" / "commands" / "_propuesta-steps.md"
 
-STEP_UNITS_EXPECTED = 16
+STEP_UNITS_EXPECTED = 17
 
 # Valores de compuerta observados en los artefactos de la corrida de referencia,
 # incluidos los que la tabla no reconoce. El inventario tiene que ubicarlos todos:
@@ -125,19 +125,26 @@ class TestPipelineUnits(unittest.TestCase):
             "G5", "G5.5", "G6.4", "G6.46", "G6.5", "G7",
         ):
             self.assertIn(real, canonical, f"falta {real} en las compuertas canónicas")
-        # Catorce del flujo base más G6.47, la compuerta de los anexos MGA del flujo SGR.
+        # Catorce del flujo base más las dos del flujo SGR: GCausas (causas
+        # directas, tras G1a) y G6.47 (anexos MGA).
         self.assertIn("G6.47", canonical)
-        self.assertEqual(len(canonical), 15, "las compuertas canónicas son quince")
+        self.assertIn("GCausas", canonical)
+        self.assertEqual(len(canonical), 16, "las compuertas canónicas son dieciséis")
 
     def test_early_units_run_scoping_trees_corpus_then_mga_summary(self) -> None:
-        # Same order in both flows: the trees come right after the subproblems and
-        # before the SOTA corpus; Fase 1 writes the MGA summary and §3 from it.
+        # The trees come right after the subproblems (in SGR, after the GCausas
+        # gate on the direct causes) and before the SOTA corpus; Fase 1 writes
+        # the MGA summary and §3 from it.
+        expected = {
+            "base": ["fase0", "fase1a", "fase1b", "fase1c", "fase1", "fase2"],
+            "sgr": ["fase0", "fase1a", "fase1a_sgr", "fase1b", "fase1c", "fase1", "fase2"],
+        }
         for flujo in ("base", "sgr"):
             by_id = {u["id"]: u for u in units_for_flujo(flujo)}
             chain = ["fase0"]
             while chain[-1] != "fase2":
                 chain.append(by_id[chain[-1]]["next"])
-            self.assertEqual(chain, ["fase0", "fase1a", "fase1b", "fase1c", "fase1", "fase2"], flujo)
+            self.assertEqual(chain, expected[flujo], flujo)
             self.assertEqual(by_id["fase1b"]["gate"], "G1b")
             self.assertEqual(by_id["fase1c"]["gate"], "G1c")
             self.assertEqual(by_id["fase1"]["gate"], "G1")

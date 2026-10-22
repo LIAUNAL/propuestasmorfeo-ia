@@ -605,6 +605,15 @@ Fase 0.5 [COMPUERTA G0.5] Solo aplica si el campo "Archivo TDR" de la tabla
             secciones definitivas" con el formato exacto que exige
             `investigador.md` ("Generación de la guía ajustada") — es un
             requisito de forma del entregable, no opcional.
+            Si `artefactos/insumos.md` registra «TDR especifica secciones:
+            Sí», la misma Task escribe además
+            `artefactos/estructura_tdr.json` (formato en
+            `scripts/ensamblar_main.py`): un capítulo por capítulo del TDR,
+            en su orden, con `titulo` copiado textualmente del TDR y
+            `archivos` en el orden en que se imprimen. Cada capítulo
+            numerado tiene su propio archivo y abre un único `\section`;
+            dos capítulos no comparten archivo (por ejemplo, Resumen y
+            Palabras clave van en archivos distintos si el TDR los numera).
         ──→ GATE G0.5: presenta `artefactos/guia_ajustada_TDR.md` al usuario
         para aprobación explícita. La presentación de este gate NO es un
         resumen en prosa: el dispatcher copia la "Tabla de secciones
@@ -720,6 +729,12 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
          `### SGR §N` de cada sección listada que lo tenga, verbatim>]
         ```
 
+        Con `artefactos/estructura_tdr.json`, cada bloque `### SGR §N`
+        acompaña al capítulo que contiene el archivo de §N (por ejemplo,
+        `### SGR §6` y `### SGR §7` van con el capítulo que lista
+        `06_objetivo_general` y `07_objetivos_especificos`), nunca al
+        capítulo que lleva el número N.
+
         Reglas: Directrices Generales va SIEMPRE, sin excepción. Las
         secciones listadas en el título del bloque son las que esa Task
         posee/audita (ver el mapeo fase→sección de cada bloque de Fase
@@ -833,6 +848,44 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
         `10-fase1a.md` con el acumulador, independiente, de la Fase 1a),
         nunca un valor combinado; ídem las dos filas correspondientes en
         `_estado.md` (ver "Telemetría de uso por fase").
+Fase 1a SGR [COMPUERTA GCausas] Causas directas en lenguaje MGA. SOLO flujo
+        SGR, después de G1a = APROBADA; el flujo base pasa directo a la
+        Fase 1b. En la MGA los subproblemas SP1 a SP3 son las causas
+        directas del problema central: factores que explican por qué la
+        población o el territorio sufren el problema, no limitaciones
+        técnicas de IA. Esta compuerta convierte los 3 subproblemas de G1a
+        en esas causas antes de construir el árbol.
+        ──→ COMPUERTA GCausas, parte 1 (elección del modo): presenta los 3
+        subproblemas aprobados en G1a y pregunta, como solicitud bloqueante
+        de una sola elección, con estas dos opciones y en este orden:
+          1. Plantilla de IA aplicada (recomendada para proyectos SGR de IA
+             aplicada): las 3 causas directas son las causas tipo
+             C1 levantamiento y gestión de datos, C2 plataforma y modelos de
+             IA, C3 apropiación social e institucional. Cada subproblema de
+             G1a se acomoda bajo la causa tipo que le corresponde.
+          2. Exploratorio: el investigador propone 3 causas raíz propias,
+             derivadas de la idea del proyecto y de los 3 subproblemas que
+             salieron del estado del arte.
+        No elijas por el usuario ni continúes sin su respuesta.
+        (a) Task → investigador (rama "Causas directas SGR", ver
+        `investigador.md`) con el modo elegido, la idea, los 3 subproblemas
+        de G1a con su `paper-N`, el problema central tentativo y el bloque
+        `## FRAGMENTO DE GUÍA` con Directrices Generales + §3 + Directrices
+        Generales SGR + `### SGR §3`. Escribe
+        `artefactos/arboles/causas_directas.md` con una tabla de 3 filas:
+        causa directa redactada en lenguaje MGA, causa tipo (C1, C2, C3 o
+        «exploratoria»), subproblema(s) de G1a que absorbe, indicador de
+        magnitud propuesto (indicador, valor y fuente, o «por levantar» con
+        la fuente prevista) y `paper-N` de soporte.
+        ──→ COMPUERTA GCausas, parte 2: presenta la tabla completa, sin
+        resumir, y pide aprobación. Un cambio pedido vuelve a despachar (a)
+        con el comentario exacto del usuario; un cambio de modo vuelve a la
+        parte 1. Al aprobar, escribe `GCausas = APROBADA` en
+        `artefactos/estado_propuesta.md` ("Compuertas tempranas" → fila
+        `| GCausas | APROBADA |` y la tabla aprobada) y el evento
+        `artefactos/pipeline/10-fase1a_sgr.md`. La Fase 1b usa estas 3
+        causas, no los subproblemas crudos de G1a, como causas directas
+        (`groups[].title`) del árbol de problemas.
 Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         base y SGR, con las reglas MGA de la guía, §3, «Árbol de problemas y
         árbol de objetivos según la MGA»). Corre después de G1a y antes del
@@ -841,6 +894,10 @@ Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         (a) Task → investigador → contenido del árbol de problemas en
         `artefactos/arboles/arbol_problemas.md` (ver `investigador.md`,
         constraint 14): las causas directas son los 3 subproblemas de G1a
+        (en el flujo SGR, las 3 causas aprobadas en GCausas, desde
+        `artefactos/arboles/causas_directas.md`; una corrida SGR que pasó
+        G1a antes de existir GCausas no tiene ese archivo, el tablero
+        muestra la compuerta como omitida y se usan los subproblemas de G1a)
         (inyecta inline el bloque "SUBPROBLEMAS TEMPRANOS APROBADOS (G1a)";
         si la Fase 1a no corrió, el investigador los propone aquí), de 1 a 3
         causas indirectas bajo cada una, el tronco con su magnitud
@@ -868,6 +925,20 @@ Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         "G1b — Árboles de problemas y de objetivos": rutas de los dos
         árboles, problema central, indicador de magnitud del tronco y Estado
         G1b); la Fase 1 y la Fase 4 leen esa sub-tabla.
+        (d) SOLO flujo SGR, después de la aprobación en el panel: las dos
+        figuras de árbol salen de los archivos que el panel muestra y
+        aprueba, nunca de un texto redactado aparte.
+          - Árbol de objetivos: `python3 scripts/arbol_objetivos.py
+            <RUN_ROOT>` convierte `artefactos/arboles/arbol_objetivos.json`
+            en `redaccion/specs/arbol_objetivos.spec.json`; luego
+            `python3 redaccion/scripts/figura.py arbol_objetivos --spec
+            redaccion/specs/arbol_objetivos.spec.json --project redaccion`.
+            Su caption concreto va en
+            `redaccion/sections/diag_arbol_objetivos_caption.tex`.
+          - Si un árbol cambia en el panel después de compilado,
+            `scripts/check_run.py` reporta `figura-desincronizada` (error)
+            y `arbol-sin-aprobar-panel` (advertencia): vuelve a aprobarlo y
+            a compilar su figura con `figura.py`.
         ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
         `artefactos/pipeline/11-fase1b.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
@@ -1200,7 +1271,12 @@ Fase 5.5 [NUEVO] Task → redactor → §10 metodología (compuerta propia,
         §10 (Metodología) + Convenciones técnicas de LaTeX y lo inyecta
         inline al inicio del prompt. Luego bucle de figura `<name>` =
         `metodologico`, procedimiento canónico completo en "Bucle de
-        figuras (canónico)". El diagrama NUNCA incluye personal
+        figuras (canónico)". En el flujo SGR cada fase de la spec
+        `metodologico` declara `etapa` (`preinversion`, `inversion` u
+        `operacion`) y `oe` (los ids OE del árbol de objetivos que atiende),
+        para leerse como cadena de valor por etapa (guía SGR §10); el
+        render imprime la etapa en la caja y `check_run.py` advierte
+        `sgr-metodologia-sin-etapa` / `sgr-metodologia-sin-oe`. El diagrama NUNCA incluye personal
         responsable dentro de sus bloques (ver `disenador-tikz.md`).
         `artefactos/vault/secciones/10_metodologia.md` cambió en esta fase; si no
         cambió, reutiliza el reporte de grafo existente sin
@@ -1308,7 +1384,10 @@ Fase 6.45 Task → redactor → §14 cronograma de actividades (Gantt) (sin gate
         que la Fase 6). Antes de despachar esta Task, el dispatcher arma el
         bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §14
         (Cronograma de actividades) + Convenciones técnicas de LaTeX y lo
-        inyecta inline al inicio del prompt.
+        inyecta inline al inicio del prompt. En el flujo SGR el Gantt agrupa
+        las actividades por etapa y marca la ruta crítica (guía SGR §14);
+        `check_run.py` advierte `sgr-cronograma-sin-etapas` /
+        `sgr-cronograma-sin-ruta-critica`.
         Task → redactor → §15 productos esperados (ídem, sin gate propio).
         Antes de despachar esta Task, el dispatcher arma el bloque
         `## FRAGMENTO DE GUÍA` con Directrices Generales + §15 (Productos
@@ -1436,7 +1515,16 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         `plantilla/logos-opcionales/logo_utp.png` a `redaccion/logos/` solo si
         la propuesta declara esa alianza, y correr
         `python3 scripts/check_run.py <RUN_ROOT> --final` hasta que salga sin
-        errores. Si la corrida trae un `main.tex` anterior a la plantilla,
+        errores. Cuando el TDR fija capítulos (existe
+        `artefactos/estructura_tdr.json`, o `insumos.md` registra «TDR
+        especifica secciones: Sí»), el cuerpo de `main.tex` no sigue el
+        orden base: corre `python3 scripts/ensamblar_main.py <RUN_ROOT>`.
+        Si la estructura todavía no existe (corridas cuya G0.5 es anterior
+        a este paso), agrega `--from-guide` para derivarla de la tabla de
+        capítulos de `guia_ajustada_TDR.md`, completa cada `titulo` con el
+        título textual del TDR tomado de `insumos.md` y vuelve a correr el
+        script. `check_run.py` reporta `tdr-main-desactualizado`,
+        `tdr-titulo-capitulo` y `tdr-capitulo-secciones`. Si la corrida trae un `main.tex` anterior a la plantilla,
         reemplazalo por la plantilla y trasladá su portada a
         `datos_proyecto.tex` y sus captions a los archivos `_caption.tex`.
         Tras ensamblar y compilar `redaccion/main.pdf` (`redaccion/build.sh`),

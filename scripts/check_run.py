@@ -33,7 +33,16 @@ objective trees when their files exist:
   SGR flow: sgr-objetivo-general-distinto, sgr-objetivos-especificos-distintos
     (§6/§7 must be the objective tree texts), sgr-titulo-no-derivado (the
     title is the general objective with its verb as a noun), and with --final
-    sgr-anexo-faltante for each missing MGA annex in SGR_SECTIONS.
+    sgr-anexo-faltante for each missing MGA annex in SGR_SECTIONS;
+    sgr-causa-sin-magnitud / sgr-efecto-sin-magnitud (warning, guía SGR §3),
+    arbol-sin-aprobar-panel (warning), sgr-metodologia-sin-etapa,
+    sgr-metodologia-sin-oe, sgr-cronograma-sin-etapas,
+    sgr-cronograma-sin-ruta-critica (warnings, guía SGR §10 and §14).
+  tree figures (both flows): figura-desincronizada (error: diag_<tree>.tex is
+    not the render of its spec), figura-spec-invalida, figura-sin-verificar.
+  TDR chapters (artefactos/estructura_tdr.json, any flow):
+    tdr-main-desactualizado, tdr-estructura-invalida (errors),
+    tdr-titulo-capitulo (warning, error with --final), tdr-capitulo-secciones.
 The tree rule functions (problem_tree_findings, objective_tree_findings,
 shared_variable, detect_flujo) are pure and imported by the dashboard.
 
@@ -45,6 +54,8 @@ these constants and the guide in step.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import importlib.util
 import json
 import re
 import shutil
@@ -75,6 +86,9 @@ SGR_SECTIONS = (
 FLUJOS = ("base", "sgr")
 PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
 OBJECTIVES_FILE = Path("artefactos") / "arboles" / "arbol_objetivos.json"
+REVIEW_FILE = Path("artefactos") / "arboles" / "revision.json"
+# Tree figures that must be compiled from the spec the panel shows.
+TREE_FIGURES = {"arbol_problemas": "problemas", "arbol_objetivos": "objetivos"}
 
 # Environments whose content is not narrative prose (tables, drawings, code, math)
 NON_PROSE_ENVS = (
@@ -638,6 +652,30 @@ def sgr_title_findings(title, general_objective) -> list[dict]:
                      "sustantivo (Fortalecer las capacidades… → Fortalecimiento de las capacidades…).")]
 
 
+def _has_magnitude(node: dict) -> bool:
+    """Guía SGR §3: indicator, value and source, the three parts of a magnitude."""
+    magnitude = node.get("magnitude")
+    return isinstance(magnitude, dict) and all(str(magnitude.get(key) or "").strip()
+                                               for key in ("indicador", "valor", "fuente"))
+
+
+def sgr_magnitude_findings(spec: dict) -> list[dict]:
+    """Guía SGR §3: in the SGR flow direct causes and direct effects carry their
+    magnitude (indicator and source), not only the central problem."""
+    findings = []
+    for group in spec.get("groups") or []:
+        if not _has_magnitude(group):
+            findings.append(_finding("warning", "sgr-causa-sin-magnitud", str(group.get("id") or ""),
+                                     "En el flujo SGR cada causa directa lleva su magnitud (indicador, valor y "
+                                     "fuente) en groups[].magnitude."))
+    for branch in spec.get("branches") or []:
+        if not _has_magnitude(branch):
+            findings.append(_finding("warning", "sgr-efecto-sin-magnitud", str(branch.get("id") or ""),
+                                     "En el flujo SGR cada efecto directo lleva su magnitud (indicador, valor y "
+                                     "fuente) en branches[].magnitude."))
+    return findings
+
+
 def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections: dict[str, Path],
                 flujo: str) -> None:
     problem_path = run_root / PROBLEM_SPEC
@@ -647,6 +685,9 @@ def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections:
     if problem is not None:
         for f in problem_tree_findings(problem):
             report.add(f["severity"], f["code"], f["message"], problem_path, node=f["node"])
+        if flujo == "sgr":
+            for f in sgr_magnitude_findings(problem):
+                report.add(f["severity"], f["code"], f["message"], problem_path, node=f["node"])
     if objectives is None:
         return
     if problem is not None:
@@ -675,6 +716,201 @@ def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections:
             report.add("warning", "objetivo-general-sin-variable-del-arbol",
                        "§6 no conserva la variable del objetivo general del árbol de objetivos.",
                        sections["06_objetivo_general"])
+
+
+def panel_tree_hash(tree_key: str, data: dict) -> str:
+    """Hash the dashboard panel approves (src/morfeo/core/trees.py `_hash`): the
+    problem tree is normalised from its spec, the objective tree is hashed as is."""
+    if tree_key == "problemas":
+        def magnitude(node: dict, source: dict) -> dict:
+            if isinstance(source.get("magnitude"), dict):
+                node["magnitude"] = source["magnitude"]
+            return node
+
+        data = {
+            "caption": data.get("caption") or "",
+            "groups": [
+                magnitude({
+                    "id": g.get("id"),
+                    "title": g.get("title") or g.get("id"),
+                    "causes": [{"id": c.get("id"), "text": c.get("text")} for c in g.get("causes") or []],
+                }, g)
+                for g in data.get("groups") or []
+            ],
+            "trunk": data.get("trunk") or {"label": "PROBLEMA CENTRAL", "text": None},
+            "branches": [magnitude({"id": b.get("id"), "text": b.get("text")}, b) for b in data.get("branches") or []],
+            "crown": data.get("crown") or {"label": "EFECTO FINAL", "text": None},
+        }
+    raw = json.dumps(data, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _run_renderer(red: Path):
+    """The run's own render_tikz.py (the one that compiled its figures), else the framework's."""
+    for path in (red / "scripts" / "render_tikz.py",
+                 Path(__file__).resolve().parent.parent / "plantilla" / "scripts" / "render_tikz.py"):
+        if path.is_file():
+            module_spec = importlib.util.spec_from_file_location("run_render_tikz", path)
+            module = importlib.util.module_from_spec(module_spec)
+            try:
+                module_spec.loader.exec_module(module)
+            except Exception:
+                return None
+            return module
+    return None
+
+
+def check_tree_figures(report: Report, run_root: Path, flujo: str) -> None:
+    """A tree figure is the panel's tree: re-render its spec and compare."""
+    red = run_root / "redaccion"
+    renderer = None
+    for name in TREE_FIGURES:
+        spec_path = red / "specs" / f"{name}.spec.json"
+        diag = red / "sections" / f"diag_{name}.tex"
+        spec = _read_json_file(spec_path)
+        if spec is None or not diag.is_file():
+            continue
+        renderer = renderer or _run_renderer(red)
+        if renderer is None:
+            if flujo != "sgr":
+                continue
+            report.add("warning", "figura-sin-verificar",
+                       f"No se pudo cargar redaccion/scripts/render_tikz.py para comprobar que diag_{name}.tex "
+                       "corresponde a su spec.", diag)
+            continue
+        overrides_path = spec_path.with_name(f"{name}.overrides.json")
+        overrides = renderer.load_overrides(overrides_path) if hasattr(renderer, "load_overrides") else {}
+        try:
+            expected, _ = renderer.render(spec, overrides)
+        except (SystemExit, Exception) as exc:
+            report.add("error", "figura-spec-invalida", f"specs/{name}.spec.json no se puede renderizar: {exc}", spec_path)
+            continue
+        if expected.rstrip() != diag.read_text(encoding="utf-8", errors="replace").rstrip():
+            report.add("error", "figura-desincronizada",
+                       f"diag_{name}.tex no corresponde a specs/{name}.spec.json, el árbol que muestra el panel. "
+                       f"Vuelve a compilarla: python3 redaccion/scripts/figura.py {name} "
+                       f"--spec redaccion/specs/{name}.spec.json --project redaccion", diag)
+
+    if flujo != "sgr":
+        return
+    review = _read_json_file(run_root / REVIEW_FILE) or {}
+    sources = {"problemas": run_root / PROBLEM_SPEC, "objetivos": run_root / OBJECTIVES_FILE}
+    for name, key in TREE_FIGURES.items():
+        data = _read_json_file(sources[key])
+        if data is None or (key == "objetivos" and not (red / "sections" / f"diag_{name}.tex").is_file()
+                            and not (red / "specs" / f"{name}.spec.json").is_file()):
+            continue
+        approved = (review.get(key) or {}).get("approved_hash")
+        if approved != panel_tree_hash(key, data):
+            state = "quedó desactualizada" if approved else "no existe"
+            report.add("warning", "arbol-sin-aprobar-panel",
+                       f"En el flujo SGR la figura del árbol de {key} sale del árbol aprobado en el panel del tablero, "
+                       f"y esa aprobación {state}. Revísalo y apruébalo en la pestaña de árboles.", sources[key])
+
+
+SECTION_RE = re.compile(r"\\section(\*?)\s*\{")
+
+
+def _braced(text: str, start: int) -> str:
+    """Content of the {...} group whose opening brace is at text[start - 1]."""
+    depth, i = 1, start
+    while i < len(text) and depth:
+        depth += {"{": 1, "}": -1}.get(text[i], 0)
+        i += 1
+    return text[start:i - 1]
+
+
+def check_tdr_structure(report: Report, run_root: Path, final: bool) -> None:
+    """main.tex in the TDR chapter order (scripts/ensamblar_main.py), verbatim titles."""
+    structure_path = run_root / "artefactos" / "estructura_tdr.json"
+    data = _read_json_file(structure_path)
+    if data is None:
+        return
+    assembler_path = Path(__file__).resolve().parent / "ensamblar_main.py"
+    if not assembler_path.is_file():
+        return
+    module_spec = importlib.util.spec_from_file_location("ensamblar_main", assembler_path)
+    assembler = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(assembler)
+    try:
+        chapters = assembler.validate(data)
+    except assembler.InputError as exc:
+        report.add("error", "tdr-estructura-invalida", str(exc), structure_path)
+        return
+
+    main_tex = run_root / "redaccion" / "main.tex"
+    stamp = f"{assembler.HASH_PREFIX}{assembler.structure_hash(data)}"
+    if main_tex.is_file() and stamp not in main_tex.read_text(encoding="utf-8", errors="replace"):
+        report.add("error", "tdr-main-desactualizado",
+                   "main.tex no sigue artefactos/estructura_tdr.json (el orden de capítulos del TDR). "
+                   f"Ármalo con: python3 scripts/ensamblar_main.py {run_root}", main_tex)
+
+    sec_dir = run_root / "redaccion" / "sections"
+    for chapter in chapters:
+        texts = []
+        for name in chapter["archivos"]:
+            path = sec_dir / f"{name}.tex"
+            if not name.startswith("diag_") and path.is_file():
+                raw = path.read_text(encoding="utf-8", errors="replace")
+                texts.append((path, "\n".join(strip_comment(line) for line in raw.splitlines())))
+        if not texts:
+            continue
+        heads = [(path, m) for path, text in texts for m in SECTION_RE.finditer(text)]
+        numbered = [h for h in heads if not h[1].group(1)]
+        if len(numbered) != 1:
+            report.add("warning", "tdr-capitulo-secciones",
+                       f"El capítulo {chapter['numero']} abre {len(numbered)} \\section numerados; debe abrir uno "
+                       "solo para que LaTeX imprima el número del TDR (los sub-bloques van con \\subsection).",
+                       texts[0][0])
+        title = chapter.get("titulo")
+        if not title or not heads:
+            continue
+        path, match = heads[0]
+        text = dict(texts)[path]
+        found = " ".join(_braced(text, match.end()).split())
+        if found != " ".join(title.split()):
+            report.add("error" if final else "warning", "tdr-titulo-capitulo",
+                       f"El capítulo {chapter['numero']} debe titularse textualmente «{title}» "
+                       f"(el TDR conserva los títulos); dice «{found}».", path)
+
+
+SGR_STAGES = ("preinversion", "inversion", "operacion")
+
+
+def check_sgr_methodology_schedule(report: Report, run_root: Path, texts: dict[str, str],
+                                   sections: dict[str, Path], flujo: str) -> None:
+    """Guía SGR §10 (value chain by stage, every OE covered) and §14 (stages, critical path)."""
+    if flujo != "sgr":
+        return
+    spec_path = run_root / "redaccion" / "specs" / "metodologico.spec.json"
+    spec = _read_json_file(spec_path)
+    if spec is not None:
+        phases = spec.get("phases") or []
+        staged = [p for p in phases if _fold(str(p.get("etapa") or "")).strip().lower() in SGR_STAGES]
+        if len(staged) != len(phases):
+            missing = [str(p.get("id")) for p in phases if p not in staged]
+            report.add("warning", "sgr-metodologia-sin-etapa",
+                       "En el flujo SGR cada fase de la metodología nombra su etapa MGA (\"etapa\": preinversion, "
+                       f"inversion u operacion). Fases sin etapa válida: {', '.join(missing)}.", spec_path)
+        objectives = _read_json_file(run_root / OBJECTIVES_FILE) or {}
+        expected = [str(g.get("id")) for g in objectives.get("groups") or [] if g.get("id")]
+        covered = {str(oe) for p in phases for oe in (p.get("oe") or [])}
+        uncovered = [oe for oe in expected if oe not in covered]
+        if uncovered:
+            report.add("warning", "sgr-metodologia-sin-oe",
+                       "En el flujo SGR cada producto de la cadena de valor responde a un objetivo específico: "
+                       f"ninguna fase declara \"oe\" para {', '.join(uncovered)}.", spec_path)
+
+    name = "14_cronograma_actividades"
+    if name in texts:
+        plain = _fold("\n".join(strip_comment(line) for line in texts[name].splitlines())).lower()
+        if not any(re.search(rf"\b{stage}\b", plain) for stage in SGR_STAGES):
+            report.add("warning", "sgr-cronograma-sin-etapas",
+                       "En el flujo SGR el cronograma agrupa las actividades por etapa (preinversión, inversión, "
+                       "operación).", sections[name])
+        if not re.search(r"ruta\s+critica", plain):
+            report.add("warning", "sgr-cronograma-sin-ruta-critica",
+                       "En el flujo SGR el cronograma marca las actividades de la ruta crítica.", sections[name])
 
 
 def check_sgr_sections(report: Report, sec_dir: Path, flujo: str, final: bool) -> None:
@@ -718,6 +954,9 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_bibliography(report, sections, texts)
     check_pdf(report, red)
     check_trees(report, run_root, texts, sections, report.flujo)
+    check_tree_figures(report, run_root, report.flujo)
+    check_tdr_structure(report, run_root, final)
+    check_sgr_methodology_schedule(report, run_root, texts, sections, report.flujo)
     check_sgr_sections(report, sec_dir, report.flujo, final)
     return report
 

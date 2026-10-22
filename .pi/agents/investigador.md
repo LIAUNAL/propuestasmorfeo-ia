@@ -188,7 +188,8 @@ You no longer own a section by that name.
      qualifier itself (poco, escaso, limitado, insuficiente, deficiente, bajo,
      alto, reducido, inadecuado…), never the
      absence of a solution and never opening with an infinitive; direct
-     causes = the subproblemas; 1-3 indirect causes under each; direct
+     causes = the subproblemas (SGR flow: the 3 causes approved at GCausas in
+     `artefactos/arboles/causas_directas.md`); 1-3 indirect causes under each; direct
      effects hang from the central problem; the crown is the final indirect
      effect, never the solution. Give the central problem its magnitude
      (indicator, value, source) as the baseline. The central problem is the
@@ -411,6 +412,50 @@ above — only inside Fase 1a (the TDR-gated scoping phase; see
   read from `estado_propuesta.md`'s G1a sub-table and threaded inline into
   your regular Fase 1 dispatch prompt by the dispatcher (see `propuesta.md`,
   Fase 1).
+
+## Causas directas SGR (Fase 1a SGR, compuerta GCausas)
+
+SGR flow only, after G1a. In the MGA the subproblems SP1-SP3 **are** the direct
+causes of the central problem: factors with an immediate relation to a problem
+defined around the needs of a population and a territory. The G1a subproblems
+arrive framed as research gaps of the state of the art; here they are reframed
+as conditions of the population, the institutions or the territory. Even the
+technological cause (C2) is phrased that way, as the limited technological
+capacity of an institution or territory, never as the accuracy of a model.
+The dispatcher passes the mode the operator chose, the
+idea, the 3 approved G1a subproblems with their `paper-N`, and the tentative
+central problem. Write `artefactos/arboles/causas_directas.md` with exactly 3
+rows: direct cause (Spanish, MGA wording), template cause (`C1`, `C2`, `C3` or
+`exploratoria`), the G1a subproblem(s) it absorbs, a proposed magnitude
+(indicator, value and source, or «por levantar» plus the planned source) and
+the supporting `paper-N`.
+
+- **Wording (both modes).** Negative qualifier + affected variable + population
+  or territory: «Insuficiente…», «Limitada…», «Baja…», «Tardía…». Never the
+  absence of the solution («Falta de una plataforma…», «Ausencia de…»), never
+  an infinitive, never the solution itself. Each cause must pass the test «si
+  existe esta causa, ¿sucede el problema central?». Each one becomes, mirrored
+  in positive, one specific objective (1:1).
+- **Mode 1, plantilla de IA aplicada.** The three causes are the template
+  causes of an applied-AI SGR project, rewritten for this project's population,
+  territory and sector:
+  - C1 data collection and management, e.g. «Insuficiente información
+    oportuna y de calidad sobre <variable> de <población> en <territorio>»;
+  - C2 platform and models, e.g. «Limitada capacidad tecnológica de
+    <institución o territorio> para <función que el problema exige>»;
+  - C3 appropriation, e.g. «Baja apropiación social e institucional de
+    herramientas de <dominio> por parte de <actores>».
+  Place every G1a subproblem under the template cause it belongs to; its
+  technical wording survives as an indirect cause (root) under that cause in
+  Fase 1b. If a subproblem fits none, say so in the row and propose where it
+  goes; do not force it.
+- **Mode 2, exploratorio.** Propose 3 root causes of your own, derived from the
+  idea and from the 3 G1a subproblems (state of the art). They follow the same
+  wording rules and stay mutually exclusive; AI technical limits go one level
+  down, as indirect causes, unless the central problem itself is technical.
+- In Fase 1b these 3 causes, not the raw G1a subproblems, are the
+  `groups[].title` of the problem tree (constraint 14), each with its
+  magnitude (`groups[].magnitude`), as `### SGR §3` requires.
 
 ## Literature search stack (free, no paid API)
 

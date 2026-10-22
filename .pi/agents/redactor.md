@@ -178,7 +178,11 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
    (persuading on relevance), not a violation.
 4. Avoid repetition across sections. Be concise and technically rigorous.
 5. For §14, produce a Gantt-style table (use `tabular` + `tikz` or a `ganttchart`
-   spec) with responsables and hitos marked. **Never include prórroga
+   spec) with responsables and hitos marked. In the SGR flow (the prompt carries `### SGR §14`),
+   group the activities under stage rows (Preinversión, Inversión, Operación)
+   and mark the critical-path activities with a symbol explained in a legend
+   that literally says «ruta crítica»; every product has two or more
+   activities. **Never include prórroga
    (extension) stages in the schedule (mandatory, durable backstop — the
    full rule normally arrives via the injected `## FRAGMENTO DE GUÍA` block,
    §14, but apply this even if that fragment is missing).** The cronograma

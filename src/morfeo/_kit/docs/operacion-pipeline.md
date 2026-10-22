@@ -14,6 +14,10 @@ Paso previo  `/propuesta-init <idea>` → crea y activa `proposals/<run-id>/`
 Fase 0  Insumos-Observador → ingerir insumos
 Fase 1a Bibliografo-Propuesta (MODE=scope) + Investigador → 3 subproblemas
         ──→ GATE G1a ──→ user
+Fase 1a SGR Solo flujo SGR: GCausas. El operador elige modo plantilla de IA
+          aplicada (C1 datos, C2 plataforma y modelos, C3 apropiación) o
+          exploratorio; Investigador → artefactos/arboles/causas_directas.md
+          ──→ GATE usuario. Esas causas son las directas del árbol.
 Fase 1b Investigador → contenido del árbol de problemas
         (`artefactos/arboles/arbol_problemas.md`, reglas MGA en ambos flujos)
         → Bucle de figura `arbol_problemas` (procedimiento canónico único, ver
@@ -67,6 +71,12 @@ Fase 6.47 Solo flujo SGR (`morfeo init --sgr`): Redactor → anexos MGA 19 a 25
           (alineación con planes, participantes, población, alternativas,
           cadena de valor, riesgos, marco lógico), Presupuestador si un costo
           falta en §13 ──→ GATE Revisor ──→ user. El flujo base la salta.
+          Figuras SGR: los dos árboles salen del panel del tablero
+          (`scripts/arbol_objetivos.py` dibuja el de objetivos desde el JSON
+          aprobado), la metodología declara etapa y OE por fase y el Gantt
+          agrupa por etapa y marca la ruta crítica. Si el TDR fija capítulos,
+          `scripts/ensamblar_main.py` arma `main.tex` en ese orden desde
+          `artefactos/estructura_tdr.json`.
 Fase 6.5  Redactor → front-matter (Resumen, Resumen ejecutivo, Palabras clave);
           el título e identificación van exclusivamente en el encabezado de `main.tex` (sin sección de cuerpo §1)
           → Grant-Flow-Auditor (pule front-matter con estilo-natural-es)
