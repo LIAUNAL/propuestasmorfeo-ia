@@ -19,9 +19,9 @@ Objetivo: el árbol de objetivos deja de mostrar preámbulos en los objetivos es
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |---|---|---|---|---|
-| T1 | S2, S3 | delegada | hecha | RED 5F → GREEN 7/7; suites de figuras 72 OK; kit `--check` en verde |
-| T2 | S1 | delegada | hecha | RED 2F Python + 1F JS → GREEN; suites de árboles OK, `trees.tab` 25/25 |
-| T3 | S4, S5 | delegada | hecha | RED 2F (`sgr-magnitud-repetida`, prompt) → GREEN; suite completa 494 OK (14 omitidos), JS 128/128; puertos y kit `--check` en verde |
+| T1 | S2, S3 | delegada | hecha | 26f4e7f; RED 5F → GREEN 7/7; suites de figuras 72 OK; kit `--check` en verde |
+| T2 | S1 | delegada | hecha | c8ddb91; RED 2F Python + 1F JS → GREEN; suites de árboles OK, `trees.tab` 25/25 |
+| T3 | S4, S5 | delegada | hecha | b36ceb4; RED 2F (`sgr-magnitud-repetida`, prompt) → GREEN; suite completa 494 OK (14 omitidos), JS 128/128; puertos y kit `--check` en verde |
 
 Ruta delegada en las tres: el contexto del asistente primario llegó al tope sugerido y delegó la unidad completa a un escritor acotado. Estimación cercana a 400 líneas propias más los puertos generados.
 
