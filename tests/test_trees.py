@@ -310,6 +310,8 @@ class TestReviewCycle(unittest.TestCase):
             self.assertIn("falta de", problem)
             self.assertIn("efecto indirecto", problem)
             self.assertIn("magnitud", problem)
+            self.assertIn("una sola variable", problem)
+            self.assertIn("no vacíos de la literatura", problem)
             base = record_feedback(run, "objetivos", [], "Ajustar")["prompt"]
             self.assertIn("cada causa directa se vuelve", base)
             self.assertIn("title es el rótulo OE<n>, nunca el texto de la causa", base)

@@ -89,6 +89,38 @@ Además de las reglas de la guía base:
   causa indirecta, y desde ahí conecta con el estado del arte (§4) y con la
   metodología (§10). Cada causa directa pasa la prueba «si existe esta causa,
   ¿sucede el problema?» y lleva su magnitud.
+* **Una sola variable en el problema central.** El tronco nombra una variable
+  medible y no la acompaña de términos genéricos que se solapen con ella. Si el
+  proyecto trata el estrés postraumático, el tronco dice «estrés postraumático»
+  y no suma «y estrés»: el constructo clínico tiene instrumento de tamizaje,
+  mientras el estrés fisiológico es una señal que usa la metodología, no un
+  trastorno del tronco.
+* **El evento, breve, en el tronco.** Cuando el proyecto responde a una
+  emergencia, el tronco la nombra en pocas palabras («afectados por el sismo de
+  2026»). No la omite: si el vínculo con la emergencia descansa solo en la
+  localización, el criterio de pertinencia pierde puntos (en la Convocatoria 56,
+  el criterio 2.1 asigna 5 de 17 puntos cuando el vínculo se apoya en la
+  localización). La fecha exacta, los decretos y el argumento de que el problema
+  fue «producido o agravado» por el evento van en §3 y en la justificación del
+  criterio 2.1, no en el tronco.
+* **Contexto local en cada nodo.** Las causas indirectas describen la situación
+  actual en el territorio y en las instituciones del proyecto («Escaso registro
+  de casos en las secretarías de salud de Caldas»), no vacíos de la literatura.
+  Un vacío de investigación se argumenta en §4 Estado del arte y en §2; en el
+  árbol aparece, si acaso, como la condición local que ese vacío produce. Ningún
+  nodo de los dos árboles promete un alcance mayor que el del proyecto: si la
+  validación ocurre en tres departamentos de Colombia, no se habla de
+  «población latinoamericana».
+* **Causas directas sin preámbulo.** Las causas directas no repiten los
+  calificadores de contexto que el tronco ya fija (la lista de poblaciones entre
+  paréntesis, el territorio, el evento). Cada una lleva el calificativo
+  negativo, la variable y solo el elemento que la distingue de las otras dos.
+* **Un indicador por variable.** La magnitud de una causa directa mide la
+  variable de esa causa, no la del problema central ni la de un efecto: una
+  causa de información se mide con la cobertura o la oportunidad de la
+  información, no con el estado de salud. Un mismo indicador nunca mide a la vez
+  una causa y un efecto (`scripts/check_run.py` lo advierte como
+  `sgr-magnitud-repetida`).
 * **Compuerta GCausas.** Después de G1a, el operador elige entre dos modos.
   En el modo plantilla de IA aplicada, las tres causas directas son las causas
   tipo de un proyecto SGR de IA aplicada: C1 levantamiento y gestión de datos,
@@ -115,6 +147,9 @@ TRL o la duración. Formas prohibidas (Manual MGA 2015, p. 80, tabla 12):
 * hacerlo demasiado amplio: «ampliar la cobertura en educación»;
 * incluir las metas.
 
+Conserva la población, el territorio y el evento del tronco tal como están, sin
+ampliar el alcance más allá de lo que el proyecto valida.
+
 ### SGR §7
 
 Cada objetivo específico es literalmente la conversión en positivo de una causa
@@ -122,6 +157,13 @@ directa del árbol, en el mismo orden. Solo las causas directas pasan a ser
 objetivos específicos y entran a la cadena de valor; las indirectas son medios
 (Instructivo MGA 2023, pp. 41-42). No todas las causas tienen que atenderse,
 pero toda causa que no se atienda se justifica en el anexo de alternativas.
+
+La redacción del objetivo específico va limpia: verbo en infinitivo, objeto y el
+elemento mínimo que lo distingue de los demás. No lleva preámbulo ni repite los
+calificadores de contexto que el objetivo general ya fija (poblaciones entre
+paréntesis, territorio, evento). En `artefactos/arboles/arbol_objetivos.json`,
+`groups[].title` es el rótulo `OE<n>` y `groups[].objective` guarda solo el
+objetivo; el texto de la causa directa nunca se copia en el título.
 
 ### SGR §10
 

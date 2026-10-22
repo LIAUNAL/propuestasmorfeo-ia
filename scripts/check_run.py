@@ -36,6 +36,8 @@ objective trees when their files exist:
     title is the general objective with its verb as a noun), and with --final
     sgr-anexo-faltante for each missing MGA annex in SGR_SECTIONS;
     sgr-causa-sin-magnitud / sgr-efecto-sin-magnitud (warning, guía SGR §3),
+    sgr-magnitud-repetida (warning: a direct cause reuses the trunk or an
+    effect indicator, guía SGR §3),
     arbol-sin-aprobar-panel (warning), sgr-metodologia-sin-etapa,
     sgr-metodologia-sin-oe, sgr-cronograma-sin-etapas,
     sgr-cronograma-sin-ruta-critica (warnings, guía SGR §10 and §14).
@@ -687,7 +689,24 @@ def sgr_magnitude_findings(spec: dict) -> list[dict]:
             findings.append(_finding("warning", "sgr-efecto-sin-magnitud", str(branch.get("id") or ""),
                                      "En el flujo SGR cada efecto directo lleva su magnitud (indicador, valor y "
                                      "fuente) en branches[].magnitude."))
+    # Guía SGR §3: one indicator measures one variable, so a direct cause never
+    # reuses the indicator of the central problem or of a direct effect.
+    measured = {_indicator_key(node) for node in [spec.get("trunk") or {}] + list(spec.get("branches") or [])}
+    measured.discard("")
+    for group in spec.get("groups") or []:
+        if _indicator_key(group) in measured:
+            findings.append(_finding("warning", "sgr-magnitud-repetida", str(group.get("id") or ""),
+                                     "La causa directa usa el mismo indicador que el problema central o un efecto: "
+                                     "su magnitud mide la variable de la causa (por ejemplo, la cobertura de la "
+                                     "información en una causa de información)."))
     return findings
+
+
+def _indicator_key(node: dict) -> str:
+    magnitude = node.get("magnitude") if isinstance(node, dict) else None
+    if not isinstance(magnitude, dict):
+        return ""
+    return " ".join(_fold(str(magnitude.get("indicador") or "")).lower().split())
 
 
 def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections: dict[str, Path],

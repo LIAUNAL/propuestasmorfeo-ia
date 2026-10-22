@@ -426,6 +426,10 @@ def _record_feedback_locked(
             "población o lugar), nunca la ausencia de su solución ni «falta de…»; cada grupo es una causa directa "
             "con sus causas indirectas debajo; la copa es el efecto indirecto final, no la solución; registra la "
             "magnitud del problema central en trunk.magnitude con indicador, valor y fuente. "
+            "El tronco nombra una sola variable y, si hay una emergencia, el evento en forma breve; las causas "
+            "indirectas describen la situación local del territorio y las instituciones, no vacíos de la literatura; "
+            "las causas directas no repiten los calificadores de contexto del tronco, ningún nodo promete un alcance "
+            "mayor que el del proyecto y cada magnitud mide la variable de su propio nodo. "
             "Si un ajuste cambia el problema central o los subproblemas de §3, pregúntame antes de tocar la sección."
         )
     else:

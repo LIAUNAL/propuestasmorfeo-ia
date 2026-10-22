@@ -225,6 +225,28 @@ You no longer own a section by that name.
      objective's wording: no percentages, targets or dates there.
      Run `python3 scripts/check_run.py` and fix every tree finding before
      returning.
+   - **Wording that stays in context (SGR flow; `### SGR §3`, `§6`, `§7`
+     win on detail).** One measurable variable in the central problem, with
+     no overlapping generic term beside it (keep «estrés postraumático»,
+     which has a screening instrument; do not add «y estrés»: physiological
+     stress is a methodology signal, not a disorder in the trunk). When the
+     project answers an emergency, the trunk names the event briefly («afectados
+     por el sismo de 2026»), never so generally that the link to the
+     emergency rests on location alone; the exact date, the decrees and the
+     «producida o agravada» argument go to §3 and the TDR relevance
+     justification. Indirect causes describe the current situation in the
+     project's territory and institutions, not literature gaps (those belong
+     to §4 and §2). No node of either tree promises scope beyond the project
+     (no «población latinoamericana» when validation covers three Colombian
+     departments). Direct causes and their specific objectives do not repeat
+     the context qualifiers the trunk already fixes (population lists in
+     parentheses, territory, the event): only qualifier or verb, variable
+     and the minimal distinguishing element. Each magnitude measures its own
+     node's variable: a direct cause never reuses the indicator of the
+     trunk or of an effect (`sgr-magnitud-repetida`), e.g. an information
+     cause is measured by information coverage, not by health status. Every
+     magnitude carries indicator, value and source (`valor` included). In
+     both flows the same indicator never measures a cause and an effect.
    - **§6/§7 by flow.** Base flow: keep the AI lead verbs of the guide, but
      each objective treats the same variable as its tree node. SGR flow
      (`"flujo": "sgr"` in `.morfeo/config.json`): §6 and §7 are literally
@@ -441,6 +463,13 @@ the supporting `paper-N`.
   an infinitive, never the solution itself. Each cause must pass the test «si
   existe esta causa, ¿sucede el problema central?». Each one becomes, mirrored
   in positive, one specific objective (1:1).
+- **No preamble, no scope creep (both modes).** A direct cause does not repeat
+  the context the central problem already fixes (population lists in
+  parentheses, territory, the event); keep the qualifier, the variable and the
+  minimal element that sets it apart from the other two. Its proposed magnitude
+  measures the cause's own variable (information coverage for an information
+  cause, not health status), never the central problem's or an effect's
+  indicator. Nothing promises scope beyond what the project validates.
 - **Mode 1, plantilla de IA aplicada.** The three causes are the template
   causes of an applied-AI SGR project, rewritten for this project's population,
   territory and sector:
