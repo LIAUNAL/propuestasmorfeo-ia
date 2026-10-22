@@ -1,0 +1,410 @@
+{
+  "systems": [
+    {
+      "id": "paper-1",
+      "title": "Multiple instance learning for depression detection in interviews",
+      "planets": [
+        {
+          "id": "p1-sun",
+          "slot": "sun",
+          "orbit": 0,
+          "label": "MIL para entrevistas clínicas",
+          "detail": "Aplica aprendizaje multiinstancia a transcripciones completas.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.1",
+            "quote": "We apply a multiple instance learning framework to full interview transcripts.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p1-topic_app",
+          "slot": "topic_app",
+          "orbit": 1,
+          "label": "Detección de depresión",
+          "detail": "Tamizaje automático en entrevistas clínicas.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.1",
+            "quote": "Clinical interviews are a common source for automatic depression detection.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p1-topic_ai",
+          "slot": "topic_ai",
+          "orbit": 1,
+          "label": "Aprendizaje multiinstancia",
+          "detail": "Cada instancia se codifica por separado.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.1",
+            "quote": "Each instance is encoded independently",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p1-problem",
+          "slot": "problem",
+          "orbit": 1,
+          "label": "Pérdida de información en respuestas seleccionadas",
+          "detail": "Los estudios previos descartan parte de la entrevista.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.1",
+            "quote": "Previous studies used only selected answers, which loses information.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p1-application",
+          "slot": "application",
+          "orbit": 1,
+          "label": "Entrevistas clínicas",
+          "detail": "Transcripciones de entrevistas médico-paciente.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.1",
+            "quote": "full interview transcripts",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p1-novelty",
+          "slot": "novelty",
+          "orbit": 1,
+          "label": "Agregación por ensamble de instancias",
+          "detail": "Un ensamble agrega los puntajes por instancia.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.1",
+            "quote": "an ensemble aggregates the scores",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p1-result",
+          "slot": "result",
+          "orbit": 3,
+          "label": "F1 de 0,88 en DAIC-WOZ",
+          "detail": "Desempeño en el corpus de referencia.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.1",
+            "quote": "The F1 score is 0.88 on DAIC-WOZ.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p1-conclusion",
+          "slot": "conclusion",
+          "orbit": 3,
+          "label": "Modelo interpretable por instancia",
+          "detail": "La evidencia por instancia explica la decisión.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.1",
+            "quote": "Instance-level evidence makes the model interpretable.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p1-family",
+          "slot": "family",
+          "orbit": 2,
+          "label": "Detección multimodal de depresión",
+          "detail": "Agrupación temática del corpus.",
+          "provenance": "grouped",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.1",
+            "quote": "We apply a multiple instance learning framework to full interview transcripts.",
+            "retrieved": "2026-10-20"
+          }
+        }
+      ]
+    },
+    {
+      "id": "paper-2",
+      "title": "Speech biomarkers for post-traumatic stress screening",
+      "planets": [
+        {
+          "id": "p2-sun",
+          "slot": "sun",
+          "orbit": 0,
+          "label": "Codificador de voz autosupervisado",
+          "detail": "Tamizaje de TEPT a partir del habla.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.2",
+            "quote": "We propose a self-supervised speech encoder fine-tuned on clinical recordings.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p2-topic_app",
+          "slot": "topic_app",
+          "orbit": 1,
+          "label": "Tamizaje de TEPT",
+          "detail": "Diagnóstico en atención primaria.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.2",
+            "quote": "Post-traumatic stress disorder is underdiagnosed in primary care.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p2-topic_ai",
+          "slot": "topic_ai",
+          "orbit": 1,
+          "label": "Aprendizaje autosupervisado de voz",
+          "detail": "Codificador ajustado con grabaciones clínicas.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.2",
+            "quote": "self-supervised speech encoder",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p2-problem",
+          "slot": "problem",
+          "orbit": 1,
+          "label": "Subdiagnóstico del TEPT",
+          "detail": "El TEPT pasa inadvertido en atención primaria.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.2",
+            "quote": "Post-traumatic stress disorder is underdiagnosed in primary care.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p2-application",
+          "slot": "application",
+          "orbit": 1,
+          "label": "Atención primaria",
+          "detail": "Consultas de primer nivel.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.2",
+            "quote": "primary care",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p2-novelty",
+          "slot": "novelty",
+          "orbit": 1,
+          "label": "Marcadores acústicos de trauma",
+          "detail": "Rasgos acústicos ligados al malestar.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.2",
+            "quote": "Acoustic features of speech carry markers of trauma-related distress.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p2-result",
+          "slot": "result",
+          "orbit": 3,
+          "label": "AUC de 0,81 en cohorte externa",
+          "detail": "Validación externa.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.2",
+            "quote": "The encoder reaches an AUC of 0.81 on an external cohort.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p2-conclusion",
+          "slot": "conclusion",
+          "orbit": 3,
+          "label": "El habla complementa los cuestionarios",
+          "detail": "Tamizaje complementario.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.2",
+            "quote": "Speech screening can complement questionnaires.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p2-family",
+          "slot": "family",
+          "orbit": 2,
+          "label": "Biomarcadores de voz",
+          "detail": "Agrupación temática del corpus.",
+          "provenance": "grouped",
+          "evidence": {
+            "origin": "https://doi.org/10.1000/fixture.2",
+            "quote": "We propose a self-supervised speech encoder fine-tuned on clinical recordings.",
+            "retrieved": "2026-10-20"
+          }
+        }
+      ]
+    },
+    {
+      "id": "paper-3",
+      "title": "Edge inference for mental health screening on low-cost devices",
+      "planets": [
+        {
+          "id": "p3-sun",
+          "slot": "sun",
+          "orbit": 0,
+          "label": "Clasificador comprimido para el borde",
+          "detail": "Cuantización y destilación de un clasificador multimodal.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://arxiv.org/abs/2501.00003",
+            "quote": "We compress a multimodal depression classifier with quantization and distillation.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p3-topic_app",
+          "slot": "topic_app",
+          "orbit": 1,
+          "label": "Tamizaje rural de salud mental",
+          "detail": "Clínicas rurales sin hardware dedicado.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://arxiv.org/abs/2501.00003",
+            "quote": "Rural clinics lack the hardware to run large screening models.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p3-topic_ai",
+          "slot": "topic_ai",
+          "orbit": 1,
+          "label": "Compresión de modelos",
+          "detail": "Cuantización y destilación.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://arxiv.org/abs/2501.00003",
+            "quote": "quantization and distillation",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p3-problem",
+          "slot": "problem",
+          "orbit": 1,
+          "label": "Falta de hardware en clínicas rurales",
+          "detail": "Los modelos grandes no caben en el equipo disponible.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://arxiv.org/abs/2501.00003",
+            "quote": "Rural clinics lack the hardware to run large screening models.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p3-application",
+          "slot": "application",
+          "orbit": 1,
+          "label": "Computadores de placa única",
+          "detail": "Despliegue fuera de línea.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://arxiv.org/abs/2501.00003",
+            "quote": "single-board computer",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p3-novelty",
+          "slot": "novelty",
+          "orbit": 1,
+          "label": "Inferencia en menos de un segundo",
+          "detail": "El modelo comprimido corre en una placa.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://arxiv.org/abs/2501.00003",
+            "quote": "The compressed model runs on a single-board computer in under one second.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p3-result",
+          "slot": "result",
+          "orbit": 3,
+          "label": "Pérdida de exactitud menor a dos puntos",
+          "detail": "Costo de la compresión.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://arxiv.org/abs/2501.00003",
+            "quote": "Accuracy drops by less than two points.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p3-conclusion",
+          "slot": "conclusion",
+          "orbit": 3,
+          "label": "Tamizaje fuera de línea viable",
+          "detail": "El despliegue en el borde habilita el tamizaje.",
+          "provenance": "stated",
+          "evidence": {
+            "origin": "https://arxiv.org/abs/2501.00003",
+            "quote": "Edge deployment makes screening feasible offline.",
+            "retrieved": "2026-10-20"
+          }
+        },
+        {
+          "id": "p3-family",
+          "slot": "family",
+          "orbit": 2,
+          "label": "Detección multimodal de depresión",
+          "detail": "Agrupación temática del corpus.",
+          "provenance": "grouped",
+          "evidence": {
+            "origin": "https://arxiv.org/abs/2501.00003",
+            "quote": "We compress a multimodal depression classifier with quantization and distillation.",
+            "retrieved": "2026-10-20"
+          }
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "from_system": "paper-1",
+      "from": "p1-family",
+      "to_system": "paper-3",
+      "to": "p3-family",
+      "rel": "shares-family-with"
+    },
+    {
+      "from_system": "paper-3",
+      "from": "p3-novelty",
+      "to_system": "paper-1",
+      "to": "p1-novelty",
+      "rel": "extends"
+    },
+    {
+      "from_system": "paper-2",
+      "from": "p2-result",
+      "to_system": "paper-1",
+      "to": "p1-result",
+      "rel": "supports"
+    },
+    {
+      "from_system": "paper-1",
+      "from": "p1-sun",
+      "to_system": "paper-1",
+      "to": "p1-problem",
+      "rel": "addresses"
+    },
+    {
+      "from_system": "paper-1",
+      "from": "p1-novelty",
+      "to_system": "paper-1",
+      "to": "p1-result",
+      "rel": "yields"
+    }
+  ]
+}
