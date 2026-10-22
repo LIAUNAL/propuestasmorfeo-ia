@@ -416,8 +416,12 @@ above — only inside Fase 1a (the TDR-gated scoping phase; see
 
 SGR flow only, after G1a. In the MGA the subproblems SP1-SP3 **are** the direct
 causes of the central problem: factors with an immediate relation to a problem
-defined around the needs of a population and a territory. They are not AI
-technical limitations. The dispatcher passes the mode the operator chose, the
+defined around the needs of a population and a territory. The G1a subproblems
+arrive framed as research gaps of the state of the art; here they are reframed
+as conditions of the population, the institutions or the territory. Even the
+technological cause (C2) is phrased that way, as the limited technological
+capacity of an institution or territory, never as the accuracy of a model.
+The dispatcher passes the mode the operator chose, the
 idea, the 3 approved G1a subproblems with their `paper-N`, and the tentative
 central problem. Write `artefactos/arboles/causas_directas.md` with exactly 3
 rows: direct cause (Spanish, MGA wording), template cause (`C1`, `C2`, `C3` or

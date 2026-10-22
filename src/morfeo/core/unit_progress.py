@@ -151,6 +151,10 @@ def unit_progress(
         elif uid == "g0_5" and done and not any(f["exists"] for f in files):
             # Optional unit: the intake closed without a TDR, so there was no guide to adjust.
             state = "skipped"
+        elif uid == "fase1a_sgr" and done and verdict != "PASS" and not any(f["exists"] for f in files):
+            # SGR run that passed G1a before the GCausas gate existed: Fase 1b took
+            # the G1a subproblems as direct causes, so there is nothing to redo.
+            state = "skipped"
         elif verdict == "PASS" or done or event is not None:
             state = "partial"
         else:

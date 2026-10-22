@@ -897,7 +897,9 @@ Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         `artefactos/arboles/arbol_problemas.md` (ver `investigador.md`,
         constraint 14): las causas directas son los 3 subproblemas de G1a
         (en el flujo SGR, las 3 causas aprobadas en GCausas, desde
-        `artefactos/arboles/causas_directas.md`)
+        `artefactos/arboles/causas_directas.md`; una corrida SGR que pasó
+        G1a antes de existir GCausas no tiene ese archivo, el tablero
+        muestra la compuerta como omitida y se usan los subproblemas de G1a)
         (inyecta inline el bloque "SUBPROBLEMAS TEMPRANOS APROBADOS (G1a)";
         si la Fase 1a no corrió, el investigador los propone aquí), de 1 a 3
         causas indirectas bajo cada una, el tronco con su magnitud

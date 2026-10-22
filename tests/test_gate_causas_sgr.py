@@ -57,6 +57,7 @@ class Units(unittest.TestCase):
 class GateStatus(unittest.TestCase):
     def status(self, rows: str) -> dict[str, str]:
         tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp)
         (tmp / "artefactos").mkdir()
         (tmp / "artefactos" / "estado_propuesta.md").write_text(f"| Compuerta | Estado |\n|---|---|\n{rows}")
         return {g["id"]: g["status"] for g in parse_gates_info(tmp, "sgr")}
@@ -100,10 +101,53 @@ class CauseMagnitude(unittest.TestCase):
         self.assertNotIn("sgr-causa-sin-magnitud", found)
         self.assertNotIn("sgr-efecto-sin-magnitud", found)
 
+    def test_sgr_magnitude_without_value_still_warns(self) -> None:
+        spec = json.loads(json.dumps(SPEC))
+        for node in spec["groups"] + spec["branches"]:
+            node["magnitude"] = {"indicador": "Tasa", "fuente": "SPADIES"}
+        found = self.codes(spec, "sgr")
+        self.assertEqual(found.get("sgr-causa-sin-magnitud"), ["warning", "warning"])
+        self.assertEqual(found.get("sgr-efecto-sin-magnitud"), ["warning"])
+
     def test_base_flow_keeps_cause_magnitude_optional(self) -> None:
         found = self.codes(SPEC, "base")
         self.assertNotIn("sgr-causa-sin-magnitud", found)
         self.assertNotIn("sgr-efecto-sin-magnitud", found)
+
+
+class InFlightRuns(unittest.TestCase):
+    """An SGR run that passed G1a before GCausas existed shows it as skipped."""
+
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.repo = Path(tmp.name)
+        (self.repo / ".morfeo").mkdir()
+        (self.repo / ".morfeo" / "config.json").write_text(json.dumps({"flujo": "sgr"}))
+        self.run = self.repo / "proposals" / "2026-01-demo"
+        (self.run / "artefactos" / "pipeline").mkdir(parents=True)
+        (self.run / "redaccion" / "sections").mkdir(parents=True)
+        (self.repo / "proposals" / ".current-run").write_text("2026-01-demo\n")
+
+    def progress(self, next_step: str, estado_rows: str = "") -> dict:
+        from morfeo.core.status import get_project_status
+
+        (self.run / "artefactos" / "estado_propuesta.md").write_text(
+            "## Control de ejecución\n\n- mode: stepped\n"
+            f"- next_step: {next_step}\n- last_completed: fase1a\n- intake_complete: true\n\n{estado_rows}")
+        return get_project_status(self.repo, force_refresh=True)["unit_progress"]["fase1a_sgr"]
+
+    def test_run_already_past_g1a_skips_the_gate(self) -> None:
+        self.assertEqual(self.progress("fase1b", "| G1a | APROBADA |\n")["state"], "skipped")
+
+    def test_run_at_the_gate_keeps_it_pending(self) -> None:
+        self.assertEqual(self.progress("fase1a_sgr", "| G1a | APROBADA |\n")["state"], "pending")
+
+    def test_gate_done_with_its_file_is_verified(self) -> None:
+        arboles = self.run / "artefactos" / "arboles"
+        arboles.mkdir(parents=True)
+        (arboles / "causas_directas.md").write_text("| causa |")
+        self.assertEqual(self.progress("fase1b", "| G1a | APROBADA |\n| GCausas | APROBADA |\n")["state"], "verified")
 
 
 if __name__ == "__main__":

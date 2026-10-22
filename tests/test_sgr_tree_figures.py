@@ -102,6 +102,23 @@ class ObjectiveTreeSpec(_Run):
         self.assertIn("arbol_problemas.spec.json", json.loads(result.stdout)["error"])
         self.assertNotIn("Traceback", result.stderr)
 
+    def test_problem_spec_with_the_wrong_shape_is_blamed_on_that_file(self) -> None:
+        write_agent_objectives(self.run_dir)
+        (self.run_dir / "redaccion" / "specs" / "arbol_problemas.spec.json").write_text("[1, 2]")
+        result = self.convert()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("arbol_problemas.spec.json", json.loads(result.stdout)["error"])
+
+    def test_objective_tree_with_the_wrong_shape_is_blamed_on_that_file(self) -> None:
+        arboles = self.run_dir / "artefactos" / "arboles"
+        arboles.mkdir(parents=True)
+        (arboles / "arbol_objetivos.json").write_text(json.dumps({
+            "groups": [{"id": "OE1", "objective": "Lograr", "means": ["m1"]}],
+            "trunk": {"text": "Aumentar"}, "branches": [{"id": "f1", "text": "Fin"}], "crown": {"text": "Bien"}}))
+        result = self.convert()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("arbol_objetivos.json", json.loads(result.stdout)["error"])
+
     def test_missing_objective_file_exits_2(self) -> None:
         result = self.convert()
         self.assertEqual(result.returncode, 2)
@@ -167,6 +184,11 @@ class PanelApproval(_Run):
         codes = _codes(self.run_dir, "sgr")
         self.assertEqual(codes.get("arbol-sin-aprobar-panel"), "warning")
         self.assertEqual(codes.get("figura-sin-verificar"), "warning")
+
+    def test_base_flow_does_not_warn_about_an_unloadable_renderer(self) -> None:
+        self.render_to_diag("arbol_problemas")
+        (self.run_dir / "redaccion" / "scripts" / "render_tikz.py").write_text("def broken(:\n")
+        self.assertNotIn("figura-sin-verificar", _codes(self.run_dir, "base"))
 
     def test_check_run_hash_matches_the_panel_hash(self) -> None:
         self.assertEqual(CHECK_RUN.panel_tree_hash("problemas", SPEC),

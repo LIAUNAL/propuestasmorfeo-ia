@@ -77,42 +77,54 @@ def to_spec(tree: dict, problem: dict | None) -> dict:
     return spec
 
 
+class InputError(Exception):
+    def __init__(self, error: str, **extra) -> None:
+        super().__init__(error)
+        self.result = {"error": error, **extra}
+
+
+def _read_json(path: Path, what: str):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise InputError(f"{what} no es JSON válido: {exc}") from exc
+
+
+def build(run: Path) -> dict:
+    source = run / OBJECTIVES_FILE
+    if not source.is_file():
+        raise InputError(f"no existe {OBJECTIVES_FILE.as_posix()}: el investigador lo escribe en la Fase 1b")
+    tree = _read_json(source, OBJECTIVES_FILE.as_posix())
+    try:
+        missing = missing_texts(tree)
+    except (AttributeError, TypeError) as exc:
+        raise InputError(f"{OBJECTIVES_FILE.as_posix()} no sigue el esquema del panel: {exc!r}") from exc
+    if missing:
+        raise InputError(f"{OBJECTIVES_FILE.as_posix()} tiene textos sin redactar", missing=missing)
+    problem_path = run / PROBLEM_SPEC
+    problem = _read_json(problem_path, PROBLEM_SPEC.as_posix()) if problem_path.is_file() else None
+    if problem is not None and not isinstance(problem, dict):
+        raise InputError(f"{PROBLEM_SPEC.as_posix()} debe ser un objeto JSON (la spec del árbol de problemas)")
+    try:
+        spec = to_spec(tree, problem)
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise InputError(f"{OBJECTIVES_FILE.as_posix()} no sigue el esquema del panel: {exc!r}") from exc
+    out = run / OUT_SPEC
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(spec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return {"spec": str(out), "groups": len(tree["groups"])}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("run_root", type=Path, help="run folder (proposals/<run-id>)")
     parser.add_argument("--json", action="store_true", help="print the result as JSON")
     args = parser.parse_args(argv)
 
-    run = args.run_root.resolve()
-    source = run / OBJECTIVES_FILE
-    result: dict
-    if not source.is_file():
-        result, code = {"error": f"no existe {OBJECTIVES_FILE.as_posix()}: el investigador lo escribe en la Fase 1b"}, 2
-    else:
-        try:
-            tree = json.loads(source.read_text(encoding="utf-8"))
-        except ValueError as exc:
-            tree, result, code = None, {"error": f"{OBJECTIVES_FILE.as_posix()} no es JSON válido: {exc}"}, 2
-        if tree is not None:
-            missing = missing_texts(tree)
-            if missing:
-                result, code = {"error": "el árbol de objetivos tiene textos sin redactar", "missing": missing}, 2
-            else:
-                problem_path = run / PROBLEM_SPEC
-                try:
-                    problem = json.loads(problem_path.read_text(encoding="utf-8")) if problem_path.is_file() else None
-                except ValueError as exc:
-                    problem, result, code = None, {"error": f"{PROBLEM_SPEC.as_posix()} no es JSON válido: {exc}"}, 2
-                else:
-                    try:
-                        spec = to_spec(tree, problem)
-                    except (KeyError, TypeError, AttributeError) as exc:
-                        result, code = {"error": f"{OBJECTIVES_FILE.as_posix()} no sigue el esquema del panel: {exc!r}"}, 2
-                    else:
-                        out = run / OUT_SPEC
-                        out.parent.mkdir(parents=True, exist_ok=True)
-                        out.write_text(json.dumps(spec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-                        result, code = {"spec": str(out), "groups": len(tree["groups"])}, 0
+    try:
+        result, code = build(args.run_root.resolve()), 0
+    except InputError as exc:
+        result, code = exc.result, 2
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False))

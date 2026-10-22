@@ -653,9 +653,10 @@ def sgr_title_findings(title, general_objective) -> list[dict]:
 
 
 def _has_magnitude(node: dict) -> bool:
+    """Guía SGR §3: indicator, value and source, the three parts of a magnitude."""
     magnitude = node.get("magnitude")
-    return (isinstance(magnitude, dict) and bool(str(magnitude.get("indicador") or "").strip())
-            and bool(str(magnitude.get("fuente") or "").strip()))
+    return isinstance(magnitude, dict) and all(str(magnitude.get(key) or "").strip()
+                                               for key in ("indicador", "valor", "fuente"))
 
 
 def sgr_magnitude_findings(spec: dict) -> list[dict]:
@@ -771,6 +772,8 @@ def check_tree_figures(report: Report, run_root: Path, flujo: str) -> None:
             continue
         renderer = renderer or _run_renderer(red)
         if renderer is None:
+            if flujo != "sgr":
+                continue
             report.add("warning", "figura-sin-verificar",
                        f"No se pudo cargar redaccion/scripts/render_tikz.py para comprobar que diag_{name}.tex "
                        "corresponde a su spec.", diag)
