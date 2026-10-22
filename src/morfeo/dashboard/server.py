@@ -10,10 +10,12 @@ import json
 import mimetypes
 import os
 import re
+import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from ..core.compile import compile_run_pdf, pdf_version
 from ..core.pdf_annotator import apply_pdf_annotations
 from ..core.status import get_project_status
 from ..core.trees import approve_tree, load_trees, record_feedback
@@ -98,6 +100,10 @@ def flatten_idea(markdown: str) -> str:
 BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 
 
+# build.sh escribe en la misma carpeta: dos compilaciones a la vez se pisan.
+_COMPILE_LOCK = threading.Lock()
+
+
 class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
     workspace_dir: Path
 
@@ -129,6 +135,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_flow()
         elif path == "/api/pdf":
             self.serve_pdf()
+        elif path == "/api/pdf/version":
+            self.serve_pdf_version()
         elif path == "/api/pdf/annotations":
             self.serve_pdf_annotations()
         elif path.startswith("/api/graph/"):
@@ -148,6 +156,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_run_select()
         elif path == "/api/pdf/execute":
             self.handle_pdf_execute()
+        elif path == "/api/pdf/compile":
+            self.handle_pdf_compile()
         elif path == "/api/graph/build":
             self.handle_graph_build()
         elif path == "/api/terminal/launch-external":
@@ -714,6 +724,33 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             session_id=session_id,
         )
 
+    def serve_pdf_version(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        version = pdf_version(run_dir / "redaccion" / "main.pdf")
+        self._send_json(200, {"ok": True, "exists": version is not None, "version": version})
+
+    def handle_pdf_compile(self) -> None:
+        """Recompila main.pdf con build.sh; una compilación a la vez por servidor."""
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        redaccion = run_dir / "redaccion"
+        if not (redaccion / "build.sh").is_file():
+            self._send_json(404, {"ok": False, "error": "La corrida no tiene redaccion/build.sh"})
+            return
+        if not _COMPILE_LOCK.acquire(blocking=False):
+            self._send_json(409, {"ok": False, "error": "Ya hay una compilación en curso"})
+            return
+        try:
+            result = compile_run_pdf(redaccion)
+        finally:
+            _COMPILE_LOCK.release()
+        self._send_json(200 if result["ok"] else 500, result)
+
     def serve_pdf(self) -> None:
         data = get_project_status(self.workspace_dir)
         active_run = data.get("active_run")
@@ -726,14 +763,14 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(404, "main.pdf not found")
             return
 
-        stat = pdf_path.stat()
-        file_size = stat.st_size
-        etag = f'"{int(stat.st_mtime)}-{file_size}"'
+        file_size = pdf_path.stat().st_size
+        etag = f'"{pdf_version(pdf_path)}"'
 
         if self.headers.get("If-None-Match") == etag:
             self.send_response(304)
             self.send_header("ETag", etag)
             self.send_header("Accept-Ranges", "bytes")
+            self.send_header("Cache-Control", "no-cache")
             self.end_headers()
             return
 
@@ -754,6 +791,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
                 self.send_header("Content-Length", str(chunk_len))
                 self.send_header("Accept-Ranges", "bytes")
                 self.send_header("ETag", etag)
+                self.send_header("Cache-Control", "no-cache")
                 self.end_headers()
                 self.wfile.write(content[start:end+1])
                 return
@@ -765,6 +803,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(file_size))
         self.send_header("Accept-Ranges", "bytes")
         self.send_header("ETag", etag)
+        self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         self.wfile.write(content)
 

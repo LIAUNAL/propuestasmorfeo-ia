@@ -148,6 +148,8 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
    - Motor de previsualización basado en PDF.js con renderizado asíncrono no bloqueante.
    - Cola de renderizado con cancelación de tareas obsoletas, prefetch de páginas contiguas y streaming HTTP por rangos.
    - Navegación fluida mediante teclado (`J`/`K`, flechas, `+`/`-`, `0`).
+   - Botón **«⟳ Recompilar»**: corre `build.sh` de la corrida activa (`POST /api/pdf/compile`) y recarga la previsualización. Si la compilación falla, muestra la cola del registro de LaTeX. Solo corre una compilación a la vez.
+   - Al volver a la pestaña, el visor consulta `GET /api/pdf/version` y recarga solo si `main.pdf` cambió en disco, por ejemplo cuando lo recompiló un agente o la terminal. El PDF se sirve con `Cache-Control: no-cache` y un ETag que distingue reescrituras dentro del mismo segundo.
 
 3. **Herramientas de Anotación y Marcado Editorial sobre el PDF:**
    - Selección de texto en cualquier página del PDF con menú contextual emergente:

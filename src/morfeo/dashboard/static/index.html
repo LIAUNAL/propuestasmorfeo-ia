@@ -2723,6 +2723,7 @@
 
             <div class="pdf-topbar__right">
               <span id="pdfRenderStatus" class="badge badge--warn" style="font-size: 0.72rem; display: none;">⚡ Renderizando...</span>
+              <button class="btn btn--sm" onclick="recompilePdf()" id="btnRecompilePdf" title="Compilar de nuevo main.pdf con build.sh y recargar la previsualización">⟳ Recompilar</button>
               <button class="btn btn--sm" onclick="toggleNativeViewer()" id="btnToggleNative" title="Alternar entre PDF.js y visor nativo del navegador">Visor Nativo</button>
               <a href="/api/pdf" download class="btn btn--sm" title="Descargar main.pdf compilado">⬇ Descargar</a>
             </div>
@@ -4678,7 +4679,12 @@
       if (tabId === 'flow') ensureFlowLoaded();
 
       if (tabId === 'preview') {
-        initPdfViewer();
+        if (pdfDoc) {
+          refreshPdfIfChanged();
+        } else {
+          recordPdfVersion();
+          initPdfViewer();
+        }
       } else if (tabId === 'atlas') {
         setTimeout(() => {
           const iframe = document.getElementById('graphIframe');
@@ -6249,6 +6255,9 @@
     }
 
     let pdfDoc = null;
+    // Versión de main.pdf (mtime_ns-tamaño) que muestra el visor: permite
+    // recargar al volver a la pestaña solo si el archivo cambió en disco.
+    let pdfLoadedVersion = null;
     let pdfCurrentPage = 1;
     let pdfTotalPages = 1;
     // Default zoom: the label, the reset button and resetZoomPdf all derive from it.
@@ -6431,6 +6440,62 @@
         // arrancar renders con normalidad.
         pdfReloadInProgress = false;
         if (spinner) spinner.style.display = 'none';
+      }
+    }
+
+    async function fetchPdfVersion() {
+      try {
+        const res = await fetch('/api/pdf/version', { cache: 'no-store' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data && data.exists ? data.version : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    async function recordPdfVersion() {
+      const version = await fetchPdfVersion();
+      if (version && !pdfLoadedVersion) pdfLoadedVersion = version;
+    }
+
+    // Al volver a la pestaña: el documento en memoria se conserva, salvo que
+    // main.pdf haya cambiado en disco (otra compilación, el agente, build.sh).
+    async function refreshPdfIfChanged() {
+      const version = await fetchPdfVersion();
+      if (!version) return;
+      if (!pdfLoadedVersion) {
+        pdfLoadedVersion = version;
+        return;
+      }
+      if (version !== pdfLoadedVersion) {
+        pdfLoadedVersion = version;
+        await initPdfViewer(true);
+      }
+    }
+
+    async function recompilePdf() {
+      const btn = document.getElementById('btnRecompilePdf');
+      const status = document.getElementById('pdfRenderStatus');
+      const label = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Compilando…'; }
+      if (status) { status.textContent = '⚙ Compilando PDF…'; status.style.display = 'inline-flex'; }
+      try {
+        const res = await fetch('/api/pdf/compile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        let data = {};
+        try { data = await res.json(); } catch (_) {}
+        if (!res.ok || !data.ok) {
+          const detail = data.log_tail ? `\n\n${data.log_tail}` : '';
+          alert(`No se pudo compilar el PDF: ${data.error || res.status}${detail}`);
+          return;
+        }
+        if (data.version) pdfLoadedVersion = data.version;
+        await initPdfViewer(true);
+      } catch (err) {
+        alert(`Error comunicando con el servidor: ${err.message}`);
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = label; }
+        if (status) { status.style.display = 'none'; status.textContent = '⚡ Renderizando...'; }
       }
     }
 
