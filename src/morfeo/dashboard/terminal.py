@@ -631,6 +631,16 @@ DETACHED_SESSION_TTL_S = 12 * 3600
 _ESC_INTERRUPT_AGENTS = {"claude", "opencode", "pi", "agy", "antigravity"}
 
 
+def _start_terminal_session() -> None:
+    """Runs in the child: a new session whose controlling terminal is the PTY on stdin.
+
+    Without it Linux leaves the session with no controlling terminal, so the
+    tty never turns Ctrl-C into SIGINT and an interrupt reaches nothing.
+    """
+    os.setsid()
+    fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+
+
 def interrupt_key(agent_id: str) -> bytes:
     """The keystroke that stops the agent's current turn but keeps the session."""
     return b"\x1b" if (agent_id or "").lower() in _ESC_INTERRUPT_AGENTS else b"\x03"
@@ -751,7 +761,7 @@ class TerminalSession:
                 cwd=str(workspace_dir),
                 env=env,
                 close_fds=True,
-                preexec_fn=os.setsid,
+                preexec_fn=_start_terminal_session,
             )
         finally:
             os.close(slave_fd)
