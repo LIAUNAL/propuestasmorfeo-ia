@@ -425,6 +425,32 @@ class ProtectedTermTests(Base):
         self.assertEqual(len(self.redundancy(self.audit_run(run, "--todo"))), 1)
 
 
+class SectionAgainstDocumentTests(Base):
+    PHRASE = "acompañamiento y asesoría de personal especializado en cada territorio"
+
+    def run_with_repeats(self) -> Path:
+        body = lambda intro: "\n\n".join(f"{intro} {n} recibe {self.PHRASE}." for n in ("uno", "dos"))
+        return self.make_run({"02_justificacion": body("El municipio"), "03_descripcion_problema": body("El sector"),
+                              "10_metodologia": "La fase final entrega el informe técnico a la gobernación."})
+
+    def test_a_section_is_compared_with_the_whole_document(self) -> None:
+        report = self.audit_run(self.run_with_repeats(), "--seccion", "3", "--todo")
+        repeated = [f for f in report["hallazgos"] if f["categoria"] == "frase_repetida"]
+        self.assertTrue(repeated)
+        places = {place["seccion"] for f in repeated for place in f["ubicaciones"]}
+        self.assertIn("02_justificacion", places)
+        self.assertEqual({f["seccion"] for f in report["hallazgos"]}, {"03_descripcion_problema"})
+
+    def test_the_report_names_its_real_scope(self) -> None:
+        run = self.run_with_repeats()
+        self.assertEqual(self.audit_run(run, "--seccion", "3", "--todo")["alcance"], "seccion_contra_documento")
+        self.assertEqual(self.audit_run(run, "--todo")["alcance"], "documento")
+
+    def test_repeats_outside_the_section_are_left_out(self) -> None:
+        report = self.audit_run(self.run_with_repeats(), "--seccion", "10", "--todo")
+        self.assertEqual([f for f in report["hallazgos"] if f["categoria"] == "frase_repetida"], [])
+
+
 class VerifyTests(Base):
     BASE = (r"La muestra de 120 estudiantes (EST-MZ-001) inició el 12 de marzo de 2026 con \$1.500.000 "
             "y alcanza TRL 6 \\citep{perez2020} en la Tabla~\\ref{tab:a}.\\label{sec:a}\n\nSegundo párrafo.")
@@ -434,6 +460,17 @@ class VerifyTests(Base):
         a.write_text(before, encoding="utf-8")
         b.write_text(after, encoding="utf-8")
         return cli("verificar", a, b, "--json")
+
+    def test_a_figure_with_an_attached_unit_cannot_change(self) -> None:
+        for before, after in (("120ms", "125ms"), ("2.4GHz", "2.8GHz"), ("8GB", "4GB"), ("12a3", "12a4")):
+            with self.subTest(before=before):
+                result = self.check(f"El equipo mide {before} en campo.\n", f"El equipo mide {after} en campo.\n")
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertFalse(json.loads(result.stdout)["fiel"])
+
+    def test_a_figure_with_an_attached_unit_may_stay(self) -> None:
+        result = self.check("El equipo mide 120ms en campo.\n", "En campo, el equipo mide 120ms.\n")
+        self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_a_change_of_style_only_passes(self) -> None:
         after = self.BASE.replace("La muestra de", "La muestra reúne a").replace("inició", "empezó")
