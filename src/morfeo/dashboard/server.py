@@ -10,6 +10,8 @@ import json
 import mimetypes
 import os
 import re
+import subprocess
+import sys
 import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,6 +20,7 @@ from typing import Any
 from ..core.compile import compile_run_pdf, pdf_version
 from ..core.pdf_annotator import apply_pdf_annotations
 from ..core.presentation import ASSET_TYPES, build_presentation, resolve_asset
+from ..core.sgr_panel import load_style_report, load_tdr_chapters
 from ..core.sgr_rules import load_sgr_blocks
 from ..core.status import get_project_status, read_flujo
 from ..core.trees import approve_tree, load_trees, record_feedback
@@ -155,6 +158,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_trees()
         elif path == "/api/guide/sgr":
             self.serve_sgr_guide()
+        elif path == "/api/tdr/capitulos":
+            self.serve_tdr_chapters()
+        elif path == "/api/estilo":
+            self.serve_style_report()
         else:
             self.send_error(404, "Not Found")
 
@@ -176,6 +183,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_trees_feedback()
         elif path == "/api/trees/approve":
             self.handle_trees_approve()
+        elif path == "/api/estilo/auditar":
+            self.handle_style_audit()
         else:
             self.send_error(404, "Not Found")
 
@@ -646,6 +655,39 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         # Bloques «### SGR §N» de la guía del proyecto para el panel Secciones.
         blocks, source = load_sgr_blocks(self.workspace_dir)
         self._send_json(200, {"ok": True, "flujo": read_flujo(self.workspace_dir), "source": source, "blocks": blocks})
+
+    def serve_tdr_chapters(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(200, {"ok": True, "fuente": None, "capitulos": []})
+            return
+        self._send_json(200, {"ok": True, **load_tdr_chapters(run_dir)})
+
+    def serve_style_report(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(200, {"ok": True, "disponible": False})
+            return
+        self._send_json(200, {"ok": True, **load_style_report(run_dir)})
+
+    def handle_style_audit(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        script = self._resolve_scripts_dir() / "estilo_es.py"
+        try:
+            done = subprocess.run(
+                [sys.executable, str(script), "auditar", str(run_dir), "--todo"],
+                capture_output=True, text=True, timeout=120,
+            )
+        except subprocess.TimeoutExpired:
+            self._send_json(504, {"ok": False, "error": "La auditoría de estilo tardó demasiado"})
+            return
+        if done.returncode != 0:
+            self._send_json(500, {"ok": False, "error": done.stderr.strip()[-400:] or "Falló la auditoría de estilo"})
+            return
+        self._send_json(200, {"ok": True, **load_style_report(run_dir)})
 
     def serve_api_status(self) -> None:
         response_data = get_project_status(self.workspace_dir)
