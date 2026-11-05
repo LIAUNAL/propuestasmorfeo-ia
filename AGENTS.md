@@ -79,6 +79,8 @@ tablero muestra, en cada sección de un proyecto SGR, el bloque `### SGR §N` de
 la guía del proyecto (servido por `/api/guide/sgr`), el mismo que el
 dispatcher inyecta.
 
+Reglas por convocatoria: `artefactos/convocatoria.json`.
+
 ## Reglas globales
 
 1. **Idioma:** Los *system prompts* de los agentes están en inglés, pero toda
@@ -235,7 +237,7 @@ dispatcher inyecta.
 
 ## Roster de agentes (`.claude/agents/`) y modelos por defecto
 
-El marco tiene **11 agentes**, todos definidos en `.claude/agents/` (fuente de
+El marco tiene **12 agentes**, todos definidos en `.claude/agents/` (fuente de
 verdad):
 
 | Agente | Modelo por defecto | Rol |
@@ -250,6 +252,7 @@ verdad):
 | `presupuestador` | sonnet | Presupuesto (§13): tabla de rubros + aritmética + cofinanciación |
 | `disenador-tikz` | sonnet | Autoría de la **spec JSON** de los diagramas (nunca del LaTeX) |
 | `revisor-figuras` | haiku | Juicio visual (escala, centrado, armonía, etiquetas) sobre el preview PNG ya auditado |
+| `revisor-redundancia` | sonnet | Redundancia entre secciones, de solo lectura, sobre el reporte de `scripts/estilo_es.py` |
 | `tikz-optimizer` | haiku | Corrección de la spec cuando la auditoría determinista falla |
 
 No existen agentes llamados `orquestador`, `observador` (a secas) ni
@@ -263,7 +266,7 @@ que un agente carga cuando la tarea lo pide), con la misma fuente de verdad
 
 | Skill | Para qué | La usa |
 |-------|----------|--------|
-| `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): erradica 35 patrones de IA (aperturas cósmicas, gerundios de cierre, inflación de trascendencia, falsos rangos, regla de tres, monotonía de ritmo), prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional (burstiness) y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No es una herramienta de evasión: no introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
+| `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): corrige 35 patrones mecánicos (aperturas cósmicas, gerundios de cierre, inflación de trascendencia, falsos rangos, regla de tres, monotonía de ritmo), prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No es una herramienta de evasión: no introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
 | `depuracion-redundancias-es` | Auditar y eliminar redundancias conceptuales, léxicas y estructurales dentro de una misma sección, asegurando que cada párrafo aporte avance argumentativo y articulando la aplicación integral de `estilo-natural-es` (humanización y ritmo). | `grant-flow-auditor`, `redactor`, `investigador` y el asistente primario en revisiones integrales de texto |
 | `constelacion-sota` | Construir la constelación SOTA de una corrida: un sistema por paper con planetas tipados (tema de aplicación y de IA, problema, aplicación, novedad, familia, resultados, conclusiones), cada uno con cita textual del abstract, validada por `scripts/check_atlas.py` y dibujada por `scripts/render_atlas.py` en `grafos/papers-graph.html`, con el estudio por familia en `grafos/papers-constellation-report.md`. Port de `plausibility` de papersmith-ai. | `bibliografo-propuesta` (MODE=atlas, Fases 1a y 1c), en ambos flujos |
 

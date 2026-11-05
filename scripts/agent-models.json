@@ -40,6 +40,7 @@
     "disenador-tikz": "mechanical",
     "tikz-optimizer": "mechanical",
     "revisor-figuras": "mechanical",
+    "revisor-redundancia": "analysis",
     "grant-flow-auditor": "mechanical"
   },
   "runtime": {

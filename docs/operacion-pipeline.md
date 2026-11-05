@@ -67,10 +67,11 @@ Fase 6.45 Redactor → §14 cronograma de actividades (Gantt); §15 productos es
 Fase 6.46 Redactor → §17 articulación comunitaria; §18 apropiación social
           → Grant-Flow-Auditor (pule §17 y §18 con estilo-natural-es)
           ──→ GATE Revisor ──→ user
-Fase 6.47 Solo flujo SGR (`morfeo init --sgr`): Redactor → anexos MGA 19 a 25
-          (alineación con planes, participantes, población, alternativas,
-          cadena de valor, riesgos, marco lógico), Presupuestador si un costo
-          falta en §13 ──→ GATE Revisor ──→ user. El flujo base la salta.
+Fase 6.47 Solo flujo SGR (`morfeo init --sgr`): Redactor → anexos MGA 19, 23
+          y 25 (alineación con planes, cadena de valor, marco lógico), que
+          dependen del presupuesto; Revisor-Redundancia sobre el documento
+          ──→ GATE Revisor ──→ user. El flujo base la salta. Los anexos 20,
+          21, 22 y 24 van en la Fase 6.3, antes de §13.
           Figuras SGR: los dos árboles salen del panel del tablero
           (`scripts/arbol_objetivos.py` dibuja el de objetivos desde el JSON
           aprobado), la metodología declara etapa y OE por fase y el Gantt
@@ -249,3 +250,25 @@ por su cuenta, salvo la auditoría final de Fase 7. Resumen de asignación:
 > exit≠ 0 si el puerto quedó desfasado o si hay drift).
 > Los archivos `.claude/` siguen siendo la única fuente editada a mano; tras
 > cambiar agentes o comandos, correr los generadores y su `--check`.
+
+## Flujo SGR por convocatoria
+
+En el SGR, las reglas de cada convocatoria son datos de la corrida y no del
+código: `artefactos/convocatoria.json` fija los pisos de referencias, el número
+de objetivos, la tipología y el TRL y la rúbrica, y
+`artefactos/estructura_tdr.json` fija los capítulos. El Anexo 2 cambia de una
+convocatoria a otra, así que `--final` exige esos capítulos y no la lista
+canónica. Los anexos 20, 21, 22 y 24 van en la Fase 6.3, antes del presupuesto,
+porque §13 costea participantes y riesgos. `scripts/matriz_actividades.py`
+importa el Excel de actividades del consorcio y genera un paquete por
+investigador.
+
+## Puntaje de estilo y redundancia
+
+`scripts/estilo_es.py` da un índice de 0 a 100 (mayor es mejor) por sección y
+por documento, en ambos flujos, y el tablero lo muestra en la pestaña Estilo y
+redundancia. Mide legibilidad, no autoría: el marco no habla de detección de
+IA. Sus umbrales son provisionales y nunca reprueban una unidad; solo
+`verificar` bloquea, cuando el pulido movió una cifra, una cita, una etiqueta o
+un párrafo. Una lista de términos protegidos, armada en cada corrida, evita
+penalizar el vocabulario MGA y las copias literales que la guía exige.

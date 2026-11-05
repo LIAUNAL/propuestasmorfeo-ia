@@ -18,11 +18,11 @@ Objetivo: que Morfeo en modo SGR sirva para escribir con fluidez propuestas de c
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |---|---|---|---|---|
-| T1 | S7, S8 | delegada (paralelismo) | pendiente | |
-| T2 | S1, S2, S3, S4, S6 | delegada (paralelismo) | pendiente | |
-| T3 | S5 | delegada (paralelismo) | pendiente | |
-| T4 | S9 | inline (dueño de `index.html` y `server.py`) | pendiente | |
-| T5 | S3, S7, S8 | inline (archivos compartidos: dispatcher, `AGENTS.md`, docs, kit y puertos) | pendiente | |
+| T1 | S7, S8 | delegada (paralelismo) | hecha | 66/66 en `test_estilo_es`; corrida tept: índice 85, 80 con `--todo` |
+| T2 | S1, S2, S3, S4, S6 | delegada (paralelismo) | hecha | 8d61e67; 143 tests; diferencial del flujo base: 28 casos sin diferencias |
+| T3 | S5 | delegada (paralelismo) | hecha | 5d9df97; 41 tests; Reg54 importado: 15 actividades, 13 tareas, 11 paquetes |
+| T4 | S9 | inline (dueño de `index.html` y `server.py`) | hecha | 395b3c3; RED 10/10 → GREEN; endpoints probados contra un servidor real |
+| T5 | S3, S7, S8 | inline (archivos compartidos: dispatcher, `AGENTS.md`, docs, kit y puertos) | hecha | `--check` en verde en los cuatro generadores; suite 769 con 1 fallo previo, JS 149/149 |
 
 Ruta delegada: T1, T2 y T3 son unidades independientes con superficies disjuntas y varios minutos de trabajo cada una, lanzadas juntas.
 
@@ -32,3 +32,5 @@ Ruta delegada: T1, T2 y T3 son unidades independientes con superficies disjuntas
 - **L2 (2026-11-04, usuario):** «morfeo en modo sgr debe ser una mejora para convocatorias sgr, ajusta el flujo, los estilos sugeridos por el proyecto guia de la UdeA y lo que consideres para que podamos escribir mas fluido propuestas sgr e incluye los cambios que consideres para humanizar y evitar reduncia y generar score de estilo y reduncia como en smith»
 - **L3 (análisis):** los `Plantilla_Doc_Tecnico` son formularios por investigador, no el Anexo 2. Conv 54 fija 31 capítulos y Conv 56 fija 30, así que la estructura es dato por convocatoria. Reg54 tiene 4 OE, frente a la regla de 3 en `check_run.py:239`. Los pisos 13/39/65 y el TRL no dependen del flujo. El tokenizador de papersmith rompe los acentos, por lo que el puntaje se reescribe en vez de portarse.
 - **L4 (fallos previos en la base):** `test_kit_integrity` y `test_pypi_publishing` fallan por el archivo sin versionar `src/morfeo/_kit/kit-manifest (1).json`; `test_the_real_repository_reconciles` falla por el proveedor `nan`, de causa aún desconocida.
+- **L5 (cierre):** el panel de estilo leía `texto` y el reporte trae `fragmento`; se corrigió con su test en rojo. `AGENTS.md` pasó del presupuesto de 24 000 caracteres y su material nuevo se movió a `docs/operacion-pipeline.md`. El archivo sin versionar `kit-manifest (1).json` se sacó del kit porque era una copia vieja sin contenido propio.
+- **L6 (pendientes conocidos):** una corrida SGR que ya pasó `fase6` no vuelve sola a `fase6_3`; hay que fijar `next_step` a mano. `--final` no aplica los pisos por sección cuando esos capítulos usan archivos `tdr*`, solo el total. El Word sigue saliendo por pandoc y no llena la plantilla oficial del Anexo 2, que no está entre los insumos. Las bandas del índice son provisionales y parecen indulgentes: la corrida tept da `clara` con 19 % de oraciones largas. `test_the_real_repository_reconciles` sigue fallando por el proveedor `nan` del perfil local.
