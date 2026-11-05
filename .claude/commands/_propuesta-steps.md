@@ -80,13 +80,14 @@ más de 6 h, se muestra como obsoleto y no bloquea el botón «Ejecutar».
 | `fase4` | §6–§7 objetivos + grant-flow-auditor + revisor | G4 | `fase5` |
 | `fase5` | §8 marco + §9 equipo + grant-flow-auditor + revisor | G5 | `fase5_5` |
 | `fase5_5` | §10 metodología + grant-flow-auditor + spec del diagrama (`figura.py`) + revisor | G5.5 | `fase6` |
-| `fase6` | §11 resultados + §12 ética + grant-flow-auditor (no own gate) | — | `fase6_4` |
+| `fase6` | §11 resultados + §12 ética + grant-flow-auditor (no own gate) | — | `fase6_3` (flujo SGR) o `fase6_4` (flujo base) |
+| `fase6_3` | Solo flujo SGR: anexos 20, 21, 22 y 24 + grant-flow-auditor + revisor; el flujo base la salta | G6.3 | `fase6_4` |
 | `fase6_4` | §13 presupuesto + revisor | G budget | `fase6_45` |
 | `fase6_45` | §14 cronograma + §15 productos (xltabular) + §16 bib + grant-flow-auditor (no own gate) | — | `fase6_46` |
 | `fase6_46` | §17 articulación con comunidades + §18 apropiación social + grant-flow-auditor + revisor | G comunidades | `fase6_47` (flujo SGR) o `fase6_5` (flujo base) |
-| `fase6_47` | Solo flujo SGR: anexos MGA 19 a 25 (`guiaProyectosIA_Agente_Regalias.md`) + revisor; el flujo base la salta | G anexos | `fase6_5` |
+| `fase6_47` | Solo flujo SGR: anexos MGA 19, 23 y 25 (`guiaProyectosIA_Agente_Regalias.md`) + revisor-redundancia + revisor; el flujo base la salta | G anexos | `fase6_5` |
 | `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave; sin sección cuerpo de título) + grant-flow-auditor + revisor | G front | `fase7` |
-| `fase7` | Final audit + assemble `main.tex` (\setcounter{section}{1}, xltabular, bibliografía limpia) | G final | `done` |
+| `fase7` | Final audit + revisor-redundancia + assemble `main.tex` (\setcounter{section}{1}, xltabular, bibliografía limpia) | G final | `done` |
 | `done` | Pipeline complete | — | print `cd proposal && ./build.sh` |
 
 **Pre-intake units** (only in analizar / start of auto, not as `next_step` after

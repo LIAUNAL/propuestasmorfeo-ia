@@ -66,6 +66,7 @@ Mapeo id → bloque en `propuesta.md`:
 | `fase5` | Fase 5 |
 | `fase5_5` | Fase 5.5 |
 | `fase6` | Fase 6 |
+| `fase6_3` | Fase 6.3 (solo flujo SGR) |
 | `fase6_4` | Fase 6.4 |
 | `fase6_45` | Fase 6.45 |
 | `fase6_46` | Fase 6.46 |
@@ -97,10 +98,10 @@ también paran al terminar).
 ### Gate PASS o unidad sin gate completada
 
 Actualizá control según la tabla de `_propuesta-steps.md` (columna "On PASS →
-next"). Tras `fase1a` y tras `fase6_46`, el siguiente depende del flujo del
+next"). Tras `fase1a`, `fase6` y `fase6_46`, el siguiente depende del flujo del
 proyecto (`"flujo"` en `.morfeo/config.json`, o `.marco/config.json`; sin clave
 es `base`): tras `fase1a`, `fase1a_sgr` con `sgr` y `fase1b` con `base`; tras
-`fase6_46`, `fase6_47` con `sgr` y `fase6_5` con `base`.
+`fase6`, `fase6_3` con `sgr` y `fase6_4` con `base`; tras `fase6_46`, `fase6_47` con `sgr` y `fase6_5` con `base`.
 
 ```markdown
 ## Control de ejecución

@@ -84,6 +84,12 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "reviewer": "Revisor",
         "criteria": "Cadena de valor por fase, causalidad y esquema metodológico.",
     },
+    "G6.3": {
+        "name": "Anexos que costea el presupuesto (flujo SGR)",
+        "phase": "Fase 6.3",
+        "reviewer": "Revisor",
+        "criteria": "Participantes, población, alternativas y riesgos según la MGA, listos para que §13 costee su manejo y su mitigación.",
+    },
     "G6.4": {
         "name": "Presupuesto Financiero",
         "phase": "Fase 6.4",
@@ -106,7 +112,7 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "name": "Anexos MGA (flujo SGR)",
         "phase": "Fase 6.47",
         "reviewer": "Revisor",
-        "criteria": "Alineación con planes, participantes, población, alternativas, cadena de valor, riesgos y marco lógico según la MGA.",
+        "criteria": "Alineación con planes, cadena de valor con su evaluación y marco lógico según la MGA.",
     },
     "G6.5": {
         "name": "Front-Matter y Síntesis",
@@ -169,8 +175,8 @@ def normalise_gate(raw: Any) -> str | None:
 # RUN_ROOT; un `*` final acepta cualquier archivo de esa carpeta. Con las
 # secciones, son lo que el tablero comprueba para dar la unidad por cumplida.
 # `skills`: skills del marco que la unidad levanta.
-# `flujo`: solo en las unidades exclusivas de un flujo (hoy, los anexos MGA del
-# flujo SGR). Las demás corren en todos los flujos; ver `units_for_flujo`.
+# `flujo`: solo en las unidades exclusivas de un flujo (hoy, las causas directas y
+# los anexos MGA del flujo SGR). Las demás corren en todos los flujos; ver `units_for_flujo`.
 
 PIPELINE_UNITS: list[dict[str, Any]] = [
     {
@@ -328,6 +334,19 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "artifacts": [],
         "agents": ["redactor", "grant-flow-auditor"],
         "skills": ["estilo-natural-es"],
+        "next": "fase6_3",
+    },
+    {
+        "id": "fase6_3",
+        "kind": "step",
+        "flujo": "sgr",
+        "name": "Anexos previos al presupuesto",
+        "desc": "Solo flujo SGR: participantes, población, alternativas y riesgos, en el orden de la MGA, porque el presupuesto (§13) costea el manejo de los participantes y la mitigación de los riesgos.",
+        "gate": "G6.3",
+        "sections": ["20", "21", "22", "24"],
+        "artifacts": [],
+        "agents": ["redactor", "grant-flow-auditor", "revisor"],
+        "skills": ["estilo-natural-es"],
         "next": "fase6_4",
     },
     {
@@ -371,11 +390,11 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "kind": "step",
         "flujo": "sgr",
         "name": "Anexos MGA",
-        "desc": "Solo flujo SGR: alineación con los planes de desarrollo, participantes, población, alternativas, cadena de valor, riesgos y matriz de marco lógico.",
+        "desc": "Solo flujo SGR: alineación con los planes de desarrollo, cadena de valor con su evaluación y matriz de marco lógico.",
         "gate": "G6.47",
-        "sections": ["19", "20", "21", "22", "23", "24", "25"],
+        "sections": ["19", "23", "25"],
         "artifacts": [],
-        "agents": ["redactor", "presupuestador", "revisor"],
+        "agents": ["redactor", "presupuestador", "revisor-redundancia", "revisor"],
         "skills": ["estilo-natural-es"],
         "next": "fase6_5",
     },
@@ -399,7 +418,7 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "gate": "G7",
         "sections": [],
         "artifacts": ["redaccion/main.tex"],
-        "agents": ["revisor", "coordinador-propuesta"],
+        "agents": ["revisor-redundancia", "revisor", "coordinador-propuesta"],
         "skills": ["estilo-natural-es", "depuracion-redundancias-es"],
         "next": "done",
     },

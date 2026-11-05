@@ -28,7 +28,7 @@ Una propuesta con redundancias fatiga al evaluador, dispersa el argumento centra
 
 ### 2. Redundancia léxica y de muletillas conectivas
 * **Defecto:** Saturación de conectores formulaicos ("asimismo", "por consiguiente", "en este sentido", "cabe destacar que", "de igual manera") al inicio de oraciones consecutivas o dentro del mismo párrafo.
-* **Corrección:** Eliminar el conector prescindible y dejar que la conexión semántica fluya por yuxtaposición o puntuación; alternar conectores variados y naturales propios del español académico.
+* **Corrección:** Eliminar el conector prescindible y dejar que la conexión semántica fluya por yuxtaposición o puntuación. Cuando la transición haga falta, reconstruirla desde la relación lógica entre las dos oraciones, sin cambiar un conector por otro.
 
 ### 3. Redundancia de preámbulo y metadiscurso («throat-clearing»)
 * **Defecto:** Oraciones introductorias vacías que anuncian lo que se va a decir en lugar de entrar directamente a la materia (ejemplo: *"A continuación se procede a describir de manera detallada los aspectos correspondientes a..."* o *"Es fundamental señalar que para el desarrollo de esta actividad se requiere..."*).
@@ -49,7 +49,7 @@ Paso 1: Mapeo de densidad ──> Paso 2: Poda y fusión ──> Paso 3: Humaniz
 ```
 
 ### Paso 1: Mapeo de densidad de ideas
-1. Lee la sección completa e identifica el propósito de cada párrafo.
+1. Corre `python3 scripts/estilo_es.py auditar <RUN_ROOT> --seccion N`, lee la sección completa e identifica el propósito de cada párrafo. Las categorías `frase_repetida` y `casi_duplicado` del reporte ubican la repetición literal; la conceptual queda a tu juicio.
 2. Subraya o lista las afirmaciones sustantivas.
 3. Marca aquellas oraciones que repiten una idea ya establecida en un párrafo previo de la misma sección.
 
@@ -60,12 +60,17 @@ Paso 1: Mapeo de densidad ──> Paso 2: Poda y fusión ──> Paso 3: Humaniz
 
 ### Paso 3: Aplicación de la técnica de humanización (`estilo-natural-es`)
 Sobre el texto podado y conciso, aplica de inmediato las directrices de `estilo-natural-es`:
-1. **Regla 70/30 de longitud:** Alterna oraciones directas y breves (10–18 palabras) con oraciones compuestas y subordinadas (25–38 palabras). Rompe la monotonía rítmica de oraciones uniformes de 20 palabras.
+1. **Alternancia de longitud:** Alterna oraciones directas y breves (8 a 15 palabras) con oraciones compuestas y subordinadas (25 a 40 palabras), y divide toda oración de más de 45. Es la regla de `estilo-natural-es`, que rompe la monotonía de oraciones uniformes de 20 palabras.
 2. **Desmecanización de aperturas:** Erradica listas formulaicas ("En primer lugar... En segundo lugar...", "Por una parte... Por otra parte...").
 3. **Voz activa y naturalidad:** Prefiere verbos de acción directa y construcciones sintácticas propias de la prosa hispanohablante sobre estructuras pasivas anglicadas o perífrasis innecesarias.
-4. **Variedad léxica:** Sustituye sinónimos gastados y evita repetir la misma palabra clave más de dos veces en un intervalo de cinco líneas, empleando pronombres demostrativos o elipsis cuando el referente sea inequívoco.
+4. **Variedad léxica:** Los términos técnicos y protegidos (vocabulario MGA, nodos de los árboles, título, títulos del TDR, instituciones) se repiten tal cual: un sinónimo crearía ambigüedad, como advierte `estilo-natural-es`. La variación queda para las palabras generales, sobre todo las que el reporte marca como `sobreuso`, con pronombres o elipsis cuando el referente sea inequívoco.
 
 ### Paso 4: Verificación de consistencia y cierre
 1. Confirma que no se eliminó ninguna clave de citación BibTeX (`\citep{...}`, `\citet{...}`).
 2. Revisa que todas las cifras monetarias, plazos, porcentajes o cantidades métricas coincidan exactamente con la versión original.
 3. Asegura que la sección conserve su extensión adecuada y resulte ágil, persuasiva y contundente para el evaluador.
+4. Corre `python3 scripts/estilo_es.py verificar <antes> <despues>`: termina con error si cambió una cifra, una fecha, un monto, una clave de cita, una etiqueta, una cohorte, un nivel TRL o el conteo de párrafos.
+
+## Fuera de esta skill
+
+La redundancia entre secciones se mide con `python3 scripts/estilo_es.py auditar <RUN_ROOT> --todo`. El agente `revisor-redundancia` la juzga y `grant-flow-auditor` hace la edición. Las copias literales que exige la guía SGR y lo que el resumen retoma del cuerpo aparecen en `exentos`: no se depuran.

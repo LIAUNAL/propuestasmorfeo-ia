@@ -2422,6 +2422,7 @@
     <button class="tab-nav__btn" onclick="navigateTab('mga')">MGA resumido</button>
     <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
     <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
+    <button class="tab-nav__btn" onclick="navigateTab('estilo')">Estilo y redundancia</button>
     <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
     <button class="tab-nav__btn" onclick="navigateTab('artifacts')">Artefactos</button>
     <button class="tab-nav__btn" onclick="navigateTab('telemetria')">Telemetría y Costos</button>
@@ -2660,6 +2661,20 @@
 
     <!-- TAB 3: SECTIONS -->
     <div id="pane-sections" class="tab-pane">
+      <div class="panel" id="tdrChaptersPanel" hidden>
+        <div class="panel__header">
+          <div class="panel__title">Capítulos de la convocatoria</div>
+          <span class="panel__meta" id="tdrChaptersMeta">—</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr><th>Cap.</th><th>Título del TDR</th><th>Archivos</th><th>Estado</th></tr>
+            </thead>
+            <tbody id="tdrChaptersBody"></tbody>
+          </table>
+        </div>
+      </div>
       <div class="panel">
         <div class="panel__header">
           <div class="panel__title">Estructura canónica: secciones numeradas y front-matter</div>
@@ -2688,6 +2703,31 @@
     </div>
 
     <!-- TAB 6: ATLAS & GRAFOS -->
+    <div id="pane-estilo" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Estilo y redundancia</div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span class="panel__meta" id="estiloMeta">—</span>
+            <button id="btnEstiloAuditar" class="btn" onclick="runStyleAudit()">Auditar el documento</button>
+          </div>
+        </div>
+        <div id="estiloResumen" style="padding: 0.75rem 1rem;"></div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th>Sección</th><th>Índice</th><th>Palabras</th></tr></thead>
+            <tbody id="estiloSecciones"></tbody>
+          </table>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th>Sección</th><th>Categoría</th><th>Texto</th><th>Orientación</th></tr></thead>
+            <tbody id="estiloHallazgos"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div id="pane-atlas" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
@@ -3094,6 +3134,7 @@
   <footer class="dashboard-footer">
     <div class="footer__col footer__col--left">
       <strong id="footerVersion">Morfeo IA</strong>
+      <a id="footerTelemetria" href="#telemetria" hidden>Telemetría y costos</a>
       <span>Orquestador Multi-Agente de Formulación Científica en IA</span>
     </div>
 
@@ -3245,6 +3286,7 @@
       fase5: "Desarrollo de los fundamentos teóricos (§8) y conformación del equipo de trabajo (§9), derivando roles operativos directamente de los objetivos específicos.",
       fase5_5: "Estructuración de la metodología (§10) por fases y cadena de valor, junto con la especificación y verificación determinista del diagrama en TikZ.",
       fase6: "Definición de los resultados e impactos esperados (§11) y fundamentación de las consideraciones éticas y de gestión de datos (§12).",
+      fase6_3: "Solo flujo SGR: participantes, población, alternativas y riesgos (anexos 20, 21, 22 y 24), antes del presupuesto que los costea.",
       fase6_4: "Construcción del presupuesto (§13) detallando rubros, contrapartidas y cofinanciación con balance aritmético verificable conforme al TDR.",
       fase6_45: "Planificación del cronograma de actividades (§14, Gantt), consolidación de la tabla de productos entregables (§15) y bibliografía en BibTeX APA (§16).",
       fase6_46: "Diseño de la articulación comunitaria territorial (§17) y el plan de apropiación social del conocimiento (§18) con las comunidades de interés.",
@@ -3276,6 +3318,7 @@
         fase5: "Marco conceptual y equipo",
         fase5_5: "Metodología y diagrama",
         fase6: "Resultados y ética",
+        fase6_3: "Participantes y riesgos",
         fase6_4: "Presupuesto financiero",
         fase6_45: "Cronograma y productos",
         fase6_46: "Articulación y comunidad",
@@ -3527,10 +3570,11 @@
       fase5: { label: 'Indicaciones para el marco conceptual y el equipo', placeholder: 'Conceptos que deben aparecer en el marco conceptual; integrantes del equipo con su rol, perfil, dedicación e institución…', panel: { tab: 'sections', label: 'Ver §8 y §9 en Secciones' } },
       fase5_5: { label: 'Indicaciones para la metodología', placeholder: 'Fases de trabajo, métodos y algoritmos por objetivo específico, datos y equipos disponibles, validación y trayectoria de TRL…', panel: { tab: 'sections', label: 'Ver §10 en Secciones' } },
       fase6: { label: 'Indicaciones para resultados y ética', placeholder: 'Resultados esperados por objetivo, indicadores, consideraciones éticas (datos personales, consentimiento, comité de ética)…', panel: { tab: 'sections', label: 'Ver §11 y §12 en Secciones' } },
+      fase6_3: { label: 'Indicaciones para participantes y riesgos', placeholder: 'Actores y su posición, población afectada y objetivo, alternativas evaluadas, riesgos por nivel con su responsable y su mitigación…' },
       fase6_4: { label: 'Indicaciones para el presupuesto', placeholder: 'Tope de la convocatoria, cofinanciación y contrapartidas, rubros, honorarios, equipos y viajes; la compuerta del presupuesto se negocia contigo en la terminal…', panel: { tab: 'sections', label: 'Ver §13 en Secciones' } },
       fase6_45: { label: 'Indicaciones para cronograma y productos', placeholder: 'Duración en meses, hitos y entregables por fase, productos esperados (artículos, software, prototipos, eventos)…', panel: { tab: 'sections', label: 'Ver §14 a §16 en Secciones' } },
       fase6_46: { label: 'Indicaciones para comunidades y apropiación', placeholder: 'Comunidades y aliados, estrategias de articulación, talleres o actividades de apropiación social del conocimiento…', panel: { tab: 'sections', label: 'Ver §17 y §18 en Secciones' } },
-      fase6_47: { label: 'Indicaciones para los anexos MGA', placeholder: 'Planes de desarrollo con los que se alinea, participantes, población afectada y objetivo, alternativas, riesgos y metas del marco lógico…', panel: { tab: 'sections', label: 'Ver los anexos 19 a 25 en Secciones' } },
+      fase6_47: { label: 'Indicaciones para los anexos MGA', placeholder: 'Planes de desarrollo con los que se alinea, cadena de valor con sus costos y marco lógico.', panel: { tab: 'sections', label: 'Ver los anexos 19 a 25 en Secciones' } },
       fase6_5: { label: 'Indicaciones para el resumen', placeholder: 'Énfasis del resumen y del resumen ejecutivo, palabras clave que deben aparecer…', panel: { tab: 'sections', label: 'Ver el front-matter en Secciones' } },
       fase7: { label: 'Indicaciones para la auditoría final', placeholder: 'Ajustes finales de forma o de fondo que la auditoría y el ensamble deben atender…', panel: { tab: 'preview', label: 'Revisar el PDF en Previsualización' } },
     };
@@ -4736,6 +4780,10 @@
 
       if (tabId === 'mga') loadMgaResumido();
 
+      if (tabId === 'sections') loadTdrChapters();
+
+      if (tabId === 'estilo') loadStyleReport();
+
       if (tabId === 'flow') ensureFlowLoaded();
 
       if (tabId === 'preview') {
@@ -5144,6 +5192,28 @@
       el.textContent = sgr ? 'Flujo SGR' : 'Flujo base';
       el.className = `badge ${sgr ? 'badge--ok' : 'badge--info'}`;
       el.title = sgr ? 'Proyecto con el flujo del Sistema General de Regalías (MGA)' : 'Proyecto con el flujo base';
+      applyFlujoChrome(sgr);
+    }
+
+    // En SGR la navegación se reduce a lo que ese documento usa: el diagrama
+    // general y los grafos de vault y manuscrito describen el flujo base.
+    function applyFlujoChrome(sgr) {
+      const tabButton = tab => Array.from(document.querySelectorAll('.tab-nav__btn'))
+        .find(b => (b.getAttribute('onclick') || '').includes(`'${tab}'`));
+      ['flow', 'telemetria'].forEach(tab => {
+        const button = tabButton(tab);
+        if (button) button.hidden = sgr;
+      });
+      ['btnGraphVault', 'btnGraphManuscript'].forEach(id => {
+        const button = document.getElementById(id);
+        if (button) button.hidden = sgr;
+      });
+      const footerLink = document.getElementById('footerTelemetria');
+      if (footerLink) footerLink.hidden = !sgr;
+      if (!sgr) return;
+      if (activeTab === 'flow') navigateTab('pipeline');
+      if (currentGraphKind !== 'papers') switchGraph('papers');
+      loadTdrChapters();
     }
 
     // Un solo pedido de estado a la vez: quien llama mientras hay uno en vuelo
@@ -6282,6 +6352,90 @@
     // proyecto (/api/guide/sgr), los mismos que el dispatcher inyecta.
     let sgrGuidePromise = null;
 
+    // Capítulos del TDR de la corrida (artefactos/estructura_tdr.json).
+    let tdrChapters = [];
+    const TDR_STATE_LABELS = { escrito: 'Escrito', parcial: 'Parcial', vacio: 'Sin escribir' };
+
+    async function loadTdrChapters() {
+      if (!isSgrFlujo()) return;
+      try {
+        const res = await fetch('/api/tdr/capitulos');
+        const data = res.ok ? await res.json() : { capitulos: [] };
+        tdrChapters = data.capitulos || [];
+      } catch (err) {
+        tdrChapters = [];
+      }
+      renderTdrChapters();
+    }
+
+    function renderTdrChapters() {
+      const panel = document.getElementById('tdrChaptersPanel');
+      const body = document.getElementById('tdrChaptersBody');
+      if (!panel || !body) return;
+      panel.hidden = tdrChapters.length === 0;
+      const written = tdrChapters.filter(c => c.estado === 'escrito').length;
+      document.getElementById('tdrChaptersMeta').textContent = `${written} de ${tdrChapters.length} capítulos escritos`;
+      body.innerHTML = tdrChapters.map(chapter => {
+        const files = (chapter.archivos || []).map(item => escapeHtml(item.nombre)).join(', ');
+        const label = TDR_STATE_LABELS[chapter.estado] || chapter.estado;
+        return `<tr><td>${escapeHtml(String(chapter.numero ?? ''))}</td><td>${escapeHtml(chapter.titulo || 'Sin título')}</td>`
+          + `<td>${files}</td><td>${escapeHtml(label)}</td></tr>`;
+      }).join('');
+    }
+
+    // Reporte de scripts/estilo_es.py: legibilidad y redundancia, nunca autoría.
+    async function loadStyleReport() {
+      let report = { disponible: false };
+      try {
+        const res = await fetch('/api/estilo');
+        if (res.ok) report = await res.json();
+      } catch (err) {
+        report = { disponible: false };
+      }
+      renderStyleReport(report);
+    }
+
+    function renderStyleReport(report) {
+      const summary = document.getElementById('estiloResumen');
+      const sections = document.getElementById('estiloSecciones');
+      const findings = document.getElementById('estiloHallazgos');
+      if (!summary || !sections || !findings) return;
+      if (!report.disponible) {
+        summary.textContent = 'Aún no hay reporte. Usa «Auditar el documento» para generarlo.';
+        document.getElementById('estiloMeta').textContent = '—';
+        sections.innerHTML = '';
+        findings.innerHTML = '';
+        return;
+      }
+      document.getElementById('estiloMeta').textContent = `${(report.exentos || []).length} términos exentos`;
+      summary.innerHTML = `<strong>Índice ${escapeHtml(String(report.indice ?? '—'))} de 100</strong>`
+        + ` (${escapeHtml(report.veredicto || '')})<br><span>${escapeHtml(report.aviso || '')}</span>`;
+      sections.innerHTML = (report.secciones || []).map(item =>
+        `<tr><td>${escapeHtml(item.seccion || '')}</td><td>${escapeHtml(String(item.indice ?? ''))}</td>`
+        + `<td>${escapeHtml(String(item.palabras ?? ''))}</td></tr>`).join('');
+      findings.innerHTML = (report.hallazgos || []).slice(0, 12).map(item =>
+        `<tr><td>${escapeHtml(item.seccion || '')}</td><td>${escapeHtml(item.categoria || '')}</td>`
+        + `<td>${escapeHtml(item.fragmento || '')}</td><td>${escapeHtml(item.orientacion || '')}</td></tr>`).join('');
+    }
+
+    async function runStyleAudit() {
+      const button = document.getElementById('btnEstiloAuditar');
+      if (button) button.disabled = true;
+      try {
+        const res = await fetch('/api/estilo/auditar', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok === false) {
+          document.getElementById('estiloResumen').textContent = data.error || 'No se pudo auditar el documento.';
+          return;
+        }
+        renderStyleReport(data);
+      } catch (err) {
+        document.getElementById('estiloResumen').textContent = 'No se pudo auditar el documento.';
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+
     function isSgrFlujo() {
       return !!(currentStatus && currentStatus.flujo === 'sgr');
     }
@@ -6373,7 +6527,12 @@
       let base = SECTIONS_STRUCTURE_DATA[key];
       if (!base && sgr && sgrKey && sgrKey.startsWith('A')) {
         // Anexos MGA del flujo SGR: sin estructura base, solo las reglas de la guía SGR.
-        base = { code: sgrKey, title: `Anexo MGA ${sgrKey.slice(1)}`, principle: 'Anexo MGA del flujo SGR (Fase 6.47). Sus reglas salen de la guía SGR.', connections: { inputs: [], outputs: [] }, paragraphs: [], rules: { allowed: [], forbidden: [] } };
+        base = { code: sgrKey, title: `Anexo MGA ${sgrKey.slice(1)}`, principle: 'Anexo MGA del flujo SGR. Sus reglas salen de la guía SGR.', connections: { inputs: [], outputs: [] }, paragraphs: [], rules: { allowed: [], forbidden: [] } };
+      }
+      if (!base && cleanId.startsWith('tdr')) {
+        // Capítulo propio del TDR: su título y su contenido los fija la convocatoria.
+        const chapter = tdrChapters.find(c => (c.archivos || []).some(item => item.nombre === cleanId));
+        base = { code: chapter ? `Cap. ${chapter.numero}` : 'TDR', title: (chapter && chapter.titulo) || cleanId, principle: 'Capítulo exigido por el TDR de la convocatoria. Su título se conserva textualmente y su contenido sigue la guía ajustada.', connections: { inputs: [], outputs: [] }, paragraphs: [], rules: { allowed: [], forbidden: [] } };
       }
       base = base || SECTIONS_STRUCTURE_DATA["03_descripcion_problema"];
       const data = sgr && base && base.sgr ? { ...base, ...base.sgr } : base;

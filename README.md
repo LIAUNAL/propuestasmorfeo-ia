@@ -212,9 +212,9 @@ El marco cuenta con **11 subagentes especializados** con roles no solapados:
 Toda la prosa en español generada por el marco pasa obligatoriamente por dos metodologías modulares instaladas en `.claude/skills/`:
 
 ### 1. `estilo-natural-es` (Humanización y Prosa Académica Culta)
-Integración y acoplamiento exhaustivo del catálogo de **35 patrones mecánicos de IA** (cotejado con *humanizer-mit* y contextualizado en la norma académica culta de Colombia):
+Catálogo de **35 patrones de prosa mecánica** (cotejado con *humanizer-mit* y contextualizado en la norma académica culta de Colombia):
 
-- **Erradicación de Fórmulas de IA:** Elimina aperturas cósmicas (*"En el vasto horizonte..."*), gerundios de cierre artificiales (*"garantizando así...", "logrando un impacto..."*), inflación de trascendencia (*"un hito fundamental", "un paso crucial"*), falsos rangos (*"desde X hasta Y pasando por Z"*) y la regla de tres adjetival sistemática.
+- **Erradicación de Fórmulas Vacías:** Elimina aperturas cósmicas (*"En el vasto horizonte..."*), gerundios de cierre artificiales (*"garantizando así...", "logrando un impacto..."*), inflación de trascendencia (*"un hito fundamental", "un paso crucial"*), falsos rangos (*"desde X hasta Y pasando por Z"*) y la regla de tres adjetival sistemática.
 - **Prohibición Estricta de Rayas Anglosajonas:** Queda terminantemente prohibido el uso de rayas em (` — `) o dobles guiones (`--`) en la prosa narrativa. Los incisos se resuelven de forma natural mediante comas, punto y coma o paréntesis.
 - **Burstiness y Variación de Cadencia:** Combina oraciones breves y directas (10–15 palabras) con oraciones complejas bien articuladas (25–35 palabras), erradicando la monotonía métrica sintética.
 - **Regla 70/30 de Léxico:** 70% vocabulario técnico preciso y directo; 30% términos analíticos con riqueza conceptual formal.
@@ -224,6 +224,9 @@ Integración y acoplamiento exhaustivo del catálogo de **35 patrones mecánicos
 - Audita que cada párrafo introduzca un avance argumentativo genuino.
 - Erradica la repetición de ideas con distinta vestidura verbal dentro de una misma sección.
 - Garantiza que la articulación entre subproblemas, objetivos y metodología sea limpia y sin redundancias.
+
+### 3. Puntaje de estilo y redundancia (`scripts/estilo_es.py`)
+Da un índice de legibilidad de 0 a 100 por sección y por documento, visible en la pestaña **Estilo y redundancia** del tablero. Mide oraciones largas, variedad léxica, fórmulas repetidas y frases duplicadas entre secciones. Una lista de términos protegidos respeta el vocabulario MGA y las copias literales exigidas. El índice no reprueba una sección; lo que bloquea es `verificar`, si el pulido cambió una cifra, una cita o una etiqueta. El agente `revisor-redundancia` revisa, en modo de solo lectura, las repeticiones de idea entre secciones.
 
 ---
 
