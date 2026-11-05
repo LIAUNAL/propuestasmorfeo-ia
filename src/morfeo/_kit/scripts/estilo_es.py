@@ -11,7 +11,8 @@ two versions of a text and fails when a fact changed.
     estilo_es.py verificar <antes> <despues> [--json]
 
 Without `--todo`, each section is read alone. With it, repeated phrases and
-near-duplicates are also searched across sections, and every location is listed.
+near-duplicates are also searched across sections, and every location is listed;
+with `--seccion` too, the chosen sections are compared against the whole document.
 A run gets `artefactos/estilo/reporte.json` and `reporte.md`. A file on its own
 prints the report and writes nothing; adding RUN_ROOT uses that run's protected
 terms and writes there.
@@ -1051,7 +1052,12 @@ def audit(sections: list[Section], terms: list[Term], flujo: str, source: str,
     for group in groups.values():
         findings += catalog_findings(group, collapser) + flow_findings(group, collapser)
     if whole:
-        findings += redundancy_findings(selected, collapser, log)
+        # The search spans the document; a finding stays when it touches the chosen sections.
+        for finding in redundancy_findings(every, collapser, log):
+            inside = [place for place in finding.get("ubicaciones") or [finding] if place["seccion"] in scope]
+            if inside:
+                finding.update({key: inside[0][key] for key in ("seccion", "parrafo", "oracion")})
+                findings.append(finding)
     else:
         for group in groups.values():
             findings += redundancy_findings(group, collapser, log)
@@ -1061,7 +1067,8 @@ def audit(sections: list[Section], terms: list[Term], flujo: str, source: str,
     findings.sort(key=lambda f: (order[f["seccion"]], f["oracion"], f["categoria"], f["fragmento"]))
 
     report = {"version": 1, "fuente": source, "flujo": flujo,
-              "alcance": "documento" if whole else "seccion" if only is not None else "secciones",
+              "alcance": ("seccion_contra_documento" if whole and only is not None else "documento" if whole
+                          else "seccion" if only is not None else "secciones"),
               "aviso": AVISO, "escala": "puntaje_estilo y puntaje_flujo van de 0 a 1 (menor es mejor); indice va de 0 a 100 (mayor es mejor)."}
     report.update(score(selected, findings))
     report["secciones"] = []
@@ -1124,7 +1131,8 @@ MATH_RE = re.compile(r"(?<!\\)\$((?:[^$\\]|\\.)*?)(?<!\\)\$", re.S)
 MONEY_RE = re.compile(r"\\\$\s*\d+(?:[.,]\d+)*(?:\s*(?:millones|mil millones|mil|billones))?", re.I)
 COHORT_RE = re.compile(r"\b[A-Z]{2,6}-[A-Z]{2,6}-(?:\d+|x+)\b")
 TRL_RE = re.compile(r"\bTRL[\s~]*\d(?:\s*(?:,|a|o|y|-)\s*\d)*")
-NUMBER_RE = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)*(?![^\W\d_])")
+# An attached unit is part of the figure: 120ms and 125ms must differ as whole tokens.
+NUMBER_RE = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)*[^\W_]*")
 REF_RE = re.compile(r"\\(?:ref|cref|Cref|pageref|eqref|autoref|nameref)\*?\{([^}]*)\}")
 LABEL_RE = re.compile(r"\\label\{([^}]*)\}")
 
