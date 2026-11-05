@@ -31,7 +31,7 @@ const ESTILO = {
   veredicto: 'irregular',
   aviso: 'Mide legibilidad, no autoría.',
   secciones: [{ seccion: '02_justificacion', indice: 72, palabras: 900 }],
-  hallazgos: [{ seccion: '02_justificacion', parrafo: 2, categoria: 'cliche', texto: 'juega un <i>papel</i>', orientacion: 'Usar un verbo directo.' }],
+  hallazgos: [{ seccion: '02_justificacion', parrafo: 2, categoria: 'cliche', fragmento: 'juega un <i>papel</i>', orientacion: 'Usar un verbo directo.' }],
   exentos: [{ termino: 'objetivo general' }],
 };
 
@@ -141,6 +141,7 @@ test('Estilo: muestra índice, aviso y hallazgos en ambos flujos, sin inyectar H
     assert.match(pane.textContent, /72/);
     assert.match(pane.textContent, /Mide legibilidad/);
     assert.match(pane.textContent, /Usar un verbo directo/);
+    assert.match(pane.textContent, /juega un/);
     assert.equal(pane.querySelector('#estiloHallazgos i'), null);
   }
 });

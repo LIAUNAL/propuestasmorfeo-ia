@@ -1,18 +1,18 @@
 ---
 name: estilo-natural-es
-description: Pulir y humanizar la prosa académica y científica en español (norma académica culta de Colombia) para propuestas de investigación. Erradica los 35 patrones de escritura de IA (fórmulas mecánicas, aperturas cósmicas, gerundios de cierre, inflación de trascendencia, falsos rangos, regla de tres, monotonía de ritmo), introduce burstiness y perplejidad académica controlada y preserva estrictamente la fidelidad factual (cifras, fechas, citas BibTeX, comandos LaTeX, estructura de párrafos y prohibición de rayas anglosajonas o dobles guiones).
+description: Pulir y humanizar la prosa académica y científica en español (norma académica culta de Colombia) para propuestas de investigación. Corrige 35 patrones mecánicos que entorpecen la lectura (fórmulas, aperturas cósmicas, gerundios de cierre, inflación de trascendencia, falsos rangos, regla de tres, monotonía de ritmo), varía la cadencia de las oraciones y preserva estrictamente la fidelidad factual (cifras, fechas, citas BibTeX, comandos LaTeX, estructura de párrafos y prohibición de rayas anglosajonas o dobles guiones).
 ---
 
 # Estilo Natural en Español Académico (Colombia) para Propuestas de Investigación
 
 ## 1. Naturaleza y propósito de la skill
 
-Esta skill eleva la calidad literaria, la fluidez argumentativa y la cadencia rítmica de la prosa académica y científica en español, bajo la norma culta institucional de Colombia (MinCiencias, Sistema General de Regalías, Universidad Nacional de Colombia y universidades aliadas como la UTP). Su propósito es erradicar la textura mecánica, predecible y uniforme que delata la generación por inteligencia artificial, transformándola en la prosa sobria, precisa y contundente de un investigador senior.
+Esta skill eleva la calidad literaria, la fluidez argumentativa y la cadencia rítmica de la prosa académica y científica en español, bajo la norma culta institucional de Colombia (MinCiencias, Sistema General de Regalías, Universidad Nacional de Colombia y universidades aliadas como la UTP). Su propósito es quitar la textura mecánica, predecible y uniforme que cansa al evaluador y dejar en su lugar la prosa sobria, precisa y contundente de un investigador senior. La medida es la legibilidad: que un evaluador con poco tiempo entienda el argumento a la primera lectura.
 
-Es el resultado de acoplar la metodología de estilo académico natural del marco con el catálogo exhaustivo de patrones de detección de `humanizer-mit` (adaptación al español de la guía *Signs of AI writing* de Wikipedia y WikiProject AI Cleanup), calibrado específicamente para el género de propuestas de subvención y formulación de proyectos en Colombia.
+Acopla la metodología de estilo académico natural del marco con el catálogo de patrones de escritura mecánica de `humanizer-mit`, calibrado para el género de propuestas de subvención y formulación de proyectos en Colombia. La parte medible de ese catálogo vive en `scripts/estilo_es.py`, que la aplica de forma determinista.
 
 ### Líneas rojas inviolables (lo que esta skill NO hace):
-1. **Cero evasión tramposa:** No emplea caracteres invisibles, espacios de ancho cero, homóglifos cirílicos ni trucos de codificación Unicode. No introduce errores tipográficos intencionales ni falsas imperfecciones ortográficas (the skill never introduces deliberate typos or lower register).
+1. **Cero trucos de codificación:** No emplea caracteres invisibles, espacios de ancho cero, homóglifos cirílicos ni manipulaciones de Unicode. No introduce errores tipográficos intencionales ni falsas imperfecciones ortográficas (the skill never introduces deliberate typos or lower register).
 2. **Cero coloquialismo o degradación de registro:** No confunde naturalidad con informalidad. Jamás inserta modismos callejeros (*chévere*, *vaina*, *de una*), tuteo/voseo en la narrativa técnica, ni frases de falsa confidencia conversacional (*la verdad es que*, *mira*, *seamos honestos*). El registro se mantiene estrictamente formal, académico y riguroso.
 3. **Fidelidad factual sagrada:** La skill modifica exclusivamente el *estilo* y la *cadencia sintáctica*; el *contenido* es inamovible. Números, porcentajes, fechas, presupuestos, cohortes (`EST-MZ-xxx`, `EST-PE-xxx`), niveles TRL (6 o 7), ecuaciones, fórmulas matemáticas y afirmaciones científicas permanecen idénticos byte a byte.
 4. **Seguridad en LaTeX y citaciones:** Preserva intactos todos los comandos, entornos, etiquetas (`\label`, `\ref`, `\cref`), archivos incluidos (`\input`) y claves de citación en formato natbib APA autor-año (`\citep{...}`, `\citet{...}`). Jamás inventa citas ni altera claves de citación existentes.
@@ -35,11 +35,11 @@ Es el resultado de acoplar la metodología de estilo académico natural del marc
 
 ---
 
-## 3. Catálogo de los 35 patrones de IA a erradicar (Contexto Académico Colombia)
+## 3. Catálogo de los 35 patrones mecánicos a corregir (Contexto Académico Colombia)
 
 ### A. Patrones de contenido y retórica
 1. **Inflación de trascendencia y clichés de grandeza:** Expresiones como *se erige como*, *juega un papel fundamental/crucial*, *marca un antes y un después*, *un punto de inflexión*, *sentando las bases para*, *en el corazón de*.  
-   *Corrección:* Usar verbos directos, funcionales y sobrios (*permite*, *resuelve*, *aporta*, *constituye*, *facilita*).
+   *Corrección:* Usar verbos directos, funcionales y sobrios (*resuelve*, *aporta*, *reduce*, *facilita*) o la cópula (*es*, *son*).
 2. **Atribuciones vagas y comadreo (weasel words):** Afirmaciones como *diversos expertos coinciden*, *estudios recientes señalan*, *la literatura sugiere* sin respaldo bibliográfico inmediato.  
    *Corrección:* Citar la fuente concreta (`\citep{...}`) o declarar el hecho técnico de forma directa.
 3. **Análisis superficiales con gerundios de cierre:** Oraciones que rematan con gerundios decorativos (*destacando su pertinencia...*, *subrayando el compromiso...*, *reflejando la estrecha articulación...*, *garantizando un impacto...*).  
@@ -52,7 +52,7 @@ Es el resultado de acoplar la metodología de estilo académico natural del marc
    *Corrección:* Abordar los riesgos operacionales o limitaciones metodológicas de manera técnica y contextualizada.
 
 ### B. Patrones de lenguaje, léxico y gramática
-7. **Vocabulario comodín de alta frecuencia en IA:** Uso reiterado y simultáneo de *robusto*, *crucial*, *fundamental*, *clave* (como adjetivo comodín), *ecosistema* (en sentido figurado abstracto), *tapiz*, *entramado*, *un abanico de*, *en última instancia*, *de la mano de*.  
+7. **Vocabulario comodín:** Uso reiterado y simultáneo de *robusto*, *crucial*, *fundamental*, *clave* (como adjetivo comodín), *ecosistema* (en sentido figurado abstracto), *tapiz*, *entramado*, *un abanico de*, *en última instancia*, *de la mano de*.  
    *Corrección:* Aplicar la regla 70/30 (70% de términos técnicos fijos y estables, 30% de variación en verbos y adjetivos descriptivos precisos).
 8. **Evitación rebuscada de la cópula:** Reemplazar innecesariamente *es*, *son* o *tiene* por perífrasis como *se posiciona como*, *constituye*, *alberga*, *cuenta con*.  
    *Corrección:* Usar la cópula directa o el verbo propio de posesión o pertenencia.
@@ -61,7 +61,7 @@ Es el resultado de acoplar la metodología de estilo académico natural del marc
 10. **Abuso de la regla de tres:** Forzar sistemáticamente la enumeración de tres adjetivos, tres sustantivos o tres beneficios en una sola frase (*innovación, rigor y pertinencia*; *captura, procesa y evalúa*).  
     *Corrección:* Coordinar dos elementos con fuerza o integrar los conceptos en cláusulas jerarquizadas.
 11. **Variación elegante artificial:** Rotar sinónimos forzados para referirse al mismo concepto técnico dentro del mismo párrafo (*el modelo... el algoritmo... la red... la herramienta predictiva*).  
-    *Corrección:* Mantener el término técnico unificado para no generar ambigüedad en el evaluador.
+    *Corrección:* Mantener el término técnico unificado para no generar ambigüedad en el evaluador. Los términos protegidos (vocabulario MGA, nodos de los árboles, título, títulos del TDR, instituciones) se repiten tal cual y no cuentan como redundancia.
 12. **Falsos rangos:** Construcciones *desde X hasta Y* donde los extremos no pertenecen a una misma escala medible (*desde la captura de señales electroencefalográficas hasta la inclusión territorial*).  
     *Corrección:* Enumerar las dimensiones técnicas en planos diferenciados.
 13. **Voz pasiva refleja que oculta la agencia técnica:** Abuso de *se realiza el procesamiento* o *se efectúa la recolección* cuando el texto debe dejar claro qué componente o actor ejecuta la acción.  
@@ -120,25 +120,26 @@ La redacción de la propuesta debe reflejar los estándares de los comités cien
 2. **Conectores lógicos del español formal de Colombia:**
    - Conectores preferidos para transiciones argumentativas fluidas: *no obstante*, *por ende*, *en tal sentido*, *de ahí que*, *con todo*, *ahora bien*, *en concreto*, *a su vez*, *en contraposición*, *así las cosas*, *en efecto*, *por consiguiente*.
    - Evitar la saturación monótona de *asimismo* y *adicionalmente* en arranques consecutivos.
+   - Un conector se elige después de nombrar la relación lógica entre las dos oraciones (causa, contraste, consecuencia, precisión, ejemplo). Cambiar un conector por otro sin esa relación no corrige nada; a menudo basta con quitarlo, o con que el sujeto de la oración retome lo anterior.
 3. **Tratamiento y voz gramatical:**
    - Narrativa en tercera persona sobria (*el proyecto plantea*, *el grupo de investigación implementará*) combinada equilibradamente con la pasiva refleja institucional (*se seleccionó una muestra*, *se realizarán pruebas de validación*).
    - Queda totalmente excluido el tuteo y el voseo en la redacción técnica.
 
 ---
 
-## 5. Burstiness y dinamismo sintáctico (Variación de cadencia)
+## 5. Variación de cadencia y dinamismo sintáctico
 
-La escritura humana experta se distingue por la variabilidad en la longitud y complejidad de sus frases (*burstiness*). La IA tiende a aplanar el texto en oraciones medianas de 20 a 25 palabras, todas con la misma estructura gramatical.
+La prosa experta varía la longitud y la complejidad de sus oraciones. Un texto de oraciones medianas de 20 a 25 palabras, todas con la misma estructura gramatical, se vuelve plano y fatiga.
 
-Para romper este patrón:
+Esta es la regla de longitud de todo el marco, la misma de `depuracion-redundancias-es` y `grant-flow-auditor`. Para romper la monotonía:
 1. **Alternancia de longitud oracional:**
    - Combinar oraciones breves y contundentes (8 a 15 palabras), que fijen asertos y principios irrefutables, con oraciones compuestas y ramificadas (25 a 40 palabras), que desarrollen la argumentación causal o técnica.
-   - Evitar oraciones monstruosas de más de 45 palabras que fatiguen al lector, así como ristras de frases cortadas en staccato.
+   - Dividir toda oración de más de 45 palabras, que es la señal que mide `scripts/estilo_es.py`, y evitar ristras de frases cortadas en staccato.
 2. **Asimetría de arranques:**
    - Nunca iniciar tres oraciones consecutivas con el esquema básico [Sujeto + Verbo].
    - Alternar arranques utilizando:
      - Complementos circunstanciales de lugar, tiempo o instrumento (*En los campus de Manizales y Pereira,...*, *Durante la fase de validación de campo,...*).
-     - Proposiciones condicionales o causales (*Dado que la latencia en borde constituye una restricción crítica,...*).
+     - Proposiciones condicionales o causales (*Dado que la latencia en borde es una restricción crítica,...*).
      - Cifras o métricas sustantivas al inicio (*Un 42 % de la población evaluada registró...*).
      - Conectores contraargumentativos o ilativos (*No obstante, la convergencia algorítmica exige...*).
 3. **Puntuación viva y variada:**
@@ -151,13 +152,13 @@ Para romper este patrón:
 
 ## 6. Procedimiento de auditoría y pulido (Paso a paso)
 
-Al revisar o refactorizar una sección en `redaccion/sections/`:
+Al revisar o refactorizar una sección en `redaccion/sections/`, primero se corre `python3 scripts/estilo_es.py auditar <RUN_ROOT> --seccion N` y se copia el archivo original a un directorio temporal:
 
 ```
 Paso 1: Mapeo y Detección ──> Paso 2: Poda y Desmecanización ──> Paso 3: Reescritura Holística (Cadencia) ──> Paso 4: Verificación de Invariantes
 ```
 
-1. **Paso 1: Mapeo:** Identificar la presencia de cualquiera de los 35 patrones de IA, prestando especial atención a muletillas de apertura, gerundios de cierre, paralelismos negativos, dobles guiones (`--`) o rayas anglosajonas (` — `).
+1. **Paso 1: Mapeo:** Partir de los `hallazgos` del reporte, que traen sección, párrafo, oración, categoría y orientación, y sumar los patrones que un script no ve. Las entradas de `exentos` no se tocan.
 2. **Paso 2: Poda:** Eliminar preámbulos vacíos, conectores redundantes y adjetivos inflados.
 3. **Paso 3: Reescritura holística en un solo pase:** Reformular la prosa integrando la cadencia sintáctica colombiana, variando la longitud oracional y enriqueciendo el léxico sin alterar términos técnicos ni significados.
 4. **Paso 4: Verificación estricta de invariantes:**
@@ -167,21 +168,18 @@ Paso 1: Mapeo y Detección ──> Paso 2: Poda y Desmecanización ──> Paso 
    - [ ] ¿Se respetó el número exacto de párrafos exigido por la sección?
    - [ ] ¿El registro es estrictamente formal y acorde a la norma académica de Colombia?
 
+   Las cuatro primeras preguntas las responde `python3 scripts/estilo_es.py verificar <antes> <despues>`, que termina con error si cambió una cifra, una fecha, un monto en `\$`, una clave de cita, un `\label` o `\ref`, una cohorte, un nivel TRL o el conteo de párrafos. Sin su salida no hay verificación.
+
 ---
 
 ## 7. Contrato de salida (Reporte de auditoría)
 
 La edición se realiza **directamente sobre el archivo `.tex` correspondiente**. El reporte se presenta en la respuesta del agente con la siguiente estructura:
 
-1. **Patrones detectados:** Listado puntual de vicios de IA encontrados en el borrador original.
+1. **Patrones detectados:** Listado puntual de los hallazgos atendidos, con su categoría.
 2. **Tabla de transformaciones clave:**
    | Patrón corregido | Fragmento original | Fragmento reescrito (Estilo Natural Colombia) |
    | :--- | :--- | :--- |
    | *[Ej. Gerundio de cierre]* | *"...mejorando el rendimiento de la red."* | *"...lo cual incrementa la tasa de acierto del modelo."* |
-3. **Verificación de invariantes:** Confirmación explícita de preservación de cifras, citas, comandos LaTeX, ausencia de `--` y conteo de párrafos.
-4. **Índice de Naturalidad y Fidelidad (0 a 100):**
-   - Variación de longitud oracional (Burstiness): 25 pts.
-   - Variedad de conectores académicos colombianos: 20 pts.
-   - Variación léxica y ausencia de comodines de IA (Regla 70/30): 20 pts.
-   - Supresión de fórmulas mecánicas y rayas anglosajonas: 15 pts.
-   - Fidelidad estricta factual y seguridad LaTeX: 20 pts.
+3. **Verificación de invariantes:** La salida de `estilo_es.py verificar` y la confirmación de que no quedan `--` en la prosa.
+4. **Reporte determinista:** `indice`, `veredicto`, `puntaje_estilo` y `puntaje_flujo` antes y después, copiados de `artefactos/estilo/reporte.json`. Ningún agente se asigna un puntaje propio: el reporte es la única medida, sus umbrales son provisionales y un puntaje bajo orienta la revisión sin reprobarla.

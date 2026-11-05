@@ -6415,7 +6415,7 @@
         + `<td>${escapeHtml(String(item.palabras ?? ''))}</td></tr>`).join('');
       findings.innerHTML = (report.hallazgos || []).slice(0, 12).map(item =>
         `<tr><td>${escapeHtml(item.seccion || '')}</td><td>${escapeHtml(item.categoria || '')}</td>`
-        + `<td>${escapeHtml(item.texto || '')}</td><td>${escapeHtml(item.orientacion || '')}</td></tr>`).join('');
+        + `<td>${escapeHtml(item.fragmento || '')}</td><td>${escapeHtml(item.orientacion || '')}</td></tr>`).join('');
     }
 
     async function runStyleAudit() {
