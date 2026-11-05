@@ -49,6 +49,10 @@
       "model": "nan/glm5.3-flash",
       "effort": "low"
     },
+    "revisor-redundancia": {
+      "model": "nan/glm5.3-flash",
+      "effort": "medium"
+    },
     "tikz-optimizer": {
       "model": "nan/glm5.3-flash",
       "effort": "low"

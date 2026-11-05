@@ -59,8 +59,8 @@ nombres de índice se derivan del mismo run-id: `<run-id>-papers` y
 
 `insumos-observador`, `investigador`, `redactor`, `bibliografo-propuesta`,
 `disenador-tikz`, `tikz-optimizer`, `revisor-figuras`, `revisor`,
-`presupuestador`, `grant-flow-auditor`. (No existen `orquestador`, `observador`
-ni `bibliotecario`: usa siempre estos 10 nombres reales. `coordinador-propuesta`
+`presupuestador`, `grant-flow-auditor`, `revisor-redundancia`. (No existen
+`orquestador`, `observador` ni `bibliotecario`: usa siempre estos 11 nombres reales. `coordinador-propuesta`
 existe como documento de referencia del pipeline, no como subagente despachable.)
 
 ## Cómo usar `codebase-memory` (MCP `codegraph`)
@@ -694,8 +694,8 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
         `.marco/config.json`; sin archivo o sin clave, el flujo es `base`).
         Con `"flujo": "sgr"`, en esta misma precarga leé además, con un
         único `Read` completo, `guiaProyectosIA_Agente_Regalias.md` (el
-        complemento SGR) y retené sus bloques: **Directrices Generales SGR**
-        y cada `### SGR §N` / `### SGR A19`…`### SGR A25`. Precedencia: TDR
+        complemento SGR) y retené sus bloques: **Directrices Generales SGR**,
+        **Estilo de redacción SGR** y cada `### SGR §N` / `### SGR A19`…`### SGR A25`. Precedencia: TDR
         > complemento SGR > guía base. Con el flujo `base` no lo leas.
         ──→ FALLBACK DE IDENTIFICACIÓN INSEGURA: si para una sección
         puntual que una Task necesita no podés identificar con confianza el
@@ -730,8 +730,9 @@ Fase 1a [COMPUERTA COMBINADA G1a] Scoping temprano: se ejecuta siempre,
         [<Convenciones técnicas de LaTeX, verbatim — SOLO si la Task
          REDACTA un archivo .tex>]
 
-        [<SOLO flujo SGR: Directrices Generales SGR y el bloque
-         `### SGR §N` de cada sección listada que lo tenga, verbatim>]
+        [<SOLO flujo SGR: Directrices Generales SGR, Estilo de redacción
+         SGR y el bloque `### SGR §N` de cada sección listada que lo tenga,
+         verbatim>]
         ```
 
         Con `artefactos/estructura_tdr.json`, cada bloque `### SGR §N`
@@ -1340,6 +1341,18 @@ Fase 6  Task → redactor → §11 resultados esperados (sin gate propio; §11 y
         `## FRAGMENTO DE GUÍA` con Directrices Generales + §12
         (Consideraciones éticas) + Convenciones técnicas de LaTeX y lo
         inyecta inline al inicio del prompt.
+Fase 6.3 [SOLO FLUJO SGR] Participantes, población, alternativas y riesgos.
+        Con el flujo `base` esta unidad no corre. Con `"flujo": "sgr"` va antes
+        del presupuesto porque §13 costea las estrategias de participantes y
+        la mitigación de riesgos. Task → redactor → `20_participantes.tex`,
+        `21_poblacion.tex`, `22_alternativas.tex` y `24_riesgos.tex` (bloques
+        `### SGR A20`, `A21`, `A22` y `A24`), desde los árboles aprobados, §10 y
+        §11. El fragmento de guía se arma como en la Fase 6.47. Task →
+        grant-flow-auditor pule la prosa.
+        ──→ GATE G6.3 Task → revisor (cada anexo contra su bloque SGR; al
+        menos un riesgo por nivel en A24) ──→ usuario. NO avances sin
+        aprobación. En la Fase 6.4, cada estrategia de A20 y cada riesgo de
+        A24 con costo aparece en §13.
 Fase 6.4 [COMPUERTA INTERACTIVA G-Presupuesto] Presupuesto (interactivo).
         Precondición: §10, §11 y §12 ya aprobadas/producidas (el presupuesto
         justifica cada ítem contra la metodología, §10). El Cronograma (§14)
@@ -1454,26 +1467,22 @@ Fase 6.46 Task → redactor → §17 Estrategia de articulación con comunidades
         ──→ GATE Task → revisor (valida §17 y §18 contra la guía; verifica que
         §18 ancle los 3 productos de tipo C de §15 y que §17 declare actores,
         mecanismos, responsables y momentos) ──→ usuario. NO avances sin aprobación.
-Fase 6.47 [SOLO FLUJO SGR] Anexos MGA. Con el flujo `base` esta unidad no
-        corre: al aprobar G6.46 se pasa directo a la Fase 6.5. Con
-        `"flujo": "sgr"`: Task → redactor → los siete anexos de
-        `guiaProyectosIA_Agente_Regalias.md` (bloques `### SGR A19` a
-        `### SGR A25`), cada uno en su archivo de `redaccion/sections/`:
-        `19_alineacion_planes.tex`, `20_participantes.tex`,
-        `21_poblacion.tex`, `22_alternativas.tex`, `23_cadena_valor.tex`,
-        `24_riesgos.tex` y `25_marco_logico.tex`. `main.tex` ya los
+Fase 6.47 [SOLO FLUJO SGR] Anexos MGA de cierre. Con el flujo `base` esta
+        unidad no corre: al aprobar G6.46 se pasa directo a la Fase 6.5. Con
+        `"flujo": "sgr"`: Task → redactor → los tres anexos de
+        `guiaProyectosIA_Agente_Regalias.md` que dependen del presupuesto
+        (bloques `### SGR A19`, `### SGR A23` y `### SGR A25`), cada uno en su
+        archivo de `redaccion/sections/`: `19_alineacion_planes.tex`,
+        `23_cadena_valor.tex` y `25_marco_logico.tex`. `main.tex` ya los
         incluye si existen. El redactor parte de los árboles aprobados, §10,
-        §11 (indicador de resultado), §13, §14 y §15. Si un riesgo de A24 o
-        una estrategia de participantes de A20 no tiene costo en §13,
-        Task → presupuestador ajusta §13 (vuelve a pasar su recomputo
-        aritmético) antes del gate. Antes de despachar cada Task, el
+        §11 (indicador de resultado), §13, §14, §15 y los anexos de la Fase
+        6.3. Antes de despachar cada Task, el
         dispatcher arma el bloque `## FRAGMENTO DE GUÍA` con Directrices
         Generales + Directrices Generales SGR + el bloque `### SGR A<n>` +
         Convenciones técnicas de LaTeX. Mismo mirror de vault que el resto
         de secciones del redactor.
         ──→ GATE G6.47 Task → revisor (valida cada anexo contra su bloque
-        SGR; la suma de costos de A23 coincide con §13; al menos un riesgo
-        por nivel en A24; la fila del propósito de A25 usa el objetivo
+        SGR; la suma de costos de A23 coincide con §13; la fila del propósito de A25 usa el objetivo
         general y el indicador de resultado de §11) ──→ usuario. NO avances
         sin aprobación.
 Fase 6.5 Task → redactor → secciones preliminares (front-matter), como
@@ -1775,10 +1784,39 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
   de vocabulario, con fidelidad byte a byte de cifras, fechas y citas). Pasale
   al subagente la ruta exacta de esa skill en el prompt de despacho, y exigile
   que devuelva su bloque de verificación (patrones detectados, tabla de
-  cambios, invariantes y puntuación de naturalidad y fidelidad). El `revisor`
+  cambios e invariantes), sin puntajes propios. El `revisor`
   sigue siendo la autoridad del veredicto PASS/FAIL; el auditor no lo
   reemplaza ni lo bloquea. No aplica a unidades sin prosa nueva (bucles de
   figura, presupuesto, bibliografía).
+- **Puntaje de estilo y fidelidad alrededor del auditor.** Antes de despachar
+  `grant-flow-auditor`, copiá las secciones de la unidad a
+  `artefactos/estilo/antes/` y corré
+  `python3 scripts/estilo_es.py auditar <RUN_ROOT> --seccion <N>`; pasale al
+  auditor los hallazgos del reporte. Al terminar, corré
+  `python3 scripts/estilo_es.py verificar artefactos/estilo/antes redaccion/sections`
+  desde `RUN_ROOT`: si cambió una cifra, cita, etiqueta o la cantidad de
+  párrafos, devolvé la unidad al auditor. El índice mide legibilidad y nunca
+  reprueba una unidad; solo `verificar` bloquea.
+- **Redundancia del documento completo (`revisor-redundancia`).** En la Fase 7,
+  antes de G final, y en SGR también al cerrar la Fase 6.47, corré
+  `python3 scripts/estilo_es.py auditar <RUN_ROOT> --todo` y despachá
+  `revisor-redundancia` con ese reporte. Es de solo lectura: señala cada
+  repetición con todas sus ubicaciones, sin elegir cuál copia queda. El autor
+  de cada sección decide y `grant-flow-auditor` no se vuelve a despachar por
+  esto. Las copias literales que la guía SGR exige ya salen en `exentos`.
+- **Convocatoria SGR (solo flujo SGR).** Las reglas de cada convocatoria son
+  datos de la corrida. En la Fase 0, con el TDR leído, escribí
+  `artefactos/convocatoria.json` (pisos, número de objetivos, tipología y TRL,
+  rúbrica de evaluación; el bloque de la guía SGR trae el ejemplo) y, si el TDR
+  fija capítulos, `artefactos/estructura_tdr.json` con sus títulos textuales
+  desde G0.5, no en la Fase 7. Si el equipo reparte el trabajo en un Excel de
+  actividades, corré
+  `python3 scripts/matriz_actividades.py importar <RUN_ROOT> <archivo.xlsx>`
+  y `paquetes <RUN_ROOT>`: la matriz es la fuente de la metodología, la cadena
+  de valor, los productos, el cronograma y los indicadores, y cada investigador
+  recibe su paquete en `artefactos/paquetes/`. Sus avisos (tareas de más, meses
+  o presupuesto ausentes, textos de relleno) se resuelven con el operador antes
+  de redactar esos capítulos.
 - **Verificación determinista antes del `revisor` (todas las compuertas).**
   Corré `python3 scripts/check_run.py <RUN_ROOT>` (en la Fase 7, con
   `--final`). Cubre lo que una expresión regular puede probar: rayas y dobles

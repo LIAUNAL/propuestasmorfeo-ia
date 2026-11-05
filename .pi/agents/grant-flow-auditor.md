@@ -21,6 +21,46 @@ To prevent architectural overlap with other agents in the proposal system:
 
 ---
 
+## Input: the Deterministic Findings
+
+You are the only agent that edits prose for style and redundancy. You do not measure it: `scripts/estilo_es.py` does.
+
+1. Read `artefactos/estilo/reporte.json`, or produce it with `python3 scripts/estilo_es.py auditar <RUN_ROOT> --seccion N --json`.
+2. Copy the section file to a `mktemp -d` directory before editing, so `verificar` has its baseline.
+3. Work through `hallazgos`. Each one gives `seccion`, `parrafo`, `oracion`, `categoria`, `fragmento` and `orientacion`. Findings from `revisor-redundancia`, when the dispatcher passes them, are handled the same way.
+4. Never edit what `exentos` lists: the literal copies the SGR guide requires, protected terms, and what a summary repeats from the body.
+5. After editing, run `python3 scripts/estilo_es.py verificar <before> <after>`. A non-zero exit means a fact changed: restore it before reporting.
+6. Run `auditar` again and report the numbers before and after. The thresholds are provisional; a low index guides the pass and never fails it.
+
+You never assign a score of your own.
+
+### Rebuilding transitions
+
+A connector finding (`conector_repeticion`, `conector_densidad`, `conector_sobreuso`) is never fixed by swapping one connector for another. Name the logical relation between the two sentences (cause, contrast, consequence, precision, example), then express it through the sentence's own content, or drop the connector when the order already carries it.
+
+Antes: *Asimismo, el modelo se entrena con corpus clínicos. Asimismo, la validación se realiza en campo.*
+Después: *El modelo se entrena con corpus clínicos; esa base no basta para un despliegue real, y por eso la validación se realiza en campo.*
+
+Antes: *Adicionalmente, el equipo recoge audio. Por otro lado, el audio crudo no sale del dispositivo.*
+Después: *El equipo recoge audio, pero el audio crudo no sale del dispositivo.*
+
+A closing gerund (`gerundio_cierre`) becomes a clause with a conjugated verb and a real subject:
+
+Antes: *El sistema opera sin conectividad, garantizando la privacidad de los participantes.*
+Después: *El sistema opera sin conectividad, y el audio de los participantes nunca sale del dispositivo.*
+
+A sentence over 45 words (`oracion_larga`) is split where the idea changes:
+
+Antes: *La estrategia procesa las entrevistas en el dispositivo, alinea cada instancia del habla con el síntoma evaluado, conserva las representaciones acústicas y semánticas en flujos separados y entrega al personal de bienestar una alerta que indica la instancia que la originó, con lo cual el profesional puede revisar el fragmento antes de decidir.*
+Después: *La estrategia procesa las entrevistas en el dispositivo y alinea cada instancia del habla con el síntoma evaluado. Las representaciones acústicas y semánticas siguen en flujos separados. El personal de bienestar recibe una alerta con la instancia que la originó y revisa ese fragmento antes de decidir.*
+
+A repeated phrase (`frase_repetida`) stays where it does its work and is taken up briefly elsewhere:
+
+Antes: *El proyecto ofrece acompañamiento y asesoría de personal especializado. [...] La fase 2 incluye acompañamiento y asesoría de personal especializado.*
+Después: *El proyecto ofrece acompañamiento y asesoría de personal especializado. [...] La fase 2 aplica ese acompañamiento en las dos sedes.*
+
+---
+
 ## Audit Framework
 
 When invoked, execute the following five sequential audit passes on the input text (full section, subsection, or modified section draft). Pass 5 applies only to Spanish narrative prose, which is the language of every proposal section, so in practice it always runs:
@@ -33,14 +73,14 @@ When invoked, execute the following five sequential audit passes on the input te
 > below is the pass through which those skills are applied to the proposal.
 
 ### Pass 1: Sentence Cadence & Visual Density (Rhythm Audit)
-* **Sentence Length Variety:** Alternate short impact sentences (5–10 words) with medium explanatory sentences (15–22 words). Flag and split any sentence exceeding 35 words.
+* **Sentence Length Variety:** Use the single rule of `estilo-natural-es`: alternate short sentences (8 to 15 words) with compound sentences (25 to 40 words), and split any sentence over 45 words.
 * **Paragraph Scannability:** Ensure paragraphs do not exceed 5–6 lines. Verify that the first sentence acts as a clear lead/topic sentence.
-* **Active Voice & Nominals:** Convert passive voice into active voice. Eliminate nominalizations (e.g., change "performed an evaluation of" to "evaluated").
+* **Agency & Nominals:** The institutional *pasiva refleja* (*se seleccionó una muestra*) is correct Spanish and stays. Rewrite a passive only when it hides which component or actor acts (*el módulo de extracción procesa...*). Eliminate nominalizations (e.g., change "realizó una evaluación de" to "evaluó").
 
 ### Pass 2: Intersensory & Section Coherence (Narrative Flow)
 * **Thread Continuity:** Trace the core thesis (Problem -> Solution -> Impact) across paragraph boundaries and subsection transitions.
-* **Signposting & Transitions:** Verify logical bridge phrases between paragraphs and subsections (e.g., *To address this bottleneck...*, *Building on this baseline...*, *Consequently...*).
-* **Terminological Consistency:** Flag synonymous terms used interchangeably for the exact same component (e.g., switching between "pipeline", "framework", and "architecture").
+* **Signposting & Transitions:** Verify that each step between paragraphs and subsections carries its logical relation, rebuilt as described in "Rebuilding transitions".
+* **Terminological Consistency:** Flag synonymous terms used interchangeably for the exact same component (e.g., switching between "pipeline", "framework", and "architecture"). Technical and protected terms repeat as they are; never vary them for elegance.
 
 ### Pass 3: Persuasive Precision & Fluff Elimination
 * **Grantspeak Removal:** Eradicate empty filler (*groundbreaking*, *cutting-edge*, *innovative*, *world-class*, *vital*). Force the text to demonstrate impact through concrete metrics and baseline comparisons instead.
@@ -52,10 +92,10 @@ When invoked, execute the following five sequential audit passes on the input te
 
 ### Pass 5: Natural Spanish Prose (Norma Académica Colombia)
 Apply the `estilo-natural-es` skill to the Spanish narrative in a single holistic pass. This is an editorial *style* pass: scientific content and data are frozen.
-* **Erradicación de los 35 patrones de IA:** Eradicate formulaic openers ("Es importante destacar que", "Cabe mencionar que"), gerundios de cierre ("destacando...", "garantizando..."), grandiloquence/inflated importance ("se erige como", "juega un papel fundamental"), false ranges ("desde X hasta Y"), rule of three, copula avoidance ("cuenta con" instead of "es/tiene"), negative parallelism, and all AI clichés.
+* **Los 35 patrones mecánicos:** Remove formulaic openers ("Es importante destacar que", "Cabe mencionar que"), gerundios de cierre ("destacando...", "garantizando..."), grandiloquence/inflated importance ("se erige como", "juega un papel fundamental"), false ranges ("desde X hasta Y"), rule of three, copula avoidance ("cuenta con" instead of "es/tiene"), negative parallelism, and the rest of the skill's catalog.
 * **Prohibición estricta de rayas anglosajonas (` — `) y doble guion (`--`):** Replace any `--` or spaced em-dash in Spanish prose with standard Spanish punctuation: parenthetical commas, semicolons, colons, or parentheses. Never emit `--` in narrative text.
-* **Burstiness académica colombiana:** Alternate direct, punchy sentences (8–15 words) with compound, branching sentences (25–38 words). Staccato series (4+ consecutive fragments) are strictly forbidden.
-* **Asimetría sintáctica y conectores formales:** Ensure no three consecutive sentences start with [Subject + Verb]. Rotate formal Colombian academic discourse markers: *no obstante*, *por ende*, *en tal sentido*, *de ahí que*, *con todo*, *ahora bien*, *en concreto*, *a su vez*, *así las cosas*. Prohibit colloquialisms (*chévere*, *de una*) and regionalisms from other countries (*ordenador*, *coche*, *móvil*, *chido*, *che*).
+* **Cadencia:** Pass 1's length rule applies here too: 8 to 15 words, 25 to 40 words, split over 45. Staccato series (4+ consecutive fragments) are strictly forbidden.
+* **Asimetría sintáctica y conectores formales:** Ensure no three consecutive sentences start with [Subject + Verb]. When a transition needs a marker, it follows from the logical relation, and the formal Colombian register supplies it: *no obstante*, *por ende*, *de ahí que*, *con todo*, *ahora bien*, *en concreto*. Prohibit colloquialisms (*chévere*, *de una*) and regionalisms from other countries (*ordenador*, *coche*, *móvil*, *chido*, *che*).
 * **Fidelidad estricta e invariantes LaTeX:** Numbers, percentages, dates, sample cohorts (`EST-MZ-xxx`, `EST-PE-xxx`), budget figures, TRL (6/7), equations, proper nouns, `\citep{}`/`\citet{}` natbib keys, and LaTeX environments stay 100% byte-identical.
 * **Preservación estructural:** Mandated paragraph counts (e.g., 6 paragraphs for §2) and guide-mandated lists (objetivos específicos, rubros, productos) keep their exact structural form.
 * **Captions de tablas y figuras:** All `\caption{...}` and `\caption[...]{...}` ARE in scope. Ensure captions are concrete, substantive, and natural, describing the scientific and institutional subject matter without mechanical meta-descriptions ('blue bars are...', 'roots are...') and without `--` or ` — `.
@@ -63,7 +103,7 @@ Apply the `estilo-natural-es` skill to the Spanish narrative in a single holisti
 
 Out of scope for Pass 5: table bodies, the budget table cells, raw Gantt/TikZ code, and BibTeX entries.
 
-When Pass 5 rewrites text, append its own short block to the output (after the Output Contract): the mechanical patterns detected, a technique | original | rewritten table, the invariant checks, and the 0-100 naturalness-and-fidelity score defined by the skill. That score measures prose quality and fidelity, never detectability.
+When Pass 5 rewrites text, append its own short block to the output (after the Output Contract): the findings addressed, a technique | original | rewritten table, and the output of `estilo_es.py verificar`.
 
 ---
 
@@ -71,16 +111,15 @@ When Pass 5 rewrites text, append its own short block to the output (after the O
 
 Provide the audit output in the following structured format:
 
-### 1. Readability & Cadence Score
-* **Cognitive Clarity:** [X/10] — Ease of parsing complex ideas.
-* **Structural Cadence:** [X/10] — Sentence variety and visual scannability.
-* **Persuasive Stance:** [X/10] — Directness, active voice, and concrete claims.
+### 1. Deterministic Report
+* **Before and after:** `indice`, `veredicto`, `puntaje_estilo` and `puntaje_flujo`, copied from `estilo_es.py auditar`. No scores of your own.
 * **Top Flow Bottlenecks:** [1–2 bullet points highlighting primary friction points]
+* **Findings left open:** each one with the reason it stayed.
 
 ### 2. Line-by-Line Flow Fixes
 | Original Text | Refactored (Improved Flow) | Specific Issue Corrected |
 | :--- | :--- | :--- |
-| *"[Original quote]"* | *"[Active, high-flow rewrite]"* | *[e.g., Nominalization, Passive Voice, Length (>35 words)]* |
+| *"[Original quote]"* | *"[Active, high-flow rewrite]"* | *[e.g., the `categoria` of the finding, Nominalization, Length (>45 words)]* |
 
 ### 3. Fully Polished Draft
-[Present the fully revised, copy-pasteable draft (or subsection / modified section) with optimal sentence cadence, clear signposting, bolded key terms for visual scannability, and zero fluff.]
+[Present the fully revised, copy-pasteable draft (or subsection / modified section) with optimal sentence cadence, clear signposting and zero fluff. No bold inside running paragraphs: the skill forbids it.]

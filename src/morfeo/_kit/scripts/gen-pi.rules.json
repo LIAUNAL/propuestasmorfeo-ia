@@ -22,6 +22,7 @@
       "presupuestador.md",
       "redactor.md",
       "revisor-figuras.md",
+      "revisor-redundancia.md",
       "revisor.md",
       "tikz-optimizer.md"
     ],
@@ -176,6 +177,7 @@
       "applies_to": [
         "revisor.md",
         "revisor-figuras.md",
+        "revisor-redundancia.md",
         "propuesta.md"
       ],
       "find": "Read/Grep/Glob",
@@ -188,6 +190,7 @@
       "applies_to": [
         "revisor.md",
         "revisor-figuras.md",
+        "revisor-redundancia.md",
         "presupuestador.md",
         "propuesta.md"
       ],
