@@ -28,7 +28,7 @@ from morfeo.core.pipeline_units import (  # noqa: E402
 
 STEPS_DOC = REPO / ".claude" / "commands" / "_propuesta-steps.md"
 
-STEP_UNITS_EXPECTED = 17
+STEP_UNITS_EXPECTED = 18
 
 # Valores de compuerta observados en los artefactos de la corrida de referencia,
 # incluidos los que la tabla no reconoce. El inventario tiene que ubicarlos todos:
@@ -125,11 +125,13 @@ class TestPipelineUnits(unittest.TestCase):
             "G5", "G5.5", "G6.4", "G6.46", "G6.5", "G7",
         ):
             self.assertIn(real, canonical, f"falta {real} en las compuertas canónicas")
-        # Catorce del flujo base más las dos del flujo SGR: GCausas (causas
-        # directas, tras G1a) y G6.47 (anexos MGA).
+        # Catorce del flujo base más las tres del flujo SGR: GCausas (causas
+        # directas, tras G1a), G6.3 (anexos que alimentan el presupuesto) y
+        # G6.47 (anexos MGA).
+        self.assertIn("G6.3", canonical)
         self.assertIn("G6.47", canonical)
         self.assertIn("GCausas", canonical)
-        self.assertEqual(len(canonical), 16, "las compuertas canónicas son dieciséis")
+        self.assertEqual(len(canonical), 17, "las compuertas canónicas son diecisiete")
 
     def test_early_units_run_scoping_trees_corpus_then_mga_summary(self) -> None:
         # The trees come right after the subproblems (in SGR, after the GCausas
@@ -236,8 +238,27 @@ class TestUnitsByFlujo(unittest.TestCase):
         self.assertEqual(nxt["fase6_47"], "fase6_5")
         annex = next(u for u in units if u["id"] == "fase6_47")
         self.assertEqual(annex["gate"], "G6.47")
-        self.assertEqual(annex["sections"], ["19", "20", "21", "22", "23", "24", "25"])
+        self.assertEqual(annex["sections"], ["19", "23", "25"])
         self.assertIn("G6.47", {g["id"] for g in canonical_gates("sgr")})
+
+    def test_sgr_flow_writes_the_annexes_the_budget_costs_before_the_budget(self) -> None:
+        units = units_for_flujo("sgr")
+        ids = self._ids(units)
+        self.assertEqual(ids[ids.index("fase6"):ids.index("fase6_4") + 1], ["fase6", "fase6_3", "fase6_4"])
+        nxt = {u["id"]: u.get("next") for u in units}
+        self.assertEqual(nxt["fase6"], "fase6_3")
+        self.assertEqual(nxt["fase6_3"], "fase6_4")
+        unit = next(u for u in units if u["id"] == "fase6_3")
+        self.assertEqual(unit["gate"], "G6.3")
+        self.assertEqual(unit["sections"], ["20", "21", "22", "24"])
+        self.assertEqual(unit["agents"], ["redactor", "grant-flow-auditor", "revisor"])
+        self.assertIn("G6.3", {g["id"] for g in canonical_gates("sgr")})
+
+    def test_base_flow_goes_from_results_straight_to_the_budget(self) -> None:
+        units = units_for_flujo("base")
+        self.assertNotIn("fase6_3", self._ids(units))
+        self.assertEqual({u["id"]: u.get("next") for u in units}["fase6"], "fase6_4")
+        self.assertNotIn("G6.3", {g["id"] for g in canonical_gates("base")})
 
     def test_unknown_flow_is_the_base_flow(self) -> None:
         self.assertEqual(self._ids(units_for_flujo("otro")), self._ids(units_for_flujo("base")))
@@ -251,6 +272,7 @@ class TestUnitsByFlujo(unittest.TestCase):
     def test_without_a_flow_every_gate_is_listed(self) -> None:
         """Llamar `canonical_gates()` sin flujo conserva el comportamiento previo."""
         self.assertIn("G6.47", {g["id"] for g in canonical_gates()})
+        self.assertIn("G6.3", {g["id"] for g in canonical_gates()})
 
 
 if __name__ == "__main__":

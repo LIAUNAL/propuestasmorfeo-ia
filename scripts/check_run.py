@@ -12,8 +12,8 @@ Usage:
 
 RUN_ROOT defaults to the run named in proposals/.current-run. Without --final,
 only files that already exist are checked (a mid-pipeline gate); --final also
-requires every canonical section, a filled cover and the total reference
-floor. Exit code 1 when any error is found. --json prints an object
+requires every canonical section (in SGR with TDR chapters, the chapter files), a
+filled cover and the total reference floor. Exit code 1 when any error is found. --json prints an object
 {"flujo": ..., "findings": [...]}.
 
 Flow (flujo): read from the first `.morfeo/config.json` or `.marco/config.json`
@@ -44,6 +44,22 @@ objective trees when their files exist:
     sgr-problema-estructura (warning: §3 misses one of the subsections
     Problema central, Descripción de la situación existente, Magnitud del
     problema, guía SGR §3).
+  SGR call rules (artefactos/convocatoria.json, all keys optional; the base
+  flow never reads it): convocatoria-invalida (error, the file is then ignored),
+    convocatoria-trl-invertido (error: trl.salida below trl.entrada),
+    piso-referencias (error when pisos_referencias declares the floor, warning
+    with the base numbers otherwise), objetivos-no-son-3 (error against
+    objetivos_especificos; undeclared, warning below 3), trl-ausente (names
+    trl.salida), rubrica-capitulo-inexistente (error),
+    rubrica-puntos (warning: the rubric does not add up to 100).
+  SGR section rules: sgr-marca-trabajo (warning, error with --final: a
+    [PENDIENTE, [VERIFICAR, [CONFIRMAR or [PROPUESTA mark in a section file);
+    tdr*.tex go through the prose and citation checks; with
+    estructura_tdr.json, --final requires its chapter files (diag_* are
+    optional) instead of the canonical sections and the MGA annexes, and
+    tdr-capitulo-vacio is an error for a chapter without content; without it,
+    tdr-estructura-faltante is an error when guia_ajustada_TDR.md has a chapter
+    table.
   tree figures (both flows): figura-desincronizada (error: diag_<tree>.tex is
     not the render of its spec), figura-spec-invalida, figura-sin-verificar.
   TDR chapters (artefactos/estructura_tdr.json, any flow):
@@ -93,6 +109,8 @@ FLUJOS = ("base", "sgr")
 PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
 OBJECTIVES_FILE = Path("artefactos") / "arboles" / "arbol_objetivos.json"
 REVIEW_FILE = Path("artefactos") / "arboles" / "revision.json"
+CONVOCATORIA_FILE = Path("artefactos") / "convocatoria.json"
+STRUCTURE_FILE = Path("artefactos") / "estructura_tdr.json"
 # Tree figures that must be compiled from the spec the panel shows.
 TREE_FIGURES = {"arbol_problemas": "problemas", "arbol_objetivos": "objetivos"}
 
@@ -199,20 +217,57 @@ def check_citations(report: Report, sections: dict[str, Path], texts: dict[str, 
     return keys_by_section
 
 
-def check_floors(report: Report, sections: dict[str, Path], keys_by_section: dict[str, set[str]], final: bool) -> None:
-    for name, floor in (("02_justificacion", FLOOR_JUSTIFICACION), ("04_estado_arte", FLOOR_ESTADO_ARTE)):
+def _floor(key: str, base: int, flujo: str, convocatoria: dict) -> tuple[int, str, str]:
+    """Floor to apply, its severity and a closing note. In SGR the call decides:
+    only a declared floor blocks; the base numbers remain as a warning."""
+    if flujo != "sgr":
+        return base, "error", ""
+    declared = (convocatoria.get("pisos_referencias") or {}).get(key)
+    if declared is None:
+        return base, "warning", " Piso de la guía base: la convocatoria no lo declara en pisos_referencias."
+    return declared, "error", ""
+
+
+def check_floors(report: Report, sections: dict[str, Path], keys_by_section: dict[str, set[str]], final: bool,
+                 flujo: str = "base", convocatoria: dict | None = None) -> None:
+    convocatoria = convocatoria or {}
+    for name, key, base in (("02_justificacion", "justificacion", FLOOR_JUSTIFICACION),
+                            ("04_estado_arte", "estado_arte", FLOOR_ESTADO_ARTE)):
+        floor, severity, note = _floor(key, base, flujo, convocatoria)
         if name in keys_by_section and len(keys_by_section[name]) < floor:
-            report.add("error", "piso-referencias",
-                       f"{name} cita {len(keys_by_section[name])} referencias distintas (mínimo {floor}).",
+            report.add(severity, "piso-referencias",
+                       f"{name} cita {len(keys_by_section[name])} referencias distintas (mínimo {floor}).{note}",
                        sections[name])
     if final:
         total = set().union(*keys_by_section.values()) if keys_by_section else set()
-        if len(total) < FLOOR_TOTAL:
-            report.add("error", "piso-referencias",
-                       f"El documento cita {len(total)} referencias distintas (mínimo {FLOOR_TOTAL}).")
+        floor, severity, note = _floor("total", FLOOR_TOTAL, flujo, convocatoria)
+        if len(total) < floor:
+            report.add(severity, "piso-referencias",
+                       f"El documento cita {len(total)} referencias distintas (mínimo {floor}).{note}")
 
 
-def check_trl(report: Report, sections: dict[str, Path], texts: dict[str, str]) -> None:
+def _trl_requirement(flujo: str, convocatoria: dict) -> tuple[re.Pattern, str]:
+    """What §2 and §11 must show and the message when they do not. In SGR the
+    level is the call's trl.salida, also when written as the end of a range."""
+    salida = (convocatoria.get("trl") or {}).get("salida")
+    if flujo != "sgr":
+        return re.compile(r"\bTRL\b"), "TRL 6 o 7 debe ser explícito en esta sección."
+    if salida is None:
+        return re.compile(r"\bTRL\b"), ("El nivel TRL de salida debe ser explícito en esta sección; la convocatoria "
+                                         "lo fija en trl.salida de artefactos/convocatoria.json.")
+    return (re.compile(rf"\bTRL[\s~]*(?:\d+[\s~]*(?:a|al|y|o|-|–)[\s~]*)?{salida}\b"),
+            f"TRL {salida}, el nivel de salida de la convocatoria, debe ser explícito en esta sección.")
+
+
+def check_trl(report: Report, sections: dict[str, Path], texts: dict[str, str], flujo: str = "base",
+              convocatoria: dict | None = None) -> None:
+    convocatoria = convocatoria or {}
+    declared = convocatoria.get("trl") or {}
+    if flujo == "sgr" and None not in (declared.get("entrada"), declared.get("salida")) \
+            and declared["salida"] < declared["entrada"]:
+        report.add("error", "convocatoria-trl-invertido",
+                   f"trl.salida ({declared['salida']}) es menor que trl.entrada ({declared['entrada']}).",
+                   report.run_root / CONVOCATORIA_FILE)
     trl = re.compile(r"\bTRL\b")
     for name in ("06_objetivo_general", "07_objetivos_especificos"):
         if name in texts:
@@ -221,23 +276,31 @@ def check_trl(report: Report, sections: dict[str, Path], texts: dict[str, str]) 
                     report.add("error", "trl-en-objetivos",
                                "TRL nombrado en un objetivo: expresar el nivel de forma funcional.",
                                sections[name], number)
+    required, message = _trl_requirement(flujo, convocatoria)
     for name in ("02_justificacion", "11_resultados_esperados"):
-        if name in texts and not any(trl.search(l) for _, l in prose_lines(texts[name])):
-            report.add("error", "trl-ausente", "TRL 6 o 7 debe ser explícito en esta sección.", sections[name])
+        if name in texts and not any(required.search(l) for _, l in prose_lines(texts[name])):
+            report.add("error", "trl-ausente", message, sections[name])
     if "10_metodologia" in texts and not trl.search(texts["10_metodologia"]):
         report.add("warning", "trl-ausente", "El revisor espera la trayectoria TRL en la metodología.",
                    sections["10_metodologia"])
 
 
-def check_objectives(report: Report, sections: dict[str, Path], texts: dict[str, str]) -> None:
+def check_objectives(report: Report, sections: dict[str, Path], texts: dict[str, str], flujo: str = "base",
+                     convocatoria: dict | None = None) -> None:
     name = "07_objetivos_especificos"
     if name not in texts:
         return
     match = re.search(r"\\begin\{enumerate\}(.*?)\\end\{enumerate\}", texts[name], re.S)
     items = len(re.findall(r"^\s*\\item\b", match.group(1), re.M)) if match else 0
-    if items != 3:
+    expected = (convocatoria or {}).get("objetivos_especificos") if flujo == "sgr" else 3
+    if expected is None:
+        if items < 3:
+            report.add("warning", "objetivos-no-son-3",
+                       f"§7 enumera {items} objetivos específicos; la plantilla usa 3. Si la convocatoria fija otro "
+                       "número, decláralo en objetivos_especificos de artefactos/convocatoria.json.", sections[name])
+    elif items != expected:
         report.add("error", "objetivos-no-son-3",
-                   f"§7 enumera {items} objetivos específicos; el mapeo 1:1 exige 3.", sections[name])
+                   f"§7 enumera {items} objetivos específicos; el mapeo 1:1 exige {expected}.", sections[name])
 
 
 def check_main(report: Report, red: Path, final: bool) -> None:
@@ -600,6 +663,54 @@ def _read_json_file(path: Path):
     return data if isinstance(data, dict) else None
 
 
+def _is_int(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _convocatoria_problems(data) -> list[str]:
+    """Keys of artefactos/convocatoria.json with the wrong type; all are optional."""
+    if not isinstance(data, dict):
+        return ["el archivo debe ser un objeto JSON"]
+    problems = []
+    floors = data.get("pisos_referencias", {})
+    if not isinstance(floors, dict) or not all(_is_int(floors[k]) for k in floors
+                                               if k in ("justificacion", "estado_arte", "total")):
+        problems.append("pisos_referencias debe ser un objeto con enteros")
+    if "objetivos_especificos" in data and not _is_int(data["objetivos_especificos"]):
+        problems.append("objetivos_especificos debe ser un entero")
+    trl = data.get("trl", {})
+    if not isinstance(trl, dict) or not all(_is_int(trl[k]) for k in ("entrada", "salida") if k in trl):
+        problems.append("trl debe ser un objeto con entrada y salida enteras")
+    rubrica = data.get("rubrica", [])
+    if not isinstance(rubrica, list) or not all(
+            isinstance(item, dict)
+            and isinstance(item.get("capitulos", []), list)
+            and isinstance(item.get("puntos", 0), (int, float)) and not isinstance(item.get("puntos"), bool)
+            for item in rubrica):
+        problems.append("rubrica debe ser una lista de objetos con puntos numéricos y capitulos en lista")
+    return problems
+
+
+def load_convocatoria(run_root: Path, report: Report | None = None) -> dict:
+    """Rules of the call from artefactos/convocatoria.json: {} when absent or
+    invalid, so the checks fall back to their undeclared behaviour. With `report`,
+    an invalid file adds one convocatoria-invalida error."""
+    path = Path(run_root) / CONVOCATORIA_FILE
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except ValueError as exc:
+        problems = [f"no es JSON válido: {exc}"]
+    else:
+        problems = _convocatoria_problems(data)
+    if not problems:
+        return data
+    if report is not None:
+        report.add("error", "convocatoria-invalida", f"artefactos/convocatoria.json: {'; '.join(problems)}.", path)
+    return {}
+
+
 def _latex_plain(tex: str) -> str:
     text = re.sub(r"\\(textbf|textit|emph|texttt|mbox)\{([^{}]*)\}", r"\2", tex)
     text = re.sub(r"\\[a-zA-Z]+\*?(\[[^\]]*\])?(\{[^{}]*\})?", "", text)
@@ -856,18 +967,38 @@ def _braced(text: str, start: int) -> str:
     return text[start:i - 1]
 
 
-def check_tdr_structure(report: Report, run_root: Path, final: bool) -> None:
-    """main.tex in the TDR chapter order (scripts/ensamblar_main.py), verbatim titles."""
-    structure_path = run_root / "artefactos" / "estructura_tdr.json"
-    data = _read_json_file(structure_path)
-    if data is None:
-        return
+def _load_assembler():
+    """scripts/ensamblar_main.py, or None in a kit that does not ship it."""
     assembler_path = Path(__file__).resolve().parent / "ensamblar_main.py"
     if not assembler_path.is_file():
-        return
+        return None
     module_spec = importlib.util.spec_from_file_location("ensamblar_main", assembler_path)
     assembler = importlib.util.module_from_spec(module_spec)
     module_spec.loader.exec_module(assembler)
+    return assembler
+
+
+def load_tdr_chapters(run_root: Path) -> list[dict] | None:
+    """Chapters of a valid estructura_tdr.json, else None."""
+    data = _read_json_file(run_root / STRUCTURE_FILE)
+    assembler = _load_assembler() if data is not None else None
+    if assembler is None:
+        return None
+    try:
+        return assembler.validate(data)
+    except assembler.InputError:
+        return None
+
+
+def check_tdr_structure(report: Report, run_root: Path, final: bool) -> None:
+    """main.tex in the TDR chapter order (scripts/ensamblar_main.py), verbatim titles."""
+    structure_path = run_root / STRUCTURE_FILE
+    data = _read_json_file(structure_path)
+    if data is None:
+        return
+    assembler = _load_assembler()
+    if assembler is None:
+        return
     try:
         chapters = assembler.validate(data)
     except assembler.InputError as exc:
@@ -966,8 +1097,91 @@ def check_sgr_problem_structure(report: Report, texts: dict[str, str], sections:
                    f"Faltan las subsecciones: {', '.join(missing)}.", sections[name])
 
 
-def check_sgr_sections(report: Report, sec_dir: Path, flujo: str, final: bool) -> None:
+def _file_has_content(path: Path) -> bool:
+    """A file with something besides comments, headings and labels."""
+    if not path.is_file():
+        return False
+    body = "\n".join(strip_comment(line) for line in path.read_text(encoding="utf-8", errors="replace").splitlines())
+    return bool(re.sub(r"\\(?:sub)*section\*?\s*\{[^{}]*\}|\\label\{[^{}]*\}", "", body).strip())
+
+
+def _guide_declares_chapters(run_root: Path) -> bool:
+    """The adjusted guide has the chapter table of `ensamblar_main.py --from-guide`.
+    A numbered table without files (a rubric, say) is not one."""
+    assembler = _load_assembler()
+    if assembler is None or not (run_root / assembler.GUIDE).is_file():
+        return False
+    try:
+        data = assembler.from_guide((run_root / assembler.GUIDE).read_text(encoding="utf-8", errors="replace"))
+    except assembler.InputError:
+        return False
+    return any(chapter["archivos"] for chapter in data["capitulos"])
+
+
+def check_sgr_chapters(report: Report, run_root: Path, sec_dir: Path, chapters: list[dict] | None, flujo: str,
+                       final: bool) -> None:
+    """--final in SGR: the TDR chapters decide which files the document needs."""
     if flujo != "sgr" or not final:
+        return
+    structure_path = run_root / STRUCTURE_FILE
+    if chapters is None:
+        if structure_path.is_file():
+            # A readable but invalid structure was reported by check_tdr_structure.
+            if _read_json_file(structure_path) is None:
+                report.add("error", "tdr-estructura-invalida", "artefactos/estructura_tdr.json no es un objeto JSON "
+                                                               "válido.", structure_path)
+        elif _guide_declares_chapters(run_root):
+            report.add("error", "tdr-estructura-faltante",
+                       "guia_ajustada_TDR.md declara capítulos propios del TDR y falta artefactos/estructura_tdr.json. "
+                       f"Créalo con: python3 scripts/ensamblar_main.py {run_root} --from-guide")
+        return
+    reported: set[str] = set()
+    for chapter in chapters:
+        names = chapter["archivos"]
+        for name in names:
+            if not name.startswith("diag_") and name not in reported and not (sec_dir / f"{name}.tex").is_file():
+                reported.add(name)
+                report.add("error", "seccion-faltante", f"Falta sections/{name}.tex (capítulo {chapter['numero']}).")
+        if not any(_file_has_content(sec_dir / f"{name}.tex") for name in names):
+            report.add("error", "tdr-capitulo-vacio", f"El capítulo {chapter['numero']} no tiene archivos con "
+                                                      "contenido.", run_root / STRUCTURE_FILE)
+
+
+WORK_MARK_RE = re.compile(r"\[(?:PENDIENTE|VERIFICAR|CONFIRMAR|PROPUESTA)")
+
+
+def check_sgr_marks(report: Report, sec_dir: Path, flujo: str, final: bool) -> None:
+    """Working marks left in a section file; tables count, since they print."""
+    if flujo != "sgr":
+        return
+    for path in sorted(sec_dir.glob("*.tex")):
+        for number, raw in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), start=1):
+            for match in WORK_MARK_RE.finditer(strip_comment(raw)):
+                report.add("error" if final else "warning", "sgr-marca-trabajo",
+                           f"Marca de trabajo {match.group(0)}…] sin resolver.", path, number)
+
+
+def check_rubrica(report: Report, run_root: Path, convocatoria: dict, chapters: list[dict] | None, flujo: str) -> None:
+    """Rubric of the call: entries point to real chapters and the points add up."""
+    rubrica = convocatoria.get("rubrica") or []
+    if flujo != "sgr" or not rubrica:
+        return
+    path = run_root / CONVOCATORIA_FILE
+    if chapters is not None:
+        known = {str(chapter["numero"]) for chapter in chapters}
+        for item in rubrica:
+            for chapter in item.get("capitulos") or []:
+                if str(chapter) not in known:
+                    report.add("error", "rubrica-capitulo-inexistente",
+                               f"El criterio {item.get('id')} de la rúbrica apunta al capítulo {chapter}, que no está "
+                               "en artefactos/estructura_tdr.json.", path)
+    total = sum(item.get("puntos") or 0 for item in rubrica)
+    if abs(total - 100) > 1e-9:
+        report.add("warning", "rubrica-puntos", f"La rúbrica suma {total:g} puntos, no 100.", path)
+
+
+def check_sgr_sections(report: Report, sec_dir: Path, flujo: str, final: bool, by_chapters: bool = False) -> None:
+    if flujo != "sgr" or not final or by_chapters:
         return
     for name in SGR_SECTIONS:
         if not (sec_dir / f"{name}.tex").is_file():
@@ -987,9 +1201,17 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
         report.add("error", "seccion-1-en-cuerpo",
                    "No debe existir un archivo de §1: el título va solo en la portada de main.tex.", stray)
 
+    sgr = report.flujo == "sgr"
+    convocatoria = load_convocatoria(run_root, report) if sgr else {}
+    chapters = load_tdr_chapters(run_root) if sgr else None
+    # With a structure, even an invalid one, the TDR decides the required files.
+    by_chapters = sgr and (run_root / STRUCTURE_FILE).is_file()
+
     sections = {name: sec_dir / f"{name}.tex" for name in CANONICAL_SECTIONS if (sec_dir / f"{name}.tex").is_file()}
+    if sgr:
+        sections.update((path.stem, path) for path in sorted(sec_dir.glob("tdr*.tex")))
     texts = {name: path.read_text(encoding="utf-8", errors="replace") for name, path in sections.items()}
-    if final:
+    if final and not by_chapters:
         for name in CANONICAL_SECTIONS:
             if name not in sections:
                 report.add("error", "seccion-faltante", f"Falta sections/{name}.tex.")
@@ -999,9 +1221,9 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
         check_prose(report, path, texts.get(name) or path.read_text(encoding="utf-8", errors="replace"))
 
     keys_by_section = check_citations(report, sections, texts)
-    check_floors(report, sections, keys_by_section, final)
-    check_trl(report, sections, texts)
-    check_objectives(report, sections, texts)
+    check_floors(report, sections, keys_by_section, final, report.flujo, convocatoria)
+    check_trl(report, sections, texts, report.flujo, convocatoria)
+    check_objectives(report, sections, texts, report.flujo, convocatoria)
     check_main(report, red, final)
     check_cover(report, red, final)
     check_bibliography(report, sections, texts)
@@ -1011,7 +1233,10 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_tdr_structure(report, run_root, final)
     check_sgr_methodology_schedule(report, run_root, texts, sections, report.flujo)
     check_sgr_problem_structure(report, texts, sections, report.flujo)
-    check_sgr_sections(report, sec_dir, report.flujo, final)
+    check_sgr_sections(report, sec_dir, report.flujo, final, by_chapters)
+    check_sgr_chapters(report, run_root, sec_dir, chapters, report.flujo, final)
+    check_sgr_marks(report, sec_dir, report.flujo, final)
+    check_rubrica(report, run_root, convocatoria, chapters, report.flujo)
     return report
 
 
