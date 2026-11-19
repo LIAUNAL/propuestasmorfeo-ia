@@ -60,10 +60,22 @@ nombres de índice se derivan del mismo run-id: `<run-id>-papers` y
 
 `insumos-observador`, `investigador`, `redactor`, `bibliografo-propuesta`,
 `disenador-tikz`, `tikz-optimizer`, `revisor-figuras`, `revisor`,
-`presupuestador`, `grant-flow-auditor`, `juez-sgr` (solo flujo SGR). (No
+`presupuestador`, `grant-flow-auditor`, `juez-sgr` (solo flujo SGR),
+`revisor-estilo-sgr` (solo flujo SGR). (No
 existen `orquestador`, `observador` ni `bibliotecario`: usa siempre
-estos 11 nombres reales. `coordinador-propuesta`
+estos 12 nombres reales. `coordinador-propuesta`
 existe como documento de referencia del pipeline, no como subagente despachable.)
+
+**Regla del flujo SGR para la auditoría de estilo.** Con `"flujo": "sgr"` en
+`.morfeo/config.json` (o `.marco/config.json`), cada despacho de
+`grant-flow-auditor` que describe esta receta se hace a `revisor-estilo-sgr`,
+en el mismo momento (antes del `revisor`) y con las mismas secciones. Ese
+agente aplica `estilo-natural-es` y `depuracion-redundancias-es` con los
+ajustes de la DNP (skill `estilo-sgr`): conserva el «se» impersonal, la tercera
+persona sobre el proyecto y la repetición literal que la plantilla exige. Con el
+flujo `base` nada cambia: sigue `grant-flow-auditor`. El inventario
+(`src/morfeo/core/pipeline_units.py`, `AGENT_REPLACEMENTS_FLUJO`) aplica el
+mismo reemplazo, así que el tablero muestra el agente que de verdad corre.
 
 ## Cómo usar `codebase-memory` (MCP `codegraph`)
 
@@ -293,8 +305,9 @@ Antes de cerrar la siguiente unidad del pipeline, el DISPATCHER lee ese archivo.
 Si tiene entradas sin marcar:
 
 1. Las entrega al `redactor`, que las aplica sobre la sección correspondiente.
-2. Pasa el resultado por `grant-flow-auditor`, que pule la cadencia sin mover
-   cifras, citas ni estructura.
+2. Pasa el resultado por `grant-flow-auditor` (en el flujo SGR,
+   `revisor-estilo-sgr`), que pule la cadencia sin mover cifras, citas ni
+   estructura.
 3. Marca cada casilla como aplicada y anota el veredicto de la compuerta.
 
 Dos reglas que no se negocian. Una instrucción sin ejecutar no se recupera de
@@ -1251,6 +1264,44 @@ Fase 4  Task → investigador → §6 objetivo general + §7 objetivos
         `artefactos/pipeline/50-fase4.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
         de uso acumulados de la fase (ver "Telemetría de uso por fase").
+Fase 4 SGR [COMPUERTA G4.cv] Cadena de valor como datos. SOLO flujo SGR,
+        después de G4 = APROBADA; con el flujo `base` esta unidad no corre y
+        al aprobar G4 se pasa directo a la Fase 5. La cadena de valor vive en
+        `artefactos/sgr/cadena_valor.json` (esquema
+        `morfeo.cadena-valor-sgr/v1`): cada objetivo específico del árbol con
+        sus productos y las actividades que los producen, cada actividad con
+        un código `<oe>.<producto>.<actividad>` que después usan §10, §13, §14
+        y el anexo A23.
+        ──→ DISPATCHER: `python3 scripts/cadena_valor_sgr.py init <RUN_ROOT>`
+        (con `--duracion-meses <N>` si el TDR o `insumos.md` fijan la
+        duración). Siembra un objetivo por grupo del árbol de objetivos con su
+        texto literal, un producto por objetivo y una actividad técnica
+        candidata por medio, más las actividades de administración y de
+        supervisión bajo el último producto. Si el archivo ya existe, no lo
+        pises: `--force` solo con pedido explícito del usuario.
+        (a) Task → investigador (rama "Cadena de valor SGR", ver
+        `investigador.md`) con `RUN_ROOT`, el árbol de objetivos y
+        `cadena_valor.json` inline, y el bloque `## FRAGMENTO DE GUÍA` con
+        Directrices Generales SGR + `### SGR §7` + `### SGR A23`. Completa
+        los productos (código del catálogo de productos DNP, Resolución 3906:
+        `39` y cinco dígitos; nombre del catálogo; medido a través de;
+        indicador; unidad; meta) y las actividades técnicas (nombre sin los
+        verbos que la MGA prohíbe para actividades, ruta crítica, mes de
+        inicio y de fin). Edita solo `cadena_valor.json`; no toca el texto de
+        los objetivos ni los costos, que llegan en la Fase 6.4.
+        ──→ DISPATCHER: `python3 scripts/cadena_valor_sgr.py check <RUN_ROOT>`.
+        Mientras reporte errores, devolvé la salida exacta al investigador y
+        repetí (a); los avisos se presentan en la compuerta.
+        ──→ GATE Task → revisor (valida que cada producto responda a su
+        objetivo específico, que las actividades alcancen para producirlo y
+        que la ruta crítica sea coherente; recibe la salida limpia de
+        `check`) ──→ usuario: la aprobación se da en la pestaña «Cadena de
+        valor» del tablero, que la ata al hash del archivo
+        (`artefactos/sgr/revision.json`). Un ajuste pedido ahí vuelve a (a)
+        con el comentario exacto. Al aprobar, escribe `G4.cv = APROBADA` en
+        `artefactos/estado_propuesta.md` (fila `| G4.cv | APROBADA |`) y el
+        evento `artefactos/pipeline/52-fase4_sgr.md`. NO avances sin
+        aprobación.
 Fase 5  Task → investigador → §8 marco conceptual (en paralelo; 3-5
         subsecciones, título claro por concepto — ver `investigador.md`
         constraint 10). Antes de
@@ -1304,7 +1355,11 @@ Fase 5.5 [NUEVO] Task → redactor → §10 metodología (compuerta propia,
         `operacion`) y `oe` (los ids OE del árbol de objetivos que atiende),
         para leerse como cadena de valor por etapa (guía SGR §10); el
         render imprime la etapa en la caja y `check_run.py` advierte
-        `sgr-metodologia-sin-etapa` / `sgr-metodologia-sin-oe`. El diagrama NUNCA incluye personal
+        `sgr-metodologia-sin-etapa` / `sgr-metodologia-sin-oe`. En el flujo
+        SGR, además, el prompt del redactor lleva `cadena_valor.json` inline:
+        §10 nombra cada actividad con su código de la cadena de valor (por
+        ejemplo «Actividad 1.1.2») y no inventa actividades fuera de ella; si
+        falta una, se agrega primero en la cadena (Fase 4 SGR). El diagrama NUNCA incluye personal
         responsable dentro de sus bloques (ver `disenador-tikz.md`).
         `artefactos/vault/secciones/10_metodologia.md` cambió en esta fase; si no
         cambió, reutiliza el reporte de grafo existente sin
@@ -1359,6 +1414,13 @@ Fase 6.4 [COMPUERTA INTERACTIVA G-Presupuesto] Presupuesto (interactivo).
         `redaccion/sections/13_presupuesto.tex` + su mirror de vault, con el
         self-audit aritmético ya aplicado; cada monto/cantidad no derivable de
         un insumo va marcado `[supuesto]`.
+        SOLO flujo SGR: el prompt lleva `artefactos/sgr/cadena_valor.json`
+        inline y el presupuestador asigna además el `costo` de cada actividad
+        por su código en ese archivo (la suma de los costos coincide con el
+        total de §13). Tras cada ronda, el DISPATCHER corre
+        `python3 scripts/cadena_valor_sgr.py check <RUN_ROOT>` y devuelve los
+        errores al presupuestador; desde esta fase una actividad sin costo es
+        un aviso.
         ──→ BUCLE INTERACTIVO (sin tope de rondas; termina SOLO con
         aprobación explícita del usuario):
           1. El DISPATCHER presenta al usuario: (i) la tabla renderizada
@@ -1462,9 +1524,15 @@ Fase 6.47 [SOLO FLUJO SGR] Anexos MGA. Con el flujo `base` esta unidad no
         `guiaProyectosIA_Agente_Regalias.md` (bloques `### SGR A19` a
         `### SGR A25`), cada uno en su archivo de `redaccion/sections/`:
         `19_alineacion_planes.tex`, `20_participantes.tex`,
-        `21_poblacion.tex`, `22_alternativas.tex`, `23_cadena_valor.tex`,
-        `24_riesgos.tex` y `25_marco_logico.tex`. `main.tex` ya los
-        incluye si existen. El redactor parte de los árboles aprobados, §10,
+        `21_poblacion.tex`, `22_alternativas.tex`, `24_riesgos.tex` y
+        `25_marco_logico.tex`. El anexo A23 (`23_cadena_valor.tex`) no lo
+        escribe el redactor: el DISPATCHER corre
+        `python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>`, que lo genera
+        desde `cadena_valor.json` y se niega mientras haya hallazgos de error
+        (`check_run.py` marca error un A23 escrito a mano o anterior al
+        JSON). Si §13 cambia en esta fase, el presupuestador actualiza los
+        costos en `cadena_valor.json` y se vuelve a correr `render`.
+        `main.tex` ya los incluye si existen. El redactor parte de los árboles aprobados, §10,
         §11 (indicador de resultado), §13, §14 y §15. Si un riesgo de A24 o
         una estrategia de participantes de A20 no tiene costo en §13,
         Task → presupuestador ajusta §13 (vuelve a pasar su recomputo
@@ -1730,7 +1798,8 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
 ## Reglas de dependencia (haz que `revisor` las valide en cada gate)
 
 - 3 subproblemas (§3) ↔ 3 objetivos específicos (§7), mapeo 1:1.
-- Pregunta de investigación (cierre §3) ↔ objetivo general (§6).
+- Pregunta de investigación (cierre §3) ↔ objetivo general (§6). En el flujo SGR
+  §3 no cierra con pregunta (guía SGR §3): el cruce es problema central ↔ objetivo general.
 - Hipótesis (§5) ↔ objetivo general (§6).
 - Metodología (§10) ↔ objetivos específicos (§7), marco conceptual (§8) y
   equipo de trabajo (§9), cadena de valor. El punto 1 (Métodos) del
@@ -1800,7 +1869,11 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
   cambios, invariantes y puntuación de naturalidad y fidelidad). El `revisor`
   sigue siendo la autoridad del veredicto PASS/FAIL; el auditor no lo
   reemplaza ni lo bloquea. No aplica a unidades sin prosa nueva (bucles de
-  figura, presupuesto, bibliografía).
+  figura, presupuesto, bibliografía). En el flujo SGR este paso lo hace
+  `revisor-estilo-sgr` en lugar de `grant-flow-auditor` (ver la regla del
+  flujo SGR bajo el roster), con la ruta de la skill `estilo-sgr` en el
+  prompt; los hallazgos `sgr-estilo-*` de `check_run.py` le llegan como
+  avisos.
 - **Verificación determinista antes del `revisor` (todas las compuertas).**
   Corré `python3 scripts/check_run.py <RUN_ROOT>` (en la Fase 7, con
   `--final`). Cubre lo que una expresión regular puede probar: rayas y dobles

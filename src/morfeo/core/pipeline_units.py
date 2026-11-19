@@ -72,6 +72,12 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "reviewer": "Revisor",
         "criteria": "Correspondencia biyectiva 1:1 entre subproblemas y objetivos.",
     },
+    "G4.cv": {
+        "name": "Cadena de valor (flujo SGR)",
+        "phase": "Fase 4 SGR",
+        "reviewer": "Revisor & Usuario",
+        "criteria": "Productos del catálogo DNP con indicador y meta, dos o más actividades técnicas por producto con código, ruta crítica y meses, sin hallazgos de error en cadena_valor_sgr.py check; el usuario la aprueba en la pestaña Cadena de valor.",
+    },
     "G5": {
         "name": "Marco Conceptual y Equipo",
         "phase": "Fase 5",
@@ -129,6 +135,7 @@ GATE_ALIASES: dict[str, str] = {
     "G comunidades": "G6.46",
     "G anexos": "G6.47",
     "G causas": "GCausas",
+    "G cadena": "G4.cv",
     "G front": "G6.5",
     "G final": "G7",
 }
@@ -174,6 +181,9 @@ def normalise_gate(raw: Any) -> str | None:
 # `agents_flujo`: agentes que una unidad común suma solo en un flujo (hoy, el
 # juez SGR asesor al final de la Fase 7). `units_for_flujo` los agrega a
 # `agents` del flujo que corresponde y quita la clave de la copia.
+# `AGENT_REPLACEMENTS_FLUJO` (abajo): agentes que un flujo despacha en lugar de
+# otro en todas sus unidades. En el flujo SGR el revisor de estilo SGR corre
+# donde el flujo base corre `grant-flow-auditor`; el inventario no cambia.
 
 PIPELINE_UNITS: list[dict[str, Any]] = [
     {
@@ -295,6 +305,19 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "artifacts": [],
         "agents": ["investigador", "grant-flow-auditor", "revisor"],
         "skills": ["estilo-natural-es"],
+        "next": "fase4_sgr",
+    },
+    {
+        "id": "fase4_sgr",
+        "kind": "step",
+        "flujo": "sgr",
+        "name": "Cadena de valor",
+        "desc": "Solo flujo SGR: siembra la cadena de valor desde el árbol de objetivos aprobado (`scripts/cadena_valor_sgr.py init`), con productos del catálogo DNP, indicador y meta por objetivo específico y actividades técnicas con código, ruta crítica y meses; la valida con `check` y el usuario la aprueba en la pestaña Cadena de valor.",
+        "gate": "G4.cv",
+        "sections": [],
+        "artifacts": ["artefactos/sgr/cadena_valor.json"],
+        "agents": ["investigador", "revisor"],
+        "skills": [],
         "next": "fase5",
     },
     {
@@ -410,6 +433,11 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
 ]
 
 
+AGENT_REPLACEMENTS_FLUJO: dict[str, dict[str, str]] = {
+    "sgr": {"grant-flow-auditor": "revisor-estilo-sgr"},
+}
+
+
 def units_for_flujo(flujo: str | None) -> list[dict[str, Any]]:
     """Inventario de unidades de un flujo (`base` o `sgr`), en orden de pipeline.
 
@@ -417,16 +445,20 @@ def units_for_flujo(flujo: str | None) -> list[dict[str, Any]]:
     omiten y el `next` de la unidad previa salta sobre ellas, de modo que el
     flujo base nunca espera una compuerta que no le corresponde. Devuelve copias:
     el inventario canónico no se toca. Una unidad común suma los agentes que
-    declara en `agents_flujo` para este flujo.
+    declara en `agents_flujo` para este flujo, y cada agente que el flujo
+    reemplaza (`AGENT_REPLACEMENTS_FLUJO`) se lista con su reemplazo.
     """
     flujo = flujo if flujo in ("base", "sgr") else "base"
     kept = [dict(u) for u in PIPELINE_UNITS if u.get("flujo", flujo) == flujo]
     ids = {u["id"] for u in kept}
     by_id = {u["id"]: u for u in PIPELINE_UNITS}
+    replacements = AGENT_REPLACEMENTS_FLUJO.get(flujo, {})
     for unit in kept:
         extra = unit.pop("agents_flujo", {}).get(flujo, [])
         if extra:
             unit["agents"] = [*unit["agents"], *extra]
+        if replacements:
+            unit["agents"] = [replacements.get(a, a) for a in unit["agents"]]
         nxt = unit.get("next")
         while nxt and nxt not in ids and nxt in by_id:
             nxt = by_id[nxt].get("next")

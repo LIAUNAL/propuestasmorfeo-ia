@@ -77,7 +77,8 @@ más de 6 h, se muestra como obsoleto y no bloquea el botón «Ejecutar».
 | `fase1` | MGA resumido (`artefactos/mga_resumido.md`) + §3 problema derivada de él + grant-flow-auditor + revisor | G1 | `fase2` |
 | `fase2` | §4 SOTA + §5 hipótesis + grant-flow-auditor + spec del mapa SOTA (`figura.py`) + revisor | G2 | `fase3` |
 | `fase3` | §2 justificación + grant-flow-auditor + revisor | G3 | `fase4` |
-| `fase4` | §6–§7 objetivos + grant-flow-auditor + revisor | G4 | `fase5` |
+| `fase4` | §6–§7 objetivos + grant-flow-auditor + revisor | G4 | `fase4_sgr` (flujo SGR) o `fase5` (flujo base) |
+| `fase4_sgr` | Solo flujo SGR: cadena de valor como datos (`artefactos/sgr/cadena_valor.json`): `cadena_valor_sgr.py init` desde el árbol de objetivos, investigador completa productos DNP y actividades, `check` limpio + revisor; el usuario la aprueba en la pestaña Cadena de valor; el flujo base la salta | G cadena | `fase5` |
 | `fase5` | §8 marco + §9 equipo + grant-flow-auditor + revisor | G5 | `fase5_5` |
 | `fase5_5` | §10 metodología + grant-flow-auditor + spec del diagrama (`figura.py`) + revisor | G5.5 | `fase6` |
 | `fase6` | §11 resultados + §12 ética + grant-flow-auditor (no own gate) | — | `fase6_4` |
@@ -88,6 +89,12 @@ más de 6 h, se muestra como obsoleto y no bloquea el botón «Ejecutar».
 | `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave; sin sección cuerpo de título) + grant-flow-auditor + revisor | G front | `fase7` |
 | `fase7` | Final audit + assemble `main.tex` (\setcounter{section}{1}, xltabular, bibliografía limpia); flujo SGR: juez-sgr asesor tras el ensamble (ver «Juez final») | G final | `done` |
 | `done` | Pipeline complete | — | print `cd proposal && ./build.sh` |
+
+**Flujo SGR: revisor de estilo en lugar del auditor.** Con `"flujo": "sgr"`,
+cada fila que nombra `grant-flow-auditor` despacha `revisor-estilo-sgr` en su
+lugar (mismo momento: antes del `revisor`). El flujo base sigue con
+`grant-flow-auditor`. El inventario de `pipeline_units.py` aplica el mismo
+reemplazo (`AGENT_REPLACEMENTS_FLUJO`) solo al flujo SGR.
 
 **Pre-intake units** (only in analizar / start of auto, not as `next_step` after
 intake):

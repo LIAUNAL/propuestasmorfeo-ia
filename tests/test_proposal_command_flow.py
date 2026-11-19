@@ -436,5 +436,78 @@ class TestJuezCommand(unittest.TestCase):
         self.assertIn("Con el flujo `base` este paso no corre.", step)
 
 
+
+class TestSgrValueChainRecipe(unittest.TestCase):
+    """SGR-only value chain unit and style reviewer swap (odd/tasks/sgr-cadena-estilo.md, S1, S5, S6)."""
+
+    CANONICAL = REPO_ROOT / ".claude" / "commands" / "propuesta.md"
+    STEPS = REPO_ROOT / ".claude" / "commands" / "_propuesta-steps.md"
+
+    def setUp(self):
+        self.text = self.CANONICAL.read_text(encoding="utf-8")
+
+    def _block(self, start: str, end: str) -> str:
+        i = self.text.index(start)
+        return self.text[i:self.text.index(end, i + len(start))]
+
+    def test_one_rule_swaps_the_auditor_for_the_sgr_style_reviewer(self):
+        rule = self._block("**Regla del flujo SGR para la auditoría de estilo.**", "\n## ")
+        self.assertIn("`grant-flow-auditor`", rule)
+        self.assertIn("`revisor-estilo-sgr`", rule)
+        self.assertIn("Con el\nflujo `base` nada cambia: sigue `grant-flow-auditor`.", rule)
+        roster = self._block("## Roster de subagentes", "\n## ")
+        self.assertIn("`revisor-estilo-sgr` (solo flujo SGR)", roster)
+        gate_rule = self._block("- **Auditoría de prosa antes del gate (`grant-flow-auditor`).**", "\n- **")
+        self.assertIn("En el flujo SGR este paso lo hace\n  `revisor-estilo-sgr` en lugar de `grant-flow-auditor`",
+                      gate_rule)
+
+    def test_value_chain_unit_runs_only_in_the_sgr_flow(self):
+        block = self._block("Fase 4 SGR [COMPUERTA G4.cv]", "\nFase 5  ")
+        self.assertIn("SOLO flujo SGR", block)
+        self.assertIn("con el flujo `base` esta unidad no corre", block)
+        self.assertIn("python3 scripts/cadena_valor_sgr.py init <RUN_ROOT>", block)
+        self.assertIn("Task → investigador", block)
+        self.assertIn("python3 scripts/cadena_valor_sgr.py check <RUN_ROOT>", block)
+        self.assertIn("GATE Task → revisor", block)
+        self.assertIn("pestaña «Cadena de\n        valor»", block)
+        self.assertIn("| G4.cv | APROBADA |", block)
+        self.assertLess(self.text.index("Fase 4  Task → investigador"), self.text.index("Fase 4 SGR [COMPUERTA G4.cv]"))
+
+    def test_sgr_methodology_budget_and_annex_use_the_value_chain(self):
+        methodology = self._block("Fase 5.5 [NUEVO]", "\nFase 6  ")
+        self.assertIn("código de la cadena de valor", methodology)
+        budget = self._block("Fase 6.4 [COMPUERTA INTERACTIVA", "\nFase 6.45 ")
+        self.assertIn("SOLO flujo SGR", budget)
+        self.assertIn("`costo` de cada actividad\n        por su código", budget)
+        annex = self._block("Fase 6.47 [SOLO FLUJO SGR]", "\nFase 6.5 ")
+        self.assertIn("python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>", annex)
+        self.assertIn("no lo\n        escribe el redactor", annex)
+        redactor_files = annex[:annex.index("El anexo A23")]
+        self.assertNotIn("23_cadena_valor.tex", redactor_files)
+
+    def test_base_flow_blocks_never_name_the_sgr_style_reviewer(self):
+        for start, end in (("Fase 3  Task → redactor", "\nFase 4  "), ("Fase 4  Task → investigador", "\nFase 4 SGR "),
+                           ("Fase 6.46 Task → redactor", "\nFase 6.47 ")):
+            with self.subTest(block=start):
+                self.assertNotIn("revisor-estilo-sgr", self._block(start, end))
+                self.assertNotIn("cadena_valor_sgr.py", self._block(start, end))
+
+    def test_step_table_declares_the_unit_and_the_swap(self):
+        steps = self.STEPS.read_text(encoding="utf-8")
+        self.assertIn("| `fase4` | §6–§7 objetivos + grant-flow-auditor + revisor | G4 | "
+                      "`fase4_sgr` (flujo SGR) o `fase5` (flujo base) |", steps)
+        row = next(line for line in steps.splitlines() if line.startswith("| `fase4_sgr` |"))
+        self.assertIn("el flujo base la salta", row)
+        self.assertIn("| G cadena | `fase5` |", row)
+        self.assertIn("cada fila que nombra `grant-flow-auditor` despacha `revisor-estilo-sgr`", steps)
+
+    def test_agents_carry_their_sgr_only_duties(self):
+        agents = REPO_ROOT / ".claude" / "agents"
+        investigador = (agents / "investigador.md").read_text(encoding="utf-8")
+        self.assertIn("## Cadena de valor SGR (Fase 4 SGR, compuerta G4.cv)\n\nSGR flow only", investigador)
+        presupuestador = (agents / "presupuestador.md").read_text(encoding="utf-8")
+        self.assertIn("**SGR flow only, costs per activity code.**", presupuestador)
+
+
 if __name__ == "__main__":
     unittest.main()

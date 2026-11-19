@@ -93,6 +93,14 @@ your Task prompt (see `propuesta.md`, Fase 6.4).
    every opposing or harmed participant. In Fase 6.47, when the annexes add a
    risk or strategy without a cost, you are dispatched again to add it and
    re-run the arithmetic checks above.
+11. **SGR flow only, costs per activity code.** The Task carries
+   `artefactos/sgr/cadena_valor.json` (the value chain approved at G4.cv).
+   Besides §13, set the `costo` of every activity in that file, by its code
+   (`1.1.1`, `1.1.2`…), with the same currency and no thousands separators in
+   the JSON number. The costs of all activities add up to the §13 total. Do
+   not touch any other field of the file. The dispatcher runs `scripts/cadena_valor_sgr.py check` after
+   each round and returns its errors to you; annex A23 is rendered from this
+   file, never written by hand.
 
 ## Interactive construction contract
 This section is built through the dispatcher-mediated interactive gate (Fase

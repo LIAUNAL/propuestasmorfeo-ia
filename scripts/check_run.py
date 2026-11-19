@@ -44,6 +44,14 @@ objective trees when their files exist:
     sgr-problema-estructura (warning: §3 misses one of the subsections
     Problema central, Descripción de la situación existente, Magnitud del
     problema, guía SGR §3).
+  value chain and style (SGR flow only; scripts/cadena_valor_sgr.py and
+    scripts/estilo_sgr.py, imported from this folder when they exist):
+    every `cadena-*` finding of artefactos/sgr/cadena_valor.json;
+    cadena-valor-faltante (warning: the run is past the objectives gate G4
+    and has no cadena_valor.json); cadena-anexo-manual (error:
+    23_cadena_valor.tex lacks the GENERADO header) and
+    cadena-anexo-desactualizado (error: it is older than the json); and
+    every `sgr-estilo-*` finding as a warning.
   tree figures (both flows): figura-desincronizada (error: diag_<tree>.tex is
     not the render of its spec), figura-spec-invalida, figura-sin-verificar.
   TDR chapters (artefactos/estructura_tdr.json, any flow):
@@ -966,6 +974,84 @@ def check_sgr_problem_structure(report: Report, texts: dict[str, str], sections:
                    f"Faltan las subsecciones: {', '.join(missing)}.", sections[name])
 
 
+def _sibling_module(name: str):
+    """scripts/<name>.py next to this file, or None when it does not exist."""
+    path = Path(__file__).resolve().parent / f"{name}.py"
+    if not path.is_file():
+        return None
+    module_spec = importlib.util.spec_from_file_location(f"_check_run_{name}", path)
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    return module
+
+
+CHAIN_FILE = Path("artefactos") / "sgr" / "cadena_valor.json"
+CHAIN_SECTION = "23_cadena_valor"
+CHAIN_HEADER = "% GENERADO por scripts/cadena_valor_sgr.py"
+G4_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.])G4(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def _past_objectives_gate(run_root: Path, sec_dir: Path) -> bool:
+    """G4 approved in estado_propuesta.md, or a section that comes after it (§8 onwards)."""
+    estado = run_root / "artefactos" / "estado_propuesta.md"
+    if estado.is_file() and G4_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+        return True
+    later = CANONICAL_SECTIONS[CANONICAL_SECTIONS.index("08_marco_conceptual"):]
+    return any((sec_dir / f"{name}.tex").is_file() for name in later)
+
+
+def check_sgr_value_chain(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """Value chain as data (scripts/cadena_valor_sgr.py): its findings, its absence, and annex A23."""
+    if flujo != "sgr":
+        return
+    chain_path = run_root / CHAIN_FILE
+    if chain_path.is_file():
+        try:
+            module = _sibling_module("cadena_valor_sgr")
+            found = module.findings(run_root) if module is not None else []
+        except Exception as exc:  # a broken helper must not hide the other checks
+            report.add("warning", "cadena-no-verificable",
+                       f"No se pudo correr scripts/cadena_valor_sgr.py: {exc!r}.", chain_path)
+            found = []
+        for f in found:
+            report.add(f["severity"], f["code"], f["message"], chain_path, node=f.get("node"))
+    elif _past_objectives_gate(run_root, sec_dir):
+        report.add("warning", "cadena-valor-faltante",
+                   "En el flujo SGR, después de G4 la cadena de valor vive en artefactos/sgr/cadena_valor.json "
+                   "(unidad fase4_sgr): corré python3 scripts/cadena_valor_sgr.py init <RUN_ROOT>.")
+    tex = sec_dir / f"{CHAIN_SECTION}.tex"
+    if not tex.is_file():
+        return
+    first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+    if not first or first[0].strip() != CHAIN_HEADER:
+        report.add("error", "cadena-anexo-manual",
+                   "En el flujo SGR el anexo A23 no se escribe a mano: lo genera "
+                   "python3 scripts/cadena_valor_sgr.py render <RUN_ROOT> desde cadena_valor.json.", tex)
+    elif chain_path.is_file() and tex.stat().st_mtime < chain_path.stat().st_mtime:
+        report.add("error", "cadena-anexo-desactualizado",
+                   "23_cadena_valor.tex es anterior a cadena_valor.json: volvé a correr "
+                   "python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>.", tex)
+
+
+def check_sgr_style(report: Report, run_root: Path, flujo: str) -> None:
+    """SGR style findings (scripts/estilo_sgr.py), as warnings: advice for the style reviewer."""
+    if flujo != "sgr":
+        return
+    try:
+        module = _sibling_module("estilo_sgr")
+        found = module.findings(run_root) if module is not None else []
+    except Exception as exc:
+        report.add("warning", "sgr-estilo-no-verificable", f"No se pudo correr scripts/estilo_sgr.py: {exc!r}.")
+        return
+    for f in found or []:
+        archivo = f.get("archivo")
+        path = (run_root / archivo) if archivo and not Path(archivo).is_absolute() else (Path(archivo) if archivo else None)
+        message = str(f.get("message") or "")
+        if f.get("extracto"):
+            message += f" «{f['extracto']}»"
+        report.add("warning", str(f.get("code") or "sgr-estilo"), message, path, line=f.get("linea"))
+
+
 def check_sgr_sections(report: Report, sec_dir: Path, flujo: str, final: bool) -> None:
     if flujo != "sgr" or not final:
         return
@@ -1012,6 +1098,8 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_sgr_methodology_schedule(report, run_root, texts, sections, report.flujo)
     check_sgr_problem_structure(report, texts, sections, report.flujo)
     check_sgr_sections(report, sec_dir, report.flujo, final)
+    check_sgr_value_chain(report, run_root, sec_dir, report.flujo)
+    check_sgr_style(report, run_root, report.flujo)
     return report
 
 

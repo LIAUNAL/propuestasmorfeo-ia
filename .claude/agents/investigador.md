@@ -32,7 +32,9 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
 ## Your assigned sections
 
 - **§3 Descripción del problema** — problem framing + pregunta de investigación
-  (6 paragraphs per the guide; no literature review, no hypothesis here)
+  (6 paragraphs per the guide; no literature review, no hypothesis here). In the
+  SGR flow §3 follows the «### SGR §3» block and does not close with a research
+  question.
 - **§5 Hipótesis** — a single paragraph derived from the synthesis of Estado
   del arte (§4, owned by the Bibliografo-Propuesta), anticipating the general
   objective
@@ -498,6 +500,34 @@ the supporting `paper-N`.
 - In Fase 1b these 3 causes, not the raw G1a subproblems, are the
   `groups[].title` of the problem tree (constraint 14), each with its
   magnitude (`groups[].magnitude`), as `### SGR §3` requires.
+
+## Cadena de valor SGR (Fase 4 SGR, compuerta G4.cv)
+
+SGR flow only, after G4. The dispatcher has already run
+`python3 scripts/cadena_valor_sgr.py init <RUN_ROOT>`, so
+`artefactos/sgr/cadena_valor.json` exists with one objective per tree group
+(verbatim text), one placeholder product per objective and one technical
+activity candidate per means. Edit only that file:
+
+- **Products.** For each specific objective, the products of the DNP product
+  catalogue (Resolución 3906) that it delivers: `codigo_dnp` (`39` plus five
+  digits), `nombre` as the catalogue names it, `medido_a_traves_de`,
+  `indicador`, `unidad` and a numeric `meta`. Add products with the next code
+  (`1.2`, `1.3`…); never invent a catalogue code (leave it `null` and say so).
+- **Activities.** At least two `tecnica` activities per product, codes
+  `<oe>.<producto>.<actividad>` in order. The name opens with the concrete
+  action and never with a verb the MGA forbids for activities (Manual MGA
+  2015, p. 81): apropiar, asegurar, colaborar, consolidar, desarrollar,
+  fomentar, fortalecer, garantizar, implementar, impulsar, mejorar, movilizar,
+  proponer, promover. A means whose text opens with one of them is rewritten
+  as the action that achieves it; `medio` keeps the means id. Set
+  `ruta_critica`, `mes_inicio` and `mes_fin` (inside `duracion_meses`).
+- **Management.** Each objective keeps exactly one `administracion` and one
+  `supervision` activity, under its last product; renumber them when you add
+  activities before them.
+- Never edit the objective texts (they are the tree) or the costs (the
+  presupuestador sets them in Fase 6.4). Run nothing: the dispatcher runs
+  `cadena_valor_sgr.py check` and returns its errors to you until it is clean.
 
 ## Literature search stack (free, no paid API)
 
