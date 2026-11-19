@@ -55,6 +55,17 @@ archivo no se lee.
    idéntico. En el flujo SGR no aplica la extensión de 12 a 15 palabras de la
    guía base; `scripts/check_run.py` verifica la derivación
    (`sgr-titulo-no-derivado`).
+7. **Voz y léxico.** La prosa habla del proyecto en tercera persona: «El
+   proyecto…», «Este proyecto busca…», «La presente propuesta se enmarca
+   en…», «La alianza…» o la impersonal con «se». Nunca en primera persona
+   (nosotros, nuestro, hemos, proponemos). Presente para el diagnóstico,
+   pretérito para los antecedentes y futuro para actividades y resultados.
+   Cada bloque `### SGR` trae su parte «Redacción»; las expresiones
+   prohibidas, desaconsejadas y favorecidas por sección están en
+   `scripts/sgr/lexico_sgr.json` y las verifica `scripts/estilo_sgr.py`. En
+   este flujo, `revisor-estilo-sgr` (skill `estilo-sgr`) audita y pule cada
+   sección antes del `revisor`, en el lugar de `grant-flow-auditor`. Donde el
+   proyecto de referencia y la MGA difieren, manda la MGA.
 
 ---
 
@@ -65,6 +76,26 @@ plan departamental y el municipal, y con los planes étnicos cuando apliquen
 (Plan de Etnodesarrollo, Plan de Vida, Plan Integral Rrom). Nombra el programa y
 la meta de cada plan con la que contribuye. La tabla completa va en el anexo
 `19_alineacion_planes.tex`.
+
+**Redacción.** (Anexo 2, cap. 7 «Justificación».)
+
+* Apertura: «El presente proyecto se centra en…» (una sola vez) o «La necesidad
+  de esta intervención se relaciona con…».
+* Favorecer: «La pertinencia científica y tecnológica radica en…», «La
+  viabilidad se apoya en las capacidades de <grupos>…» y, antes de la tabla,
+  «La Tabla N presenta la viabilidad y pertinencia del proyecto a corto,
+  mediano y largo plazo».
+* Evitar: volver a describir el problema, porque la justificación parte de él
+  en una oración; repetir ODS y PND, que viven en el anexo 19 y aquí se
+  remiten en una oración; «es de vital importancia», «es fundamental», «se
+  hace necesario» o «urgente», que son énfasis sin evidencia; el esquema base
+  de seis párrafos (OCDE, Banco Mundial, auge de la IA) como estructura, que el
+  Anexo 2 no pide (el piso de referencias de la guía base sigue vigente).
+* Tiempo: presente para la necesidad y la pertinencia; futuro para lo que el
+  proyecto entregará.
+* Extensión: la referencia mide unas 2.240 palabras en párrafos de unas 130,
+  más la tabla.
+* Tabla: `Factor | Elemento | Corto plazo | Mediano plazo | Largo plazo`.
 
 ### SGR §3
 
@@ -88,8 +119,12 @@ Además de las reglas de la guía base:
      su fuente, y la tabla de indicadores (Indicador, Causa, Valor, Fuente,
      Año) con la línea base del proyecto en negrita.
 
-  La sección cierra con la pregunta de investigación y la cita a la figura del
-  árbol de problemas. Las cifras, las causas y la variable son las mismas de
+  La sección cierra con la cita a la figura del árbol de problemas. En el flujo
+  SGR, §3 no cierra con la pregunta de investigación: ni la plantilla del
+  Anexo 2 ni el proyecto de referencia la usan, porque el documento es un
+  proyecto de inversión (problema, alternativa, cadena de valor) y no una
+  propuesta de investigación; el objetivo general responde al problema
+  central. Las cifras, las causas y la variable son las mismas de
   `mga_resumido.md`; si el TDR fija el capítulo «Planteamiento del problema»,
   su título manda sobre el de la sección. Si falta una de las tres
   subsecciones, `scripts/check_run.py` lo advierte como
@@ -155,6 +190,30 @@ Además de las reglas de la guía base:
   quedan en `artefactos/arboles/causas_directas.md` y son las causas directas
   del árbol de problemas.
 
+**Redacción.** (Anexo 2, cap. 5.)
+
+* Apertura: el problema central es el tronco literal, sin preámbulo («El
+  problema central que abordará el proyecto es…» sobra).
+* Favorecer: «<Recurso o sector> es <rol> de <territorio>…» para el contexto;
+  «A esta situación se suma…» y «Esta emergencia agudiza…» para el evento;
+  «Una de las causas directas relacionadas con el problema central es <causa
+  literal>», «Otra causa directa del problema son…» y «Esto se debe a…» para
+  las causas; «Por lo anterior, se define como indicador de referencia del
+  problema: <indicador, valor, unidad, fuente, año>» para cerrar la magnitud.
+* Evitar: «falta de», «ausencia de», «carencia de» o «no existe», también en
+  la narración causal, porque un problema no es la ausencia de su solución
+  (reformular como estado: «baja capacidad técnica»); hablar de la solución en
+  el diagnóstico («con el proyecto se busca», «resulta necesario
+  desarrollar»), que va en objetivos y alternativas; una línea base que cuenta
+  la solución inexistente («Cero (0) prototipos»); condicionales en cadena
+  («lo que puede llevar a…»); valorativos sin criterio («crucial», «soluciones
+  innovadoras»); nombres de personas como fuente.
+* Tiempo: presente para la situación existente y la magnitud; pretérito para
+  la evolución reciente y las intervenciones previas.
+* Extensión: de 2.000 a 3.500 palabras.
+* Tabla: `Indicador | Causa | Valor | Fuente | Año`, con la línea base en
+  negrita.
+
 ### SGR §6
 
 El objetivo general es literalmente el tronco del árbol de objetivos: verbo en
@@ -174,6 +233,20 @@ TRL o la duración. Formas prohibidas (Manual MGA 2015, p. 80, tabla 12):
 Conserva la población, el territorio y el evento del tronco tal como están, sin
 ampliar el alcance más allá de lo que el proyecto valida.
 
+**Redacción.** (Anexo 2, 12.1.)
+
+* Apertura: el enunciado es el tronco del árbol de objetivos, literal y en una
+  sola oración: verbo en infinitivo, objeto y población o territorio.
+* Favorecer: los verbos espejo del árbol (Aumentar, Incrementar, Mejorar,
+  Fortalecer, Reducir, Disminuir, Ampliar).
+* Evitar: «mediante» o «a través de» (el medio), «para mejorar…» (el fin),
+  cifras o porcentajes (la meta) y «construcción de…» (el producto); la prosa
+  que acompañe el enunciado no lo parafrasea, porque el título y §6 lo
+  repiten literal.
+* Tiempo: infinitivo en el enunciado; presente en la prosa que lo acompaña.
+* Extensión: una oración de hasta 460 caracteres; el indicador de resultado va
+  en §11.
+
 ### SGR §7
 
 Cada objetivo específico es literalmente la conversión en positivo de una causa
@@ -189,6 +262,17 @@ paréntesis, territorio, evento). En `artefactos/arboles/arbol_objetivos.json`,
 `groups[].title` es el rótulo `OE<n>` y `groups[].objective` guarda solo el
 objetivo; el texto de la causa directa nunca se copia en el título.
 
+**Redacción.** (Anexo 2, 12.2.)
+
+* Apertura: «Objetivo específico <n> (OE<n>): <texto literal del árbol>».
+* Favorecer: verbo, objeto y el elemento mínimo que distingue cada objetivo.
+* Evitar: confundir el objetivo con actividades o productos; metas en el
+  enunciado; repetir los calificadores del objetivo general; parafrasear, ya
+  que el texto se repite literal en la metodología, la cadena de valor y el
+  cronograma.
+* Tiempo: infinitivo.
+* Extensión: tres enunciados de una oración.
+
 ### SGR §10
 
 La metodología se organiza como cadena de valor: insumos → actividades →
@@ -196,6 +280,34 @@ productos → resultados → impactos (Instructivo MGA 2023, p. 62). Cada produc
 responde a un objetivo específico y cada fase nombra sus actividades por etapa
 (preinversión, inversión, operación). El detalle tabular va en
 `23_cadena_valor.tex`.
+
+**Redacción.** (Anexo 2, cap. 14.)
+
+* Apertura: por objetivo, «Objetivo específico <n>: <texto literal>»; por
+  actividad, «Actividad <n.n.n>: <infinitivo + objeto + localización>» con los
+  campos «Responsable:», «Tareas:», «Resultados de la actividad:» y «Medio de
+  verificación:».
+* Favorecer: «Esta actividad consiste en…», «<Entidad> coordinará…», «Se
+  conformará un expediente documental técnico que reúna…», «La verificación
+  del TRL N se sustentará en…», «Los criterios de aceptación se establecerán a
+  partir de…».
+* Evitar: en el nombre de una actividad, los verbos que la MGA prohíbe para
+  ellas (apropiar, asegurar, colaborar, consolidar, desarrollar, fomentar,
+  fortalecer, garantizar, implementar, impulsar, mejorar, movilizar, proponer,
+  promover; Manual MGA 2015, p. 81), que en los objetivos sí valen; tareas o
+  insumos como actividad («Comprar…», «Contratar…», «viáticos»); «paquetes de
+  trabajo», porque el Anexo 2 organiza por objetivo, producto y actividad
+  («paquete tecnológico» sí es término oficial); un TRL declarado sin
+  evidencia; «se determinará durante la ejecución» sin criterio; «de manera
+  integral» o «robusto» como relleno.
+* Tiempo: futuro de indicativo e impersonal con «se»; infinitivo solo en los
+  nombres de actividad.
+* Extensión: la referencia mide unas 2.940 palabras de prosa en párrafos de
+  unas 70, más las tablas.
+* Tablas: `No. | Actividad | Responsable | Tareas | Resultados | Medio de
+  verificación`; `No. | Actividad | Mes inicio | Mes fin | ¿En qué consiste?`;
+  TRL: `Tipología declarada | TRL actual (Entrada) | Justificación | TRL
+  esperado al finalizar el proyecto | Hito y evidencia de cierre`.
 
 ### SGR §11
 
@@ -206,6 +318,25 @@ meta numérica, tipo de fuente y fuente de verificación (Instructivo MGA 2023,
 pp. 40-41). Ejemplo de forma: «Residuos sólidos aprovechados / residuos sólidos
 generados; unidad: porcentaje; meta: 20 %». La regla de no fijar metas
 porcentuales rige para §5, §6 y §7; aquí la meta es obligatoria.
+
+**Redacción.** (Anexo 2, cap. 17.)
+
+* Apertura: «El impacto de la implementación del proyecto a corto, mediano y
+  largo plazo en la región…».
+* Favorecer: resultados con meta, plazo e indicador; «Cada bien queda a cargo
+  de <entidad>, que…»; «El proyecto no destina recursos SGR a la operación
+  posterior de los bienes».
+* Evitar: impactos sin indicador ni plazo; productos presentados como
+  impactos; «transformará la región» o «beneficiará a miles de personas»; «se
+  garantizará» sin mecanismo; omitir los efectos negativos sobre el ambiente y
+  la salud humana.
+* Tiempo: presente, en oraciones cortas; «se espera» solo para impactos de
+  mediano y largo plazo.
+* Extensión: prosa breve (la referencia mide unas 440 palabras con oraciones
+  de unas 18); el peso está en las tablas.
+* Tablas: `Resultado | Meta | Impacto`; `Tipo de impacto | Impacto esperado |
+  Plazo | Indicador verificable`; `Resultado | Entidad responsable | Operación
+  y mantenimiento posterior | Fuente de recursos`.
 
 ### SGR §13
 
@@ -221,11 +352,38 @@ porcentuales rige para §5, §6 y §7; aquí la meta es obligatoria.
   vigencias futuras: al menos 15 % apropiado en el bienio vigente, máximo cuatro
   bienios y no más del 50 % del plan de recursos.
 
+**Redacción.** (Anexo 2, cap. 29, y presupuesto MGA.)
+
+* Apertura: una oración de entrada a la tabla; la justificación de cada rubro
+  nombra la actividad, con su código, que financia.
+* Favorecer: las tres líneas literales del resumen de fuentes, en letras y
+  números: «Valor total de recursos solicitados a la Asignación de CTeI…»,
+  «Valor total contrapartida (en efectivo y en especie):» y «Valor total del
+  proyecto:».
+* Evitar: rubros sin actividad; gastos permanentes de funcionamiento; cifras
+  distintas de las de la carta unificada y el Anexo 3; «entre otros» o «etc.»
+  en la lista de insumos.
+* Tiempo: presente.
+* Extensión: sin prosa fuera de la justificación por rubro.
+* Tabla: `Entidad | Fuente de recursos | Valor`.
+
 ### SGR §14
 
 El cronograma agrupa las actividades por etapa (preinversión, inversión,
 operación) y marca las que están en la ruta crítica. Cada producto lleva dos o
 más actividades; las tareas no se cronograman.
+
+**Redacción.** (Anexo 2, cap. 22.)
+
+* Apertura: una frase de entrada a la tabla.
+* Favorecer: las actividades con el mismo nombre y código de la metodología y
+  la cadena de valor, en meses, con etapa y ruta crítica.
+* Evitar: trimestres en lugar de meses; renombrar actividades; capacitaciones
+  antes de que exista el equipo o la plataforma; dejar los primeros
+  resultados útiles para el final.
+* Tiempo: presente en la frase de entrada.
+* Extensión: una oración más la tabla.
+* Tabla: `Objetivo específico | Producto | Actividad | Mes 1 … Mes n`.
 
 ### SGR §15
 
@@ -235,6 +393,20 @@ incluye «elaborado», «implementado» ni «entregado», y no se confunde con l
 población, las actividades ni los insumos (Instructivo MGA 2023, p. 64). Los
 productos de CTeI que exija el TDR se listan además con su tipología.
 
+**Redacción.** (Anexo 2, cap. 21.)
+
+* Apertura: una frase de entrada a la tabla.
+* Favorecer: el nombre y el código del catálogo, literales («3906012
+  Documentos de investigación»), con su indicador («Documentos de
+  investigación elaborados»): en el indicador el participio es oficial.
+* Evitar: «elaborado», «implementado» o «entregado» en el nombre del
+  producto; productos inventados, repetidos o de más de un programa; medidas
+  diferenciales sin indicador; «se espera» para productos.
+* Tiempo: futuro de compromiso en la prosa («El proyecto entregará…»).
+* Extensión: prosa mínima.
+* Tabla: `Programa | Producto | Medido a través de | Indicador de producto |
+  Unidad de medida`.
+
 ### SGR §17
 
 Las comunidades se presentan con su rol en la matriz de participantes del anexo
@@ -242,13 +414,31 @@ Las comunidades se presentan con su rol en la matriz de participantes del anexo
 verifica si el proyecto requiere consulta previa y se deja constancia del
 certificado correspondiente.
 
+**Redacción.** (Anexo 2 Conv 54, cap. 8.)
+
+* Apertura de celda: la demanda citada literal entre comillas latinas, con su
+  departamento; la contribución empieza por el objetivo o el producto: «El
+  OE<n> aporta <producto con unidad> a <actor>, con <indicador>…» o «Mediante
+  la actividad <n.n.n>, el proyecto entrega…».
+* Favorecer: el rol de cada comunidad tal como figura en la matriz de
+  participantes.
+* Evitar: una contribución general sin indicador; el mismo texto copiado para
+  cada departamento; duplicar la tabla de demandas; «contribuirá
+  significativamente» o «impactará positivamente».
+* Tiempo: futuro para la contribución; presente para la pertinencia.
+* Extensión: prosa mínima; el contenido va en las tablas.
+* Tablas: `Demanda territorial | Descripción | Articulación y contribución del
+  proyecto`; `Actores | Pertinencia frente a los objetivos y las demandas
+  territoriales`.
+
 ---
 
 ## Anexos MGA (Fase 6.47, solo flujo SGR)
 
 Cada anexo es un archivo de `redaccion/sections/` que `main.tex` incluye después
 de §18 y antes de la bibliografía. Los redacta `redactor`.
-Las tablas usan `xltabular`; la prosa sigue `estilo-natural-es`.
+Las tablas usan `xltabular`; la prosa sigue `estilo-natural-es` con los
+ajustes de la skill `estilo-sgr`.
 
 ### SGR A19
 
@@ -256,6 +446,23 @@ Las tablas usan `xltabular`; la prosa sigue `estilo-natural-es`.
 plan (PND, departamental, municipal, étnico si aplica, agenda o plan regional de
 CTeI) | programa | meta o indicador del plan | contribución del proyecto. Nombra
 el actor del SNCTeI que participa.
+
+**Redacción.** (Anexo 2, cap. 4.)
+
+* Apertura: «El proyecto se articula con los instrumentos nacionales,
+  departamentales, municipales y regionales de…» o «La presente propuesta se
+  enmarca en el Desafío <n>, «<nombre>»…».
+* Favorecer: el nombre oficial del plan o del programa entre comillas latinas
+  y, en la columna de contribución, el aporte a esa meta; «Se inscribe en el
+  desafío <n>…»; «El proyecto contribuye al ODS <n> (<nombre>)…».
+* Evitar: pilares o programas sin la relación con el proyecto; pegar
+  párrafos del PND; «se alinea perfectamente», «en total consonancia» o
+  «contribuye de manera significativa» sin meta.
+* Tiempo: presente («se articula», «responde», «contribuye»).
+* Extensión: la referencia mide unas 810 palabras de prosa en párrafos de
+  unas 80, más las tablas.
+* Tabla: `Plan | Programa | Meta o indicador del plan | Contribución del
+  proyecto`.
 
 ### SGR A20
 
@@ -266,6 +473,23 @@ gestión (Instructivo MGA 2023, p. 32). El análisis es obligatorio con dos o m�
 actores. Para oponentes y perjudicados se describe la estrategia de manejo, que
 se costea en §13.
 
+**Redacción.** (Anexo 2, cap. 10.)
+
+* Apertura: una frase de entrada; las celdas son sintagmas nominales.
+* Favorecer: el vocabulario fijo de la MGA: posiciones Beneficiario,
+  Cooperante, Oponente y Perjudicado; cuadrantes «Gestionar atentamente»,
+  «Mantener satisfecho», «Mantener informado» y «Monitorear»; contribuciones
+  en infinitivo («Formular y ejecutar el proyecto»).
+* Evitar: una entidad cooperante y beneficiaria a la vez; omitir oponentes o
+  perjudicados sin decir por qué; responsabilidades genéricas («apoyar»,
+  «acompañar») que no correspondan a actividades del cronograma.
+* Tiempo: presente; infinitivo en las contribuciones.
+* Extensión: prosa mínima.
+* Tablas: `Actor | Entidad | Posición | Intereses o expectativas |
+  Contribución o gestión`; `Nombre de la entidad | Tipo de aliado | Posición |
+  Rol en la alianza | Responsabilidades u obligaciones | Aportes (dinero /
+  especie)`.
+
 ### SGR A21
 
 `21_poblacion.tex`, «Población afectada y objetivo». La población afectada es el
@@ -275,6 +499,24 @@ población objetivo, la parte priorizada que el proyecto atiende (Instructivo MG
 localización hasta vereda o resguardo cuando aplique, y caracterización por grupo
 de edad, etnia, género, condición de víctima y discapacidad.
 
+**Redacción.** (Anexo 2, cap. 11.)
+
+* Apertura: «La población afectada por esta problemática incluye a…» y «La
+  selección de la población objetivo considera <criterios>…».
+* Favorecer: «Para caracterizar demográficamente a <grupo> según <variable>,
+  se recurrió a <fuente oficial, año>»; «Según la Tabla N, el <x> % de la
+  población afectada…»; las medidas en futuro («El proyecto vinculará…»).
+* Evitar: la primera persona («podemos decir que…»); «se garantizará» sin
+  actividad, indicador y meta; cuantificadores vagos («una parte
+  significativa»); entidades u hogares en lugar de personas; «beneficiará a
+  toda la región».
+* Tiempo: presente para los criterios; futuro para las medidas.
+* Extensión: la referencia mide unas 2.270 palabras de prosa en párrafos de
+  unas 70, más las tablas.
+* Tablas: `Región | Departamento | Municipio | Población`, con cifras del
+  DANE; `Grupo poblacional | Actividad en la cadena de valor | Valor de la
+  actividad | Descripción de la participación`.
+
 ### SGR A22
 
 `22_alternativas.tex`, «Alternativas de solución». Al menos dos alternativas, una
@@ -283,6 +525,22 @@ de ellas puede ser el escenario sin proyecto o la situación base optimizada
 complementarias o excluyentes, justifica las descartadas y declara el tipo de
 evaluación (costo-eficiencia o multicriterio para CTeI, donde el desarrollo de la
 ciencia, la tecnología y la innovación es un criterio).
+
+**Redacción.** (Anexo 2, cap. 13.)
+
+* Apertura: «La alternativa 1 parte de <activo o capacidad existente>…».
+* Favorecer: párrafos rotulados («Características técnicas.», «Objetivos y
+  productos.», «Metodología y duración.», «Resultados e impacto.»,
+  «Características financieras.»); «La alternativa seleccionada contempla…»;
+  «La alternativa <n> se descarta porque <razón técnica>».
+* Evitar: descartar solo por costo; una alternativa de paja sin evaluación;
+  «Rentabilidad: Sí» sin el tipo de evaluación; «la única alternativa viable»;
+  volver a resumir el proyecto.
+* Tiempo: presente.
+* Extensión: la referencia mide unas 1.140 palabras, más las tablas.
+* Tablas: `Nombre de la alternativa | Descripción de la evaluación |
+  Justificación de la alternativa seleccionada`; `Factor | Descripción |
+  Alt. 1 | Alt. 2 | Alt. 3`.
 
 ### SGR A23
 
@@ -295,6 +553,24 @@ garantizar, implementar, impulsar, mejorar, movilizar, proponer, promover.
 Los costos salen de §13 (ya aprobado en la Fase 6.4) y su suma coincide con el
 total del presupuesto; la compuerta de anexos lo verifica.
 
+**Redacción.** (Anexo 2, cap. 15.)
+
+* Apertura: una frase de entrada; el anexo es una tabla. Cuando la cadena de
+  valor existe como datos (`artefactos/sgr/cadena_valor.json`), la tabla la
+  escribe un script y los nombres se corrigen en ese archivo, no en el `.tex`.
+* Favorecer: celda de producto «Código: 3906xxx / <nombre del catálogo> /
+  <valor>»; celda de actividad «<n.n.n> Actividad <n>: <nombre> / Ruta
+  crítica».
+* Evitar: un verbo prohibido por la MGA al inicio del nombre de una
+  actividad; «elaborado», «implementado» o «entregado» en el nombre del
+  producto, salvo en el nombre del catálogo; un producto con una sola
+  actividad; renombrar actividades entre capítulos.
+* Tiempo: infinitivo en los nombres de actividad; sintagma nominal en los
+  productos.
+* Extensión: solo la tabla.
+* Tabla: `Objetivo específico | Producto | Medido a través del cual se verifica
+  | Cantidad / Meta | Actividades asociadas al producto`.
+
 ### SGR A24
 
 `24_riesgos.tex`, «Análisis de riesgos». Al menos un riesgo por nivel
@@ -303,6 +579,20 @@ impacto (1-5), efectos y medida de mitigación costeada (Módulo 4, pp. 38-40;
 Instructivo MGA 2023, pp. 72-74). Incluye el riesgo de desastres y climático del
 territorio.
 
+**Redacción.** (Anexo 2, cap. 23.)
+
+* Apertura: una frase de entrada a la tabla.
+* Favorecer: la descripción nominal del riesgo («Retrasos en la contratación
+  de personal…»); la medida en infinitivo, con responsable y costo; la escala
+  declarada (1 a 5).
+* Evitar: medidas genéricas («hacer seguimiento», «mantener una actitud
+  preventiva», «ser muy rigurosos»); riesgos sin valoración; omitir el riesgo
+  de desastres y climático.
+* Tiempo: nominal en la descripción; infinitivo en la medida.
+* Extensión: solo la tabla.
+* Tabla: `Tipo de riesgo | Descripción del riesgo | Probabilidad | Impacto |
+  Efectos | Medidas de mitigación`.
+
 ### SGR A25
 
 `25_marco_logico.tex`, «Matriz de marco lógico». Matriz 4×4: filas fin (objetivo
@@ -310,6 +600,20 @@ del plan de desarrollo), propósito (objetivo general), productos y actividades;
 columnas descripción, indicadores, fuentes de verificación y supuestos. Los
 riesgos del anexo A24 pasan a ser supuestos (Manual MGA 2015, pp. 79-82). La
 fila del propósito usa el indicador de resultado de §11.
+
+**Redacción.** (Matriz de marco lógico de la MGA.)
+
+* Apertura: una frase de entrada a la matriz.
+* Favorecer: en fin, propósito, productos y actividades, los textos literales
+  del plan, del objetivo general, del catálogo y de la cadena de valor; los
+  supuestos como condiciones externas en positivo («Las entidades
+  territoriales mantienen…»).
+* Evitar: parafrasear los textos que vienen del árbol y de la cadena;
+  supuestos que el proyecto controla; indicadores sin fuente de verificación.
+* Tiempo: nominal en las filas; presente en los supuestos.
+* Extensión: solo la matriz.
+* Tabla: `Nivel | Descripción | Indicadores | Fuentes de verificación |
+  Supuestos`.
 
 ---
 
@@ -332,6 +636,6 @@ el consolidado que escribe `scripts/juez_sgr.py calificar`: `evaluacion.json`
 Para iterar se aplican las acciones, cada una dirigida a un agente o al
 usuario: desde la pestaña «Juez final» del tablero o con
 `/propuesta-juez AC1 AC3`. Las secciones de prosa pasan después por
-`grant-flow-auditor`, y una nueva ronda de `/propuesta-juez` muestra si el
+`revisor-estilo-sgr`, y una nueva ronda de `/propuesta-juez` muestra si el
 total sube. El juez nunca cambia el veredicto PASS/FAIL del `revisor`; la
 auditoría final de la Fase 7 sí lee sus alertas `error` abiertas.

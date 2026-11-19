@@ -22,6 +22,7 @@
       "juez-sgr.md",
       "presupuestador.md",
       "redactor.md",
+      "revisor-estilo-sgr.md",
       "revisor-figuras.md",
       "revisor.md",
       "tikz-optimizer.md"
@@ -42,7 +43,8 @@
     "skill_files": [
       "constelacion-sota/SKILL.md",
       "depuracion-redundancias-es/SKILL.md",
-      "estilo-natural-es/SKILL.md"
+      "estilo-natural-es/SKILL.md",
+      "estilo-sgr/SKILL.md"
     ],
     "source_mcp_config": ".mcp.json",
     "output_mcp_config": ".pi/mcp.json"

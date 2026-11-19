@@ -47,6 +47,7 @@ _MODEL_PRESETS: dict[str, dict[str, str]] = {
         "revisor-figuras": "sonnet",
         "coordinador-propuesta": "sonnet",
         "juez-sgr": "opus",
+        "revisor-estilo-sgr": "sonnet",
     },
     "gpt": {
         "investigador": "gpt-5.6-sol",
@@ -60,6 +61,7 @@ _MODEL_PRESETS: dict[str, dict[str, str]] = {
         "revisor-figuras": "gpt-5.6-terra",
         "coordinador-propuesta": "gpt-5.6-terra",
         "juez-sgr": "gpt-5.6-sol",
+        "revisor-estilo-sgr": "gpt-5.6-terra",
     },
     "opencode-go": {
         "investigador": "opencode-go/glm-5.2",
@@ -73,6 +75,7 @@ _MODEL_PRESETS: dict[str, dict[str, str]] = {
         "revisor-figuras": "opencode-go/glm-5.2",
         "coordinador-propuesta": "opencode-go/glm-5.2",
         "juez-sgr": "opencode-go/glm-5.2",
+        "revisor-estilo-sgr": "opencode-go/glm-5.2",
     },
 }
 
@@ -1013,7 +1016,7 @@ def _print_presets() -> None:
         "investigador", "redactor", "bibliografo-propuesta", "revisor",
         "presupuestador", "insumos-observador", "disenador-tikz",
         "tikz-optimizer", "revisor-figuras", "coordinador-propuesta",
-        "juez-sgr",
+        "juez-sgr", "revisor-estilo-sgr",
     ]
     print("Built-in model presets")
     print("=" * 60)

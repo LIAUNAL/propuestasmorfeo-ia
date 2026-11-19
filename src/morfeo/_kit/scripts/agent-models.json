@@ -41,7 +41,8 @@
     "disenador-tikz": "mechanical",
     "tikz-optimizer": "mechanical",
     "revisor-figuras": "mechanical",
-    "grant-flow-auditor": "mechanical"
+    "grant-flow-auditor": "mechanical",
+    "revisor-estilo-sgr": "mechanical"
   },
   "runtime": {
     "default_mode": "task",

@@ -1,0 +1,1196 @@
+{
+  "schema": "morfeo.lexico-sgr/v1",
+  "_meta": {
+    "purpose": "SGR-only writing lexicon read by scripts/estilo_sgr.py, the revisor-estilo-sgr agent and the dashboard. The base research flow never reads it.",
+    "evidence": "docs/sgr/patrones_redaccion_sgr.md (voice, chapters 1-31, lexicon L1-L30, redundancy R1-R14, conflicts C1-C18).",
+    "precedence": "TdR of the call > Anexo 2 template of that call > DNP/MGA (Manual 2015, Instructivo 2023) > reference projects > Morfeo base style. Where the reference project and the MGA disagree, the MGA wins.",
+    "regex": "Python `re` patterns, matched case-insensitively on LaTeX-free text (comments, citations, labels, headings and math removed). A value `check_run:NAME` reuses the compiled pattern NAME of scripts/check_run.py. `null` means the entry is guidance for the reviewer agent, not a deterministic check.",
+    "severity": "prohibida -> advertencia; desaconsejada -> info; favorecida is never reported.",
+    "aplica_a": "prosa = narrative lines; tabla = table cells; nombres_actividad = activity names (table cells of 10_metodologia, 14_cronograma_actividades and 23_cadena_valor that carry an activity code or sit under an «Actividad» header, plus artefactos/sgr/cadena_valor.json activity `nombre`)."
+  },
+  "voz": {
+    "reglas": [
+      "Tercera persona sobre el proyecto: el sujeto por defecto es «El proyecto…».",
+      "Alternativas válidas: «Este proyecto busca…», «La presente propuesta se enmarca en…», «La propuesta se enmarca en…» (identificación y alineación), «El presente proyecto…» (máximo una vez por sección), «La alianza…», «La entidad proponente…», «<Entidad> coordinará / aportará…» y la impersonal con «se» («Se realizarán campañas de muestreo…»).",
+      "Cero primera persona, singular o plural, también en tablas y en texto institucional pegado.",
+      "Compromiso, no intención: futuro de indicativo para actividades y productos («entregará», «se verificará»); «se espera» solo para impactos de mediano y largo plazo.",
+      "Toda cifra de magnitud, población o línea base lleva entidad, documento y año.",
+      "Sintagma nominal donde la MGA es nominal: títulos, nodos de los árboles, productos, riesgos y tareas.",
+      "Tiempo verbal: presente para el diagnóstico y las definiciones, pretérito para antecedentes y evolución reciente, futuro para actividades, resultados, transferencia y medidas; infinitivo solo en objetivos, medios y nombres de actividades."
+    ],
+    "sujeto_por_defecto": "El proyecto",
+    "aperturas_favorecidas": [
+      "El proyecto…",
+      "Este proyecto busca…",
+      "La presente propuesta se enmarca en…",
+      "La propuesta se enmarca en el Desafío <n> / la línea temática <n>…",
+      "El presente proyecto… (máximo una vez por sección)",
+      "La alianza…",
+      "La entidad proponente…",
+      "<Entidad> coordinará / aportará…",
+      "Se realizarán… (impersonal con «se»)"
+    ],
+    "verbos_tras_el_proyecto": [
+      "se articula con",
+      "responde a",
+      "se inscribe en",
+      "contribuye a",
+      "aporta",
+      "atiende",
+      "aborda",
+      "integra",
+      "incorpora",
+      "busca"
+    ],
+    "primera_persona": {
+      "regex": "\\b(nosotr[oa]s|nuestr[oa]s?|hemos|proponemos|buscamos|esperamos|pretendemos|consideramos|creemos|podemos|queremos|planteamos|desarrollamos|realizamos)\\b|\\b\\w+(aremos|eremos|iremos)\\b",
+      "motivo": "El texto SGR habla del proyecto en tercera persona; la primera persona solo aparece en la referencia como texto institucional pegado o como desliz.",
+      "fuente": "L1; proyecto de referencia (1.ª persona solo en el cap. 27); estilo-natural-es §4.3; pedido del usuario (S3)"
+    },
+    "tiempos": {
+      "presente": [
+        "00_frontmatter",
+        "03_descripcion_problema",
+        "08_marco_conceptual",
+        "19_alineacion_planes",
+        "22_alternativas"
+      ],
+      "preterito": [
+        "04_estado_arte",
+        "03_descripcion_problema (evolución reciente e intervenciones previas)"
+      ],
+      "futuro": [
+        "10_metodologia",
+        "11_resultados_esperados",
+        "12_consideraciones_eticas",
+        "14_cronograma_actividades",
+        "18_apropiacion_social",
+        "21_poblacion (medidas)"
+      ],
+      "infinitivo": [
+        "06_objetivo_general",
+        "07_objetivos_especificos",
+        "nombres de actividad"
+      ]
+    },
+    "limites": [
+      {
+        "id": "presente-proyecto",
+        "expresion": "El presente proyecto",
+        "regex": "\\bel\\s+presente\\s+proyecto\\b",
+        "max_por_seccion": 1,
+        "motivo": "Uso excepcional en la referencia (0,03 por mil palabras): una vez por sección como máximo; el sujeto por defecto es «El proyecto».",
+        "fuente": "Proyecto de referencia, sección 1.2 de la evidencia"
+      }
+    ]
+  },
+  "global": [
+    {
+      "id": "intencion",
+      "tipo": "prohibida",
+      "expresion": "se pretende, pretende, intentará, tratará de, quizá(s), tal vez, ojalá",
+      "regex": "\\b(se\\s+)?pretenden?\\b|\\bintentar[áa]n?\\b|\\btratar[áa]n?\\s+de\\b|\\bquiz[áa]s?\\b|\\btal\\s+vez\\b|\\bojal[áa]\\b",
+      "motivo": "Intención en vez de compromiso verificable: las actividades y los productos se comprometen en futuro de indicativo.",
+      "fuente": "L2; Anexo 2 (actividades con medio de verificación)",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "promocional",
+      "tipo": "prohibida",
+      "expresion": "innovador(a), novedoso, revolucionario, disruptivo, pionero, único en, de vanguardia, de punta, de clase mundial, sin precedentes, primero del país, líder, referente",
+      "regex": "\\b(innovador[ae]?s?|novedos[oa]s?|revolucionari[oa]s?|disruptiv[oa]s?|pioner[oa]s?|[úu]nic[oa]s?\\s+en|de\\s+vanguardia|de\\s+punta|de\\s+clase\\s+mundial|sin\\s+precedentes|primer[oa]?\\s+(proyecto\\s+)?(en|del)\\s+(el\\s+)?pa[íi]s|l[íi]der(es)?|referentes?)\\b",
+      "motivo": "La novedad se demuestra «frente a las alternativas ya disponibles en el territorio» con evidencia, no se proclama. Exentos los nombres oficiales («Jóvenes Investigadores e Innovadores») y el sustantivo «innovación».",
+      "fuente": "L16; rúbrica Conv 54, criterio 1.2; estilo-natural-es patrón 4",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "inflacion",
+      "tipo": "desaconsejada",
+      "expresion": "crucial, vital, de vital importancia, fundamental, robusto, extremadamente, juega un papel, se erige como",
+      "regex": "\\b(crucial(es)?|vital(es)?|de\\s+vital\\s+importancia|fundamental(es)?|robust[oa]s?|extremadamente|juegan?\\s+un\\s+papel|se\\s+erigen?)\\b",
+      "motivo": "Relleno valorativo sin evidencia; afirmar con el dato y la fuente.",
+      "fuente": "L17; estilo-natural-es patrones 1 y 7",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "anglicismo",
+      "tipo": "desaconsejada",
+      "expresion": "machine learning, deep learning, big data, dataset, stakeholders, partners, pipeline, framework, workshop, feedback, input(s), output(s), engagement, benchmark",
+      "regex": "\\b(machine\\s+learning|deep\\s+learning|big\\s+data|datasets?|stakeholders?|partners?|pipelines?|frameworks?|workshops?|feedback|inputs?|outputs?|engagement|benchmarks?)\\b",
+      "motivo": "Anglicismo con equivalente en español (aprendizaje automático, conjunto de datos, actores, aliados, flujo de procesamiento, taller, retroalimentación). Se admiten los términos de la plantilla: software, hardware, spin-off, start-up, know-how.",
+      "fuente": "L25; estilo-natural-es patrones 14 y 35",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "metadiscurso",
+      "tipo": "prohibida",
+      "expresion": "en esta sección, en el presente documento, cabe destacar/resaltar/mencionar/señalar, es importante destacar/mencionar",
+      "regex": "\\b(en\\s+esta\\s+secci[óo]n|en\\s+el\\s+presente\\s+documento|cabe\\s+(destacar|resaltar|mencionar|se[ñn]alar)|es\\s+importante\\s+(destacar|mencionar|resaltar|se[ñn]alar))\\b",
+      "motivo": "Preámbulo que anuncia en vez de afirmar. «A continuación se presenta» se tolera una vez como entrada a una tabla.",
+      "fuente": "L26; estilo-natural-es patrones 15 y 29",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "lista-abierta",
+      "tipo": "desaconsejada",
+      "expresion": "entre otros, etc.",
+      "regex": "\\bentre\\s+otr[oa]s\\b|\\betc\\.",
+      "motivo": "Vaguedad en compromisos: enumerar completo o nombrar el criterio.",
+      "fuente": "L27; Directriz SGR 4",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "emotivo",
+      "tipo": "desaconsejada",
+      "expresion": "urgente, apremiante, alarmante",
+      "regex": "\\b(urgentes?|apremiantes?|alarmantes?)\\b",
+      "motivo": "Registro de opinión; la gravedad se demuestra con la magnitud y su fuente.",
+      "fuente": "L18; estilo-natural-es patrón 1",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "atribucion-vaga",
+      "tipo": "desaconsejada",
+      "expresion": "diversos estudios, la literatura señala, se ha evidenciado, expertos coinciden",
+      "regex": "\\b(diversos\\s+estudios|la\\s+literatura\\s+(se[ñn]ala|sugiere|indica|muestra)|se\\s+ha\\s+evidenciado|(los\\s+)?expertos\\s+coinciden)\\b",
+      "motivo": "Atribución sin fuente concreta: citar la entidad o el documento con año.",
+      "fuente": "L20; estilo-natural-es patrón 2",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "verbo-mga-actividad",
+      "tipo": "prohibida",
+      "expresion": "apropiar, asegurar, colaborar, consolidar, desarrollar, fomentar, fortalecer, garantizar, implementar, impulsar, mejorar, movilizar, proponer, promover (al inicio del nombre de una actividad)",
+      "regex": "^(apropiar|asegurar|colaborar|consolidar|desarrollar|fomentar|fortalecer|garantizar|implementar|impulsar|mejorar|movilizar|proponer|promover)\\b",
+      "motivo": "«Verbos demasiado generales que no permiten determinar claramente de qué se trata la acción». Solo rige para nombres de actividad; en objetivos estos verbos son válidos.",
+      "fuente": "L13; Manual conceptual MGA 2015, p. 81; guía SGR A23",
+      "aplica_a": "nombres_actividad"
+    },
+    {
+      "id": "insumo-como-actividad",
+      "tipo": "desaconsejada",
+      "expresion": "comprar, adquirir, contratar, pagar, enviar, llamar, viáticos (como actividad)",
+      "regex": "^(comprar|adquirir|contratar|pagar|enviar|llamar)\\b|\\bvi[áa]ticos\\b",
+      "motivo": "Son insumos o tareas, no actividades MGA («Comprar resmas de papel, adquirir computadores…, viáticos, contratar personal»).",
+      "fuente": "L14; Manual conceptual MGA 2015, p. 81; Módulos 1 y 4 del diplomado SGR",
+      "aplica_a": "nombres_actividad"
+    },
+    {
+      "id": "raya-o-doble-guion",
+      "tipo": "prohibida",
+      "expresion": "— o -- en prosa",
+      "regex": null,
+      "motivo": "Regla de Morfeo; la verifica scripts/check_run.py (raya-en-prosa, doble-guion-en-prosa).",
+      "fuente": "L30; check_run.py",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "conectores-variados",
+      "tipo": "favorecida",
+      "expresion": "no obstante, por ende, en tal sentido, de ahí que, a su vez, en concreto, por consiguiente",
+      "regex": null,
+      "motivo": "Evita la saturación de «asimismo» y «de esta manera» de la referencia.",
+      "fuente": "estilo-natural-es §4.2",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "futuro-de-compromiso",
+      "tipo": "favorecida",
+      "expresion": "realizará, entregará, verificará, coordinará, se conformará, se priorizarán, contará con, se dará continuidad",
+      "regex": null,
+      "motivo": "Compromiso verificable.",
+      "fuente": "Proyecto de referencia (16 a 39 futuros por mil palabras en metodología, transferencia y ASC)",
+      "aplica_a": "prosa"
+    },
+    {
+      "id": "dato-con-fuente",
+      "tipo": "favorecida",
+      "expresion": "De acuerdo con <entidad> (<año>)…, Según <documento oficial>…",
+      "regex": null,
+      "motivo": "Toda cifra lleva entidad, documento y año.",
+      "fuente": "Directriz SGR 4",
+      "aplica_a": "prosa"
+    }
+  ],
+  "secciones": {
+    "00_frontmatter": [
+      {
+        "id": "resumen-hipotesis",
+        "tipo": "desaconsejada",
+        "expresion": "hipótesis, pregunta de investigación, paquetes de trabajo",
+        "regex": "\\b(pregunta\\s+de\\s+investigaci[óo]n|hip[óo]tesis|paquetes?\\s+de\\s+trabajo|work\\s+packages?)\\b",
+        "motivo": "El Anexo 2 organiza por problema, objetivos, productos y actividades; no tiene hipótesis ni paquetes de trabajo.",
+        "fuente": "L24; Anexo 2 cap. 2; TdR 13.1",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "resumen-servil",
+        "tipo": "prohibida",
+        "expresion": "es necesario y urgente, cumplir con la premisa de la convocatoria, en total consonancia",
+        "regex": "\\b(necesario\\s+y\\s+urgente|premisa\\s+de\\s+la\\s+convocatoria|en\\s+total\\s+consonancia)\\b",
+        "motivo": "Énfasis emotivo o servil frente a la convocatoria.",
+        "fuente": "L28; Anexo 2 cap. 2; estilo-natural-es patrón 24",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "resumen-definiciones",
+        "tipo": "desaconsejada",
+        "expresion": "Al hablar de <concepto>, el proyecto adopta la definición…",
+        "regex": "\\bal\\s+hablar\\s+de\\b|\\badopta\\s+la\\s+definici[óo]n\\b",
+        "motivo": "Las definiciones van en el marco conceptual (§8), no en el resumen ejecutivo.",
+        "fuente": "Anexo 2 cap. 2",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "resumen-proposito",
+        "tipo": "favorecida",
+        "expresion": "En respuesta, el proyecto tiene como propósito <objetivo general literal>.",
+        "regex": null,
+        "motivo": "Ancla el resumen al objetivo general.",
+        "fuente": "Proyecto de referencia, cap. 2",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "resumen-alcance",
+        "tipo": "favorecida",
+        "expresion": "El proyecto se desarrolla en N meses, en N municipios de N departamentos, con una alianza liderada por <entidad>…",
+        "regex": null,
+        "motivo": "Duración, territorio y alianza en una oración.",
+        "fuente": "Proyecto de referencia, cap. 2",
+        "aplica_a": "prosa"
+      }
+    ],
+    "02_justificacion": [
+      {
+        "id": "justificacion-necesidad-enfatica",
+        "tipo": "prohibida",
+        "expresion": "es de vital importancia, es fundamental, sin precedentes, se hace necesario",
+        "regex": "\\b(es\\s+de\\s+vital\\s+importancia|es\\s+fundamental|se\\s+hace\\s+necesari[oa])\\b",
+        "motivo": "La necesidad se demuestra con la situación del territorio y la viabilidad, no con énfasis.",
+        "fuente": "Anexo 2 cap. 7; estilo-natural-es patrones 1 y 15",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "justificacion-ods-repetidos",
+        "tipo": "desaconsejada",
+        "expresion": "se justifica por su alineación con los ODS / el PND",
+        "regex": "\\bse\\s+justifica\\s+por\\s+su\\s+alineaci[óo]n\\b",
+        "motivo": "La alineación vive en el anexo 19; la justificación remite a él en una oración (R3).",
+        "fuente": "R3; Anexo 2 cap. 7",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "justificacion-servil",
+        "tipo": "prohibida",
+        "expresion": "cumplir con la premisa de la convocatoria, en total consonancia con los términos",
+        "regex": "\\b(premisa\\s+de\\s+la\\s+convocatoria|en\\s+total\\s+consonancia)\\b",
+        "motivo": "Tono complaciente.",
+        "fuente": "L28; estilo-natural-es patrón 24",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "justificacion-apertura",
+        "tipo": "favorecida",
+        "expresion": "El presente proyecto… se centra en… (una vez); La necesidad de esta intervención se relaciona con…; La pertinencia científica y tecnológica radica en…; La viabilidad se apoya en…",
+        "regex": null,
+        "motivo": "Necesidad, pertinencia y viabilidad a corto, mediano y largo plazo.",
+        "fuente": "Proyecto de referencia, cap. 7",
+        "aplica_a": "prosa"
+      }
+    ],
+    "03_descripcion_problema": [
+      {
+        "id": "ausencia-de-solucion",
+        "tipo": "desaconsejada",
+        "expresion": "falta de, ausencia de, carencia de, inexistencia de, no existe(n), no hay, se requiere, necesidad de",
+        "regex": "check_run:ABSENCE_RE",
+        "motivo": "«Un problema no es la ausencia de su solución, sino un estado existente negativo»: también en la narración causal se reformula como estado («baja capacidad técnica», «escasa financiación»). La referencia lo usa siete veces en este capítulo; la regla sigue a la MGA.",
+        "fuente": "L4; Instructivo MGA 2023, glosario; Manual conceptual MGA 2015, p. 16; Módulo 3",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "solucion-en-diagnostico",
+        "tipo": "prohibida",
+        "expresion": "con el proyecto se busca, el proyecto busca/propone/pretende, resulta necesario desarrollar, esta propuesta",
+        "regex": "\\b(con\\s+el\\s+proyecto|el\\s+proyecto\\s+(busca|propone|pretende)|resulta\\s+necesario\\s+desarrollar|(esta|la\\s+presente)\\s+propuesta)\\b",
+        "motivo": "La descripción de la situación existente describe lo que pasa hoy; la respuesta va en objetivos y alternativas. Se permite «intervenciones diferentes a la que se propone».",
+        "fuente": "L8; Manual conceptual MGA 2015, p. 17; guía base §3",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "linea-base-solucion",
+        "tipo": "desaconsejada",
+        "expresion": "Cero (0) prototipos / plataformas / sistemas como línea base",
+        "regex": "\\b(cero|0)\\s*(\\(0\\)\\s*)?(prototipos?|plataformas?|sistemas?|herramientas?|modelos?|mecanismos?)\\b",
+        "motivo": "Ausencia de solución disfrazada de magnitud: la línea base mide el estado negativo («tasa de aprovechamiento de tan solo el 1 %»).",
+        "fuente": "L5; Manual conceptual MGA 2015, p. 17",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "linea-base-solucion-prosa",
+        "tipo": "desaconsejada",
+        "expresion": "Cero (0) prototipos / plataformas / sistemas como línea base",
+        "regex": "\\b(cero|0)\\s*(\\(0\\)\\s*)?(prototipos?|plataformas?|sistemas?|herramientas?|modelos?|mecanismos?)\\b",
+        "motivo": "Ausencia de solución disfrazada de magnitud.",
+        "fuente": "L5; Manual conceptual MGA 2015, p. 17",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "cuantificador-vago",
+        "tipo": "desaconsejada",
+        "expresion": "varios, diversos, numerosos, muchos, gran cantidad, una parte significativa, significativamente, miles de, cientos de",
+        "regex": "\\b(vari[oa]s|divers[oa]s|numeros[oa]s|much[oa]s|gran\\s+(cantidad|n[úu]mero|parte)|parte\\s+significativa|significativamente|considerablemente|miles\\s+de|cientos\\s+de)\\b",
+        "motivo": "La MGA exige cifra, unidad y fuente.",
+        "fuente": "L19; Anexo 2 §5.3",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "condicional-especulativo",
+        "tipo": "desaconsejada",
+        "expresion": "lo que puede llevar a, podría(n) mejorar",
+        "regex": "\\blo\\s+que\\s+puede\\s+llevar\\s+a\\b|\\bpodr[íi]an?\\s+mejorar\\b",
+        "motivo": "Condicionales en cadena: afirmar con dato y fuente.",
+        "fuente": "Anexo 2 cap. 5",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "marco-investigacion-problema",
+        "tipo": "desaconsejada",
+        "expresion": "pregunta de investigación, hipótesis",
+        "regex": "\\b(pregunta\\s+de\\s+investigaci[óo]n|hip[óo]tesis)\\b",
+        "motivo": "El Anexo 2 no tiene pregunta de investigación; en el flujo SGR §3 no cierra con ella.",
+        "fuente": "L24; Anexo 2; TdR 13.1; conflicto C1",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "sustantivo-solucion-en-tronco",
+        "tipo": "desaconsejada",
+        "expresion": "Insuficientes prototipos / plataformas / sistemas… en el problema central",
+        "regex": null,
+        "motivo": "La variable del tronco es un estado de la población o del territorio, no la solución que falta. «Insuficientes capacidades…» se acepta.",
+        "fuente": "L6; Manual conceptual MGA 2015, p. 16",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "persona-como-fuente",
+        "tipo": "desaconsejada",
+        "expresion": "el profesor X señaló…, el entonces ministro…",
+        "regex": null,
+        "motivo": "Registro periodístico: citar la institución y el documento con año.",
+        "fuente": "L29; Directriz SGR 4",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "problema-causas",
+        "tipo": "favorecida",
+        "expresion": "Una de las causas directas relacionadas con el problema central es…; Otra causa directa del problema son…; …representan la tercera causa directa del problema; Esto se debe a…",
+        "regex": null,
+        "motivo": "Estructura causal explícita en el orden del árbol.",
+        "fuente": "Proyecto de referencia, cap. 5; guía SGR §3",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "problema-agravante",
+        "tipo": "favorecida",
+        "expresion": "A esta situación se suma…; Esta emergencia agudiza…",
+        "regex": null,
+        "motivo": "Evento como agravante, con fuente oficial.",
+        "fuente": "Proyecto de referencia, cap. 5",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "problema-magnitud",
+        "tipo": "favorecida",
+        "expresion": "Por lo anterior, se define como indicador de referencia del problema: <indicador, valor, unidad, fuente, año>.",
+        "regex": null,
+        "motivo": "Cierre de la magnitud.",
+        "fuente": "Proyecto de referencia, cap. 5",
+        "aplica_a": "prosa"
+      }
+    ],
+    "04_estado_arte": [
+      {
+        "id": "antecedentes-exito",
+        "tipo": "desaconsejada",
+        "expresion": "exitoso, primer proyecto del país (sin evidencia)",
+        "regex": "\\bexitos[oa]s?\\b",
+        "motivo": "La novedad se puntúa frente a las alternativas del territorio; los resultados se citan, no se califican.",
+        "fuente": "Anexo 2 cap. 6; rúbrica 1.2",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "antecedentes-iniciativa",
+        "tipo": "favorecida",
+        "expresion": "Entre las primeras experiencias se encuentra el proyecto <nombre>, que, financiado por <fuente>, …; A partir de estos antecedentes, el proyecto articula…",
+        "regex": null,
+        "motivo": "Un párrafo por iniciativa (qué, quién, cuándo, resultado, aprendizaje) en pretérito, y cierre que nombra el proyecto.",
+        "fuente": "Proyecto de referencia, cap. 6",
+        "aplica_a": "prosa"
+      }
+    ],
+    "06_objetivo_general": [
+      {
+        "id": "objetivo-con-medio",
+        "tipo": "prohibida",
+        "expresion": "mediante, a través de, por medio de, por intermedio de",
+        "regex": "check_run:MEANS_RE",
+        "motivo": "Incluye la alternativa de solución en el objetivo.",
+        "fuente": "L9; Manual conceptual MGA 2015, tabla 12, p. 80",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "objetivo-con-fin",
+        "tipo": "prohibida",
+        "expresion": "para mejorar…, con el fin de, con el propósito de",
+        "regex": "check_run:ENDS_RE",
+        "motivo": "Incluye el efecto en el objetivo.",
+        "fuente": "L10; Manual conceptual MGA 2015, tabla 12, p. 80",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "objetivo-con-meta",
+        "tipo": "prohibida",
+        "expresion": "porcentajes o cifras en el enunciado",
+        "regex": "check_run:TARGET_RE",
+        "motivo": "«Incluir la(s) meta(s) del proyecto dentro de su objetivo general» es un error.",
+        "fuente": "L11; Manual conceptual MGA 2015, tabla 12, p. 80",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "objetivo-como-producto",
+        "tipo": "desaconsejada",
+        "expresion": "construcción de, adquisición de, adquirir, dotar, comprar (al inicio)",
+        "regex": "^(construcci[óo]n|adquisici[óo]n|adquirir|dotar|comprar)\\b",
+        "motivo": "El objetivo no es el producto ni una acción parcial.",
+        "fuente": "L12; Manual conceptual MGA 2015, tabla 12, p. 80",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "objetivo-verbos",
+        "tipo": "favorecida",
+        "expresion": "Aumentar, Incrementar, Mejorar, Fortalecer, Reducir, Disminuir, Ampliar (espejo del árbol)",
+        "regex": null,
+        "motivo": "El objetivo es la variable del problema en positivo.",
+        "fuente": "Manual conceptual MGA 2015, p. 28; Módulo 4",
+        "aplica_a": "prosa"
+      }
+    ],
+    "07_objetivos_especificos": [
+      {
+        "id": "objetivos-con-meta",
+        "tipo": "prohibida",
+        "expresion": "porcentajes o cifras en el enunciado",
+        "regex": "check_run:TARGET_RE",
+        "motivo": "Las metas van en los indicadores, no en el objetivo.",
+        "fuente": "L11; Manual conceptual MGA 2015, tabla 12, p. 80",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "objetivos-rotulo",
+        "tipo": "favorecida",
+        "expresion": "Objetivo específico <n> (OE<n>): <infinitivo…>",
+        "regex": null,
+        "motivo": "Rótulo literal de la plantilla; el texto es el del árbol de objetivos.",
+        "fuente": "Anexo 2 cap. 12",
+        "aplica_a": "prosa"
+      }
+    ],
+    "08_marco_conceptual": [
+      {
+        "id": "marco-relevancia",
+        "tipo": "desaconsejada",
+        "expresion": "extremadamente importantes, de gran relevancia, papel crucial",
+        "regex": "\\b(de\\s+gran\\s+relevancia|extremadamente\\s+importantes?|papel\\s+crucial)\\b",
+        "motivo": "Aperturas cósmicas y valoraciones sin criterio; el marco define en presente gnómico.",
+        "fuente": "Anexo 2 cap. 9; estilo-natural-es patrón 1",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "marco-definicion",
+        "tipo": "favorecida",
+        "expresion": "<Concepto>: se refiere a…; <Concepto> se puede definir como…; Según <autor> (<año>), …",
+        "regex": null,
+        "motivo": "Definiciones breves en presente.",
+        "fuente": "Proyecto de referencia, cap. 9",
+        "aplica_a": "prosa"
+      }
+    ],
+    "09_equipo_trabajo": [
+      {
+        "id": "talento-categorias",
+        "tipo": "desaconsejada",
+        "expresion": "jóvenes talentos, semilleristas (por las categorías oficiales)",
+        "regex": "\\b(j[óo]venes\\s+talentos|semilleristas?)\\b",
+        "motivo": "Las categorías de la cadena de formación se nombran como en el TdR («Jóvenes Investigadores e Innovadores», «Estudiantes de Maestría», «Doctor en Estancia posdoctoral»).",
+        "fuente": "Anexo 2 Conv 54 cap. 20; TdR numeral 10",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "talento-alianza",
+        "tipo": "favorecida",
+        "expresion": "La alianza cuenta con…; El grupo <nombre>, categoría <A1>…",
+        "regex": null,
+        "motivo": "Fórmula normal en el SGR (C10).",
+        "fuente": "Proyecto de referencia, caps. 20 y 27",
+        "aplica_a": "prosa"
+      }
+    ],
+    "10_metodologia": [
+      {
+        "id": "metodologia-paquetes",
+        "tipo": "prohibida",
+        "expresion": "paquetes de trabajo, work packages",
+        "regex": "\\b(paquetes?\\s+de\\s+trabajo|work\\s+packages?)\\b",
+        "motivo": "El Anexo 2 organiza por objetivo, producto y actividad. «Paquete tecnológico» sí es término oficial.",
+        "fuente": "L24; Anexo 2 cap. 14",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "metodologia-indefinida",
+        "tipo": "desaconsejada",
+        "expresion": "se determinará durante la ejecución, de manera integral",
+        "regex": "\\bse\\s+(determinar|definir)[áa]n?\\s+durante\\s+la\\s+ejecuci[óo]n\\b|\\bde\\s+manera\\s+integral\\b",
+        "motivo": "Sin criterio de decisión o relleno.",
+        "fuente": "Anexo 2 cap. 14",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "producto-se-espera",
+        "tipo": "desaconsejada",
+        "expresion": "se espera que (para productos o actividades)",
+        "regex": "\\bse\\s+espera\\s+que\\b",
+        "motivo": "Los productos son compromisos; «se espera» solo para impactos de largo plazo.",
+        "fuente": "L3; Manual conceptual MGA 2015",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "metodologia-actividad",
+        "tipo": "favorecida",
+        "expresion": "Esta actividad consiste en…; Esta actividad tiene como finalidad…; La verificación del TRL N se sustentará en…; <Entidad> coordinará…",
+        "regex": null,
+        "motivo": "Descripción de actividad en futuro, con responsable y evidencia.",
+        "fuente": "Proyecto de referencia, cap. 14",
+        "aplica_a": "prosa"
+      }
+    ],
+    "11_resultados_esperados": [
+      {
+        "id": "resultados-grandilocuencia",
+        "tipo": "prohibida",
+        "expresion": "transformará la región, beneficiará a miles de personas",
+        "regex": "\\btransformar[áa]n?\\s+la\\s+regi[óo]n\\b|\\bbeneficiar[áa]n?\\s+a\\s+(miles|toda)\\b",
+        "motivo": "Impactos sin indicador ni plazo.",
+        "fuente": "Anexo 2 cap. 17; rúbrica 4.2",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "resultados-promesa",
+        "tipo": "desaconsejada",
+        "expresion": "se garantizará, garantiza, asegurará",
+        "regex": "\\b(se\\s+)?garantizar[áa]n?\\b|\\bgarantizan?\\b|\\basegurar[áa]n?\\b",
+        "motivo": "Promesa sin mecanismo: actividad, indicador, meta y evidencia.",
+        "fuente": "L21; rúbricas 4.2 y 4.4",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "resultados-cuantificador-vago",
+        "tipo": "desaconsejada",
+        "expresion": "varios, numerosos, gran cantidad, significativamente, miles de",
+        "regex": "\\b(numeros[oa]s|gran\\s+(cantidad|n[úu]mero|parte)|parte\\s+significativa|significativamente|considerablemente|miles\\s+de|cientos\\s+de)\\b",
+        "motivo": "Resultado sin cifra.",
+        "fuente": "L19",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "resultados-indicador",
+        "tipo": "favorecida",
+        "expresion": "El impacto … a corto, mediano y largo plazo en la región…; Cada bien queda a cargo de <entidad>, que…",
+        "regex": null,
+        "motivo": "Resultado con meta, plazo e indicador verificable.",
+        "fuente": "Proyecto de referencia, cap. 17",
+        "aplica_a": "prosa"
+      }
+    ],
+    "12_consideraciones_eticas": [
+      {
+        "id": "etica-generica",
+        "tipo": "desaconsejada",
+        "expresion": "evitando malas prácticas como el plagio y el fraude; no aplica (sin justificar)",
+        "regex": "\\bmalas\\s+pr[áa]cticas\\b|\\bno\\s+aplica\\b",
+        "motivo": "Fórmula genérica sin relación con las actividades, o descarte sin justificar.",
+        "fuente": "Anexo 2 cap. 26",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "etica-apertura",
+        "tipo": "favorecida",
+        "expresion": "La investigación tendrá en cuenta los principios éticos establecidos en <norma>…; El tratamiento de datos personales se regirá por la Ley 1581 de 2012…",
+        "regex": null,
+        "motivo": "Futuro normativo atado a las actividades.",
+        "fuente": "Proyecto de referencia, cap. 26",
+        "aplica_a": "prosa"
+      }
+    ],
+    "14_cronograma_actividades": [
+      {
+        "id": "cronograma-trimestres",
+        "tipo": "desaconsejada",
+        "expresion": "trimestre(s) como unidad del cronograma",
+        "regex": "\\btrimestres?\\b",
+        "motivo": "El cronograma va en meses, no en trimestres (los informes de supervisión sí son trimestrales).",
+        "fuente": "Anexo 2 cap. 22; guía SGR §14",
+        "aplica_a": "prosa"
+      }
+    ],
+    "15_productos_esperados": [
+      {
+        "id": "productos-se-espera",
+        "tipo": "desaconsejada",
+        "expresion": "se espera que (para productos)",
+        "regex": "\\bse\\s+espera\\s+que\\b",
+        "motivo": "Los productos son compromisos verificables.",
+        "fuente": "L3; Manual conceptual MGA 2015",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "producto-participio",
+        "tipo": "prohibida",
+        "expresion": "elaborado, implementado, entregado en el nombre del producto",
+        "regex": null,
+        "motivo": "El nombre del producto no incluye su condición; el participio solo va en el indicador o si es parte del nombre del catálogo («Infraestructura para la I+D+i dotada»).",
+        "fuente": "L15; Manual conceptual MGA 2015, p. 81; guía SGR §15",
+        "aplica_a": "tabla"
+      }
+    ],
+    "17_articulacion_comunidades": [
+      {
+        "id": "demandas-contribucion-general",
+        "tipo": "desaconsejada",
+        "expresion": "contribuirá significativamente, impactará positivamente",
+        "regex": "\\bcontribuir[áa]n?\\s+significativamente\\b|\\bimpactar[áa]n?\\s+positivamente\\b",
+        "motivo": "Contribución general sin indicador («La contribución por departamento se describe en términos generales, sin indicador»).",
+        "fuente": "Anexo 2 Conv 54 cap. 8; rúbrica 2.1; capa guía de la rúbrica",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "demandas-contribucion",
+        "tipo": "favorecida",
+        "expresion": "El OE<n> aporta <producto con unidad> a <actor>, con <indicador>…; Mediante la actividad <n.n.n>, el proyecto entrega…",
+        "regex": null,
+        "motivo": "Contribución que empieza por el objetivo o el producto.",
+        "fuente": "Proyecto de referencia, cap. 8",
+        "aplica_a": "prosa"
+      }
+    ],
+    "18_apropiacion_social": [
+      {
+        "id": "asc-unidireccional",
+        "tipo": "desaconsejada",
+        "expresion": "socializar, socialización de resultados, sensibilizar, capacitar a la comunidad, llevar el conocimiento a",
+        "regex": "\\b(socializ\\w+|sensibiliz\\w+|capacitar\\s+a\\s+la\\s+comunidad|llevar\\s+el\\s+conocimiento)\\b",
+        "motivo": "La ASC «no se puede plantear sólo como actividades de divulgación o socialización».",
+        "fuente": "L22; TdR 6.1; rúbrica 2.4",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "asc-lexico",
+        "tipo": "favorecida",
+        "expresion": "participación, diálogo de saberes, co-creación, incidencia, validación conjunta, mesas de trabajo, grupos focales, comunidades de práctica, sistematización",
+        "regex": null,
+        "motivo": "Coincide con la rúbrica 2.4.",
+        "fuente": "TdR 6.1",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "asc-apertura",
+        "tipo": "favorecida",
+        "expresion": "La estrategia de Apropiación Social del Conocimiento (ASC) del proyecto se concibe como un proceso transversal de participación…",
+        "regex": null,
+        "motivo": "Apertura de la referencia.",
+        "fuente": "Proyecto de referencia, cap. 19",
+        "aplica_a": "prosa"
+      }
+    ],
+    "19_alineacion_planes": [
+      {
+        "id": "alineacion-enfasis",
+        "tipo": "desaconsejada",
+        "expresion": "se alinea perfectamente, en total consonancia, contribuye de manera significativa",
+        "regex": "\\bperfectamente\\b|\\ben\\s+total\\s+consonancia\\b|\\bde\\s+manera\\s+significativa\\b",
+        "motivo": "Alineación sin programa, meta ni indicador.",
+        "fuente": "Anexo 2 cap. 4; capa guía de la rúbrica",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "alineacion-apertura",
+        "tipo": "favorecida",
+        "expresion": "El proyecto se articula con…; Se inscribe en el desafío <n> «<nombre>»…; El proyecto contribuye al ODS <n>…; Programa de inversión 3906…",
+        "regex": null,
+        "motivo": "Encuadre con nombre oficial entre comillas latinas y aporte.",
+        "fuente": "Proyecto de referencia, cap. 4",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "alineacion-enmarca",
+        "tipo": "favorecida",
+        "expresion": "La propuesta se enmarca en el Desafío <n>, «<nombre>», porque…",
+        "regex": null,
+        "motivo": "Fórmula de encuadre.",
+        "fuente": "Proyecto de referencia, cap. 1",
+        "aplica_a": "prosa"
+      }
+    ],
+    "20_participantes": [
+      {
+        "id": "participantes-generico",
+        "tipo": "desaconsejada",
+        "expresion": "apoyar, acompañar (como responsabilidad)",
+        "regex": "\\b(apoyar|acompa[ñn]ar)\\b",
+        "motivo": "Responsabilidades genéricas que no corresponden a actividades del cronograma.",
+        "fuente": "Anexo 2 cap. 10",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "participantes-vocabulario",
+        "tipo": "favorecida",
+        "expresion": "Beneficiario, Cooperante, Oponente, Perjudicado; Gestionar atentamente, Mantener satisfecho, Mantener informado, Monitorear",
+        "regex": null,
+        "motivo": "Vocabulario fijo de la MGA.",
+        "fuente": "Instructivo MGA 2023, p. 32; Módulo 3",
+        "aplica_a": "prosa"
+      }
+    ],
+    "21_poblacion": [
+      {
+        "id": "poblacion-vaga",
+        "tipo": "prohibida",
+        "expresion": "beneficiará a toda la región, una parte significativa",
+        "regex": "\\bbeneficiar[áa]n?\\s+a\\s+toda\\b|\\bparte\\s+significativa\\b",
+        "motivo": "La población son personas con cifra, fuente y localización.",
+        "fuente": "Anexo 2 cap. 11; guía SGR A21",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "poblacion-promesa",
+        "tipo": "desaconsejada",
+        "expresion": "se garantizará, garantiza, asegurará",
+        "regex": "\\b(se\\s+)?garantizar[áa]n?\\b|\\bgarantizan?\\b|\\basegurar[áa]n?\\b",
+        "motivo": "Cada medida diferencial lleva actividad, indicador, meta y evidencia.",
+        "fuente": "L21; rúbrica 4.4",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "poblacion-cuantificador-vago",
+        "tipo": "desaconsejada",
+        "expresion": "varios, diversos, numerosos, muchos, miles de",
+        "regex": "\\b(vari[oa]s|divers[oa]s|numeros[oa]s|much[oa]s|gran\\s+(cantidad|n[úu]mero)|miles\\s+de|cientos\\s+de)\\b",
+        "motivo": "Cifra, unidad y fuente.",
+        "fuente": "L19; Anexo 2 §11",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "poblacion-apertura",
+        "tipo": "favorecida",
+        "expresion": "La población afectada por esta problemática incluye a…; La selección de la población objetivo considera <criterios>…; Para caracterizar demográficamente a <grupo>… se recurrió a <fuente, año>.",
+        "regex": null,
+        "motivo": "Criterios y fuente oficial.",
+        "fuente": "Proyecto de referencia, cap. 11",
+        "aplica_a": "prosa"
+      }
+    ],
+    "22_alternativas": [
+      {
+        "id": "alternativas-unica",
+        "tipo": "prohibida",
+        "expresion": "la única alternativa viable",
+        "regex": "\\b[úu]nica\\s+alternativa\\b",
+        "motivo": "Se comparan al menos dos alternativas por factores; la disponibilidad de recursos no basta para descartar.",
+        "fuente": "Anexo 2 cap. 13",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "alternativas-apertura",
+        "tipo": "favorecida",
+        "expresion": "La alternativa 1 parte de <activo existente>…; La alternativa seleccionada contempla…; La alternativa <n> se descarta porque <razón técnica>.",
+        "regex": null,
+        "motivo": "Comparación técnica.",
+        "fuente": "Proyecto de referencia, cap. 13",
+        "aplica_a": "prosa"
+      }
+    ],
+    "23_cadena_valor": [
+      {
+        "id": "cadena-se-espera",
+        "tipo": "desaconsejada",
+        "expresion": "se espera que",
+        "regex": "\\bse\\s+espera\\s+que\\b",
+        "motivo": "Los productos son compromisos.",
+        "fuente": "L3; Manual conceptual MGA 2015",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "cadena-producto-participio",
+        "tipo": "prohibida",
+        "expresion": "elaborado, implementado, entregado en el nombre del producto",
+        "regex": null,
+        "motivo": "El nombre del producto no incluye su condición; exentos los nombres del catálogo DNP.",
+        "fuente": "L15; Manual conceptual MGA 2015, p. 81; guía SGR §15",
+        "aplica_a": "tabla"
+      }
+    ],
+    "24_riesgos": [
+      {
+        "id": "riesgo-medida-generica",
+        "tipo": "desaconsejada",
+        "expresion": "hacer seguimiento, mantener una actitud preventiva, ser muy rigurosos",
+        "regex": "\\bhacer\\s+seguimiento\\b|\\bactitud\\s+preventiva\\b|\\bser\\s+muy\\s+rigurosos\\b",
+        "motivo": "Medida genérica sin responsable ni costo.",
+        "fuente": "Anexo 2 cap. 23; Módulo 4, pp. 38-40",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "riesgo-forma",
+        "tipo": "favorecida",
+        "expresion": "Descripción nominal («Retrasos en la contratación de personal…»); medida en infinitivo con responsable y costo",
+        "regex": null,
+        "motivo": "Forma de la referencia.",
+        "fuente": "Proyecto de referencia, cap. 23",
+        "aplica_a": "prosa"
+      }
+    ],
+    "25_marco_logico": [
+      {
+        "id": "marco-logico-forma",
+        "tipo": "favorecida",
+        "expresion": "Fin, propósito, productos y actividades con descripción, indicadores, fuentes de verificación y supuestos; los supuestos salen de los riesgos",
+        "regex": null,
+        "motivo": "Matriz 4×4 nominal; el propósito usa el indicador de resultado de §11.",
+        "fuente": "Manual conceptual MGA 2015, pp. 79-82",
+        "aplica_a": "prosa"
+      }
+    ]
+  },
+  "exenciones": [
+    {
+      "id": "comillas",
+      "regex": "«[^»\\n]{0,400}»|“[^”\\n]{0,400}”|``.{0,400}?''|\\\"[^\\\"\\n]{0,400}\\\"",
+      "motivo": "Citas literales y nombres oficiales entre comillas (planes, programas, demandas del Anexo 4)."
+    },
+    {
+      "id": "jovenes-investigadores",
+      "regex": "\\bj[óo]venes?\\s+investigador(es)?\\s+e\\s+innovador(es)?\\b",
+      "motivo": "Nombre oficial de la categoría del TdR («Jóvenes Investigadores e Innovadores»)."
+    },
+    {
+      "id": "paquete-tecnologico",
+      "regex": "\\bpaquetes?\\s+tecnol[óo]gicos?\\b",
+      "motivo": "Término oficial de transferencia."
+    },
+    {
+      "id": "producto-catalogo",
+      "regex": "\\b39\\d{5}\\b[^.;:&\\n]{0,160}",
+      "motivo": "Nombre del catálogo de productos del DNP con su código (sector 39, programa 3906)."
+    },
+    {
+      "id": "infraestructura-dotada",
+      "regex": "\\binfraestructura\\s+para\\s+la\\s+I\\+D\\+i\\s+dotada\\b",
+      "motivo": "Nombre del catálogo con participio oficial."
+    },
+    {
+      "id": "entidad-innovacion",
+      "regex": "\\b(centro|instituto|parque|corporaci[óo]n|red)\\s+(de\\s+)?(innovaci[óo]n|innovador[ae]?)\\b[^.,;\\n]{0,80}",
+      "motivo": "Nombres propios de entidades y centros aliados."
+    }
+  ],
+  "repeticion_obligatoria": [
+    {
+      "tipo": "titulo",
+      "fuente": "redaccion/datos_proyecto.tex (\\TituloProyecto)",
+      "motivo": "«¿El título del proyecto es idéntico en la MGA, el documento técnico, las cartas y el presupuesto?»"
+    },
+    {
+      "tipo": "problema_central",
+      "fuente": "redaccion/specs/arbol_problemas.spec.json (trunk.text)",
+      "motivo": "Literal en el problema central y en el árbol; en positivo, objetivo general."
+    },
+    {
+      "tipo": "objetivo_general",
+      "fuente": "artefactos/arboles/arbol_objetivos.json (trunk.text)",
+      "motivo": "sgr-objetivo-general-distinto: §6 copia el árbol."
+    },
+    {
+      "tipo": "objetivos_especificos",
+      "fuente": "artefactos/arboles/arbol_objetivos.json (groups[].objective)",
+      "motivo": "sgr-objetivos-especificos-distintos: §7, metodología, cadena de valor y cronograma los copian."
+    },
+    {
+      "tipo": "productos",
+      "fuente": "artefactos/sgr/cadena_valor.json (objetivos[].productos[].nombre)",
+      "motivo": "Nombre y código del catálogo idénticos en todos los capítulos."
+    },
+    {
+      "tipo": "actividades",
+      "fuente": "artefactos/sgr/cadena_valor.json (…actividades[].nombre)",
+      "motivo": "Mismo nombre y costo en metodología, cadena de valor, cronograma y Anexo 3."
+    },
+    {
+      "tipo": "demandas",
+      "fuente": "texto de las demandas del Anexo 4, citado entre comillas latinas",
+      "motivo": "La demanda se cita literal; la exención de comillas la cubre."
+    },
+    {
+      "tipo": "planes_y_programas",
+      "fuente": "nombres oficiales entre comillas latinas",
+      "motivo": "Trazabilidad con los planes; la exención de comillas la cubre."
+    },
+    {
+      "tipo": "linea_base",
+      "fuente": "cifras de la magnitud del problema",
+      "motivo": "Las cifras no se reescriben."
+    }
+  ],
+  "redundancia": {
+    "ngrama_min_palabras": 12,
+    "conectores_en_serie": [
+      "asimismo",
+      "así mismo",
+      "adicionalmente",
+      "además",
+      "de esta manera",
+      "de esta forma",
+      "por otra parte",
+      "a continuación",
+      "en este sentido",
+      "por consiguiente",
+      "igualmente"
+    ],
+    "patrones": {
+      "R1": "El problema central literal solo en el problema central, el árbol y, en positivo, el objetivo general y el título; en el resto, una referencia breve con la variable.",
+      "R2": "Los objetivos específicos literales en §7, los rótulos de la metodología y las tablas de cadena de valor y cronograma; en el resto, «el OE<n>».",
+      "R3": "ODS y PND: alineación en el anexo 19; la justificación remite en una oración; la sostenibilidad muestra la contribución con productos.",
+      "R4": "Demandas: nombre y código en la identificación; descripción y contribución con indicador en la articulación con comunidades.",
+      "R5": "Tabla normativa: normas que enmarcan el problema en el marco conceptual; licencias y permisos aplicables aparte.",
+      "R6": "Talento humano: perfiles, actividades y meses en el equipo; justificación, cantidad, entidad y costo en la vinculación de talento.",
+      "R7": "Alternativas: comparación por factores, sin re-resumir el proyecto ni la metodología.",
+      "R8": "Transferencia (uso y adopción) y ASC (participación y co-creación) separadas; una actividad compartida se nombra una vez.",
+      "R9": "Continuidad: estrategia y actores en sostenibilidad; operación y fuente de recursos en resultados; continuidad de la transferencia en su componente.",
+      "R10": "La justificación no re-describe el problema: parte de él en una oración.",
+      "R11": "Fuera de la lista blanca, máximo dos repeticiones del mismo término comodín en cinco líneas.",
+      "R12": "Las causas no repiten los calificadores del tronco.",
+      "R13": "La prosa explica criterio y lógica; la cifra queda en la tabla contigua.",
+      "R14": "Ningún conector repetido en arranques consecutivos."
+    },
+    "deterministas": [
+      "R1-R10 (spans de 12 o más palabras compartidos entre secciones, fuera de la lista blanca)",
+      "R14 (conectores en serie)"
+    ]
+  },
+  "mapa_capitulos": [
+    {
+      "capitulo": 2,
+      "titulo": "RESUMEN EJECUTIVO",
+      "secciones": [
+        "00_frontmatter"
+      ]
+    },
+    {
+      "capitulo": 3,
+      "titulo": "PALABRAS CLAVE",
+      "secciones": [
+        "00_frontmatter"
+      ]
+    },
+    {
+      "capitulo": 4,
+      "titulo": "ALINEACIÓN CON LA POLÍTICA PÚBLICA",
+      "secciones": [
+        "19_alineacion_planes",
+        "02_justificacion"
+      ]
+    },
+    {
+      "capitulo": 5,
+      "titulo": "IDENTIFICACIÓN Y DESCRIPCIÓN DEL PROBLEMA",
+      "secciones": [
+        "03_descripcion_problema"
+      ]
+    },
+    {
+      "capitulo": 6,
+      "titulo": "ANTECEDENTES",
+      "secciones": [
+        "04_estado_arte"
+      ]
+    },
+    {
+      "capitulo": 7,
+      "titulo": "JUSTIFICACIÓN",
+      "secciones": [
+        "02_justificacion"
+      ]
+    },
+    {
+      "capitulo": 8,
+      "titulo": "ARTICULACIÓN DEL PROYECTO CON LAS DEMANDAS TERRITORIALES",
+      "secciones": [
+        "17_articulacion_comunidades"
+      ]
+    },
+    {
+      "capitulo": 9,
+      "titulo": "MARCO CONCEPTUAL",
+      "secciones": [
+        "08_marco_conceptual"
+      ]
+    },
+    {
+      "capitulo": 10,
+      "titulo": "ANÁLISIS DE PARTICIPANTES",
+      "secciones": [
+        "20_participantes"
+      ]
+    },
+    {
+      "capitulo": 11,
+      "titulo": "POBLACIÓN",
+      "secciones": [
+        "21_poblacion"
+      ]
+    },
+    {
+      "capitulo": 12,
+      "titulo": "OBJETIVOS",
+      "secciones": [
+        "06_objetivo_general",
+        "07_objetivos_especificos",
+        "09_equipo_trabajo"
+      ]
+    },
+    {
+      "capitulo": 13,
+      "titulo": "ANÁLISIS DE LAS ALTERNATIVAS",
+      "secciones": [
+        "22_alternativas"
+      ]
+    },
+    {
+      "capitulo": 14,
+      "titulo": "METODOLOGÍA PARA DESARROLLAR LA ALTERNATIVA SELECCIONADA",
+      "secciones": [
+        "10_metodologia"
+      ]
+    },
+    {
+      "capitulo": 15,
+      "titulo": "CADENA DE VALOR",
+      "secciones": [
+        "23_cadena_valor"
+      ]
+    },
+    {
+      "capitulo": 17,
+      "titulo": "RESULTADOS E IMPACTOS PARA LA REGIÓN Y LOS DEPARTAMENTOS OBJETO DEL PROYECTO",
+      "secciones": [
+        "11_resultados_esperados"
+      ]
+    },
+    {
+      "capitulo": 19,
+      "titulo": "COMPONENTE TRANSVERSAL DE APROPIACIÓN SOCIAL DEL CONOCIMIENTO (ASC)",
+      "secciones": [
+        "18_apropiacion_social"
+      ]
+    },
+    {
+      "capitulo": 20,
+      "titulo": "VINCULACIÓN DE TALENTO HUMANO",
+      "secciones": [
+        "09_equipo_trabajo"
+      ]
+    },
+    {
+      "capitulo": 21,
+      "titulo": "PRODUCTOS ESPERADOS",
+      "secciones": [
+        "15_productos_esperados"
+      ]
+    },
+    {
+      "capitulo": 22,
+      "titulo": "CRONOGRAMA",
+      "secciones": [
+        "14_cronograma_actividades"
+      ]
+    },
+    {
+      "capitulo": 23,
+      "titulo": "ANÁLISIS DE RIESGOS",
+      "secciones": [
+        "24_riesgos"
+      ]
+    },
+    {
+      "capitulo": 26,
+      "titulo": "ASPECTOS ÉTICOS",
+      "secciones": [
+        "12_consideraciones_eticas"
+      ]
+    },
+    {
+      "capitulo": 29,
+      "titulo": "RESUMEN DE FUENTES DE FINANCIACIÓN",
+      "secciones": [
+        "13_presupuesto"
+      ]
+    },
+    {
+      "capitulo": 30,
+      "titulo": "BIBLIOGRAFÍA",
+      "secciones": [
+        "16_bibliografia"
+      ]
+    }
+  ],
+  "capitulos_sin_archivo": [
+    {
+      "capitulo": 1,
+      "titulo": "IDENTIFICACIÓN DEL PROYECTO",
+      "nota": "Ficha de identificación; hoy solo el título vive en redaccion/datos_proyecto.tex (sgr-titulo-no-derivado). Nombre ≤256 caracteres, «Proceso + Objeto + Localización»; aperturas «La propuesta se enmarca en el Desafío <n>…», «Se abordarán las sublíneas…»."
+    },
+    {
+      "capitulo": 16,
+      "titulo": "SOSTENIBILIDAD SOCIAL Y AMBIENTAL DEL PROYECTO",
+      "nota": "Presente; contribución a los ODS con productos que la respaldan; evitar «garantiza la sostenibilidad» sin responsable ni fuente y copiar la alineación (R3)."
+    },
+    {
+      "capitulo": 18,
+      "titulo": "COMPONENTE TRANSVERSAL DE TRANSFERENCIA, ADOPCIÓN Y VALORACIÓN TECNOLÓGICA DEL CONOCIMIENTO",
+      "nota": "Futuro dominante; transferencia verificada con evidencia de uso, no reducida a publicaciones o eventos (L23); mínimo 1 % del valor SGR."
+    },
+    {
+      "capitulo": 24,
+      "titulo": "INDICADORES DE GESTIÓN",
+      "nota": "Tabla Indicador | Medida / meta | Fecha de entrega; informes de supervisión trimestrales."
+    },
+    {
+      "capitulo": 25,
+      "titulo": "INDICADORES DE PRODUCTO",
+      "nota": "Tabla del catálogo coherente con productos esperados; sin prosa."
+    },
+    {
+      "capitulo": 27,
+      "titulo": "IDONEIDAD Y TRAYECTORIA DE LA ENTIDAD PROPONENTE Y DEMÁS PARTICIPANTES",
+      "nota": "Reescribir en tercera persona el texto institucional pegado; sin lenguaje de folleto («líder», «referente nacional»)."
+    },
+    {
+      "capitulo": 28,
+      "titulo": "ANÁLISIS DE LICENCIAS Y PERMISOS",
+      "nota": "Tabla de licencias aplicables con justificación; no copiar la tabla normativa del marco conceptual (R5)."
+    },
+    {
+      "capitulo": 31,
+      "titulo": "ANEXOS",
+      "nota": "Lista, sin prosa."
+    }
+  ]
+}

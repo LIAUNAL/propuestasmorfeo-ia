@@ -25,6 +25,7 @@ MODEL_PRESETS: dict[str, dict[str, str]] = {
         "revisor-figuras": "sonnet",
         "coordinador-propuesta": "sonnet",
         "juez-sgr": "opus",
+        "revisor-estilo-sgr": "sonnet",
     },
     "gpt": {
         "investigador": "gpt-5.6-sol",
@@ -38,6 +39,7 @@ MODEL_PRESETS: dict[str, dict[str, str]] = {
         "revisor-figuras": "gpt-5.6-terra",
         "coordinador-propuesta": "gpt-5.6-terra",
         "juez-sgr": "gpt-5.6-sol",
+        "revisor-estilo-sgr": "gpt-5.6-terra",
     },
     "opencode-go": {
         "investigador": "opencode-go/glm-5.2",
@@ -51,6 +53,7 @@ MODEL_PRESETS: dict[str, dict[str, str]] = {
         "revisor-figuras": "opencode-go/glm-5.2",
         "coordinador-propuesta": "opencode-go/glm-5.2",
         "juez-sgr": "opencode-go/glm-5.2",
+        "revisor-estilo-sgr": "opencode-go/glm-5.2",
     },
 }
 

@@ -80,6 +80,13 @@ tablero muestra, en cada sección de un proyecto SGR, el bloque `### SGR §N` de
 la guía del proyecto (servido por `/api/guide/sgr`), el mismo que el
 dispatcher inyecta.
 
+En el SGR la prosa habla del proyecto en tercera persona («El proyecto…»,
+«Este proyecto busca…», «La presente propuesta se enmarca…»), sin primera
+persona; cada bloque `### SGR` trae su parte «Redacción» y el léxico por
+sección vive en `scripts/sgr/lexico_sgr.json` (`scripts/estilo_sgr.py` lo
+verifica). `revisor-estilo-sgr` (skill `estilo-sgr`) ocupa el lugar de
+`grant-flow-auditor` antes de cada `revisor`; el flujo base no cambia.
+
 ## Reglas globales
 
 1. **Idioma:** Los *system prompts* de los agentes están en inglés, pero toda
@@ -188,15 +195,8 @@ dispatcher inyecta.
    y el resto del contenido de la corrida están en `.gitignore` (igual que
    las corridas archivadas bajo `proposals/<run-id>/`) — GitHub solo aloja el
    esqueleto del framework (agentes, comandos, scripts, plantillas), nunca
-   el contenido de una propuesta específica. **Tipografía y jerarquía de tamaños de letra:**
-   El documento base se compila en `11pt` (`\documentclass[11pt,a4paper]{article}`,
-   un tamaño menor que el estándar de 12pt). Los títulos se configuran con dos tamaños menos:
-   el título principal del proyecto en la portada/encabezado usa `\Large\bfseries`
-   (reducido dos tamaños frente a los 20.7pt de `\LARGE`), las secciones de cuerpo (`\section`)
-   usan `\large\bfseries` (12pt, dos tamaños menos frente a los 17.3pt de `\Large`) mediante
-   `\usepackage{sectsty}` (`\sectionfont{\large\bfseries}`), las subsecciones (`\subsection`)
-   usan `\normalsize\bfseries` (`\subsectionfont{\normalsize\bfseries}`) y las subsubsecciones
-   (`\subsubsection`) usan `\normalsize\bfseries` (`\subsubsectionfont{\normalsize\bfseries}`).
+   el contenido de una propuesta específica. La tipografía y la jerarquía de títulos
+   están en «Invariantes de estilo del documento».
 9. **Espejo `artefactos/vault/`:** `artefactos/vault/secciones/` y
    `artefactos/vault/insumos/` son un espejo Markdown compatible con Obsidian,
    generado a partir de `redaccion/` para navegación y coherencia — **no** se
@@ -232,11 +232,11 @@ dispatcher inyecta.
    - Esta regla rige para `redactor`, `disenador-tikz`, `revisor-figuras`, `presupuestador`, `coordinador-propuesta`, `grant-flow-auditor` y cualquier agente que proponga o audite tablas y figuras.
 12. **Autonomía e independencia de herramientas de memoria externa (Engram):**
    - El marco, sus flujos de trabajo, las skills, las restricciones y los agentes son **100% autónomos y portables en disco** (`insumos/`, `artefactos/`, `redaccion/`, `specs/`).
-   - Ninguna fase, comando, validación ni regla depende de forma obligatoria de Engram. Si Engram está instalado y configurado en el entorno local, puede utilizarse como acelerador opcional de caché o espejo pasivo; si no está disponible (en otros equipos, entornos sin Engram o al usar otros agentes CLI como Pi, OpenCode, Antigravity o Claude Code básico), el pipeline opera de manera completa, determinista y sin errores.
+   - Ninguna fase, comando, validación ni regla depende de forma obligatoria de Engram. Si Engram está instalado y configurado en el entorno local, puede utilizarse como acelerador opcional de caché o espejo pasivo; si no está disponible (otros equipos, o Pi, OpenCode, Antigravity o Claude Code sin Engram), el pipeline opera de manera completa, determinista y sin errores.
 
 ## Roster de agentes (`.claude/agents/`) y modelos por defecto
 
-El marco tiene **12 agentes**, todos definidos en `.claude/agents/` (fuente de
+El marco tiene **13 agentes**, todos definidos en `.claude/agents/` (fuente de
 verdad):
 
 | Agente | Modelo por defecto | Rol |
@@ -253,6 +253,7 @@ verdad):
 | `revisor-figuras` | haiku | Juicio visual (escala, centrado, armonía, etiquetas) sobre el preview PNG ya auditado |
 | `tikz-optimizer` | haiku | Corrección de la spec cuando la auditoría determinista falla |
 | `juez-sgr` | opus | Juez final SGR (asesor): puntaje con la rúbrica, alertas y acciones |
+| `revisor-estilo-sgr` | sonnet | Solo SGR: estilo, voz, léxico y redundancia con la skill `estilo-sgr`, en lugar de `grant-flow-auditor` |
 
 No existen agentes llamados `orquestador`, `observador` (a secas) ni
 `bibliotecario`; esos nombres no forman parte de este marco.
@@ -268,6 +269,7 @@ que un agente carga cuando la tarea lo pide), con la misma fuente de verdad
 | `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): erradica 35 patrones de IA (aperturas cósmicas, gerundios de cierre, inflación de trascendencia, falsos rangos, regla de tres, monotonía de ritmo), prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional (burstiness) y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No es una herramienta de evasión: no introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
 | `depuracion-redundancias-es` | Auditar y eliminar redundancias conceptuales, léxicas y estructurales dentro de una misma sección, asegurando que cada párrafo aporte avance argumentativo y articulando la aplicación integral de `estilo-natural-es` (humanización y ritmo). | `grant-flow-auditor`, `redactor`, `investigador` y el asistente primario en revisiones integrales de texto |
 | `constelacion-sota` | Construir la constelación SOTA de una corrida: un sistema por paper con planetas tipados (tema de aplicación y de IA, problema, aplicación, novedad, familia, resultados, conclusiones), cada uno con cita textual del abstract, validada por `scripts/check_atlas.py` y dibujada por `scripts/render_atlas.py` en `grafos/papers-graph.html`, con el estudio por familia en `grafos/papers-constellation-report.md`. Port de `plausibility` de papersmith-ai. | `bibliografo-propuesta` (MODE=atlas, Fases 1a y 1c), en ambos flujos |
+| `estilo-sgr` | Solo flujo SGR: voz en tercera persona, patrones por capítulo del Anexo 2, léxico `scripts/sgr/lexico_sgr.json` y redundancia R1–R14; ajusta las dos skills anteriores a la MGA (C1–C18). | `revisor-estilo-sgr` |
 
 La skill canónica vive en `.claude/skills/estilo-natural-es/SKILL.md` y de ahí
 se porta de forma determinista: `.pi/skills/` (Pi) y `.agent/skills/`
@@ -298,10 +300,10 @@ skill mejora la cadencia; no reescribe contenido, no inventa datos y no mueve un
 cifra, una fecha ni una clave de cita.
 
 **Invariantes de estilo del documento (obligatorios):**
-- **Tipografía y jerarquía:** Compilado en `11pt` (`\documentclass[11pt,a4paper]{article}`). Títulos dos tamaños menos: título principal en encabezado `\Large\bfseries`, secciones de cuerpo `\large\bfseries`, subsecciones y subsubsecciones `\normalsize\bfseries`.
+- **Tipografía y jerarquía:** Compilado en `11pt` (`\documentclass[11pt,a4paper]{article}`). Títulos dos tamaños menos, con `sectsty`: título principal en encabezado `\Large\bfseries`, secciones de cuerpo `\large\bfseries` (`\sectionfont`), subsecciones y subsubsecciones `\normalsize\bfseries`.
 - **Logos institucionales:** Vía `fancyhdr`: UNAL arriba a la derecha, GCPDS abajo a la izquierda, LabIA abajo a la derecha; UTP opcional arriba a la izquierda.
 - **Prohibición de rayas anglosajonas y dobles guiones:** Queda terminantemente prohibido el uso de `--` o ` — ` en la prosa narrativa. Los incisos se resuelven con comas, punto y coma o paréntesis.
-- **Formato de citación:** APA autor-año natbib exclusivamente (`\citet{}`, `\citep{}`); el estilo numérico IEEE está prohibido.
+- **Formato de citación:** el de la regla 6.
 - **Estructura fija:** Los párrafos requeridos por la guía (ej. los 6 de §2) y el mapeo 1:1 (3 subproblemas ↔ 3 objetivos específicos) son inalterables.
 
 **Por qué la regla vive aquí y no solo en el pipeline.** Mientras fue un paso del

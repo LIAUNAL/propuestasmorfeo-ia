@@ -19,7 +19,7 @@
 
 **Morfeo IA** (`propuestasmorfeo-ia`) es un entorno de trabajo agéntico y determinista diseñado para investigar, redactar, estructurar y auditar propuestas completas de investigación científica y desarrollo tecnológico en Inteligencia Artificial. Produce documentos formales en **español** bajo formato LaTeX nativo (con exportación determinista a Word/DOCX), articulados rigurosamente en 18 secciones metodológicas con coherencia matemática, lógica, presupuestal y de impacto social (TRL 6 o 7).
 
-El sistema coordina un equipo de **12 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
+El sistema coordina un equipo de **13 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
 
 ---
 
@@ -190,7 +190,7 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
 
 ## Ecosistema de Agentes Especializados
 
-El marco cuenta con **12 subagentes especializados** con roles no solapados:
+El marco cuenta con **13 subagentes especializados** con roles no solapados:
 
 | Agente | Modelo sugerido | Responsabilidad |
 |---|---|---|
@@ -206,12 +206,13 @@ El marco cuenta con **12 subagentes especializados** con roles no solapados:
 | `revisor-figuras` | Haiku | Juicio visual (escala, legibilidad, armonía) sobre el render PNG de las figuras. |
 | `tikz-optimizer` | Haiku | Corrección asistida de especificaciones JSON cuando falla la compilación o la auditoría. |
 | `juez-sgr` | Opus | Juez final del flujo SGR: puntaje estimado con la rúbrica oficial, alertas de inconsistencia y acciones de mejora (asesor, no cambia el veredicto del `revisor`). |
+| `revisor-estilo-sgr` | Sonnet | Solo en el flujo SGR: audita y pule estilo, voz en tercera persona, léxico por sección y redundancia según la MGA del DNP (skill `estilo-sgr`); ocupa el lugar de `grant-flow-auditor` antes de cada `revisor`. |
 
 ---
 
 ## Skills de Redacción Científica y Humanización
 
-Toda la prosa en español generada por el marco pasa obligatoriamente por dos metodologías modulares instaladas en `.claude/skills/`:
+Toda la prosa en español generada por el marco pasa obligatoriamente por dos metodologías modulares instaladas en `.claude/skills/`, más una tercera que las ajusta en el flujo SGR:
 
 ### 1. `estilo-natural-es` (Humanización y Prosa Académica Culta)
 Integración y acoplamiento exhaustivo del catálogo de **35 patrones mecánicos de IA** (cotejado con *humanizer-mit* y contextualizado en la norma académica culta de Colombia):
@@ -226,6 +227,11 @@ Integración y acoplamiento exhaustivo del catálogo de **35 patrones mecánicos
 - Audita que cada párrafo introduzca un avance argumentativo genuino.
 - Erradica la repetición de ideas con distinta vestidura verbal dentro de una misma sección.
 - Garantiza que la articulación entre subproblemas, objetivos y metodología sea limpia y sin redundancias.
+
+### 3. `estilo-sgr` (solo flujo SGR)
+- Ajusta las dos skills anteriores a un proyecto de inversión del Sistema General de Regalías: tercera persona («El proyecto…», «Este proyecto busca…», «La presente propuesta se enmarca…»), sin primera persona, y la impersonal con «se».
+- Patrones de redacción por capítulo del Anexo 2 y léxico prohibido, desaconsejado y favorecido por sección en `scripts/sgr/lexico_sgr.json`, verificado por `scripts/estilo_sgr.py`.
+- Respeta los textos que deben repetirse literal (título, objetivos, productos, actividades) y aplica el veto de verbos de la MGA solo a los nombres de actividad. Evidencia en `docs/sgr/patrones_redaccion_sgr.md`.
 
 ---
 
