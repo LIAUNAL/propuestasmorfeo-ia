@@ -23,9 +23,22 @@ sys.path.insert(0, str(REPO / "tests"))
 
 from test_alianza_territorio_sgr import _alliance, _territory  # noqa: E402
 from test_cadena_valor_sgr import TREE, _valid_chain  # noqa: E402
+from test_presupuesto_sgr import _budget  # noqa: E402
 
 CHECK = REPO / "scripts" / "check_run.py"
-NEW_PREFIXES = ("cadena-", "sgr-estilo-", "alianza-", "territorio-")
+NEW_PREFIXES = ("cadena-", "sgr-estilo-", "alianza-", "territorio-", "presupuesto-", "cronograma-")
+BUDGET_HEADER = "% GENERADO por scripts/presupuesto_sgr.py"
+
+STUB_CRONOGRAMA = '''
+def findings(run_root):
+    return [{"severity": "warning", "code": "cronograma-sin-hitos", "message": "Más de tres meses sin hito.",
+             "node": "1.1"}]
+'''
+
+STUB_PRESUPUESTO = '''
+def findings(run_root):
+    return [{"severity": "error", "code": "presupuesto-stub", "message": "Stub.", "node": "P1"}]
+'''
 ALLIANCE_STEMS = ("26_identificacion", "27_demandas_territoriales", "28_matriz_responsabilidades",
                   "29_idoneidad_trayectoria")
 
@@ -64,8 +77,8 @@ def _findings(run: Path, flujo: str, check: Path = CHECK) -> list[dict]:
     return json.loads(out.stdout)["findings"]
 
 
-def _findings_final(run: Path, flujo: str) -> list[dict]:
-    out = subprocess.run([sys.executable, str(CHECK), str(run), "--json", "--final", "--flujo", flujo],
+def _findings_final(run: Path, flujo: str, check: Path = CHECK) -> list[dict]:
+    out = subprocess.run([sys.executable, str(check), str(run), "--json", "--final", "--flujo", flujo],
                          capture_output=True, text=True)
     return json.loads(out.stdout)["findings"]
 
@@ -113,6 +126,22 @@ class Base(unittest.TestCase):
             self.assertEqual(_findings(run, "base"), before)
             self.assertEqual(_findings_final(run, "base"), before_final)
 
+    def test_base_run_ignores_the_budget_and_schedule(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            check = _isolated_check(Path(tmp), with_stub=False, extra={"cronograma_sgr.py": STUB_CRONOGRAMA,
+                                                                       "presupuesto_sgr.py": STUB_PRESUPUESTO})
+            run = _make_run(Path(tmp))
+            before = _findings(run, "base", check)
+            before_final = _findings_final(run, "base", check)
+            _write_sgr(run, "presupuesto.json", _budget())
+            sections = run / "redaccion" / "sections"
+            for stem in ("13_presupuesto", "30_fuentes_financiacion"):
+                (sections / f"{stem}.tex").write_text("\\section{A mano}\nTexto.\n", encoding="utf-8")
+            (run / "artefactos" / "estado_propuesta.md").write_text("| G6.4 | APROBADA |\n", encoding="utf-8")
+            (sections / "13_presupuesto.tex").unlink()
+            self.assertEqual(_findings(run, "base", check), before)
+            self.assertEqual(_findings_final(run, "base", check), before_final)
+
     def test_base_run_never_calls_the_style_module(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             check = _isolated_check(Path(tmp), with_stub=True)
@@ -120,14 +149,17 @@ class Base(unittest.TestCase):
             self.assertFalse([c for c in _codes(_findings(run, "base", check)) if c.startswith(NEW_PREFIXES)])
 
 
-def _isolated_check(tmp: Path, with_stub: bool) -> Path:
-    """check_run and cadena_valor_sgr copied to their own folder, with or without a stub estilo_sgr."""
+def _isolated_check(tmp: Path, with_stub: bool, extra: dict[str, str] | None = None) -> Path:
+    """check_run and cadena_valor_sgr copied to their own folder, with or without a stub estilo_sgr
+    (and the other stub modules of `extra`, by file name)."""
     scripts = tmp / "scripts"
     scripts.mkdir()
     for name in ("check_run.py", "cadena_valor_sgr.py"):
         shutil.copy(REPO / "scripts" / name, scripts / name)
     if with_stub:
         (scripts / "estilo_sgr.py").write_text(STUB_ESTILO, encoding="utf-8")
+    for name, text in (extra or {}).items():
+        (scripts / name).write_text(text, encoding="utf-8")
     return scripts / "check_run.py"
 
 
@@ -271,6 +303,97 @@ class SgrAllianceTerritory(unittest.TestCase):
         missing = [f["message"] for f in _findings_final(self.run, "sgr") if f["code"] == "sgr-anexo-faltante"]
         for stem in ALLIANCE_STEMS:
             self.assertTrue(any(stem in m for m in missing), stem)
+
+
+class SgrBudgetSchedule(unittest.TestCase):
+    """S3/S4: budget and schedule findings, the absence of presupuesto.json after G6.4, sections 13 and 30."""
+
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.run = _make_run(self.tmp)
+        self.sections = self.run / "redaccion" / "sections"
+        _write_chain(self.run, _valid_chain())
+        _write_sgr(self.run, "alianza.json", _alliance())
+
+    def write_budget(self, budget: dict | None = None) -> Path:
+        path = _write_sgr(self.run, "presupuesto.json", budget or _budget())
+        module = subprocess.run([sys.executable, str(REPO / "scripts" / "presupuesto_sgr.py"), "sync-cadena",
+                                 str(self.run)], capture_output=True, text=True)
+        self.assertEqual(module.returncode, 0, module.stderr)
+        return path
+
+    def generated(self, stem: str) -> Path:
+        tex = self.sections / f"{stem}.tex"
+        tex.write_text(f"{BUDGET_HEADER}\n\\section{{Generada}}\n", encoding="utf-8")
+        return tex
+
+    def test_budget_findings_are_included_with_their_file(self) -> None:
+        budget = _budget()
+        budget["items"][0]["rubro"] = "viaticos"
+        self.write_budget(budget)
+        hit = next(f for f in _findings(self.run, "sgr") if f["code"] == "presupuesto-rubro-invalido")
+        self.assertEqual((hit["severity"], hit["file"], hit["node"]), ("error", "artefactos/sgr/presupuesto.json", "P1"))
+
+    def test_clean_budget_adds_nothing(self) -> None:
+        self.write_budget()
+        self.assertFalse([c for c in _codes(_findings(self.run, "sgr")) if c.startswith("presupuesto-")])
+
+    def test_missing_budget_warns_only_past_g64(self) -> None:
+        estado = self.run / "artefactos" / "estado_propuesta.md"
+        self.assertNotIn("presupuesto-datos-faltantes", _codes(_findings(self.run, "sgr")))
+        estado.write_text("| G6.45 | APROBADA |\n| G6.4 | PENDIENTE |\n", encoding="utf-8")
+        self.assertNotIn("presupuesto-datos-faltantes", _codes(_findings(self.run, "sgr")))
+        estado.write_text("| Compuerta | Estado |\n|---|---|\n| G6.4 | APROBADA |\n", encoding="utf-8")
+        self.assertIn("presupuesto-datos-faltantes", _codes(_findings(self.run, "sgr"), "warning"))
+
+    def test_hand_written_sources_section_is_an_error(self) -> None:
+        (self.sections / "30_fuentes_financiacion.tex").write_text("\\section{Fuentes}\nA mano.\n",
+                                                                     encoding="utf-8")
+        hit = [f for f in _findings(self.run, "sgr") if f["code"] == "presupuesto-anexo-manual"]
+        self.assertEqual([f["file"] for f in hit], ["redaccion/sections/30_fuentes_financiacion.tex"])
+
+    def test_hand_written_budget_section_is_an_error_only_with_the_json(self) -> None:
+        (self.sections / "13_presupuesto.tex").write_text("\\section{Presupuesto}\nA mano.\n", encoding="utf-8")
+        self.assertNotIn("presupuesto-anexo-manual", _codes(_findings(self.run, "sgr")))
+        self.write_budget()
+        hit = [f for f in _findings(self.run, "sgr") if f["code"] == "presupuesto-anexo-manual"]
+        self.assertEqual([(f["severity"], f["file"]) for f in hit], [("error", "redaccion/sections/13_presupuesto.tex")])
+
+    def test_section_older_than_its_data_is_an_error(self) -> None:
+        budget_path = self.write_budget()
+        budget_tex, sources_tex = self.generated("13_presupuesto"), self.generated("30_fuentes_financiacion")
+        self.assertFalse([c for c in _codes(_findings(self.run, "sgr")) if c.startswith("presupuesto-anexo")])
+        stamp = sources_tex.stat().st_mtime
+        os.utime(budget_path, (stamp + 10, stamp + 10))
+        found = [f for f in _findings(self.run, "sgr") if f["code"] == "presupuesto-anexo-desactualizado"]
+        self.assertEqual({f["file"].rsplit("/", 1)[-1] for f in found},
+                         {"13_presupuesto.tex", "30_fuentes_financiacion.tex"})
+        os.utime(budget_path, (stamp - 10, stamp - 10))
+        os.utime(self.run / "artefactos" / "sgr" / "cadena_valor.json", (stamp + 10, stamp + 10))
+        found = [f for f in _findings(self.run, "sgr") if f["code"] == "presupuesto-anexo-desactualizado"]
+        self.assertEqual([f["file"].rsplit("/", 1)[-1] for f in found], ["13_presupuesto.tex"])
+        self.assertTrue(budget_tex.is_file())
+
+    def test_schedule_findings_come_in_when_the_module_exists(self) -> None:
+        check = _isolated_check(self.tmp, with_stub=False, extra={"cronograma_sgr.py": STUB_CRONOGRAMA})
+        hit = [f for f in _findings(self.run, "sgr", check) if f["code"].startswith("cronograma-")]
+        self.assertEqual([(f["code"], f["severity"], f["file"], f["node"]) for f in hit],
+                         [("cronograma-sin-hitos", "warning", "artefactos/sgr/cadena_valor.json", "1.1")])
+
+    def test_without_the_schedule_module_there_are_no_schedule_findings(self) -> None:
+        check = _isolated_check(self.tmp, with_stub=False)
+        self.assertFalse([c for c in _codes(_findings(self.run, "sgr", check)) if c.startswith("cronograma-")])
+
+    def test_a_broken_schedule_module_is_a_warning(self) -> None:
+        check = _isolated_check(self.tmp, with_stub=False,
+                                extra={"cronograma_sgr.py": "def findings(run_root):\n    raise RuntimeError('x')\n"})
+        self.assertIn("cronograma-no-verificable", _codes(_findings(self.run, "sgr", check), "warning"))
+
+    def test_final_sgr_run_requires_the_sources_section(self) -> None:
+        missing = [f["message"] for f in _findings_final(self.run, "sgr") if f["code"] == "sgr-anexo-faltante"]
+        self.assertTrue(any("30_fuentes_financiacion" in m for m in missing))
 
 
 class KitCopy(unittest.TestCase):

@@ -117,6 +117,20 @@ class LexiconSchema(unittest.TestCase):
         pending = {item["capitulo"] for item in self.lex["capitulos_sin_archivo"]}
         self.assertFalse({1, 27} & pending)
 
+    def test_budget_and_sources_sections_have_their_lexicon(self) -> None:
+        for stem in ("13_presupuesto", "30_fuentes_financiacion"):
+            with self.subTest(stem=stem):
+                entries = self.lex["secciones"][stem]
+                self.assertIn("favorecida", {e["tipo"] for e in entries})
+                self.assertTrue(any(e["regex"] for e in entries))
+        schedule = {e["id"] for e in self.lex["secciones"]["14_cronograma_actividades"]}
+        self.assertLessEqual({"cronograma-trimestres", "cronograma-ruta-critica", "cronograma-hitos"}, schedule)
+
+    def test_chapter_29_maps_to_the_sources_section(self) -> None:
+        mapped = {item["capitulo"]: item["secciones"] for item in self.lex["mapa_capitulos"]}
+        self.assertEqual(mapped[29][0], "30_fuentes_financiacion")
+        self.assertNotIn(29, {item["capitulo"] for item in self.lex["capitulos_sin_archivo"]})
+
     def test_whitelist_kinds(self) -> None:
         kinds = {item["tipo"] for item in self.lex["repeticion_obligatoria"]}
         for kind in ("titulo", "problema_central", "objetivo_general", "objetivos_especificos",
@@ -333,7 +347,7 @@ class GuideWritingPatterns(unittest.TestCase):
     """S2: every `### SGR` block gains a «Redacción» part the parser still returns."""
 
     EXPECTED = {"§2", "§3", "§6", "§7", "§10", "§11", "§13", "§14", "§15", "§17",
-                "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27", "A28", "A29"}
+                "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27", "A28", "A29", "A30"}
 
     def setUp(self) -> None:
         self.text = (REPO / GUIDE).read_text(encoding="utf-8")
@@ -347,6 +361,18 @@ class GuideWritingPatterns(unittest.TestCase):
             with self.subTest(block=key):
                 self.assertIn("**Redacción.**", body)
                 self.assertRegex(body, r"(?s)\*\*Redacción\.\*\*.*(Evitar|evitar)")
+
+    def test_budget_schedule_and_sources_blocks_describe_their_data(self) -> None:
+        self.assertIn("presupuesto.json", self.blocks["§13"])
+        self.assertIn("Insumo de la MGA", self.blocks["§13"])
+        self.assertIn("Rubro de Minciencias", self.blocks["§13"])
+        self.assertIn("hitos.json", self.blocks["§14"])
+        self.assertIn("meses", self.blocks["§14"])
+        self.assertIn("ruta crítica", self.blocks["§14"])
+        sources = " ".join(self.blocks["A30"].split())
+        for line in ("Valor total contrapartida (en efectivo y en especie):", "Valor total del proyecto:",
+                     "en letras y números"):
+            self.assertIn(line, sources)
 
     def test_section_3_drops_the_research_question_in_sgr(self) -> None:
         body = self.blocks["§3"]

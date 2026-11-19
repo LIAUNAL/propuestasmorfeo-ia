@@ -18,7 +18,8 @@ salen siempre de su TDR.
 aplicable (base o ajustada) y además este archivo, una sola vez por corrida. Cada
 vez que arma un `## FRAGMENTO DE GUÍA` con la sección `N`, agrega al final el
 bloque `### SGR §N` de este archivo, si existe. Los bloques `### SGR A19` a
-`### SGR A25` se inyectan en la Fase 6.47 (anexos MGA). Con el flujo base este
+`### SGR A25` se inyectan en la Fase 6.47 (anexos MGA); `### SGR A30` acompaña
+a §13 en la Fase 6.4 y en la fase de anexos. Con el flujo base este
 archivo no se lee.
 
 ---
@@ -340,50 +341,92 @@ porcentuales rige para §5, §6 y §7; aquí la meta es obligatoria.
 
 ### SGR §13
 
-* Los costos se clasifican en las 11 categorías de insumos de la MGA
-  (Instructivo MGA 2023, p. 68): 1 mano de obra calificada, 2 mano de obra no
-  calificada, 3 materiales, 4 servicios domiciliarios, 5 terrenos, 6 edificios,
-  7 maquinaria y equipo, 8 transporte, 9 alojamiento y comidas, 10 servicios a
-  empresas y a la producción, 11 servicios comunitarios.
+En el flujo SGR §13 no se redacta a mano: el presupuestador escribe
+`artefactos/sgr/presupuesto.json` (esquema `morfeo.presupuesto-sgr/v1`) en la
+Fase 6.4 y `python3 scripts/presupuesto_sgr.py render <RUN_ROOT>` genera
+`13_presupuesto.tex` con la cabecera `% GENERADO`; las cifras se corrigen en
+el JSON, nunca en el `.tex`. Cada ítem tiene dos vistas del mismo dinero:
+
+* **Rubro de Minciencias** (TdR Conv 54 §13.2): talento humano, equipos y
+  software, capacitación y eventos, servicios tecnológicos y pruebas,
+  materiales, insumos y documentación, protección del conocimiento y
+  divulgación, gastos de viaje, infraestructura, administrativos, seguimiento
+  y otros. Cada rubro se justifica frente a los objetivos y coincide con el
+  SIGP y los Anexos 1, 2 y 3.
+* **Insumo de la MGA** (Instructivo MGA 2023, p. 68): 1 mano de obra
+  calificada, 2 mano de obra no calificada, 3 materiales, 4 servicios
+  domiciliarios, 5 terrenos, 6 edificios, 7 maquinaria y equipo, 8
+  transporte, 9 alojamiento y comidas, 10 servicios a empresas y a la
+  producción, 11 servicios comunitarios.
+
+Cada ítem declara la entidad (de `alianza.json`) y la fuente (SGR, especie o
+efectivo), las actividades de la cadena de valor que financia y sus
+cotizaciones. Su valor se reparte por igual entre esas actividades (regla del
+Anexo 3) y `presupuesto_sgr.py sync-cadena` escribe el `costo` de cada
+actividad en `cadena_valor.json`; la proyección financiera anual sale de esos
+costos y de los meses del cronograma. El script verifica: el total SGR no
+supera el tope; el rubro Seguimiento con recursos SGR existe; los equipos y
+servicios tecnológicos tienen al menos dos cotizaciones; los gastos de viaje
+SGR no pasan del 2 % del total SGR; el componente de transferencia llega al
+1 %; la contrapartida en especie y en efectivo de cada entidad es la de
+`alianza.json`.
+
 * Solo gasto de inversión. Se costean la mitigación de cada riesgo del anexo
   `24_riesgos.tex` y las estrategias de manejo de participantes oponentes o
   perjudicados.
 * La cofinanciación entre fuentes se declara por fuente y por año. Si hay
   vigencias futuras: al menos 15 % apropiado en el bienio vigente, máximo cuatro
   bienios y no más del 50 % del plan de recursos.
+* El talento humano de contrapartida se calcula con horas por semana × valor
+  hora × meses × semanas por mes × factor prestacional (campo `talento` del
+  ítem).
 
-**Redacción.** (Anexo 2, cap. 29, y presupuesto MGA.)
+**Redacción.** (Presupuesto MGA, Anexo 3 y Anexo 2 cap. 29.)
 
-* Apertura: una oración de entrada a la tabla; la justificación de cada rubro
-  nombra la actividad, con su código, que financia.
-* Favorecer: las tres líneas literales del resumen de fuentes, en letras y
-  números: «Valor total de recursos solicitados a la Asignación de CTeI…»,
-  «Valor total contrapartida (en efectivo y en especie):» y «Valor total del
-  proyecto:».
-* Evitar: rubros sin actividad; gastos permanentes de funcionamiento; cifras
-  distintas de las de la carta unificada y el Anexo 3; «entre otros» o «etc.»
-  en la lista de insumos.
+* Apertura: la oración de entrada a las tablas la escribe el script; la única
+  prosa del agente es la `justificacion` de cada ítem, que empieza por la
+  actividad que financia: «Financia la actividad <n.n.n>, <nombre>, con…».
+* Favorecer: el código de actividad en cada justificación; la razonabilidad
+  probada con cotizaciones; los nombres de entidad idénticos a `alianza.json`;
+  las cifras en pesos, sin decimales.
+* Evitar: rubros o ítems sin actividad; gastos permanentes de funcionamiento;
+  cifras distintas de las de la carta unificada y el Anexo 3; «entre otros» o
+  «etc.» en la lista de insumos; «costos razonables» o «precios de mercado»
+  sin cotización; editar `13_presupuesto.tex` a mano.
 * Tiempo: presente.
-* Extensión: sin prosa fuera de la justificación por rubro.
-* Tabla: `Entidad | Fuente de recursos | Valor`.
+* Extensión: sin prosa fuera de la justificación por ítem.
+* Tablas (generadas): `Rubro | SGR | Especie | Efectivo | Total` con el
+  desglose por entidad; `Entidad | SGR | Especie | Efectivo | Total`; `Insumo
+  de la MGA | SGR | Especie | Efectivo | Total`; `Rubro | Descripción y
+  justificación | Entidad | Actividades | Valor | Cotizaciones`; `Año | Valor |
+  Porcentaje`.
 
 ### SGR §14
 
-El cronograma agrupa las actividades por etapa (preinversión, inversión,
-operación) y marca las que están en la ruta crítica. Cada producto lleva dos o
-más actividades; las tareas no se cronograman.
+El cronograma se genera desde la cadena de valor (`artefactos/sgr/cadena_valor.json`,
+con `mes_inicio`, `mes_fin`, `ruta_critica` y la `etapa` opcional de cada
+actividad) y desde `artefactos/sgr/hitos.json` (esquema `morfeo.hitos-sgr/v1`),
+que escribe el investigador en la Fase 6.45. `python3 scripts/cronograma_sgr.py
+render <RUN_ROOT>` escribe `14_cronograma_actividades.tex` con la cabecera
+`% GENERADO`, agrupado por objetivo específico y producto, en meses, con la
+etapa (preinversión, inversión, operación; inversión por defecto) y la marca de
+ruta crítica. Cada producto lleva dos o más actividades y al menos una en la
+ruta crítica; las tareas no se cronograman. Después del mes 3 no pasan más de
+tres meses seguidos sin un hito verificable.
 
 **Redacción.** (Anexo 2, cap. 22.)
 
-* Apertura: una frase de entrada a la tabla.
+* Apertura: una frase de entrada a la tabla, que pone el script.
 * Favorecer: las actividades con el mismo nombre y código de la metodología y
-  la cadena de valor, en meses, con etapa y ruta crítica.
+  la cadena de valor, en meses, con etapa y ruta crítica; cada hito de
+  `hitos.json` con un nombre nominal («Prototipo validado en laboratorio»), el
+  mes, las actividades que lo producen y su medio de verificación.
 * Evitar: trimestres en lugar de meses; renombrar actividades; capacitaciones
   antes de que exista el equipo o la plataforma; dejar los primeros
-  resultados útiles para el final.
-* Tiempo: presente en la frase de entrada.
+  resultados útiles para el final; hitos sin medio de verificación.
+* Tiempo: presente en la frase de entrada; nominal en los hitos.
 * Extensión: una oración más la tabla.
-* Tabla: `Objetivo específico | Producto | Actividad | Mes 1 … Mes n`.
+* Tabla (generada): `Objetivo específico | Producto | Actividad | Mes 1 … Mes n`.
 
 ### SGR §15
 
@@ -437,8 +480,8 @@ certificado correspondiente.
 
 Cada anexo es un archivo de `redaccion/sections/` que `main.tex` incluye después
 de §18 y antes de la bibliografía. Los redacta `redactor`, salvo los que se
-generan desde datos: A23 (`cadena_valor.json`) y A26 a A28 (`alianza.json` y
-`territorio.json`).
+generan desde datos: A23 (`cadena_valor.json`), A26 a A28 (`alianza.json` y
+`territorio.json`) y A30 (`presupuesto.json`, con §13).
 Las tablas usan `xltabular`; la prosa sigue `estilo-natural-es` con los
 ajustes de la skill `estilo-sgr`.
 
@@ -748,6 +791,33 @@ aunque lo liste más de una entidad (rúbrica 3.1, nota ii); los conteos los da
   futuro para el aporte al proyecto.
 * Extensión: de 300 a 600 palabras por entidad; la referencia mide 10.681
   palabras en total, el capítulo más largo, y conviene no imitarla.
+
+### SGR A30
+
+`30_fuentes_financiacion.tex`, «Resumen de fuentes de financiación» (Anexo 2,
+cap. 29). Fuente: `artefactos/sgr/presupuesto.json` y los nombres de
+`artefactos/sgr/alianza.json`. Lo genera
+`python3 scripts/presupuesto_sgr.py render <RUN_ROOT>` junto con §13, con la
+cabecera `% GENERADO`; en la fase de anexos SGR se vuelve a generar si el
+presupuesto cambió. Con `artefactos/estructura_tdr.json` entra en el capítulo
+cuyo título textual es «RESUMEN DE FUENTES DE FINANCIACIÓN».
+
+**Redacción.** (Anexo 2, cap. 29.)
+
+* Apertura: ninguna; el capítulo es la tabla y las tres líneas literales.
+* Favorecer: las tres líneas de la plantilla, cada una en letras y números
+  («MIL CIENTO VEINTE MILLONES DE PESOS M/CTE ($ 1.120.000.000)»): «Valor
+  total de recursos solicitados a la Asignación de CTeI/ Asignación de CTeI
+  Ambiental del SGR – Sistema General de Regalías:», «Valor total
+  contrapartida (en efectivo y en especie):» y «Valor total del proyecto:»;
+  los nombres de entidad idénticos a la matriz de responsabilidades.
+* Evitar: prosa adicional o justificación del gasto, que va en §13; cifras
+  aproximadas («cerca de», «alrededor de»); un total solo en números; montos
+  distintos de la carta unificada, el Anexo 3 y la matriz de
+  responsabilidades.
+* Tiempo: no aplica; líneas nominales.
+* Extensión: solo la tabla y las tres líneas.
+* Tabla (generada): `Entidad | Fuente de recursos | Valor`.
 
 ---
 

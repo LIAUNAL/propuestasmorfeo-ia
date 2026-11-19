@@ -631,6 +631,53 @@
         "aplica_a": "prosa"
       }
     ],
+    "13_presupuesto": [
+      {
+        "id": "presupuesto-apertura",
+        "tipo": "favorecida",
+        "expresion": "Una oración de entrada a la tabla, en presente: «La tabla presenta el presupuesto por rubro y por fuente de recursos…»",
+        "regex": null,
+        "motivo": "§13 se genera desde artefactos/sgr/presupuesto.json; la única prosa es la entrada a la tabla y la justificación de cada ítem.",
+        "fuente": "Guía SGR §13 (Redacción)",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "presupuesto-justificacion-actividad",
+        "tipo": "favorecida",
+        "expresion": "«Financia la actividad <n.n.n>, <nombre de la actividad>…»: la justificación del ítem nombra la actividad, con su código, que financia",
+        "regex": null,
+        "motivo": "La rúbrica de coherencia presupuestal coteja presupuesto, actividades, productos y responsables; la justificación hace visible ese vínculo.",
+        "fuente": "TdR Conv 54 §13.2; rúbrica Conv 54 1.4",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "presupuesto-entre-otros",
+        "tipo": "desaconsejada",
+        "expresion": "entre otros, etc. (en la lista de insumos o en la justificación de un ítem)",
+        "regex": "\\bentre\\s+otros\\b|\\betc\\.",
+        "motivo": "Lista abierta: el evaluador coteja cada insumo con el Anexo 3 y su cotización, así que se nombran todos.",
+        "fuente": "Guía SGR §13; Anexo 3",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "presupuesto-funcionamiento",
+        "tipo": "desaconsejada",
+        "expresion": "gastos de funcionamiento, gastos permanentes (como objeto de un ítem)",
+        "regex": "\\bgastos?\\s+(permanentes|de\\s+funcionamiento)\\b",
+        "motivo": "El SGR financia solo gasto de inversión: un ítem descrito como funcionamiento de la entidad no es financiable.",
+        "fuente": "Guía SGR, directriz 2; TdR Conv 54 §13.2",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "presupuesto-razonabilidad-declarada",
+        "tipo": "desaconsejada",
+        "expresion": "costos razonables, precios de mercado, precios competitivos (sin cotización)",
+        "regex": "\\b(costos?|precios?)\\s+(razonables?|de\\s+mercado|competitivos?)\\b",
+        "motivo": "La razonabilidad del costo se demuestra con cotizaciones (al menos dos para equipos y servicios tecnológicos), no con el adjetivo.",
+        "fuente": "Rúbrica Conv 54 1.4",
+        "aplica_a": "tabla"
+      }
+    ],
     "14_cronograma_actividades": [
       {
         "id": "cronograma-trimestres",
@@ -640,6 +687,42 @@
         "motivo": "El cronograma va en meses, no en trimestres (los informes de supervisión sí son trimestrales).",
         "fuente": "Anexo 2 cap. 22; guía SGR §14",
         "aplica_a": "prosa"
+      },
+      {
+        "id": "cronograma-ruta-critica",
+        "tipo": "favorecida",
+        "expresion": "cada actividad con su código y el mismo nombre de la metodología y la cadena de valor, en meses, con etapa (preinversión, inversión, operación) y marca de ruta crítica",
+        "regex": "ruta\\s+cr[íi]tica",
+        "motivo": "El cronograma se genera desde la cadena de valor: los nombres y códigos no se reescriben y la ruta crítica queda visible.",
+        "fuente": "Anexo 2 cap. 22; guía SGR §14",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "cronograma-hitos",
+        "tipo": "favorecida",
+        "expresion": "un hito verificable al menos cada tres meses, con su medio de verificación (artefactos/sgr/hitos.json)",
+        "regex": null,
+        "motivo": "La evaluación de la Conv 56 penaliza el cronograma trimestral sin hitos verificables.",
+        "fuente": "Patrón de evaluación Conv 56; guía SGR §14",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "cronograma-resultados-al-final",
+        "tipo": "desaconsejada",
+        "expresion": "al final del proyecto, en el último mes (como fecha de los primeros resultados)",
+        "regex": "\\bal\\s+final\\s+del\\s+proyecto\\b|\\ben\\s+el\\s+[úu]ltimo\\s+mes\\b",
+        "motivo": "Dejar los primeros resultados útiles para el cierre resta en la familia oportunidad de la rúbrica.",
+        "fuente": "_guia_comun.json (familia oportunidad); Anexo 2 cap. 22",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "cronograma-capacitacion-temprana",
+        "tipo": "desaconsejada",
+        "expresion": "capacitaciones que empiezan antes de que exista el equipo o la plataforma",
+        "regex": null,
+        "motivo": "Una capacitación sin la herramienta disponible delata un cronograma armado sin dependencias; el juez lo revisa.",
+        "fuente": "Anexo 2 cap. 22; patrones SGR cap. 22",
+        "aplica_a": "tabla"
       }
     ],
     "15_productos_esperados": [
@@ -1038,6 +1121,44 @@
         "fuente": "Rúbrica Conv 54, 3.1; Anexo 2 cap. 27",
         "aplica_a": "prosa"
       }
+    ],
+    "30_fuentes_financiacion": [
+      {
+        "id": "fuentes-lineas-literales",
+        "tipo": "favorecida",
+        "expresion": "«Valor total de recursos solicitados a la Asignación de CTeI/ Asignación de CTeI Ambiental del SGR – Sistema General de Regalías:», «Valor total contrapartida (en efectivo y en especie):» y «Valor total del proyecto:», cada una en letras y números",
+        "regex": "\\bValor\\s+total\\s+(de\\s+recursos\\s+solicitados|contrapartida|del\\s+proyecto)\\b",
+        "motivo": "Líneas literales de la plantilla; las cifras coinciden con la carta unificada y el Anexo 3.",
+        "fuente": "Plantilla Anexo 2 cap. 29",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "fuentes-prosa-adicional",
+        "tipo": "desaconsejada",
+        "expresion": "párrafos de contexto o de justificación en el resumen de fuentes",
+        "regex": null,
+        "motivo": "El capítulo es la tabla Entidad | Fuente de recursos | Valor y las tres líneas; la justificación del gasto va en §13.",
+        "fuente": "Plantilla Anexo 2 cap. 29; patrones SGR cap. 29",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "fuentes-cifra-sin-letras",
+        "tipo": "desaconsejada",
+        "expresion": "un total solo en números, sin su valor en letras",
+        "regex": null,
+        "motivo": "La plantilla pide cada total «en letras y números».",
+        "fuente": "Plantilla Anexo 2 cap. 29",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "fuentes-aproximacion",
+        "tipo": "desaconsejada",
+        "expresion": "aproximadamente, cerca de, alrededor de (junto a un total)",
+        "regex": "\\b(aproximadamente|cerca\\s+de|alrededor\\s+de)\\b",
+        "motivo": "Los totales son exactos y salen de presupuesto.json; una cifra aproximada contradice el Anexo 3.",
+        "fuente": "Plantilla Anexo 2 cap. 29; Anexo 3",
+        "aplica_a": "prosa"
+      }
     ]
   },
   "exenciones": [
@@ -1331,6 +1452,7 @@
       "capitulo": 29,
       "titulo": "RESUMEN DE FUENTES DE FINANCIACIÓN",
       "secciones": [
+        "30_fuentes_financiacion",
         "13_presupuesto"
       ]
     },

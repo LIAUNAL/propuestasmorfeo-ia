@@ -11,7 +11,7 @@ same folder.
 Usage:
   python3 scripts/estilo_sgr.py RUN_ROOT [--section KEY] [--json]
 
-KEY is a Morfeo section stem (02_justificacion, ..., 29_idoneidad_trayectoria). Exit 0
+KEY is a Morfeo section stem (02_justificacion, ..., 30_fuentes_financiacion). Exit 0
 whatever the findings; exit 2 for bad input (missing run folder, unknown
 section, unreadable lexicon). --json prints {"seccion": KEY|null,
 "findings": [...]}, each finding being

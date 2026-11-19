@@ -28,7 +28,8 @@ the end of the TDR chapter whose verbatim title names them:
 26_identificacion (IDENTIFICACIÓN DEL PROYECTO), 27_demandas_territoriales
 (... DEMANDAS TERRITORIALES ...), 28_matriz_responsabilidades (ANÁLISIS DE
 PARTICIPANTES, as 10.1) and 29_idoneidad_trayectoria (IDONEIDAD Y
-TRAYECTORIA ...). The base flow body does not change.
+TRAYECTORIA ...); 30_fuentes_financiacion of scripts/presupuesto_sgr.py goes
+in RESUMEN DE FUENTES DE FINANCIACIÓN. The base flow body does not change.
 
 The body carries the structure hash, which scripts/check_run.py compares to
 flag a main.tex assembled from an older structure.
@@ -55,12 +56,13 @@ HASH_PREFIX = "% estructura_tdr sha256: "
 NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
 ROW_RE = re.compile(r"^\|\s*(\d+)\b[^|]*\|")
 FILE_RE = re.compile(r"`([A-Za-z0-9_]+)\.tex`")
-# SGR sections of scripts/alianza_territorio_sgr.py and the TDR chapter title that holds each one.
+# SGR sections (scripts/alianza_territorio_sgr.py, scripts/presupuesto_sgr.py) and the TDR chapter title that holds each one.
 SGR_CHAPTER_SECTIONS = (
     ("26_identificacion", re.compile(r"identificaci[óo]n\s+del\s+proyecto", re.I)),
     ("27_demandas_territoriales", re.compile(r"demandas\s+territoriales", re.I)),
     ("28_matriz_responsabilidades", re.compile(r"an[áa]lisis\s+de\s+participantes", re.I)),
     ("29_idoneidad_trayectoria", re.compile(r"idoneidad\s+y\s+trayectoria", re.I)),
+    ("30_fuentes_financiacion", re.compile(r"fuentes\s+de\s+financiaci[óo]n", re.I)),
 )
 
 

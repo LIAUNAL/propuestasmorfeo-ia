@@ -45,6 +45,8 @@ SECTION_TITLES = {
     "27_demandas_territoriales": "§27 Demandas territoriales y configuración regional",
     "28_matriz_responsabilidades": "§28 Matriz de responsabilidades y gobernanza",
     "29_idoneidad_trayectoria": "§29 Idoneidad y trayectoria",
+    # Resumen de fuentes de financiación del flujo SGR (Anexo 2 cap. 29), generado desde presupuesto.json.
+    "30_fuentes_financiacion": "§30 Resumen de fuentes de financiación",
 }
 
 VALID_FLUJOS = ("base", "sgr")

@@ -61,6 +61,15 @@ objective trees when their files exist:
     or 27_demandas_territoriales lacks the GENERADO header) and
     alianza-anexo-desactualizado / territorio-anexo-desactualizado (error: the
     section is older than the json it is rendered from).
+  budget and schedule (SGR flow only; scripts/presupuesto_sgr.py and
+    scripts/cronograma_sgr.py, imported from this folder when they exist):
+    every `presupuesto-*` finding of artefactos/sgr/presupuesto.json when it
+    exists; every `cronograma-*` finding of cronograma_sgr.findings;
+    presupuesto-datos-faltantes (warning: G6.4 is approved in
+    estado_propuesta.md and the file is missing); presupuesto-anexo-manual
+    (error: 30_fuentes_financiacion, or 13_presupuesto when presupuesto.json
+    exists, lacks the GENERADO header) and presupuesto-anexo-desactualizado
+    (error: the section is older than the json it is rendered from).
   tree figures (both flows): figura-desincronizada (error: diag_<tree>.tex is
     not the render of its spec), figura-spec-invalida, figura-sin-verificar.
   TDR chapters (artefactos/estructura_tdr.json, any flow):
@@ -106,6 +115,7 @@ SGR_SECTIONS = (
     "19_alineacion_planes", "20_participantes", "21_poblacion", "22_alternativas",
     "23_cadena_valor", "24_riesgos", "25_marco_logico",
     "26_identificacion", "27_demandas_territoriales", "28_matriz_responsabilidades", "29_idoneidad_trayectoria",
+    "30_fuentes_financiacion",
 )
 FLUJOS = ("base", "sgr")
 PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
@@ -1095,6 +1105,60 @@ def check_sgr_alliance_territory(report: Report, run_root: Path, sec_dir: Path, 
                        "python3 scripts/alianza_territorio_sgr.py render <RUN_ROOT>.", tex)
 
 
+BUDGET_FILE = Path("artefactos") / "sgr" / "presupuesto.json"
+BUDGET_HEADER = "% GENERADO por scripts/presupuesto_sgr.py"
+# Sections rendered by scripts/presupuesto_sgr.py and the json files they come from.
+BUDGET_SECTIONS = {
+    "13_presupuesto": (BUDGET_FILE, ALLIANCE_FILE, CHAIN_FILE),
+    "30_fuentes_financiacion": (BUDGET_FILE, ALLIANCE_FILE),
+}
+G64_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.-])(G6\.4|G-Presupuesto)(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def _module_findings(report: Report, name: str, code: str, run_root: Path, path: Path | None) -> list[dict]:
+    """findings(run_root) of scripts/<name>.py; [] when it does not exist, a warning when it breaks."""
+    try:
+        module = _sibling_module(name)
+        return list(module.findings(run_root) or []) if module is not None else []
+    except Exception as exc:  # a broken helper must not hide the other checks
+        report.add("warning", code, f"No se pudo correr scripts/{name}.py: {exc!r}.", path)
+        return []
+
+
+def check_sgr_budget_schedule(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """Budget as data (scripts/presupuesto_sgr.py) and schedule (scripts/cronograma_sgr.py): findings,
+    absence after G6.4 and the rendered sections 13 and 30."""
+    if flujo != "sgr":
+        return
+    budget = run_root / BUDGET_FILE
+    if budget.is_file():
+        for f in _module_findings(report, "presupuesto_sgr", "presupuesto-no-verificable", run_root, budget):
+            report.add(f["severity"], f["code"], f["message"], budget, node=f.get("node"))
+    else:
+        estado = run_root / "artefactos" / "estado_propuesta.md"
+        if estado.is_file() and G64_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+            report.add("warning", "presupuesto-datos-faltantes",
+                       "En el flujo SGR, después de G6.4 el presupuesto vive en artefactos/sgr/presupuesto.json "
+                       "y §13 se genera con python3 scripts/presupuesto_sgr.py render <RUN_ROOT>.")
+    chain = run_root / CHAIN_FILE
+    for f in _module_findings(report, "cronograma_sgr", "cronograma-no-verificable", run_root, chain):
+        report.add(f["severity"], f["code"], f["message"], chain, node=f.get("node"))
+    for stem, sources in BUDGET_SECTIONS.items():
+        tex = sec_dir / f"{stem}.tex"
+        if not tex.is_file() or (stem == "13_presupuesto" and not budget.is_file()):
+            continue
+        first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        stamps = [(run_root / s).stat().st_mtime for s in sources if (run_root / s).is_file()]
+        if not first or first[0].strip() != BUDGET_HEADER:
+            report.add("error", "presupuesto-anexo-manual",
+                       f"En el flujo SGR {stem}.tex no se escribe a mano: lo genera "
+                       "python3 scripts/presupuesto_sgr.py render <RUN_ROOT> desde presupuesto.json.", tex)
+        elif stamps and tex.stat().st_mtime < max(stamps):
+            report.add("error", "presupuesto-anexo-desactualizado",
+                       f"{stem}.tex es anterior a los datos de los que sale: volvé a correr "
+                       "python3 scripts/presupuesto_sgr.py render <RUN_ROOT>.", tex)
+
+
 def check_sgr_style(report: Report, run_root: Path, flujo: str) -> None:
     """SGR style findings (scripts/estilo_sgr.py), as warnings: advice for the style reviewer."""
     if flujo != "sgr":
@@ -1162,6 +1226,7 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_sgr_sections(report, sec_dir, report.flujo, final)
     check_sgr_value_chain(report, run_root, sec_dir, report.flujo)
     check_sgr_alliance_territory(report, run_root, sec_dir, report.flujo)
+    check_sgr_budget_schedule(report, run_root, sec_dir, report.flujo)
     check_sgr_style(report, run_root, report.flujo)
     return report
 

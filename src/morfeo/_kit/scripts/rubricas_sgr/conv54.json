@@ -236,6 +236,7 @@
           "familia": "presupuesto",
           "evidencia": [
             "13_presupuesto",
+            "30_fuentes_financiacion",
             "14_cronograma_actividades",
             "23_cadena_valor",
             "09_equipo_trabajo"
@@ -830,8 +831,9 @@
           "notas": [],
           "familia": "cofinanciacion",
           "evidencia": [
-            "28_matriz_responsabilidades",
-            "13_presupuesto"
+            "13_presupuesto",
+            "30_fuentes_financiacion",
+            "28_matriz_responsabilidades"
           ],
           "agentes": [
             "presupuestador",
