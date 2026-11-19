@@ -22,6 +22,8 @@ from ..core.sgr_rules import load_sgr_blocks
 from ..core.status import get_project_status, read_flujo
 from ..core.judge import EVALUACION_FILE, JUDGE_COMMAND, build_action_prompt, load_judge
 from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
+from ..core.style_sgr import load_style
+from ..core.value_chain import approve as approve_value_chain, build_adjust_prompt, load_value_chain
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -158,6 +160,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_sgr_guide()
         elif path == "/api/judge":
             self.serve_judge()
+        elif path == "/api/value-chain":
+            self.serve_value_chain()
+        elif path == "/api/style-sgr":
+            self.serve_style_sgr()
         else:
             self.send_error(404, "Not Found")
 
@@ -183,6 +189,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_judge_send()
         elif path == "/api/judge/run":
             self.handle_judge_run()
+        elif path == "/api/value-chain/approve":
+            self.handle_value_chain_approve()
+        elif path == "/api/value-chain/adjust":
+            self.handle_value_chain_adjust()
         else:
             self.send_error(404, "Not Found")
 
@@ -666,6 +676,52 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
             return
         self._send_json(200, {"ok": True, "prompt": JUDGE_COMMAND})
+
+    # Cadena de valor y estilo SGR (solo flujo SGR; en el base responden sin datos).
+    # El ajuste, como en los árboles y el juez, devuelve el prompt y el tablero lo
+    # entrega a la terminal con sendTerminalPrompt.
+    def serve_value_chain(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_value_chain(run_dir)})
+
+    def handle_value_chain_approve(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = approve_value_chain(run_dir, str(payload.get("hash") or "") or None)
+        # 409: la cadena no se puede aprobar todavía (hallazgos de error o cambió).
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_value_chain_adjust(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            prompt = build_adjust_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    def serve_style_sgr(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_style(run_dir)})
 
     def serve_idea(self) -> None:
         candidates = [self.workspace_dir / "idea.md"]

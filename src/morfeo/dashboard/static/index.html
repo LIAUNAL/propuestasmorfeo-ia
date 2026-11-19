@@ -455,6 +455,37 @@
     .tree-message { font-size: 0.8rem; color: var(--text); padding: 0.45rem 0.6rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); }
     .tree-message.is-error { border-color: var(--bad); color: var(--bad); }
     .tree-message.is-ok { border-color: var(--ok); color: var(--ok); }
+    /* Cadena de valor SGR: una columna por objetivo específico, productos como
+       tarjetas y actividades como filas, con el lenguaje visual de los árboles. */
+    .vc-summary { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; align-items: baseline; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.9rem; }
+    .vc-summary strong { color: var(--text); font-size: 1rem; }
+    .vc-columns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(300px, 1fr); gap: 0.85rem; overflow-x: auto; padding-bottom: 0.4rem; }
+    @media (max-width: 800px) { .vc-columns { grid-auto-flow: row; grid-auto-columns: auto; } }
+    .vc-oe { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.6rem; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); border-top: 4px solid var(--ok); background: var(--surface-1); min-width: 0; }
+    .vc-oe__head { display: flex; justify-content: space-between; gap: 0.5rem; align-items: baseline; }
+    .vc-code { font-family: var(--font-mono, monospace); font-size: 0.72rem; color: var(--text-dim); white-space: nowrap; }
+    .vc-oe__text { font-size: 0.85rem; font-weight: 600; line-height: 1.4; color: var(--text); overflow-wrap: anywhere; }
+    .vc-oe__total { font-size: 0.75rem; color: var(--text-muted); }
+    .vc-product { padding: 0.55rem 0.6rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--accent); font-size: 0.78rem; overflow-wrap: anywhere; }
+    .vc-product.vc-has-error, .vc-activity.vc-has-error td:first-child { border-left-color: var(--bad); }
+    .vc-product.vc-has-warning { border-left-color: var(--warn); }
+    .vc-product__head { display: flex; gap: 0.4rem; align-items: baseline; flex-wrap: wrap; margin-bottom: 0.3rem; }
+    .vc-product__name { font-weight: 600; color: var(--text); flex: 1 1 140px; }
+    .vc-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.15rem 0.5rem; margin: 0 0 0.45rem; color: var(--text-muted); }
+    .vc-fields dt { color: var(--text-dim); }
+    .vc-fields dd { margin: 0; color: var(--text); }
+    .vc-activities { width: 100%; border-collapse: collapse; font-size: 0.74rem; }
+    .vc-activities th { text-align: left; font-weight: 600; color: var(--text-dim); padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--border-subtle); }
+    .vc-activities td { padding: 0.3rem; vertical-align: top; border-bottom: 1px solid var(--border-subtle); }
+    .vc-activities td:first-child { border-left: 3px solid transparent; }
+    .vc-activities .vc-costo, .vc-activities .vc-meses { white-space: nowrap; text-align: right; }
+    .vc-badges { display: flex; gap: 0.25rem; flex-wrap: wrap; margin-top: 0.2rem; }
+    .vc-badges .badge { font-size: 0.62rem; padding: 0.05rem 0.35rem; }
+    .vc-review-note { font-size: 0.75rem; color: var(--text-muted); overflow-wrap: anywhere; }
+    .sec-style-zero { color: var(--text-dim); }
+    .sec-style-list { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .sec-style-list th, .sec-style-list td { text-align: left; padding: 0.35rem 0.45rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; overflow-wrap: anywhere; }
+    .sec-style-list code { font-size: 0.72rem; }
     /* Juez final: puntaje estimado, criterios, alertas, acciones e historial. */
     .judge-intro { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
     .judge-feedback { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -2696,6 +2727,40 @@
       </div>
     </div>
 
+    <!-- TAB: CADENA DE VALOR (solo flujo SGR; el botón se agrega con el flujo) -->
+    <div id="pane-cadena" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Cadena de valor: objetivos, productos y actividades</div>
+          <span class="panel__meta" id="vcRunMeta">—</span>
+        </div>
+        <p class="judge-intro">Cada objetivo específico del árbol aprobado se desagrega en productos del catálogo DNP, con su indicador y meta, y cada producto en actividades con la clave OE.Producto.Actividad que comparten la metodología, el cronograma y el presupuesto SGR.</p>
+      </div>
+      <div class="tree-layout">
+        <div class="panel tree-stage">
+          <div id="vcContent"></div>
+        </div>
+        <aside class="panel tree-review" id="vcReviewPanel">
+          <div class="panel__header">
+            <div class="panel__title">Revisión con el agente</div>
+            <span class="badge" id="vcStatusBadge">—</span>
+          </div>
+          <div class="tree-review__body">
+            <p class="vc-review-note" id="vcHashNote"></p>
+            <label class="tree-label" for="vcNoteInput">Ajuste solicitado</label>
+            <textarea id="vcNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: dividir el producto 1.2 en dos o mover la actividad 2.1.3 al mes 6"></textarea>
+            <p class="tree-gate-note" id="vcGateNote"></p>
+            <div class="tree-actions">
+              <button class="btn btn--sm btn--primary" id="vcSendBtn" onclick="sendValueChainAdjust()">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="vcApproveBtn" onclick="approveValueChain()">✅ Aprobar cadena</button>
+              <button class="btn btn--sm" id="vcRetryBtn" onclick="retryValueChainPrompt()" style="display: none;">↻ Reintentar envío</button>
+            </div>
+            <p class="tree-message" id="vcMessage" role="status"></p>
+          </div>
+        </aside>
+      </div>
+    </div>
+
     <!-- TAB: MGA RESUMIDO -->
     <div id="pane-mga" class="tab-pane">
       <div class="panel">
@@ -3614,6 +3679,7 @@
       fase2: { label: 'Indicaciones para el estado del arte y la hipótesis', placeholder: 'Enfoques o familias de modelos a priorizar en el estado del arte, papers clave, brechas que quieres resaltar y la idea de la hipótesis…', panel: { tab: 'sections', label: 'Ver §4 y §5 en Secciones' } },
       fase3: { label: 'Indicaciones para la justificación', placeholder: 'ODS, Plan Nacional de Desarrollo, planes departamentales, cifras de contexto y argumentos de pertinencia y TRL…', panel: { tab: 'sections', label: 'Ver §2 en Secciones' } },
       fase4: { label: 'Indicaciones para los objetivos', placeholder: 'Ajustes al objetivo general o a los específicos (siempre desde el árbol de objetivos aprobado), verbos o alcances que quieras privilegiar…', panel: { tab: 'trees', label: 'Ver el árbol de objetivos' } },
+      fase4_sgr: { label: 'Indicaciones para la cadena de valor', placeholder: 'Productos del catálogo DNP que esperas por objetivo, indicadores y metas, actividades críticas, duración en meses…', panel: { tab: 'cadena', label: 'Ver la cadena de valor' } },
       fase5: { label: 'Indicaciones para el marco conceptual y el equipo', placeholder: 'Conceptos que deben aparecer en el marco conceptual; integrantes del equipo con su rol, perfil, dedicación e institución…', panel: { tab: 'sections', label: 'Ver §8 y §9 en Secciones' } },
       fase5_5: { label: 'Indicaciones para la metodología', placeholder: 'Fases de trabajo, métodos y algoritmos por objetivo específico, datos y equipos disponibles, validación y trayectoria de TRL…', panel: { tab: 'sections', label: 'Ver §10 en Secciones' } },
       fase6: { label: 'Indicaciones para resultados y ética', placeholder: 'Resultados esperados por objetivo, indicadores, consideraciones éticas (datos personales, consentimiento, comité de ética)…', panel: { tab: 'sections', label: 'Ver §11 y §12 en Secciones' } },
@@ -5077,6 +5143,378 @@
       if (p) await deliverJudgePrompt(p.prompt, p.label, p.okText);
     }
 
+    // ── Cadena de valor SGR ─────────────────────────────────────────────────
+    // Lee /api/value-chain (artefactos/sgr/cadena_valor.json y los hallazgos de
+    // scripts/cadena_valor_sgr.py). Solo existe en el flujo SGR: el botón de la
+    // pestaña se agrega con el flujo y, en el base, la ruta directa avisa.
+    const VC_STATE = { data: null, sig: null, timer: null, pendingPrompt: null };
+    const VC_TIPOS = {
+      tecnica: ['Técnica', 'info'],
+      administracion: ['Administración', 'warn'],
+      supervision: ['Supervisión', 'ok'],
+    };
+    const VC_SEVERITIES = [
+      ['error', 'Errores', 'bad', 'Error'],
+      ['warning', 'Advertencias', 'warn', 'Aviso'],
+      ['info', 'Información', 'info', 'Info'],
+    ];
+
+    function vcText(v) {
+      return v === null || v === undefined || v === '' ? '—' : escapeHtml(String(v));
+    }
+
+    function vcNumber(v) {
+      const n = Number(v);
+      return v === null || v === undefined || v === '' || typeof v === 'boolean' || !Number.isFinite(n) ? null : n;
+    }
+
+    function vcMoney(v) {
+      const n = vcNumber(v);
+      return n === null ? '—' : escapeHtml(`$ ${n.toLocaleString('es-CO', { maximumFractionDigits: 2 })}`);
+    }
+
+    function vcMonths(a) {
+      const ini = a.mes_inicio, fin = a.mes_fin;
+      const has = v => v !== null && v !== undefined && v !== '';
+      if (!has(ini) && !has(fin)) return '—';
+      return `${has(ini) ? escapeHtml(String(ini)) : '?'}–${has(fin) ? escapeHtml(String(fin)) : '?'}`;
+    }
+
+    function vcList(v) {
+      return Array.isArray(v) ? v.filter(x => x && typeof x === 'object') : [];
+    }
+
+    function vcSeverity(f) {
+      const s = String(f.severity || '');
+      return s === 'error' ? 'error' : (s === 'warning' || s === 'advertencia') ? 'warning' : 'info';
+    }
+
+    function vcMessage(text, tone) {
+      const el = document.getElementById('vcMessage');
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = `tree-message${tone ? ' is-' + tone : ''}`;
+    }
+
+    // El botón solo existe en el flujo SGR, justo después del de los árboles: en
+    // el flujo base la barra de pestañas queda como antes.
+    function syncValueChainTab() {
+      const nav = document.querySelector('.tabs-nav');
+      if (!nav) return;
+      let btn = document.getElementById('valueChainTabBtn');
+      if (!isSgrFlujo()) {
+        if (btn) btn.remove();
+        return;
+      }
+      if (btn) return;
+      btn = document.createElement('button');
+      btn.id = 'valueChainTabBtn';
+      btn.className = `tab-nav__btn${activeTab === 'cadena' ? ' active' : ''}`;
+      btn.setAttribute('onclick', "navigateTab('cadena')");
+      btn.textContent = 'Cadena de valor';
+      const trees = Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+      if (trees) trees.after(btn);
+      else nav.appendChild(btn);
+    }
+
+    async function loadValueChain() {
+      let data = null;
+      try {
+        const res = await fetch('/api/value-chain', { cache: 'no-store' });
+        data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      } catch (err) {
+        VC_STATE.data = null;
+        VC_STATE.sig = null;
+        const el = document.getElementById('vcContent');
+        if (el) el.innerHTML = `<div class="tree-empty"><p>No se pudo leer la cadena de valor de la corrida activa.</p><small>${escapeHtml(err.message || String(err))}</small></div>`;
+        return;
+      }
+      VC_STATE.data = data;
+      const sig = JSON.stringify(data);
+      if (sig !== VC_STATE.sig) {
+        VC_STATE.sig = sig;
+        renderValueChain();
+      }
+    }
+
+    function startValueChainPolling() {
+      loadValueChain();
+      if (VC_STATE.timer) return;
+      VC_STATE.timer = setInterval(() => {
+        if (activeTab === 'cadena' && !document.hidden) loadValueChain();
+      }, 5000);
+    }
+
+    function stopValueChainPolling() {
+      if (VC_STATE.timer) clearInterval(VC_STATE.timer);
+      VC_STATE.timer = null;
+    }
+
+    function vcOeTotal(oe) {
+      let total = 0;
+      vcList(oe.productos).forEach(p => vcList(p.actividades).forEach(a => { total += vcNumber(a.costo) || 0; }));
+      return total;
+    }
+
+    function vcActivityHtml(a, marks) {
+      const tipo = VC_TIPOS[a.tipo] || [a.tipo ? String(a.tipo) : 'Sin tipo', 'info'];
+      const mark = marks.get(String(a.codigo ?? ''));
+      return `<tr class="vc-activity${mark ? ` vc-has-${mark}` : ''}" data-actividad="${escapeHtml(String(a.codigo ?? ''))}">
+        <td><span class="vc-code">${vcText(a.codigo)}</span></td>
+        <td>${vcText(a.nombre)}
+          <div class="vc-badges"><span class="badge badge--${tipo[1]} vc-tipo">${escapeHtml(tipo[0])}</span>${a.ruta_critica === true ? '<span class="badge badge--bad vc-critica">Ruta crítica</span>' : ''}</div></td>
+        <td class="vc-meses">${vcMonths(a)}</td>
+        <td class="vc-costo">${vcMoney(a.costo)}</td>
+      </tr>`;
+    }
+
+    function vcProductHtml(p, marks) {
+      const mark = marks.get(String(p.codigo ?? ''));
+      const acts = vcList(p.actividades);
+      const dnp = p.codigo_dnp ? `<span class="badge badge--info">DNP ${escapeHtml(String(p.codigo_dnp))}</span>` : '<span class="badge badge--warn">Sin código DNP</span>';
+      return `<article class="vc-product${mark ? ` vc-has-${mark}` : ''}" data-producto="${escapeHtml(String(p.codigo ?? ''))}">
+        <div class="vc-product__head"><span class="vc-code">${vcText(p.codigo)}</span><span class="vc-product__name">${vcText(p.nombre)}</span>${dnp}</div>
+        <dl class="vc-fields">
+          <dt>Medido a través de</dt><dd>${vcText(p.medido_a_traves_de)}</dd>
+          <dt>Indicador</dt><dd>${vcText(p.indicador)}</dd>
+          <dt>Unidad</dt><dd>${vcText(p.unidad)}</dd>
+          <dt>Meta</dt><dd>${vcText(p.meta)}</dd>
+        </dl>
+        ${acts.length ? `<table class="vc-activities">
+          <thead><tr><th>Código</th><th>Actividad</th><th>Meses</th><th>Costo</th></tr></thead>
+          <tbody>${acts.map(a => vcActivityHtml(a, marks)).join('')}</tbody>
+        </table>` : '<p class="tree-relations__pending">Sin actividades todavía.</p>'}
+      </article>`;
+    }
+
+    function vcFindingsHtml(hallazgos) {
+      const list = vcList(hallazgos);
+      if (!list.length) return '<p class="judge-empty">La revisión de la cadena no reporta hallazgos.</p>';
+      return VC_SEVERITIES.map(([sev, label, tone, one]) => {
+        const items = list.filter(f => vcSeverity(f) === sev);
+        if (!items.length) return '';
+        return `<div class="judge-alerts__group" data-severidad="${sev}">
+          <h4><span class="badge badge--${tone}">${label}</span> ${escapeHtml(String(items.length))}</h4>
+          <ul>${items.map(f => `<li><span class="badge badge--${tone}">${one}</span><span>${escapeHtml(f.message || f.code || '')}</span><span class="tree-findings__node">${escapeHtml(f.node || '')} · ${escapeHtml(f.code || '')}</span></li>`).join('')}</ul>
+        </div>`;
+      }).join('');
+    }
+
+    function vcErrorsHtml(errores) {
+      const list = Array.isArray(errores) ? errores.filter(Boolean).map(String) : [];
+      if (!list.length) return '';
+      return `<div class="judge-validation"><strong>⚠️ No se pudo leer todo lo de la cadena de valor</strong>
+        <ul>${list.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div>`;
+    }
+
+    function vcStatus(d) {
+      if (!d || d.flujo !== 'sgr' || !d.disponible) return ['Sin cadena', ''];
+      if (d.aprobado) return ['Aprobada', 'ok'];
+      const rev = d.revision && typeof d.revision === 'object' ? d.revision : null;
+      if (rev && rev.aprobado && rev.hash !== d.hash) return ['Desactualizada', 'warn'];
+      return ['Por aprobar', 'info'];
+    }
+
+    function renderValueChainReview(d) {
+      const panel = document.getElementById('vcReviewPanel');
+      const sgr = !!d && d.flujo === 'sgr';
+      if (panel) panel.hidden = !sgr;
+      const [label, tone] = vcStatus(d);
+      const badge = document.getElementById('vcStatusBadge');
+      if (badge) {
+        badge.textContent = label;
+        badge.className = `badge${tone ? ' badge--' + tone : ''}`;
+      }
+      const errors = sgr ? vcList(d.hallazgos).filter(f => vcSeverity(f) === 'error').length : 0;
+      const approve = document.getElementById('vcApproveBtn');
+      if (approve) approve.disabled = !sgr || !d.disponible || !!d.aprobado || errors > 0;
+      const send = document.getElementById('vcSendBtn');
+      if (send) send.disabled = !sgr;
+      const gate = document.getElementById('vcGateNote');
+      if (gate) gate.textContent = errors ? `Corrige los ${String(errors)} hallazgos de error antes de aprobar la cadena.` : '';
+      const note = document.getElementById('vcHashNote');
+      if (note) {
+        const rev = d && d.revision && typeof d.revision === 'object' ? d.revision : null;
+        note.textContent = !sgr || !d.disponible ? ''
+          : d.aprobado ? `Aprobada el ${rev && rev.fecha ? String(rev.fecha).replace('T', ' ') : '—'} (versión ${String(d.hash)}). Si el archivo cambia, la aprobación caduca.`
+          : label === 'Desactualizada' ? 'La cadena cambió después de aprobarla: revisa la versión nueva y vuelve a aprobarla.'
+          : `Versión ${String(d.hash)}. La aprobación queda atada a esta versión del archivo.`;
+      }
+    }
+
+    function renderValueChain() {
+      const d = VC_STATE.data;
+      const el = document.getElementById('vcContent');
+      if (!d || !el) return;
+      document.getElementById('vcRunMeta').textContent = `Corrida ${d.run || '—'}`;
+      renderValueChainReview(d);
+      if (d.flujo !== 'sgr') {
+        el.innerHTML = `<div class="tree-empty">
+          <p>La cadena de valor se usa solo en el flujo SGR.</p>
+          <small>Este proyecto sigue el flujo base de propuestas de investigación, que no desagrega objetivos en productos y actividades MGA.</small>
+        </div>`;
+        return;
+      }
+      if (!d.disponible || !d.cadena) {
+        el.innerHTML = `${vcErrorsHtml(d.errores)}<div class="tree-empty">
+          <p>Todavía no hay cadena de valor para esta corrida.</p>
+          <p>Se siembra después de aprobar el árbol de objetivos (compuerta de objetivos) con <code>python3 scripts/cadena_valor_sgr.py init</code>: cada objetivo específico queda como una columna y el agente agrega sus productos y actividades en <code>${escapeHtml(d.fuente || 'artefactos/sgr/cadena_valor.json')}</code>.</p>
+        </div>`;
+        return;
+      }
+      const marks = new Map();
+      vcList(d.hallazgos).forEach(f => {
+        const sev = vcSeverity(f);
+        const node = String(f.node || '');
+        if (!node || sev === 'info') return;
+        if (sev === 'error' || !marks.has(node)) marks.set(node, sev);
+      });
+      const objetivos = vcList(d.cadena.objetivos);
+      const columns = objetivos.map(oe => `<section class="vc-oe" data-oe="${escapeHtml(String(oe.id ?? ''))}">
+          <div class="vc-oe__head"><span class="vc-code">${vcText(oe.id)}</span><span class="vc-oe__total">Total ${vcMoney(vcOeTotal(oe))}</span></div>
+          <div class="vc-oe__text">${vcText(oe.texto)}</div>
+          ${vcList(oe.productos).map(p => vcProductHtml(p, marks)).join('') || '<p class="tree-relations__pending">Sin productos todavía.</p>'}
+        </section>`).join('');
+      const nProd = objetivos.reduce((n, oe) => n + vcList(oe.productos).length, 0);
+      const nAct = objetivos.reduce((n, oe) => n + vcList(oe.productos).reduce((m, p) => m + vcList(p.actividades).length, 0), 0);
+      el.innerHTML = `${vcErrorsHtml(d.errores)}
+        <div class="vc-summary">
+          <span>Costo total <strong id="vcTotal">${vcMoney(d.total_costos)}</strong></span>
+          <span>${escapeHtml(String(objetivos.length))} objetivos · ${escapeHtml(String(nProd))} productos · ${escapeHtml(String(nAct))} actividades</span>
+          <span>Duración: ${d.cadena.duracion_meses ? `${escapeHtml(String(d.cadena.duracion_meses))} meses` : '—'}</span>
+        </div>
+        ${objetivos.length ? `<div class="vc-columns">${columns}</div>` : '<p class="judge-empty">La cadena no trae objetivos específicos.</p>'}
+        <div class="tree-findings" id="vcFindings" aria-live="polite"><h4>Hallazgos de la cadena</h4>${vcFindingsHtml(d.hallazgos)}</div>`;
+    }
+
+    async function approveValueChain() {
+      const d = VC_STATE.data;
+      if (!d || !d.hash) return;
+      let result;
+      try {
+        result = await postJudge('/api/value-chain/approve', { hash: d.hash });
+      } catch (err) {
+        vcMessage(`No se pudo aprobar la cadena: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { vcMessage(result.error || 'No se pudo aprobar la cadena.', 'error'); return; }
+      vcMessage('Cadena de valor aprobada. Si el archivo cambia, la aprobación caduca y hay que revisarla de nuevo.', 'ok');
+      await loadValueChain();
+    }
+
+    async function sendValueChainAdjust() {
+      const input = document.getElementById('vcNoteInput');
+      const nota = input ? input.value.trim() : '';
+      if (!nota) { vcMessage('Escribe qué cambiar en la cadena antes de enviarlo al agente.', 'error'); return; }
+      let result;
+      try {
+        result = await postJudge('/api/value-chain/adjust', { nota });
+      } catch (err) {
+        vcMessage(`No se pudo preparar el ajuste: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { vcMessage(result.error || 'No se pudo preparar el ajuste.', 'error'); return; }
+      if (await deliverValueChainPrompt(result.prompt) && input) input.value = '';
+    }
+
+    async function deliverValueChainPrompt(prompt) {
+      const retry = document.getElementById('vcRetryBtn');
+      VC_STATE.pendingPrompt = prompt;
+      vcMessage('Ajuste: enviando al agente…');
+      const delivered = await sendTerminalPrompt(prompt);
+      if (delivered === false) {
+        if (retry) retry.style.display = '';
+        vcMessage(`El ajuste no llegó al agente: la terminal no conectó en ${Math.round(TERMINAL_READY_TIMEOUT_MS / 1000)} s. Abre el asistente y pulsa «Reintentar envío».`, 'error');
+        return false;
+      }
+      VC_STATE.pendingPrompt = null;
+      if (retry) retry.style.display = 'none';
+      vcMessage('El ajuste se envió al agente. Cuando corra cadena_valor_sgr.py check, la versión nueva aparece aquí.', 'ok');
+      return true;
+    }
+
+    async function retryValueChainPrompt() {
+      if (VC_STATE.pendingPrompt) await deliverValueChainPrompt(VC_STATE.pendingPrompt);
+    }
+
+    // ── Estilo SGR en Secciones ─────────────────────────────────────────────
+    // Columna solo del flujo SGR con los hallazgos de scripts/estilo_sgr.py por
+    // sección (/api/style-sgr); en el flujo base la tabla queda como antes.
+    const STYLE_STATE = { data: null };
+
+    function syncSectionsStyleHead(show) {
+      const row = document.querySelector('#pane-sections thead tr');
+      if (!row) return;
+      let th = document.getElementById('sectionsStyleHead');
+      if (show && !th) {
+        th = document.createElement('th');
+        th.id = 'sectionsStyleHead';
+        th.textContent = 'Estilo SGR';
+        row.appendChild(th);
+      } else if (!show && th) {
+        th.remove();
+      }
+    }
+
+    async function loadStyleSgr() {
+      try {
+        const res = await fetch('/api/style-sgr', { cache: 'no-store' });
+        const data = await res.json();
+        STYLE_STATE.data = res.ok && data && data.ok ? data : null;
+      } catch (err) {
+        STYLE_STATE.data = null;
+      }
+      fillStyleCells();
+    }
+
+    function fillStyleCells() {
+      const d = STYLE_STATE.data;
+      document.querySelectorAll('#sectionsTableBody [data-style-section]').forEach(cell => {
+        const stem = cell.dataset.styleSection;
+        if (!d || d.flujo !== 'sgr' || !d.disponible) {
+          cell.innerHTML = '<span class="sec-style-zero" title="El revisor de estilo SGR todavía no reporta datos">—</span>';
+          return;
+        }
+        const entry = d.por_seccion && d.por_seccion[stem];
+        const total = entry ? Number(entry.total) || 0 : 0;
+        if (!total) {
+          cell.innerHTML = '<span class="sec-style-zero">0</span>';
+          return;
+        }
+        cell.innerHTML = `<button class="btn btn--xs" type="button" title="${escapeHtml(`${String(entry.advertencias || 0)} advertencias · ${String(entry.info || 0)} informativos`)}">⚠️ ${escapeHtml(String(total))}</button>`;
+        cell.querySelector('button').addEventListener('click', () => openStyleFindings(stem));
+      });
+    }
+
+    function openStyleFindings(stem) {
+      const d = STYLE_STATE.data;
+      const entry = d && d.por_seccion ? d.por_seccion[stem] : null;
+      const modal = document.getElementById('sectionStructureModal');
+      const badgeEl = document.getElementById('secModalBadge');
+      const titleEl = document.getElementById('secModalTitle');
+      const bodyEl = document.getElementById('secModalBody');
+      if (badgeEl) badgeEl.textContent = 'SGR';
+      if (titleEl) titleEl.textContent = `Estilo SGR: ${stem}`;
+      if (bodyEl) {
+        const hits = entry ? vcList(entry.hallazgos) : [];
+        bodyEl.innerHTML = hits.length ? `<p style="margin: 0 0 0.6rem; font-size: 0.8rem; color: var(--text-muted);">Hallazgos del revisor de estilo SGR (léxico, voz y patrones de redacción por sección). Son advertencias: no bloquean la compuerta.</p>
+          <table class="sec-style-list">
+            <thead><tr><th>Regla</th><th>Línea</th><th>Extracto</th><th>Mensaje</th></tr></thead>
+            <tbody>${hits.map(h => `<tr data-regla="${escapeHtml(h.regla || '')}">
+              <td><span class="badge badge--${h.severity === 'info' ? 'info' : 'warn'}">${h.severity === 'info' ? 'Info' : 'Aviso'}</span> <code>${escapeHtml(h.regla || h.code || '')}</code></td>
+              <td>${vcText(h.linea)}</td>
+              <td>${h.extracto ? `«${escapeHtml(h.extracto)}»` : '—'}</td>
+              <td>${escapeHtml(h.message || '')}</td>
+            </tr>`).join('')}</tbody>
+          </table>` : '<p>Esta sección no tiene hallazgos de estilo SGR.</p>';
+      }
+      if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+      }
+    }
+
     let currentStatus = null;
     let activeTab = 'flow';
 
@@ -5159,6 +5597,11 @@
 
       if (tabId === 'judge') startJudgePolling();
       else stopJudgePolling();
+
+      if (tabId === 'cadena') startValueChainPolling();
+      else stopValueChainPolling();
+
+      if (tabId === 'sections' && isSgrFlujo()) loadStyleSgr();
 
       if (tabId === 'mga') loadMgaResumido();
 
@@ -5612,6 +6055,7 @@
         const data = await res.json();
         currentStatus = data;
         renderFlujoBadge(data);
+        syncValueChainTab();
         if (data.active_run) {
           const footerRun = document.getElementById('terminalFooterRun');
           if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;
@@ -5633,6 +6077,7 @@
         renderPhaseRunTracker(data);
         const signature = JSON.stringify({
           active_run: data.active_run,
+          flujo: data.flujo || 'base',
           totals: data.totals,
           gates: data.gates,
           sec_count: (data.sections || []).length,
@@ -5847,6 +6292,8 @@
         // Render Sections Table
         const secTbody = document.getElementById('sectionsTableBody');
         secTbody.innerHTML = '';
+        const styleCol = isSgrFlujo();
+        syncSectionsStyleHead(styleCol);
         document.getElementById('sectionsMetaCount').textContent = `${(data.sections || []).length} secciones registradas · ${totals.total_words?.toLocaleString()} palabras totales`;
         (data.sections || []).forEach(s => {
           const tr = document.createElement('tr');
@@ -5860,9 +6307,10 @@
             <td>${s.citations}</td>
             <td>${s.has_figures ? `✓ ${s.figures_count || 'Sí'}` : '—'}</td>
             <td><span class="badge badge--${statusTone}">${s.status}</span></td>
-          `;
+          ` + (styleCol ? `<td class="sec-style-cell" data-style-section="${escapeHtml(s.id)}"><span class="sec-style-zero">…</span></td>` : '');
           secTbody.appendChild(tr);
         });
+        if (styleCol) loadStyleSgr();
 
         // Render Gates Grid with illuminated vs unlit cards (in Pipeline tab)
         const gatesContainers = [
@@ -9701,7 +10149,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');
