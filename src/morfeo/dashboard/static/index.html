@@ -455,6 +455,79 @@
     .tree-message { font-size: 0.8rem; color: var(--text); padding: 0.45rem 0.6rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); }
     .tree-message.is-error { border-color: var(--bad); color: var(--bad); }
     .tree-message.is-ok { border-color: var(--ok); color: var(--ok); }
+    /* Juez final: puntaje estimado, criterios, alertas, acciones e historial. */
+    .judge-intro { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+    .judge-feedback { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .judge-feedback .tree-message { flex: 1 1 260px; margin-bottom: 1rem; }
+    .judge-feedback .btn { margin-bottom: 1rem; }
+    .judge-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; border-left: 4px solid var(--accent); }
+    .judge-summary.is-elegible { border-left-color: var(--ok); }
+    .judge-summary.is-no-elegible { border-left-color: var(--bad); }
+    @media (max-width: 800px) { .judge-summary { grid-template-columns: minmax(0, 1fr); } }
+    .judge-score__value { display: flex; align-items: baseline; gap: 0.4rem; }
+    .judge-score__value strong { font-size: 2.6rem; line-height: 1; }
+    .judge-score__value span { color: var(--text-muted); font-size: 1.1rem; }
+    .judge-score__meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.6rem; }
+    .judge-bar { position: relative; height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-subtle); margin-top: 0.6rem; }
+    .judge-bar--sm { height: 6px; margin-top: 0.1rem; }
+    .judge-bar__fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+    .judge-bar__fill.judge-tone--ok { background: var(--ok); }
+    .judge-bar__fill.judge-tone--warn { background: var(--warn); }
+    .judge-bar__fill.judge-tone--bad { background: var(--bad); }
+    .judge-bar__mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text); }
+    .judge-summary__info { display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.82rem; align-items: flex-start; }
+    .judge-mins, .judge-reasons { list-style: none; display: flex; flex-direction: column; gap: 0.25rem; }
+    .judge-reasons { color: var(--text-muted); }
+    .judge-min.is-ok { color: var(--ok); }
+    .judge-min.is-bad { color: var(--bad); }
+    .judge-warning { font-size: 0.8rem; padding: 0.5rem 0.7rem; border-radius: var(--radius); background: var(--warn-dim); border: 1px solid var(--warn); color: var(--text); }
+    .judge-validation { margin-bottom: 1.5rem; padding: 0.8rem 1rem; border-radius: var(--radius); background: var(--bad-dim); border: 2px solid var(--bad); font-size: 0.82rem; overflow-wrap: anywhere; }
+    .judge-validation strong { color: var(--bad); }
+    .judge-validation p { margin: 0.3rem 0; color: var(--text); }
+    .judge-validation ul { padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.2rem; }
+    .judge-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 1rem; align-items: start; }
+    @media (max-width: 1100px) { .judge-layout { grid-template-columns: minmax(0, 1fr); } }
+    .judge-criterion { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 0.6rem; margin-bottom: 0.9rem; }
+    .judge-criterion__head { display: flex; justify-content: space-between; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; padding: 0.4rem 0.65rem; border-left: 4px solid var(--accent); border-radius: 4px; background: var(--accent-dim); font-weight: 600; font-size: 0.9rem; margin-bottom: 0.6rem; }
+    .judge-criterion__head.judge-tone--ok { border-left-color: var(--ok); background: var(--ok-dim); }
+    .judge-criterion__head.judge-tone--warn { border-left-color: var(--warn); background: var(--warn-dim); }
+    .judge-criterion__head.judge-tone--bad { border-left-color: var(--bad); background: var(--bad-dim); }
+    .judge-criterion__score { white-space: nowrap; }
+    .judge-subs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.6rem; }
+    .judge-sub { min-width: 0; padding: 0.6rem 0.75rem; border-radius: var(--radius); border: 1px solid var(--border); border-left: 4px solid var(--accent); background: var(--surface-2); font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.35rem; overflow-wrap: anywhere; }
+    .judge-sub--ok { border-left-color: var(--ok); }
+    .judge-sub--warn { border-left-color: var(--warn); }
+    .judge-sub--bad { border-left-color: var(--bad); }
+    .judge-sub--pending { border-style: dashed; color: var(--text-muted); background: transparent; }
+    .judge-sub__head { display: flex; gap: 0.4rem; align-items: baseline; }
+    .judge-sub__id { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-dim); }
+    .judge-sub__name { flex: 1; font-weight: 600; }
+    .judge-sub__score { font-weight: 700; white-space: nowrap; }
+    .judge-sub__meta { display: flex; gap: 0.4rem; align-items: baseline; flex-wrap: wrap; }
+    .judge-sub__level { color: var(--text-muted); font-style: italic; }
+    .judge-sub details summary { cursor: pointer; color: var(--accent); font-size: 0.78rem; }
+    .judge-sub__why { margin-top: 0.3rem; color: var(--text); line-height: 1.5; white-space: pre-wrap; }
+    .judge-evidence { list-style: none; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.75rem; color: var(--text-muted); }
+    .judge-evidence strong { color: var(--text); font-family: var(--font-mono); font-size: 0.72rem; }
+    .judge-sub__up { padding: 0.4rem 0.55rem; border-radius: var(--radius); background: var(--ok-dim); border: 1px solid var(--ok); font-size: 0.78rem; }
+    .judge-list { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.8rem; }
+    .judge-item { padding: 0.5rem 0.65rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--accent); overflow-wrap: anywhere; }
+    .judge-item--bad { border-left-color: var(--bad); }
+    .judge-item--warn { border-left-color: var(--warn); }
+    .judge-item__meta { font-size: 0.72rem; color: var(--text-dim); margin-top: 0.2rem; }
+    .judge-alerts__group + .judge-alerts__group { margin-top: 0.8rem; }
+    .judge-alerts__group h4 { font-size: 0.8rem; margin-bottom: 0.4rem; display: flex; gap: 0.4rem; align-items: center; }
+    .judge-action__head { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.3rem; }
+    .judge-agent { font-family: var(--font-mono); font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); }
+    .judge-action__impact { font-size: 0.72rem; color: var(--ok); margin-left: auto; }
+    .judge-action .btn { margin-top: 0.45rem; }
+    .judge-spark { width: 100%; height: 64px; display: block; margin-bottom: 0.6rem; }
+    .judge-spark__line { fill: none; stroke: var(--accent); stroke-width: 2; }
+    .judge-spark__umbral { stroke: var(--warn); stroke-dasharray: 4 3; stroke-width: 1; }
+    .judge-spark__dot { fill: var(--bad); }
+    .judge-spark__dot.is-ok { fill: var(--ok); }
+    .judge-empty { font-size: 0.8rem; color: var(--text-muted); }
+    .judge-concept { font-size: 0.85rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
     .phase-card { position: relative; }
     .phase-card__run {
       position: absolute;
@@ -2421,6 +2494,7 @@
     <button class="tab-nav__btn" onclick="navigateTab('trees')">Árbol de problemas y objetivos</button>
     <button class="tab-nav__btn" onclick="navigateTab('mga')">MGA resumido</button>
     <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
+      <button class="tab-nav__btn" onclick="navigateTab('judge')">Juez final</button>
     <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
     <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
     <button class="tab-nav__btn" onclick="navigateTab('artifacts')">Artefactos</button>
@@ -2685,6 +2759,22 @@
           </table>
         </div>
       </div>
+    </div>
+
+    <!-- TAB: JUEZ FINAL -->
+    <div id="pane-judge" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Juez final: puntaje estimado de la propuesta</div>
+          <span class="panel__meta" id="judgeRunMeta">—</span>
+        </div>
+        <p class="judge-intro">El juez estima el puntaje que darían los pares evaluadores con la rúbrica oficial de la convocatoria, señala inconsistencias y propone acciones de mejora para los agentes de Morfeo. Es asesor: no cambia el veredicto del revisor.</p>
+      </div>
+      <div class="judge-feedback">
+        <p class="tree-message" id="judgeMessage" role="status"></p>
+        <button class="btn btn--sm" id="judgeRetryBtn" onclick="retryJudgePrompt()" style="display: none;">↻ Reintentar envío</button>
+      </div>
+      <div id="judgeContent"></div>
     </div>
 
     <!-- TAB 6: ATLAS & GRAFOS -->
@@ -4654,6 +4744,339 @@
       });
     }
 
+    // ── Juez final ──────────────────────────────────────────────────────────
+    // Lee /api/judge (evaluacion.json consolidada por scripts/juez_sgr.py y la
+    // rúbrica de la corrida). Las acciones y «Volver a evaluar» piden el prompt
+    // al servidor y lo entregan con sendTerminalPrompt, igual que los árboles.
+    const JUDGE_STATE = { data: null, sig: null, timer: null, pendingPrompt: null };
+    const JUDGE_SEVERITIES = [
+      ['error', 'Errores', 'bad'],
+      ['advertencia', 'Advertencias', 'warn'],
+      ['info', 'Información', 'info'],
+    ];
+    const JUDGE_MODES = { niveles: 'Niveles', acumulable: 'Acumulable', conteo: 'Conteo automático' };
+
+    function judgeNum(v) {
+      return v === null || v === undefined || v === '' ? '—' : escapeHtml(String(v));
+    }
+
+    function judgeList(v) {
+      return Array.isArray(v) ? v.filter(x => x !== null && x !== undefined && String(x).trim()).map(String) : [];
+    }
+
+    function judgeTone(score, max) {
+      const s = Number(score), m = Number(max);
+      if (score === null || score === undefined || !Number.isFinite(s) || !Number.isFinite(m) || m <= 0) return 'info';
+      const r = s / m;
+      return r >= 0.8 ? 'ok' : r >= 0.5 ? 'warn' : 'bad';
+    }
+
+    function judgePct(score, max) {
+      const s = Number(score), m = Number(max);
+      if (!Number.isFinite(s) || !Number.isFinite(m) || m <= 0) return 0;
+      return Math.max(0, Math.min(100, (s / m) * 100));
+    }
+
+    function judgeMessage(text, tone) {
+      const el = document.getElementById('judgeMessage');
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = `tree-message${tone ? ' is-' + tone : ''}`;
+    }
+
+    async function loadJudge() {
+      let data = null;
+      try {
+        const res = await fetch('/api/judge', { cache: 'no-store' });
+        data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      } catch (err) {
+        JUDGE_STATE.data = null;
+        JUDGE_STATE.sig = null;
+        const el = document.getElementById('judgeContent');
+        if (el) el.innerHTML = `<div class="panel"><div class="tree-empty"><p>No se pudo leer la evaluación del juez de la corrida activa.</p><small>${escapeHtml(err.message || String(err))}</small></div></div>`;
+        return;
+      }
+      JUDGE_STATE.data = data;
+      const sig = JSON.stringify(data);
+      if (sig !== JUDGE_STATE.sig) {
+        JUDGE_STATE.sig = sig;
+        renderJudge();
+      }
+    }
+
+    function startJudgePolling() {
+      loadJudge();
+      if (JUDGE_STATE.timer) return;
+      JUDGE_STATE.timer = setInterval(() => {
+        if (activeTab === 'judge' && !document.hidden) loadJudge();
+      }, 5000);
+    }
+
+    function stopJudgePolling() {
+      if (JUDGE_STATE.timer) clearInterval(JUDGE_STATE.timer);
+      JUDGE_STATE.timer = null;
+    }
+
+    function judgeErrorsHtml(errores) {
+      const list = judgeList(errores);
+      if (!list.length) return '';
+      return `<div class="judge-validation"><strong>⚠️ No se pudieron leer los archivos del juez</strong>
+        <ul>${list.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div>`;
+    }
+
+    function judgeSummaryHtml(ev, rub) {
+      const umbral = rub ? rub.umbral_total : null;
+      const elegible = ev.elegible === true;
+      const subtotales = ev.subtotales && typeof ev.subtotales === 'object' ? ev.subtotales : {};
+      const mins = (rub && Array.isArray(rub.minimos) ? rub.minimos : []).map(m => {
+        const sub = subtotales[m.criterio];
+        const ok = typeof sub === 'number' && typeof m.minimo === 'number' && sub >= m.minimo;
+        return `<li class="judge-min ${ok ? 'is-ok' : 'is-bad'}" data-minimo="${escapeHtml(String(m.criterio))}">${ok ? '✓' : '✗'} Criterio ${escapeHtml(String(m.criterio))}: ${judgeNum(sub)} puntos (mínimo ${judgeNum(m.minimo)})</li>`;
+      }).join('');
+      const reasons = judgeList(ev.motivos_no_elegible);
+      const nombre = rub ? (rub.convocatoria || rub.id) : ev.rubrica;
+      const mark = Number.isFinite(Number(umbral)) && umbral !== null
+        ? `<span class="judge-bar__mark" style="left: ${judgePct(umbral, 100)}%;" title="Umbral ${judgeNum(umbral)}"></span>` : '';
+      return `<div class="panel judge-summary ${elegible ? 'is-elegible' : 'is-no-elegible'}" id="judgeSummary">
+        <div class="judge-score">
+          <div class="judge-score__value"><strong>${judgeNum(ev.total)}</strong><span>/ 100</span></div>
+          <div class="judge-bar"><span class="judge-bar__fill judge-tone--${elegible ? 'ok' : 'bad'}" style="width: ${judgePct(ev.total, 100)}%;"></span>${mark}</div>
+          <div class="judge-score__meta">Umbral de elegibilidad: ${judgeNum(umbral)} · Ronda ${judgeNum(ev.ronda)}${ev.fecha ? ` · ${escapeHtml(String(ev.fecha))}` : ''}</div>
+        </div>
+        <div class="judge-summary__info">
+          <span class="badge badge--${elegible ? 'ok' : 'bad'} judge-elegible">${elegible ? 'Elegible' : 'No elegible'}</span>
+          <div>Rúbrica: ${judgeNum(nombre)}</div>
+          ${mins ? `<ul class="judge-mins">${mins}</ul>` : ''}
+          ${reasons.length ? `<ul class="judge-reasons">${reasons.map(r => `<li>· ${escapeHtml(r)}</li>`).join('')}</ul>` : ''}
+          ${ev.incompleto ? '<div class="judge-warning">⚠️ Evaluación incompleta: hay subcriterios sin puntaje o datos sin confirmar, así que el total todavía puede cambiar.</div>' : ''}
+          <button class="btn btn--sm btn--primary" id="judgeRunBtn">↻ Volver a evaluar</button>
+        </div>
+      </div>`;
+    }
+
+    function judgeValidationHtml(ev) {
+      const list = judgeList(ev.errores_validacion);
+      if (!list.length) return '';
+      return `<div class="judge-validation" id="judgeValidation"><strong>⚠️ La última ronda del juez no pasó la validación</strong>
+        <p>El puntaje mostrado puede no corresponder a esa ronda: corrige estos puntos y vuelve a evaluar.</p>
+        <ul>${list.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div>`;
+    }
+
+    function judgeSubHtml(sub, entry) {
+      const id = escapeHtml(String(sub.id));
+      if (!entry) {
+        return `<article class="judge-sub judge-sub--pending" data-sub="${id}">
+          <div class="judge-sub__head"><span class="judge-sub__id">${id}</span><span class="judge-sub__name">${escapeHtml(sub.nombre || '')}</span><span class="judge-sub__score">— / ${judgeNum(sub.max)}</span></div>
+          <div>Sin calificar en esta ronda.</div></article>`;
+      }
+      const tone = judgeTone(entry.puntaje, sub.max);
+      const evidence = (Array.isArray(entry.evidencia) ? entry.evidencia : []).filter(e => e && typeof e === 'object');
+      const comps = entry.componentes && typeof entry.componentes === 'object'
+        ? Object.entries(entry.componentes).map(([k, v]) => `${escapeHtml(k)}: ${judgeNum(v)}`).join(' · ') : '';
+      const up = entry.para_subir && typeof entry.para_subir === 'object' ? entry.para_subir : null;
+      return `<article class="judge-sub judge-sub--${tone}" data-sub="${id}">
+        <div class="judge-sub__head"><span class="judge-sub__id">${id}</span><span class="judge-sub__name">${escapeHtml(sub.nombre || '')}</span><span class="judge-sub__score">${judgeNum(entry.puntaje)} / ${judgeNum(sub.max)}</span></div>
+        <div class="judge-bar judge-bar--sm"><span class="judge-bar__fill judge-tone--${tone}" style="width: ${judgePct(entry.puntaje, sub.max)}%;"></span></div>
+        <div class="judge-sub__meta">${sub.modo ? `<span class="badge badge--info">${escapeHtml(JUDGE_MODES[sub.modo] || sub.modo)}</span>` : ''}${entry.nivel_descriptor ? `<span class="judge-sub__level">${escapeHtml(entry.nivel_descriptor)}</span>` : ''}</div>
+        ${comps ? `<div class="judge-item__meta">Componentes: ${comps}</div>` : ''}
+        ${entry.justificacion ? `<details><summary>Justificación</summary><p class="judge-sub__why">${escapeHtml(entry.justificacion)}</p></details>` : ''}
+        ${evidence.length ? `<ul class="judge-evidence">${evidence.map(e => `<li><strong>${escapeHtml(e.ubicacion || '')}</strong> ${e.cita ? `«${escapeHtml(e.cita)}»` : ''}</li>`).join('')}</ul>` : ''}
+        ${up ? `<div class="judge-sub__up"><strong>Para subir a ${judgeNum(up.puntaje_objetivo)}:</strong> ${escapeHtml(up.que_falta || '')}</div>` : ''}
+      </article>`;
+    }
+
+    function judgeCriteriaHtml(ev, rub) {
+      const entries = (Array.isArray(ev.criterios) ? ev.criterios : []).filter(c => c && typeof c === 'object');
+      const byId = new Map(entries.map(c => [String(c.id), c]));
+      const subtotales = ev.subtotales && typeof ev.subtotales === 'object' ? ev.subtotales : {};
+      const groups = rub && Array.isArray(rub.criterios) && rub.criterios.length
+        ? rub.criterios.map(c => ({ ...c, subs: (c.subcriterios || []).map(s => [s, byId.get(String(s.id))]) }))
+        : [{ id: null, nombre: 'Subcriterios evaluados', max: null, subs: entries.map(e => [{ id: e.id, nombre: '', max: null }, e]) }];
+      if (!groups.some(g => g.subs.length)) return '<p class="judge-empty">La evaluación no trae subcriterios calificados.</p>';
+      return groups.map(g => {
+        const subtotal = g.id === null ? null : subtotales[g.id];
+        const title = g.id === null ? escapeHtml(g.nombre) : `Criterio ${escapeHtml(String(g.id))}. ${escapeHtml(g.nombre || '')}`;
+        return `<section class="judge-criterion" data-criterio="${escapeHtml(String(g.id ?? ''))}">
+          <header class="judge-criterion__head judge-tone--${judgeTone(subtotal, g.max)}"><span>${title}</span>${g.id === null ? '' : `<span class="judge-criterion__score">${judgeNum(subtotal)} / ${judgeNum(g.max)}</span>`}</header>
+          <div class="judge-subs">${g.subs.map(([s, e]) => judgeSubHtml(s, e)).join('')}</div>
+        </section>`;
+      }).join('');
+    }
+
+    function judgeAlertsHtml(ev) {
+      const pick = (list, fuente) => (Array.isArray(list) ? list : []).filter(a => a && typeof a === 'object').map(a => ({ ...a, fuente }));
+      const all = [...pick(ev.alertas, 'Juez'), ...pick(ev.verificaciones, 'Verificación automática')];
+      if (!all.length) return '<p class="judge-empty">Sin alertas en esta ronda.</p>';
+      const known = JUDGE_SEVERITIES.map(s => s[0]);
+      return JUDGE_SEVERITIES.map(([sev, label, tone]) => {
+        const items = all.filter(a => (known.includes(a.severidad) ? a.severidad : 'info') === sev);
+        if (!items.length) return '';
+        return `<div class="judge-alerts__group" data-severidad="${sev}">
+          <h4><span class="badge badge--${tone}">${label}</span> ${items.length}</h4>
+          <ul class="judge-list">${items.map(a => {
+            const meta = [a.tipo, a.ubicacion, judgeList(a.criterios).length ? `criterios ${judgeList(a.criterios).join(', ')}` : '', a.fuente]
+              .filter(Boolean).map(x => escapeHtml(String(x))).join(' · ');
+            return `<li class="judge-item judge-item--${tone}">${escapeHtml(a.mensaje || '')}<div class="judge-item__meta">${meta}</div></li>`;
+          }).join('')}</ul>
+        </div>`;
+      }).join('');
+    }
+
+    function judgeSortedActions(ev) {
+      const prio = a => { const n = Number(a.prioridad); return Number.isFinite(n) ? n : 9; };
+      const impact = a => { const n = parseFloat(a.impacto_estimado); return Number.isFinite(n) ? n : 0; };
+      return (Array.isArray(ev.acciones) ? ev.acciones : []).filter(a => a && typeof a === 'object' && a.id !== undefined)
+        .slice().sort((a, b) => prio(a) - prio(b) || impact(b) - impact(a));
+    }
+
+    function judgeActionsHtml(ev) {
+      const actions = judgeSortedActions(ev);
+      if (!actions.length) return '<p class="judge-empty">El juez no propuso acciones en esta ronda.</p>';
+      const tones = { 1: 'bad', 2: 'warn', 3: 'info' };
+      return `<ul class="judge-list">${actions.map(a => {
+        const user = a.agente === 'usuario';
+        const impact = typeof a.impacto_estimado === 'number' ? `+${judgeNum(a.impacto_estimado)} pts estimados`
+          : (a.impacto_estimado ? `Impacto: ${escapeHtml(String(a.impacto_estimado))}` : '');
+        const meta = [
+          judgeList(a.criterios).length ? `Criterios ${judgeList(a.criterios).join(', ')}` : '',
+          judgeList(a.secciones).length ? `Secciones ${judgeList(a.secciones).join(', ')}` : '',
+        ].filter(Boolean).map(escapeHtml).join(' · ');
+        return `<li class="judge-item judge-action judge-item--${tones[a.prioridad] || 'info'}" data-accion="${escapeHtml(String(a.id))}">
+          <div class="judge-action__head"><span class="badge badge--${tones[a.prioridad] || 'info'}">Prioridad ${judgeNum(a.prioridad)}</span><span class="judge-agent">${user ? '👤' : '🤖'} ${escapeHtml(a.agente || 'usuario')}</span>${impact ? `<span class="judge-action__impact">${impact}</span>` : ''}</div>
+          <div>${escapeHtml(a.instruccion || '')}</div>
+          ${meta ? `<div class="judge-item__meta">${meta}</div>` : ''}
+          <button class="btn btn--sm btn--primary judge-send">${user ? '💬 Pedir guía al asistente' : '🤖 Enviar al agente'}</button>
+        </li>`;
+      }).join('')}</ul>`;
+    }
+
+    function judgeHistoryHtml(ev, rub) {
+      const rows = (Array.isArray(ev.historial) ? ev.historial : []).filter(h => h && typeof h === 'object');
+      if (!rows.length) return '<p class="judge-empty">Sin rondas registradas todavía.</p>';
+      let spark = '';
+      const totals = rows.map(h => Number(h.total));
+      if (rows.length > 1 && totals.every(Number.isFinite)) {
+        const w = 260, h = 60, x = i => 6 + (i * (w - 12)) / (rows.length - 1), y = v => h - 4 - (Math.max(0, Math.min(100, v)) / 100) * (h - 8);
+        const umbral = rub ? Number(rub.umbral_total) : NaN;
+        spark = `<svg class="judge-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Total por ronda">
+          ${Number.isFinite(umbral) ? `<line class="judge-spark__umbral" x1="0" x2="${w}" y1="${y(umbral)}" y2="${y(umbral)}"></line>` : ''}
+          <polyline class="judge-spark__line" points="${totals.map((v, i) => `${x(i)},${y(v)}`).join(' ')}"></polyline>
+          ${totals.map((v, i) => `<circle class="judge-spark__dot${rows[i].elegible ? ' is-ok' : ''}" cx="${x(i)}" cy="${y(v)}" r="3"></circle>`).join('')}
+        </svg>`;
+      }
+      return `${spark}<table class="table">
+        <thead><tr><th>Ronda</th><th>Fecha</th><th>Total</th><th>Elegible</th></tr></thead>
+        <tbody>${rows.map(r => `<tr><td>${judgeNum(r.ronda)}</td><td>${judgeNum(r.fecha)}</td><td>${judgeNum(r.total)}</td><td>${r.elegible ? '<span class="badge badge--ok">Sí</span>' : '<span class="badge badge--bad">No</span>'}</td></tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    function renderJudge() {
+      const d = JUDGE_STATE.data;
+      const el = document.getElementById('judgeContent');
+      if (!d || !el) return;
+      document.getElementById('judgeRunMeta').textContent = `Corrida ${d.run || '—'}`;
+      if (d.flujo !== 'sgr') {
+        el.innerHTML = `<div class="panel"><div class="tree-empty">
+          <p>El juez final de las propuestas de investigación llega en una entrega posterior.</p>
+          <small>En el flujo SGR esta pestaña estima el puntaje con la rúbrica de la convocatoria, lista alertas y acciones de mejora y guarda el historial de rondas.</small>
+        </div></div>`;
+        return;
+      }
+      const ev = d.evaluacion;
+      if (!ev) {
+        el.innerHTML = `${judgeErrorsHtml(d.errores)}<div class="panel"><div class="tree-empty">
+          <p>Todavía no hay una evaluación del juez para esta corrida.</p>
+          <p>Corre <code>/propuesta-juez</code> en el asistente: el juez lee la redacción, califica cada subcriterio con la rúbrica de la convocatoria y deja aquí el puntaje, las alertas y las acciones de mejora.</p>
+          <button class="btn btn--primary" id="judgeRunBtn">⚖️ Correr el juez</button>
+        </div></div>`;
+      } else {
+        el.innerHTML = `${judgeErrorsHtml(d.errores)}${judgeSummaryHtml(ev, d.rubrica)}${judgeValidationHtml(ev)}
+          <div class="judge-layout">
+            <div class="panel">
+              <div class="panel__header"><div class="panel__title">Puntaje por criterio</div></div>
+              <div id="judgeCriteria">${judgeCriteriaHtml(ev, d.rubrica)}</div>
+              ${ev.concepto ? `<h4 class="tree-label">Concepto del juez ${ev.recomienda === true ? '<span class="badge badge--ok">Recomienda</span>' : ev.recomienda === false ? '<span class="badge badge--bad">No recomienda</span>' : ''}</h4><p class="judge-concept">${escapeHtml(ev.concepto)}</p>` : ''}
+            </div>
+            <div>
+              <div class="panel">
+                <div class="panel__header"><div class="panel__title">Acciones de mejora</div></div>
+                <div id="judgeActions">${judgeActionsHtml(ev)}</div>
+              </div>
+              <div class="panel">
+                <div class="panel__header"><div class="panel__title">Alertas</div></div>
+                <div id="judgeAlerts">${judgeAlertsHtml(ev)}</div>
+              </div>
+              <div class="panel">
+                <div class="panel__header"><div class="panel__title">Historial de rondas</div></div>
+                <div id="judgeHistory">${judgeHistoryHtml(ev, d.rubrica)}</div>
+              </div>
+            </div>
+          </div>`;
+        el.querySelectorAll('#judgeActions [data-accion] .judge-send').forEach(btn => {
+          btn.addEventListener('click', () => sendJudgeAction(btn.closest('[data-accion]').dataset.accion));
+        });
+      }
+      const run = document.getElementById('judgeRunBtn');
+      if (run) run.addEventListener('click', () => runJudge());
+    }
+
+    async function postJudge(path, body) {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {}),
+      });
+      return res.json();
+    }
+
+    async function sendJudgeAction(id) {
+      let result;
+      try {
+        result = await postJudge('/api/judge/send', { accion_id: id });
+      } catch (err) {
+        judgeMessage(`No se pudo preparar la acción ${id}: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { judgeMessage(result.error || `No se pudo preparar la acción ${id}.`, 'error'); return; }
+      await deliverJudgePrompt(result.prompt, `La acción ${id}`, `La acción ${id} se envió al agente. Cuando termine, el juez vuelve a calificar y la nueva ronda aparece aquí.`);
+    }
+
+    async function runJudge() {
+      let result;
+      try {
+        result = await postJudge('/api/judge/run', {});
+      } catch (err) {
+        judgeMessage(`No se pudo pedir la evaluación: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { judgeMessage(result.error || 'No se pudo pedir la evaluación.', 'error'); return; }
+      await deliverJudgePrompt(result.prompt, 'La evaluación', 'Se envió /propuesta-juez al agente. La nueva ronda aparece aquí cuando el juez termine.');
+    }
+
+    // El prompt sale del servidor; aquí solo se entrega a la terminal. Si no
+    // llega, se dice y se ofrece reintentar el mismo prompt.
+    async function deliverJudgePrompt(prompt, label, okText) {
+      const retry = document.getElementById('judgeRetryBtn');
+      JUDGE_STATE.pendingPrompt = { prompt, label, okText };
+      judgeMessage(`${label}: enviando al agente…`);
+      const delivered = await sendTerminalPrompt(prompt);
+      if (delivered === false) {
+        if (retry) retry.style.display = '';
+        judgeMessage(`${label} no llegó al agente: la terminal no conectó en ${Math.round(TERMINAL_READY_TIMEOUT_MS / 1000)} s. Abre el asistente y pulsa «Reintentar envío».`, 'error');
+        return false;
+      }
+      JUDGE_STATE.pendingPrompt = null;
+      if (retry) retry.style.display = 'none';
+      judgeMessage(okText, 'ok');
+      return true;
+    }
+
+    async function retryJudgePrompt() {
+      const p = JUDGE_STATE.pendingPrompt;
+      if (p) await deliverJudgePrompt(p.prompt, p.label, p.okText);
+    }
+
     let currentStatus = null;
     let activeTab = 'flow';
 
@@ -4733,6 +5156,9 @@
 
       if (tabId === 'trees') startTreesPolling();
       else stopTreesPolling();
+
+      if (tabId === 'judge') startJudgePolling();
+      else stopJudgePolling();
 
       if (tabId === 'mga') loadMgaResumido();
 
@@ -9275,7 +9701,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'sections', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');

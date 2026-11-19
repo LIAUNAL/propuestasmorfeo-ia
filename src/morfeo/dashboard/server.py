@@ -20,7 +20,8 @@ from ..core.pdf_annotator import apply_pdf_annotations
 from ..core.presentation import ASSET_TYPES, build_presentation, resolve_asset
 from ..core.sgr_rules import load_sgr_blocks
 from ..core.status import get_project_status, read_flujo
-from ..core.trees import approve_tree, load_trees, record_feedback
+from ..core.judge import EVALUACION_FILE, JUDGE_COMMAND, build_action_prompt, load_judge
+from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -155,6 +156,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_trees()
         elif path == "/api/guide/sgr":
             self.serve_sgr_guide()
+        elif path == "/api/judge":
+            self.serve_judge()
         else:
             self.send_error(404, "Not Found")
 
@@ -176,6 +179,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_trees_feedback()
         elif path == "/api/trees/approve":
             self.handle_trees_approve()
+        elif path == "/api/judge/send":
+            self.handle_judge_send()
+        elif path == "/api/judge/run":
+            self.handle_judge_run()
         else:
             self.send_error(404, "Not Found")
 
@@ -620,6 +627,45 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         result = approve_tree(run_dir, str(payload.get("tree") or ""))
         # 409: el flujo todavía no permite aprobar (falta el árbol previo o textos).
         self._send_json(200 if result.get("ok") else 409, result)
+
+    # El juez final: como en «Enviar ajuste al agente» de los árboles, el servidor
+    # arma el prompt y el tablero lo entrega a la terminal con sendTerminalPrompt.
+    def serve_judge(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_judge(run_dir)})
+
+    def handle_judge_send(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        judge = load_judge(run_dir)
+        if judge["evaluacion"] is None:
+            # 409: todavía no hay una evaluación de la que salgan acciones.
+            error = "; ".join(judge["errores"]) or f"No hay evaluación del juez: corre {JUDGE_COMMAND} primero."
+            self._send_json(409, {"ok": False, "error": error})
+            return
+        accion_id = str(payload.get("accion_id") or "")
+        try:
+            prompt = build_action_prompt(judge["evaluacion"], accion_id,
+                                         fuente=_workspace_path(run_dir, EVALUACION_FILE))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "accion_id": accion_id, "prompt": prompt})
+
+    def handle_judge_run(self) -> None:
+        if self._active_run_dir() is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "prompt": JUDGE_COMMAND})
 
     def serve_idea(self) -> None:
         candidates = [self.workspace_dir / "idea.md"]
