@@ -868,6 +868,176 @@
         "fuente": "Manual conceptual MGA 2015, pp. 79-82",
         "aplica_a": "prosa"
       }
+    ],
+    "26_identificacion": [
+      {
+        "id": "identificacion-apertura",
+        "tipo": "favorecida",
+        "expresion": "La propuesta se enmarca en el Desafío <n>, «<nombre>», porque…; Se abordarán las sublíneas <x.y> <nombre>…; El proyecto atenderá una demanda territorial por cada uno de los <N> departamentos de ejecución.",
+        "regex": null,
+        "motivo": "Aperturas de la ficha de identificación: desafío, sublíneas y demandas por departamento, en tercera persona.",
+        "fuente": "Anexo 2 Conv 54 cap. 1; proyecto de referencia, cap. 1",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "identificacion-adorno",
+        "tipo": "desaconsejada",
+        "expresion": "integral, para mejorar la calidad de vida",
+        "regex": "\\bintegral(es)?\\b|\\bpara\\s+mejorar\\s+la\\s+calidad\\s+de\\s+vida\\b",
+        "motivo": "Adorno o fin en el nombre y en la justificación del desafío: el nombre deriva del objetivo general, que no los admite.",
+        "fuente": "Manual MGA 2015, tabla 12, p. 80; Anexo 2 cap. 1",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "identificacion-aspa-doble",
+        "tipo": "desaconsejada",
+        "expresion": "una entidad con dos categorías de aspa o de tipo",
+        "regex": null,
+        "motivo": "«Las entidades ostentarán sólo una de las categorías indicadas»: cada entidad lleva un solo tipo en alianza.json.",
+        "fuente": "Anexo 2 Conv 54 cap. 1 (campo Aspa)",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "identificacion-grupo-trayectoria",
+        "tipo": "desaconsejada",
+        "expresion": "contribución del grupo redactada como trayectoria",
+        "regex": null,
+        "motivo": "La columna pide la contribución de las líneas al abordaje de las demandas territoriales, no la historia del grupo; la trayectoria va en el capítulo 27.",
+        "fuente": "Anexo 2 Conv 54 cap. 1 (tabla de grupos)",
+        "aplica_a": "tabla"
+      }
+    ],
+    "27_demandas_territoriales": [
+      {
+        "id": "demandas-territoriales-literal",
+        "tipo": "favorecida",
+        "expresion": "«<texto literal de la demanda>» con su código y su departamento",
+        "regex": null,
+        "motivo": "La demanda se copia literal desde territorio.json (lista blanca) y no se parafrasea ni se resume.",
+        "fuente": "Anexo 2 Conv 54 cap. 8; TdR numeral 4",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "demandas-territoriales-contribucion",
+        "tipo": "favorecida",
+        "expresion": "El OE<n> aporta <producto con unidad> a <actor>, con <indicador>…; Mediante la actividad <n.n.n>, el proyecto entrega…",
+        "regex": null,
+        "motivo": "La contribución empieza por el objetivo o el producto y cierra con su indicador.",
+        "fuente": "Proyecto de referencia, cap. 8; rúbrica 2.1",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "demandas-territoriales-contribucion-general",
+        "tipo": "desaconsejada",
+        "expresion": "contribuirá significativamente, impactará positivamente",
+        "regex": "\\bcontribuir[áa]n?\\s+significativamente\\b|\\bimpactar[áa]n?\\s+positivamente\\b",
+        "motivo": "Contribución general sin indicador: la rúbrica 2.1 da 3 de 7 puntos a la contribución «parcial o general».",
+        "fuente": "Anexo 2 Conv 54 cap. 8; rúbrica 2.1; capa guía de la rúbrica",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "demandas-territoriales-pertinencia-vaga",
+        "tipo": "desaconsejada",
+        "expresion": "es pertinente, resulta pertinente, de gran importancia, de gran relevancia",
+        "regex": "\\b(es|resulta)\\s+(muy\\s+)?pertinente\\b|\\bde\\s+gran\\s+(importancia|relevancia)\\b",
+        "motivo": "La pertinencia de un actor o de un departamento se demuestra con el objetivo, la demanda y el rol; no se declara.",
+        "fuente": "Anexo 2 Conv 54 cap. 8.1",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "demandas-territoriales-copia",
+        "tipo": "desaconsejada",
+        "expresion": "el mismo texto de contribución para cada departamento; repetir la tabla de demandas del capítulo 1",
+        "regex": null,
+        "motivo": "Cada demanda tiene su articulación propia; la tabla del capítulo 1 lista las demandas y esta las articula (323 6-gramas compartidos en la referencia).",
+        "fuente": "Anexo 2 Conv 54 caps. 1 y 8; R4",
+        "aplica_a": "tabla"
+      }
+    ],
+    "28_matriz_responsabilidades": [
+      {
+        "id": "matriz-responsabilidad-generica",
+        "tipo": "desaconsejada",
+        "expresion": "apoyar, acompañar (como responsabilidad)",
+        "regex": "\\b(apoyar|acompa[ñn]ar)\\b",
+        "motivo": "Responsabilidad genérica que no corresponde a una actividad de la cadena de valor: nombrar la obligación y su código de actividad.",
+        "fuente": "Anexo 2 cap. 10.1",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "matriz-vocabulario",
+        "tipo": "favorecida",
+        "expresion": "Cooperante, Beneficiario, Oponente, Perjudicado; responsabilidades en infinitivo («Formular y ejecutar el proyecto») con sus códigos de actividad",
+        "regex": null,
+        "motivo": "Vocabulario fijo de la MGA y obligaciones verificables en el cronograma.",
+        "fuente": "Instructivo MGA 2023, p. 32; plantilla Anexo 2 cap. 10.1",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "matriz-gobernanza-vaga",
+        "tipo": "desaconsejada",
+        "expresion": "de manera articulada, de forma coordinada, de manera conjunta, trabajo conjunto",
+        "regex": "\\bde\\s+(manera|forma)\\s+(articulada|coordinada|conjunta)\\b|\\btrabajo\\s+conjunto\\b",
+        "motivo": "Gobernanza sin instancia, periodicidad ni responsable: la rúbrica 4.1 pide quién decide, cómo y cada cuánto.",
+        "fuente": "Anexo 1 (modelo de gobernanza); rúbrica 4.1",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "matriz-doble-posicion",
+        "tipo": "desaconsejada",
+        "expresion": "una entidad cooperante y beneficiaria a la vez",
+        "regex": null,
+        "motivo": "«Una misma entidad no podrá ostentar al mismo tiempo la calidad de Proponente /Aliado (Cooperante) y Beneficiario».",
+        "fuente": "Plantilla Anexo 2 cap. 10",
+        "aplica_a": "tabla"
+      }
+    ],
+    "29_idoneidad_trayectoria": [
+      {
+        "id": "idoneidad-apertura",
+        "tipo": "favorecida",
+        "expresion": "<Entidad> aporta al proyecto <aporte> en las actividades <n.n.n>…; El grupo <nombre>, categoría <A1> en la convocatoria <n>, …; Desde <año>, <entidad> ha ejecutado N proyectos financiados por el SGR, entre ellos…",
+        "regex": null,
+        "motivo": "Un bloque por entidad: aporte (rol, actividades, contrapartida), trayectoria pertinente con código y capacidades con su evidencia.",
+        "fuente": "Anexo 2 cap. 27; patrones, cap. 27",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "idoneidad-folleto",
+        "tipo": "prohibida",
+        "expresion": "de talla mundial, de alto prestigio, referente nacional, amplia trayectoria, vasta experiencia, solución integral",
+        "regex": "\\b(de\\s+talla\\s+mundial|de\\s+(alto|gran)\\s+prestigio|referentes?\\s+(nacional|regional|internacional)(es)?|amplia\\s+trayectoria|vasta\\s+experiencia|soluci[óo]n\\s+integral)\\b",
+        "motivo": "Lenguaje de folleto institucional: la idoneidad se demuestra con proyectos, códigos, categorías y aportes.",
+        "fuente": "Anexo 2 cap. 27; rúbricas 3.1 a 3.4; patrones, cap. 27",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "idoneidad-reconocido",
+        "tipo": "desaconsejada",
+        "expresion": "reconocido(a) sin la entidad que reconoce ni la categoría",
+        "regex": "\\breconocid[oa]s?\\b(?!\\s+(y\\s+categorizad[oa]s?\\s+)?(por|ante|en)\\s+(el\\s+)?minciencias)",
+        "motivo": "«Reconocido» vale con su evidencia («reconocido por Minciencias, categoría A1 en la convocatoria <n>»); sin ella es un adjetivo promocional.",
+        "fuente": "Anexo 2 cap. 27; L16",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "idoneidad-texto-institucional",
+        "tipo": "prohibida",
+        "expresion": "texto institucional pegado en primera persona («nuestra universidad», «hemos ejecutado»)",
+        "regex": null,
+        "motivo": "En la referencia el capítulo 27 concentra la primera persona (nuestro ×7, hemos ×2): se reescribe en tercera persona sobre la entidad.",
+        "fuente": "Patrones, 1.2 y cap. 27",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "idoneidad-historia",
+        "tipo": "desaconsejada",
+        "expresion": "historia institucional sin relación con las actividades; el mismo proyecto acreditado por dos integrantes",
+        "regex": null,
+        "motivo": "Cada párrafo responde a una actividad o a un criterio de la rúbrica; un proyecto cuenta una sola vez (rúbrica 3.1, nota ii).",
+        "fuente": "Rúbrica Conv 54, 3.1; Anexo 2 cap. 27",
+        "aplica_a": "prosa"
+      }
     ]
   },
   "exenciones": [
@@ -935,8 +1105,8 @@
     },
     {
       "tipo": "demandas",
-      "fuente": "texto de las demandas del Anexo 4, citado entre comillas latinas",
-      "motivo": "La demanda se cita literal; la exención de comillas la cubre."
+      "fuente": "artefactos/sgr/territorio.json (demandas[].texto), citado entre comillas latinas",
+      "motivo": "La demanda se cita literal con su código; scripts/estilo_sgr.py la enmascara aunque no lleve comillas."
     },
     {
       "tipo": "planes_y_programas",
@@ -947,6 +1117,11 @@
       "tipo": "linea_base",
       "fuente": "cifras de la magnitud del problema",
       "motivo": "Las cifras no se reescriben."
+    },
+    {
+      "tipo": "entidades",
+      "fuente": "artefactos/sgr/alianza.json (entidades[].nombre y grupos[].nombre)",
+      "motivo": "Nombres oficiales de las entidades y los grupos: idénticos en la identificación, la matriz, la idoneidad y las cartas."
     }
   ],
   "redundancia": {
@@ -986,6 +1161,13 @@
     ]
   },
   "mapa_capitulos": [
+    {
+      "capitulo": 1,
+      "titulo": "IDENTIFICACIÓN DEL PROYECTO",
+      "secciones": [
+        "26_identificacion"
+      ]
+    },
     {
       "capitulo": 2,
       "titulo": "RESUMEN EJECUTIVO",
@@ -1033,7 +1215,8 @@
       "capitulo": 8,
       "titulo": "ARTICULACIÓN DEL PROYECTO CON LAS DEMANDAS TERRITORIALES",
       "secciones": [
-        "17_articulacion_comunidades"
+        "17_articulacion_comunidades",
+        "27_demandas_territoriales"
       ]
     },
     {
@@ -1047,7 +1230,8 @@
       "capitulo": 10,
       "titulo": "ANÁLISIS DE PARTICIPANTES",
       "secciones": [
-        "20_participantes"
+        "20_participantes",
+        "28_matriz_responsabilidades"
       ]
     },
     {
@@ -1137,6 +1321,13 @@
       ]
     },
     {
+      "capitulo": 27,
+      "titulo": "IDONEIDAD Y TRAYECTORIA DE LA ENTIDAD PROPONENTE Y DEMÁS PARTICIPANTES",
+      "secciones": [
+        "29_idoneidad_trayectoria"
+      ]
+    },
+    {
       "capitulo": 29,
       "titulo": "RESUMEN DE FUENTES DE FINANCIACIÓN",
       "secciones": [
@@ -1152,11 +1343,6 @@
     }
   ],
   "capitulos_sin_archivo": [
-    {
-      "capitulo": 1,
-      "titulo": "IDENTIFICACIÓN DEL PROYECTO",
-      "nota": "Ficha de identificación; hoy solo el título vive en redaccion/datos_proyecto.tex (sgr-titulo-no-derivado). Nombre ≤256 caracteres, «Proceso + Objeto + Localización»; aperturas «La propuesta se enmarca en el Desafío <n>…», «Se abordarán las sublíneas…»."
-    },
     {
       "capitulo": 16,
       "titulo": "SOSTENIBILIDAD SOCIAL Y AMBIENTAL DEL PROYECTO",
@@ -1176,11 +1362,6 @@
       "capitulo": 25,
       "titulo": "INDICADORES DE PRODUCTO",
       "nota": "Tabla del catálogo coherente con productos esperados; sin prosa."
-    },
-    {
-      "capitulo": 27,
-      "titulo": "IDONEIDAD Y TRAYECTORIA DE LA ENTIDAD PROPONENTE Y DEMÁS PARTICIPANTES",
-      "nota": "Reescribir en tercera persona el texto institucional pegado; sin lenguaje de folleto («líder», «referente nacional»)."
     },
     {
       "capitulo": 28,

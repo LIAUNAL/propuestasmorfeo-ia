@@ -52,6 +52,15 @@ objective trees when their files exist:
     23_cadena_valor.tex lacks the GENERADO header) and
     cadena-anexo-desactualizado (error: it is older than the json); and
     every `sgr-estilo-*` finding as a warning.
+  alliance and territory (SGR flow only; scripts/alianza_territorio_sgr.py):
+    every `alianza-*` / `territorio-*` finding of artefactos/sgr/alianza.json
+    and territorio.json when they exist; alianza-datos-faltantes /
+    territorio-datos-faltantes (warning: GTerritorio is approved in
+    estado_propuesta.md and the file is missing); alianza-anexo-manual /
+    territorio-anexo-manual (error: 26_identificacion, 28_matriz_responsabilidades
+    or 27_demandas_territoriales lacks the GENERADO header) and
+    alianza-anexo-desactualizado / territorio-anexo-desactualizado (error: the
+    section is older than the json it is rendered from).
   tree figures (both flows): figura-desincronizada (error: diag_<tree>.tex is
     not the render of its spec), figura-spec-invalida, figura-sin-verificar.
   TDR chapters (artefactos/estructura_tdr.json, any flow):
@@ -96,6 +105,7 @@ CANONICAL_SECTIONS = (
 SGR_SECTIONS = (
     "19_alineacion_planes", "20_participantes", "21_poblacion", "22_alternativas",
     "23_cadena_valor", "24_riesgos", "25_marco_logico",
+    "26_identificacion", "27_demandas_territoriales", "28_matriz_responsabilidades", "29_idoneidad_trayectoria",
 )
 FLUJOS = ("base", "sgr")
 PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
@@ -1033,6 +1043,58 @@ def check_sgr_value_chain(report: Report, run_root: Path, sec_dir: Path, flujo: 
                    "python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>.", tex)
 
 
+ALLIANCE_FILE = Path("artefactos") / "sgr" / "alianza.json"
+TERRITORY_FILE = Path("artefactos") / "sgr" / "territorio.json"
+ALLIANCE_HEADER = "% GENERADO por scripts/alianza_territorio_sgr.py"
+# Sections rendered by scripts/alianza_territorio_sgr.py: finding prefix and the json files they come from.
+ALLIANCE_SECTIONS = {
+    "26_identificacion": ("alianza", (ALLIANCE_FILE, TERRITORY_FILE)),
+    "27_demandas_territoriales": ("territorio", (TERRITORY_FILE,)),
+    "28_matriz_responsabilidades": ("alianza", (ALLIANCE_FILE,)),
+}
+GTERRITORIO_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.])GTerritorio(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def check_sgr_alliance_territory(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """Alliance and territory as data (scripts/alianza_territorio_sgr.py): findings, absence, rendered sections."""
+    if flujo != "sgr":
+        return
+    files = {"alianza": run_root / ALLIANCE_FILE, "territorio": run_root / TERRITORY_FILE}
+    if any(path.is_file() for path in files.values()):
+        try:
+            module = _sibling_module("alianza_territorio_sgr")
+            found = module.findings(run_root) if module is not None else []
+        except Exception as exc:  # a broken helper must not hide the other checks
+            report.add("warning", "alianza-no-verificable",
+                       f"No se pudo correr scripts/alianza_territorio_sgr.py: {exc!r}.", files["alianza"])
+            found = []
+        for f in found:
+            path = files["territorio"] if str(f.get("code")).startswith("territorio-") else files["alianza"]
+            report.add(f["severity"], f["code"], f["message"], path, node=f.get("node"))
+    estado = run_root / "artefactos" / "estado_propuesta.md"
+    if estado.is_file() and GTERRITORIO_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+        for prefix, path in files.items():
+            if not path.is_file():
+                report.add("warning", f"{prefix}-datos-faltantes",
+                           f"En el flujo SGR, después de GTerritorio los datos de {prefix} viven en "
+                           f"{path.relative_to(run_root).as_posix()} (unidad fase1b_sgr «Alianza y territorio»).")
+    for stem, (prefix, sources) in ALLIANCE_SECTIONS.items():
+        tex = sec_dir / f"{stem}.tex"
+        if not tex.is_file():
+            continue
+        first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        stamps = [(run_root / s).stat().st_mtime for s in sources if (run_root / s).is_file()]
+        if not first or first[0].strip() != ALLIANCE_HEADER:
+            report.add("error", f"{prefix}-anexo-manual",
+                       f"En el flujo SGR {stem}.tex no se escribe a mano: lo genera "
+                       "python3 scripts/alianza_territorio_sgr.py render <RUN_ROOT> desde alianza.json y territorio.json.",
+                       tex)
+        elif stamps and tex.stat().st_mtime < max(stamps):
+            report.add("error", f"{prefix}-anexo-desactualizado",
+                       f"{stem}.tex es anterior a los datos de los que sale: volvé a correr "
+                       "python3 scripts/alianza_territorio_sgr.py render <RUN_ROOT>.", tex)
+
+
 def check_sgr_style(report: Report, run_root: Path, flujo: str) -> None:
     """SGR style findings (scripts/estilo_sgr.py), as warnings: advice for the style reviewer."""
     if flujo != "sgr":
@@ -1099,6 +1161,7 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_sgr_problem_structure(report, texts, sections, report.flujo)
     check_sgr_sections(report, sec_dir, report.flujo, final)
     check_sgr_value_chain(report, run_root, sec_dir, report.flujo)
+    check_sgr_alliance_territory(report, run_root, sec_dir, report.flujo)
     check_sgr_style(report, run_root, report.flujo)
     return report
 

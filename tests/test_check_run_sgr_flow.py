@@ -21,10 +21,13 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tests"))
 
+from test_alianza_territorio_sgr import _alliance, _territory  # noqa: E402
 from test_cadena_valor_sgr import TREE, _valid_chain  # noqa: E402
 
 CHECK = REPO / "scripts" / "check_run.py"
-NEW_PREFIXES = ("cadena-", "sgr-estilo-")
+NEW_PREFIXES = ("cadena-", "sgr-estilo-", "alianza-", "territorio-")
+ALLIANCE_STEMS = ("26_identificacion", "27_demandas_territoriales", "28_matriz_responsabilidades",
+                  "29_idoneidad_trayectoria")
 
 STUB_ESTILO = '''
 def findings(run_root, section=None):
@@ -61,6 +64,19 @@ def _findings(run: Path, flujo: str, check: Path = CHECK) -> list[dict]:
     return json.loads(out.stdout)["findings"]
 
 
+def _findings_final(run: Path, flujo: str) -> list[dict]:
+    out = subprocess.run([sys.executable, str(CHECK), str(run), "--json", "--final", "--flujo", flujo],
+                         capture_output=True, text=True)
+    return json.loads(out.stdout)["findings"]
+
+
+def _write_sgr(run: Path, name: str, data: dict) -> Path:
+    path = run / "artefactos" / "sgr" / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
 def _codes(findings: list[dict], severity: str | None = None) -> list[str]:
     return [f["code"] for f in findings if severity is None or f["severity"] == severity]
 
@@ -81,6 +97,21 @@ class Base(unittest.TestCase):
             after = _findings(run, "base")
             self.assertFalse([c for c in _codes(after) if c.startswith(NEW_PREFIXES)])
             self.assertEqual(after, before)
+
+    def test_base_run_ignores_the_alliance_and_territory_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            run = _make_run(Path(tmp))
+            before = _findings(run, "base")
+            before_final = _findings_final(run, "base")
+            alliance = _alliance()
+            alliance["entidades"][0]["proponente"] = False
+            _write_sgr(run, "alianza.json", alliance)
+            sections = run / "redaccion" / "sections"
+            for stem in ALLIANCE_STEMS:
+                (sections / f"{stem}.tex").write_text("\\section{A mano}\nTexto.\n", encoding="utf-8")
+            (run / "artefactos" / "estado_propuesta.md").write_text("| GTerritorio | APROBADA |\n", encoding="utf-8")
+            self.assertEqual(_findings(run, "base"), before)
+            self.assertEqual(_findings_final(run, "base"), before_final)
 
     def test_base_run_never_calls_the_style_module(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -166,6 +197,80 @@ class Sgr(unittest.TestCase):
     def test_without_the_style_module_there_are_no_style_findings(self) -> None:
         check = _isolated_check(self.tmp, with_stub=False)
         self.assertFalse([c for c in _codes(_findings(self.run, "sgr", check)) if c.startswith("sgr-estilo-")])
+
+
+class SgrAllianceTerritory(unittest.TestCase):
+    """S3/S4: alliance and territory findings, their absence after GTerritorio and the rendered sections."""
+
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.run = _make_run(Path(tmp.name))
+        self.sections = self.run / "redaccion" / "sections"
+        _write_chain(self.run, _valid_chain())
+
+    def write_both(self, alliance: dict | None = None) -> tuple[Path, Path]:
+        return (_write_sgr(self.run, "alianza.json", alliance or _alliance()),
+                _write_sgr(self.run, "territorio.json", _territory()))
+
+    def test_findings_are_included_with_their_file(self) -> None:
+        alliance = _alliance()
+        alliance["entidades"][0]["proponente"] = False
+        alliance["entidades"][4]["departamento"] = "Antioquia"
+        self.write_both(alliance)
+        found = _findings(self.run, "sgr")
+        proponent = next(f for f in found if f["code"] == "alianza-proponente")
+        self.assertEqual((proponent["severity"], proponent["file"]), ("error", "artefactos/sgr/alianza.json"))
+        outside = next(f for f in found if f["code"] == "alianza-departamento-fuera")
+        self.assertEqual((outside["severity"], outside["node"]), ("warning", "E5"))
+
+    def test_territory_findings_point_to_the_territory_file(self) -> None:
+        _write_sgr(self.run, "alianza.json", _alliance())
+        territory = _territory()
+        territory["demandas"][0]["objetivos"] = ["OE9"]
+        _write_sgr(self.run, "territorio.json", territory)
+        found = next(f for f in _findings(self.run, "sgr") if f["code"] == "territorio-objetivo-desconocido")
+        self.assertEqual(found["file"], "artefactos/sgr/territorio.json")
+
+    def test_clean_data_adds_nothing(self) -> None:
+        self.write_both()
+        self.assertFalse([c for c in _codes(_findings(self.run, "sgr")) if c.startswith(("alianza-", "territorio-"))])
+
+    def test_missing_data_warns_only_past_gterritorio(self) -> None:
+        codes = _codes(_findings(self.run, "sgr"))
+        self.assertNotIn("alianza-datos-faltantes", codes)
+        (self.run / "artefactos" / "estado_propuesta.md").write_text(
+            "| Compuerta | Estado |\n|---|---|\n| GTerritorio | APROBADA |\n", encoding="utf-8")
+        warnings = _codes(_findings(self.run, "sgr"), "warning")
+        self.assertIn("alianza-datos-faltantes", warnings)
+        self.assertIn("territorio-datos-faltantes", warnings)
+
+    def test_hand_written_section_is_an_error(self) -> None:
+        self.write_both()
+        (self.sections / "27_demandas_territoriales.tex").write_text("\\section{Demandas}\nA mano.\n",
+                                                                      encoding="utf-8")
+        (self.sections / "29_idoneidad_trayectoria.tex").write_text("\\section{Idoneidad}\nTexto.\n",
+                                                                     encoding="utf-8")
+        errors = _codes(_findings(self.run, "sgr"), "error")
+        self.assertIn("territorio-anexo-manual", errors)
+        self.assertNotIn("alianza-anexo-manual", errors)
+
+    def test_section_older_than_its_data_is_an_error(self) -> None:
+        alliance_path, _ = self.write_both()
+        render = subprocess.run([sys.executable, str(REPO / "scripts" / "alianza_territorio_sgr.py"), "render",
+                                 str(self.run)], capture_output=True, text=True)
+        self.assertEqual(render.returncode, 0, render.stderr)
+        self.assertFalse([c for c in _codes(_findings(self.run, "sgr")) if "-anexo-" in c])
+        stamp = (self.sections / "28_matriz_responsabilidades.tex").stat().st_mtime
+        os.utime(alliance_path, (stamp + 10, stamp + 10))
+        found = [f for f in _findings(self.run, "sgr") if f["code"] == "alianza-anexo-desactualizado"]
+        self.assertEqual({f["file"].rsplit("/", 1)[-1] for f in found},
+                         {"26_identificacion.tex", "28_matriz_responsabilidades.tex"})
+
+    def test_final_sgr_run_requires_the_new_sections(self) -> None:
+        missing = [f["message"] for f in _findings_final(self.run, "sgr") if f["code"] == "sgr-anexo-faltante"]
+        for stem in ALLIANCE_STEMS:
+            self.assertTrue(any(stem in m for m in missing), stem)
 
 
 class KitCopy(unittest.TestCase):

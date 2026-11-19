@@ -315,6 +315,8 @@
           "notas": [],
           "familia": "demandas_territoriales",
           "evidencia": [
+            "27_demandas_territoriales",
+            "26_identificacion",
             "02_justificacion",
             "03_descripcion_problema",
             "19_alineacion_planes",
@@ -361,6 +363,8 @@
           "notas": [],
           "familia": "alcance_regional",
           "evidencia": [
+            "26_identificacion",
+            "27_demandas_territoriales",
             "21_poblacion",
             "19_alineacion_planes"
           ],
@@ -584,6 +588,7 @@
           ],
           "familia": "trayectoria",
           "evidencia": [
+            "29_idoneidad_trayectoria",
             "09_equipo_trabajo",
             "20_participantes"
           ],
@@ -645,6 +650,9 @@
           ],
           "familia": "alianza",
           "evidencia": [
+            "28_matriz_responsabilidades",
+            "26_identificacion",
+            "29_idoneidad_trayectoria",
             "20_participantes",
             "09_equipo_trabajo"
           ],
@@ -678,6 +686,8 @@
           "notas": [],
           "familia": "alianza",
           "evidencia": [
+            "26_identificacion",
+            "29_idoneidad_trayectoria",
             "20_participantes"
           ],
           "agentes": [
@@ -704,6 +714,8 @@
           "notas": [],
           "familia": "alianza",
           "evidencia": [
+            "28_matriz_responsabilidades",
+            "29_idoneidad_trayectoria",
             "20_participantes",
             "13_presupuesto"
           ],
@@ -741,6 +753,7 @@
           "notas": [],
           "familia": "gobernanza",
           "evidencia": [
+            "28_matriz_responsabilidades",
             "20_participantes",
             "09_equipo_trabajo",
             "12_consideraciones_eticas"
@@ -817,6 +830,7 @@
           "notas": [],
           "familia": "cofinanciacion",
           "evidencia": [
+            "28_matriz_responsabilidades",
             "13_presupuesto"
           ],
           "agentes": [

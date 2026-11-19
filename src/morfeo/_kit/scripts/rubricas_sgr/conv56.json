@@ -216,6 +216,8 @@
           ],
           "familia": "alcance_regional",
           "evidencia": [
+            "27_demandas_territoriales",
+            "26_identificacion",
             "21_poblacion",
             "19_alineacion_planes",
             "20_participantes"
@@ -352,6 +354,9 @@
           "notas": [],
           "familia": "alianza",
           "evidencia": [
+            "28_matriz_responsabilidades",
+            "29_idoneidad_trayectoria",
+            "26_identificacion",
             "09_equipo_trabajo",
             "20_participantes"
           ],
@@ -492,6 +497,7 @@
           ],
           "familia": "cofinanciacion",
           "evidencia": [
+            "28_matriz_responsabilidades",
             "13_presupuesto"
           ],
           "agentes": [

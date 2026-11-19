@@ -436,7 +436,9 @@ certificado correspondiente.
 ## Anexos MGA (Fase 6.47, solo flujo SGR)
 
 Cada anexo es un archivo de `redaccion/sections/` que `main.tex` incluye después
-de §18 y antes de la bibliografía. Los redacta `redactor`.
+de §18 y antes de la bibliografía. Los redacta `redactor`, salvo los que se
+generan desde datos: A23 (`cadena_valor.json`) y A26 a A28 (`alianza.json` y
+`territorio.json`).
 Las tablas usan `xltabular`; la prosa sigue `estilo-natural-es` con los
 ajustes de la skill `estilo-sgr`.
 
@@ -614,6 +616,138 @@ fila del propósito usa el indicador de resultado de §11.
 * Extensión: solo la matriz.
 * Tabla: `Nivel | Descripción | Indicadores | Fuentes de verificación |
   Supuestos`.
+
+### SGR A26
+
+`26_identificacion.tex`, «Identificación del proyecto» (Anexo 2, cap. 1). Ficha
+de la alianza y del territorio: entidades con su tipo y su rol, departamentos y
+municipios de ejecución, demandas territoriales con su código y grupos de
+investigación. Fuente: `artefactos/sgr/alianza.json` y
+`artefactos/sgr/territorio.json` (unidad `fase1b_sgr`, compuerta
+`GTerritorio`). La sección la escribe
+`python3 scripts/alianza_territorio_sgr.py render <RUN_ROOT>` y lleva la
+cabecera `% GENERADO`; los datos se corrigen en los JSON, nunca en el `.tex`.
+El título del proyecto sigue en `redaccion/datos_proyecto.tex`
+(`sgr-titulo-no-derivado`). Con `artefactos/estructura_tdr.json`, la sección
+abre el capítulo cuyo título textual es «IDENTIFICACIÓN DEL PROYECTO».
+
+**Redacción.** (Anexo 2, cap. 1.)
+
+* Apertura: la justificación del desafío y de las sublíneas, cuando el TdR la
+  pide, va fuera de las tablas: «La propuesta se enmarca en el Desafío <n>,
+  «<nombre>», porque…», «Se abordarán las sublíneas <x.y> <nombre>…» o «El
+  proyecto atenderá una demanda territorial por cada uno de los <N>
+  departamentos de ejecución».
+* Favorecer: el nombre oficial de cada entidad y de cada grupo, idéntico en la
+  matriz, la idoneidad y las cartas (lista blanca); un solo tipo por entidad;
+  en la tabla de grupos, la contribución de las líneas a las demandas.
+* Evitar: adjetivos de adorno o fines en el nombre («integral», «para mejorar
+  la calidad de vida»), porque el nombre deriva del objetivo general (Manual
+  MGA 2015, tabla 12, p. 80); una entidad con dos tipos, porque la plantilla
+  admite una sola categoría; la primera persona o el lenguaje de portafolio
+  («nuestra universidad»); la contribución del grupo redactada como
+  trayectoria, que va en el capítulo 27.
+* Tiempo: presente en la ficha; futuro para lo que el proyecto atenderá.
+* Extensión: tablas generadas; la prosa del desafío, en párrafos cortos de
+  unas 50 palabras.
+* Tablas: `Entidad | NIT | Tipo de entidad y rol en la alianza |
+  Departamento`; `Departamento | Municipios`; `Código | Demanda territorial |
+  Departamento`; `Nombre del grupo | Entidad a la que pertenece | Código
+  GrupLAC y clasificación | Líneas de investigación`.
+
+### SGR A27
+
+`27_demandas_territoriales.tex`, «Articulación del proyecto con las demandas
+territoriales» y «Configuración regional» (Anexo 2 Conv 54, caps. 8 y 8.1).
+Fuente: `demandas` y `configuracion_regional` de
+`artefactos/sgr/territorio.json`. `insumos-observador` copia el texto de cada
+demanda literal del TdR (Anexo 4) con su código, departamento y fuente;
+`investigador` la vincula con causas del árbol de problemas y objetivos
+específicos, y con actividades y productos cuando existe la cadena de valor
+(`fase4_sgr`), y redacta en el campo `articulacion` la contribución del
+proyecto. La tabla la escribe `scripts/alianza_territorio_sgr.py render`; la
+prosa vive dentro del JSON y se corrige allí.
+
+**Redacción.** (Anexo 2 Conv 54, cap. 8.)
+
+* Apertura de celda: la demanda va literal entre comillas latinas, con su
+  código y su departamento; la articulación empieza por el objetivo o el
+  producto: «El OE<n> aporta <producto con unidad> a <actor>, con
+  <indicador>…» o «Mediante la actividad <n.n.n>, el proyecto entrega…».
+* Favorecer: un texto de articulación propio por demanda, con el indicador del
+  producto; en 8.1, la pertinencia de cada actor frente a un objetivo o una
+  demanda concreta.
+* Evitar: parafrasear la demanda, porque la rúbrica 2.1 coteja el texto del
+  TdR; una contribución general sin indicador («contribuirá
+  significativamente», «impactará positivamente»), porque la rúbrica le da 3
+  de 7 puntos; el mismo texto copiado para cada departamento; declarar la
+  pertinencia («es pertinente», «de gran importancia») en vez de mostrarla.
+* Tiempo: futuro para la contribución; presente para la pertinencia.
+* Extensión: prosa mínima; cada articulación, de una a tres oraciones.
+* Tablas: `Demanda territorial | Descripción | Articulación y contribución del
+  proyecto`; `Departamento | Actor | Pertinencia frente a los objetivos y las
+  demandas territoriales`.
+
+### SGR A28
+
+`28_matriz_responsabilidades.tex`, «Matriz de responsabilidades de las
+entidades participantes que conforman la alianza» (Anexo 2, cap. 10.1) y el
+modelo de gobernanza del Anexo 1. Fuente: `entidades` y `gobernanza` de
+`artefactos/sgr/alianza.json`. La escribe
+`scripts/alianza_territorio_sgr.py render`; con
+`artefactos/estructura_tdr.json` entra como subsección del capítulo «ANÁLISIS
+DE PARTICIPANTES», después de `20_participantes`, que conserva la matriz de
+posición, interés e influencia.
+
+**Redacción.** (Anexo 2, cap. 10.1; Anexo 1.)
+
+* Apertura: ninguna; la matriz y la tabla de gobernanza son el contenido.
+* Favorecer: las posiciones de la MGA (Cooperante, Beneficiario, Oponente,
+  Perjudicado); responsabilidades en infinitivo («Formular y ejecutar el
+  proyecto») con los códigos de actividad de la cadena de valor; aportes en
+  especie y en efectivo iguales a los del Anexo 3; una gobernanza con
+  instancia, periodicidad y responsable.
+* Evitar: responsabilidades genéricas («apoyar», «acompañar») sin actividad
+  del cronograma; una entidad cooperante y beneficiaria a la vez, que la
+  plantilla prohíbe; una gobernanza «de manera articulada» o «trabajo
+  conjunto» sin decir quién decide ni cada cuánto, porque la rúbrica 4.1 lo
+  pide.
+* Tiempo: infinitivo en las responsabilidades; presente en la gobernanza.
+* Extensión: solo las tablas.
+* Tablas: `Entidad | Tipo de aliado | Posición | Rol | Responsabilidades u
+  obligaciones | Aportes (especie / efectivo)`; `Componente | Descripción`
+  (toma de decisiones, instancias, propiedad intelectual y seguimiento).
+
+### SGR A29
+
+`29_idoneidad_trayectoria.tex`, «Idoneidad y trayectoria de la entidad
+proponente y demás participantes» (Anexo 2, cap. 27). La redacta `redactor` en
+la fase de anexos SGR a partir de `artefactos/sgr/alianza.json` (rol,
+actividades, aportes, grupos y `trayectoria`) y de las cartas aval; no la
+genera un script. Cada proyecto de trayectoria se acredita una sola vez,
+aunque lo liste más de una entidad (rúbrica 3.1, nota ii); los conteos los da
+`python3 scripts/alianza_territorio_sgr.py datos <RUN_ROOT>`.
+
+**Redacción.** (Anexo 2, cap. 27.)
+
+* Apertura: un bloque por entidad, en tercera persona: «<Entidad> aporta al
+  proyecto <aporte> en las actividades <n.n.n>…».
+* Favorecer: el orden nombre y tipo, aporte (rol, actividades,
+  contrapartida), trayectoria pertinente con código o BPIN, y capacidades con
+  evidencia: «El grupo <nombre>, categoría <A1> en la convocatoria <n>, …»,
+  «Desde <año>, <entidad> ha ejecutado N proyectos financiados por el SGR,
+  entre ellos…».
+* Evitar: el texto institucional pegado en primera persona («nuestra
+  universidad», «hemos ejecutado»), que en la referencia concentra casi toda
+  la primera persona del documento; el lenguaje de folleto («líder»,
+  «referente nacional», «de talla mundial», «reconocido» sin la entidad que
+  reconoce ni la categoría), porque la idoneidad se prueba con proyectos y
+  categorías; historias institucionales sin relación con las actividades; el
+  mismo proyecto acreditado por dos integrantes.
+* Tiempo: presente para las capacidades; pretérito para la trayectoria;
+  futuro para el aporte al proyecto.
+* Extensión: de 300 a 600 palabras por entidad; la referencia mide 10.681
+  palabras en total, el capítulo más largo, y conviene no imitarla.
 
 ---
 

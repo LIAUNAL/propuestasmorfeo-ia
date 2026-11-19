@@ -65,6 +65,7 @@
     "requirements.txt",
     "scripts/agent-models.json",
     "scripts/apa.csl",
+    "scripts/alianza_territorio_sgr.py",
     "scripts/arbol_objetivos.py",
     "scripts/build_manuscript_graph.py",
     "scripts/cadena_valor_sgr.py",

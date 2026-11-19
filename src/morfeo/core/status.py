@@ -40,6 +40,11 @@ SECTION_TITLES = {
     "23_cadena_valor": "§23 Cadena de valor",
     "24_riesgos": "§24 Análisis de riesgos",
     "25_marco_logico": "§25 Matriz de marco lógico",
+    # Alianza y territorio del flujo SGR (26 a 28 generados desde datos; 29 lo redacta el redactor).
+    "26_identificacion": "§26 Identificación del proyecto",
+    "27_demandas_territoriales": "§27 Demandas territoriales y configuración regional",
+    "28_matriz_responsabilidades": "§28 Matriz de responsabilidades y gobernanza",
+    "29_idoneidad_trayectoria": "§29 Idoneidad y trayectoria",
 }
 
 VALID_FLUJOS = ("base", "sgr")

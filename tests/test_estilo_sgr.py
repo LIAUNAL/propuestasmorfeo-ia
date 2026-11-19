@@ -100,10 +100,27 @@ class LexiconSchema(unittest.TestCase):
         self.assertEqual(verb[0]["aplica_a"], "nombres_actividad")
         self.assertIn("p. 81", verb[0]["fuente"])
 
+    def test_alliance_and_territory_sections_have_their_lexicon(self) -> None:
+        for stem in ("26_identificacion", "27_demandas_territoriales", "28_matriz_responsabilidades",
+                     "29_idoneidad_trayectoria"):
+            with self.subTest(stem=stem):
+                entries = self.lex["secciones"][stem]
+                self.assertIn("favorecida", {e["tipo"] for e in entries})
+                self.assertTrue(any(e["regex"] for e in entries))
+
+    def test_chapters_1_8_10_and_27_map_to_the_new_sections(self) -> None:
+        mapped = {item["capitulo"]: item["secciones"] for item in self.lex["mapa_capitulos"]}
+        self.assertEqual(mapped[1], ["26_identificacion"])
+        self.assertIn("27_demandas_territoriales", mapped[8])
+        self.assertIn("28_matriz_responsabilidades", mapped[10])
+        self.assertEqual(mapped[27], ["29_idoneidad_trayectoria"])
+        pending = {item["capitulo"] for item in self.lex["capitulos_sin_archivo"]}
+        self.assertFalse({1, 27} & pending)
+
     def test_whitelist_kinds(self) -> None:
         kinds = {item["tipo"] for item in self.lex["repeticion_obligatoria"]}
         for kind in ("titulo", "problema_central", "objetivo_general", "objetivos_especificos",
-                     "productos", "actividades", "demandas"):
+                     "productos", "actividades", "demandas", "entidades"):
             self.assertIn(kind, kinds)
 
 
@@ -244,6 +261,41 @@ class Findings(unittest.TestCase):
                                        "El presente proyecto forma talento.")
         self.assertIn("sgr-estilo-presente-proyecto", self.codes())
 
+    def test_idoneidad_brochure_language_is_flagged(self) -> None:
+        self.write("29_idoneidad_trayectoria", "La universidad es un referente nacional de talla mundial. "
+                                               "El grupo, reconocido por Minciencias en categoría A1, aporta datos.")
+        found = self.codes("29_idoneidad_trayectoria")
+        self.assertEqual(found["sgr-estilo-idoneidad-folleto"][0]["severity"], "advertencia")
+        self.assertNotIn("sgr-estilo-idoneidad-reconocido", found)
+        self.write("29_idoneidad_trayectoria", "El grupo es reconocido en la región.")
+        self.assertIn("sgr-estilo-idoneidad-reconocido", self.codes("29_idoneidad_trayectoria"))
+
+    def test_generic_responsibility_in_the_matrix_table(self) -> None:
+        self.write("28_matriz_responsabilidades", "\\begin{xltabular}{\\textwidth}{lX}\n"
+                                                  "Entidad & Responsabilidades \\\\\n"
+                                                  "Gobernación & Apoyar el proyecto \\\\\n"
+                                                  "\\end{xltabular}")
+        self.assertIn("sgr-estilo-matriz-responsabilidad-generica", self.codes("28_matriz_responsabilidades"))
+
+    def test_demand_texts_and_entity_names_are_whitelisted(self) -> None:
+        demand = ("Reducir la brecha fundamental en el acceso a servicios de salud mental de los jóvenes rurales "
+                  "del departamento de Caldas y de sus municipios ribereños")
+        entity = "Corporación Líder en Salud Mental Comunitaria"
+        sgr = self.root / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        self.write("27_demandas_territoriales", f"\\begin{{xltabular}}{{\\textwidth}}{{lX}}\n"
+                                                f"CAL-01 & {demand} \\\\\n\\end{{xltabular}}")
+        self.write("17_articulacion_comunidades", f"El proyecto atiende la demanda {demand}. {entity} coordina.")
+        found = self.codes()
+        self.assertIn("sgr-estilo-promocional", found)
+        (sgr / "territorio.json").write_text(json.dumps({"demandas": [{"codigo": "CAL-01", "texto": demand}]}),
+                                             encoding="utf-8")
+        (sgr / "alianza.json").write_text(json.dumps({"entidades": [{"id": "E1", "nombre": entity}]}),
+                                          encoding="utf-8")
+        found = self.codes()
+        for code in ("sgr-estilo-inflacion", "sgr-estilo-redundancia-entre-secciones", "sgr-estilo-promocional"):
+            self.assertNotIn(code, found)
+
     def test_missing_sections_folder_means_no_findings(self) -> None:
         shutil.rmtree(self.root / "redaccion")
         self.assertEqual(estilo.findings(self.root), [])
@@ -281,7 +333,7 @@ class GuideWritingPatterns(unittest.TestCase):
     """S2: every `### SGR` block gains a «Redacción» part the parser still returns."""
 
     EXPECTED = {"§2", "§3", "§6", "§7", "§10", "§11", "§13", "§14", "§15", "§17",
-                "A19", "A20", "A21", "A22", "A23", "A24", "A25"}
+                "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27", "A28", "A29"}
 
     def setUp(self) -> None:
         self.text = (REPO / GUIDE).read_text(encoding="utf-8")
