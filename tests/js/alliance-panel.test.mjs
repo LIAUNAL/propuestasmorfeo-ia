@@ -115,7 +115,7 @@ test('SGR: la pestaña «Alianza y territorio» aparece justo después de «Cade
   const i = labels.indexOf('Alianza y territorio');
   assert.ok(i > 0, 'la pestaña existe en SGR');
   assert.equal(labels[i - 1], 'Cadena de valor');
-  assert.equal(labels[i + 1], 'MGA resumido');
+  assert.equal(labels[i + 1], 'Presupuesto y cronograma');
   viewer.viewer('navigateTab', 'alianza');
   await flush();
   const active = viewer.document.querySelector('.tab-nav__btn.active');

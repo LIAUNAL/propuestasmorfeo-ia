@@ -510,6 +510,45 @@
     .al-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
     .al-table th { text-align: left; font-weight: 600; color: var(--text-dim); padding: 0.3rem; border-bottom: 1px solid var(--border-subtle); }
     .al-table td { padding: 0.35rem 0.3rem; vertical-align: top; border-bottom: 1px solid var(--border-subtle); overflow-wrap: anywhere; }
+    /* Presupuesto y cronograma SGR: tarjetas de control coloreadas por estado,
+       rubros por fuente, Gantt por código de actividad y calculadora de horas. */
+    .pg-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.6rem; }
+    .pg-card { padding: 0.55rem 0.6rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--border); font-size: 0.78rem; overflow-wrap: anywhere; }
+    .pg-card.is-ok { border-left-color: var(--ok); }
+    .pg-card.is-warn { border-left-color: var(--warn); }
+    .pg-card.is-bad { border-left-color: var(--bad); }
+    .pg-card__label { color: var(--text-dim); }
+    .pg-card__value { font-size: 1.05rem; font-weight: 600; color: var(--text); margin: 0.2rem 0; }
+    .pg-card__detail { color: var(--text-muted); font-size: 0.74rem; }
+    .pg-meter { position: relative; height: 6px; border-radius: 3px; background: var(--border-subtle); margin-top: 0.4rem; }
+    .pg-meter__fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--accent); }
+    .pg-meter__line { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text); }
+    .pg-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+    .pg-num { text-align: right; white-space: nowrap; }
+    .pg-table tfoot th { text-align: left; padding: 0.35rem 0.3rem; border-top: 2px solid var(--border); color: var(--text); }
+    .pg-legend { display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .pg-swatch { display: inline-block; width: 0.9rem; height: 0.6rem; border-radius: 2px; vertical-align: middle; margin-right: 0.25rem; border: 1px solid var(--border); }
+    .pg-gantt { border-collapse: collapse; font-size: 0.72rem; min-width: 100%; }
+    .pg-gantt th, .pg-gantt td { border: 1px solid var(--border-subtle); padding: 0.2rem; }
+    .pg-gantt .pg-month { min-width: 1.6rem; text-align: center; color: var(--text-dim); font-weight: 600; }
+    .pg-gantt .pg-gantt__label { text-align: left; min-width: 220px; font-weight: 400; color: var(--text); overflow-wrap: anywhere; }
+    .pg-gantt__oe th { background: var(--surface-2); text-align: left; font-weight: 600; color: var(--text); }
+    .pg-gantt__producto th { text-align: left; font-weight: 500; color: var(--text-muted); padding-left: 0.8rem; }
+    .pg-gantt__act .pg-gantt__label { padding-left: 1.4rem; }
+    .pg-gantt__act.is-critical .pg-gantt__label { font-weight: 600; }
+    .pg-gantt td { text-align: center; }
+    .pg-bar--preinversion, .pg-swatch--preinversion { background: var(--warn-dim); }
+    .pg-bar--inversion, .pg-swatch--inversion { background: var(--accent-dim); }
+    .pg-bar--operacion, .pg-swatch--operacion { background: var(--ok-dim); }
+    .pg-bar--otra { background: var(--border-subtle); }
+    .pg-bar.is-critical, .pg-swatch--critica { box-shadow: inset 0 -3px 0 var(--bad); }
+    .pg-hito, .pg-hito-mark { color: var(--bad); cursor: help; }
+    .pg-hitos { margin: 0.5rem 0 0 1rem; font-size: 0.76rem; color: var(--text-muted); }
+    .pg-calc { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.6rem; margin-top: 0.6rem; }
+    .pg-calc label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.76rem; color: var(--text-dim); }
+    .pg-calc input { font: inherit; font-size: 0.82rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.35rem 0.5rem; }
+    .pg-calc__result { margin-top: 0.7rem; font-size: 0.88rem; color: var(--text-muted); }
+    .pg-calc__result strong { font-size: 1.1rem; color: var(--text); }
     /* Juez final: puntaje estimado, criterios, alertas, acciones e historial. */
     .judge-intro { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
     .judge-feedback { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -2816,6 +2855,55 @@
             <p class="tree-message" id="alMessage" role="status"></p>
           </div>
         </aside>
+      </div>
+    </div>
+
+    <!-- TAB: PRESUPUESTO Y CRONOGRAMA (solo flujo SGR; el botón se agrega con el flujo) -->
+    <div id="pane-presupuesto" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Presupuesto y cronograma: rubros, fuentes, controles y Gantt</div>
+          <span class="panel__meta" id="pgRunMeta">—</span>
+        </div>
+        <p class="judge-intro">El presupuesto SGR como datos: cada ítem con su rubro de Minciencias, su insumo MGA, la entidad, la fuente (SGR, especie o efectivo) y las actividades de la cadena de valor que financia; los controles de la convocatoria (tope SGR, cofinanciación, transferencia de al menos el 1 %, movilidad de máximo el 2 %, Seguimiento y cotizaciones); la proyección anual; y el cronograma por código de actividad con su etapa, la ruta crítica y los hitos verificables.</p>
+      </div>
+      <div class="tree-layout">
+        <div class="panel tree-stage">
+          <div id="pgContent"></div>
+        </div>
+        <aside class="panel tree-review" id="pgReviewPanel">
+          <div class="panel__header">
+            <div class="panel__title">Revisión con el agente</div>
+            <span class="badge" id="pgStatusBadge">—</span>
+          </div>
+          <div class="tree-review__body">
+            <p class="vc-review-note" id="pgHashNote"></p>
+            <label class="tree-label" for="pgNoteInput">Ajuste solicitado</label>
+            <textarea id="pgNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar una segunda cotización al servidor GPU o mover el hito H2 al mes 9"></textarea>
+            <p class="tree-gate-note" id="pgGateNote"></p>
+            <div class="tree-actions">
+              <button class="btn btn--sm btn--primary" id="pgSendBtn" onclick="sendBudgetAdjust()">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="pgApproveBtn" onclick="approveBudget()">✅ Aprobar presupuesto y cronograma</button>
+              <button class="btn btn--sm" id="pgRetryBtn" onclick="retryBudgetPrompt()" style="display: none;">↻ Reintentar envío</button>
+            </div>
+            <p class="tree-message" id="pgMessage" role="status"></p>
+          </div>
+        </aside>
+      </div>
+      <div class="panel" id="pgCalcPanel" hidden>
+        <div class="panel__header">
+          <div class="panel__title">Calculadora de horas de contrapartida</div>
+          <span class="panel__meta">Se calcula en el navegador; no se guarda</span>
+        </div>
+        <p class="judge-intro">Valor del tiempo que una entidad aporta en especie: horas por semana × valor hora × meses × semanas por mes × factor prestacional.</p>
+        <div class="pg-calc">
+          <label for="pgCalcHoras">Horas por semana<input id="pgCalcHoras" type="number" min="0" step="any" inputmode="decimal" oninput="updateBudgetCalc()"></label>
+          <label for="pgCalcValorHora">Valor hora (COP)<input id="pgCalcValorHora" type="number" min="0" step="any" inputmode="decimal" oninput="updateBudgetCalc()"></label>
+          <label for="pgCalcMeses">Meses<input id="pgCalcMeses" type="number" min="0" step="any" inputmode="decimal" oninput="updateBudgetCalc()"></label>
+          <label for="pgCalcSemanas">Semanas por mes<input id="pgCalcSemanas" type="number" min="0" step="any" value="4" inputmode="decimal" oninput="updateBudgetCalc()"></label>
+          <label for="pgCalcFactor">Factor prestacional<input id="pgCalcFactor" type="number" min="0" step="any" value="1" inputmode="decimal" oninput="updateBudgetCalc()"></label>
+        </div>
+        <p class="pg-calc__result" aria-live="polite">Valor de la contrapartida: <strong id="pgCalcResult">—</strong></p>
       </div>
     </div>
 
@@ -5833,6 +5921,485 @@
       if (AL_STATE.pendingPrompt) await deliverAlliancePrompt(AL_STATE.pendingPrompt);
     }
 
+    // ── Presupuesto y cronograma SGR ────────────────────────────────────────
+    // Lee /api/budget (artefactos/sgr/presupuesto.json, hitos.json, los meses de
+    // la cadena de valor, el resumen de scripts/presupuesto_sgr.py y la
+    // proyección y los hallazgos de scripts/cronograma_sgr.py). Solo existe en el
+    // flujo SGR: el botón se agrega después de «Alianza y territorio» y, en el
+    // flujo base, la ruta directa avisa. La calculadora de horas es local.
+    const PG_STATE = { data: null, sig: null, timer: null, pendingPrompt: null, vista: 'rubros' };
+    const PG_RUBROS = {
+      talento_humano: 'Talento humano',
+      equipos_software: 'Equipos y software',
+      capacitacion_eventos: 'Capacitación y eventos',
+      servicios_tecnologicos_pruebas: 'Servicios tecnológicos y pruebas',
+      materiales_insumos_documentacion: 'Materiales, insumos y documentación',
+      proteccion_conocimiento_divulgacion: 'Protección del conocimiento y divulgación',
+      gastos_viaje: 'Gastos de viaje',
+      infraestructura: 'Infraestructura',
+      administrativos: 'Administrativos',
+      seguimiento: 'Seguimiento',
+      otros: 'Otros',
+    };
+    const PG_INSUMOS = {
+      mano_obra_calificada: 'Mano de obra calificada',
+      mano_obra_no_calificada: 'Mano de obra no calificada',
+      materiales: 'Materiales',
+      servicios_domiciliarios: 'Servicios domiciliarios',
+      terrenos: 'Terrenos',
+      edificios: 'Edificios',
+      maquinaria_equipo: 'Maquinaria y equipo',
+      transporte: 'Transporte',
+      alojamiento_comidas: 'Alojamiento y comidas',
+      servicios_empresas: 'Servicios prestados a las empresas',
+      servicios_comunitarios: 'Servicios comunitarios, sociales y personales',
+    };
+    const PG_FUENTES = { sgr: 'SGR', especie: 'Especie', efectivo: 'Efectivo' };
+    const PG_ETAPAS = [['preinversion', 'Preinversión'], ['inversion', 'Inversión'], ['operacion', 'Operación']];
+    const PG_SOURCES = ['sgr', 'especie', 'efectivo'];
+
+    function pgLabel(map, key) {
+      const k = String(key ?? '');
+      return vcText(map[k] || k);
+    }
+
+    function pgPct(v) {
+      const n = vcNumber(v);
+      return n === null ? '—' : escapeHtml(`${n.toLocaleString('es-CO', { maximumFractionDigits: 2 })} %`);
+    }
+
+    function pgSum(row) {
+      return PG_SOURCES.reduce((s, k) => s + (vcNumber(row && row[k]) || 0), 0);
+    }
+
+    // Valor de la contrapartida en tiempo: horas/semana × valor hora × meses ×
+    // semanas por mes × factor. Cualquier dato vacío o negativo da null.
+    function budgetCalc(horas, valorHora, meses, semanas, factor) {
+      const vals = [horas, valorHora, meses, semanas, factor].map(vcNumber);
+      if (vals.some(v => v === null || v < 0)) return null;
+      return vals.reduce((a, b) => a * b, 1);
+    }
+
+    function updateBudgetCalc() {
+      const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+      const total = budgetCalc(val('pgCalcHoras'), val('pgCalcValorHora'), val('pgCalcMeses'), val('pgCalcSemanas'), val('pgCalcFactor'));
+      const out = document.getElementById('pgCalcResult');
+      if (out) out.textContent = total === null ? '—' : `$ ${total.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`;
+    }
+
+    // Valor de un ítem con la regla del contrato: talento → fórmula de horas;
+    // si no, cantidad × valor unitario.
+    function pgItemValue(item, p) {
+      const direct = vcNumber(item.valor);
+      if (direct !== null) return direct;
+      const t = item.talento && typeof item.talento === 'object' ? item.talento : null;
+      if (t) {
+        const semanas = vcNumber(p && p.semanas_por_mes);
+        const factor = vcNumber(p && p.factor_prestacional);
+        return budgetCalc(t.horas_semana, t.valor_hora, t.meses, semanas === null ? 4 : semanas, factor === null ? 1 : factor);
+      }
+      const c = vcNumber(item.cantidad), u = vcNumber(item.valor_unitario);
+      return c === null || u === null ? null : c * u;
+    }
+
+    function pgMessage(text, tone) {
+      const el = document.getElementById('pgMessage');
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = `tree-message${tone ? ' is-' + tone : ''}`;
+    }
+
+    function syncBudgetTab() {
+      const nav = document.querySelector('.tabs-nav');
+      if (!nav) return;
+      let btn = document.getElementById('budgetTabBtn');
+      if (!isSgrFlujo()) {
+        if (btn) btn.remove();
+        return;
+      }
+      if (btn) return;
+      btn = document.createElement('button');
+      btn.id = 'budgetTabBtn';
+      btn.className = `tab-nav__btn${activeTab === 'presupuesto' ? ' active' : ''}`;
+      btn.setAttribute('onclick', "navigateTab('presupuesto')");
+      btn.textContent = 'Presupuesto y cronograma';
+      const anchor = document.getElementById('allianceTabBtn') || document.getElementById('valueChainTabBtn')
+        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+      if (anchor) anchor.after(btn);
+      else nav.appendChild(btn);
+    }
+
+    async function loadBudget() {
+      let data = null;
+      try {
+        const res = await fetch('/api/budget', { cache: 'no-store' });
+        data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      } catch (err) {
+        PG_STATE.data = null;
+        PG_STATE.sig = null;
+        const el = document.getElementById('pgContent');
+        if (el) el.innerHTML = `<div class="tree-empty"><p>No se pudo leer el presupuesto y el cronograma de la corrida activa.</p><small>${escapeHtml(err.message || String(err))}</small></div>`;
+        return;
+      }
+      PG_STATE.data = data;
+      const sig = JSON.stringify(data);
+      if (sig !== PG_STATE.sig) {
+        PG_STATE.sig = sig;
+        renderBudget();
+      }
+    }
+
+    function startBudgetPolling() {
+      loadBudget();
+      if (PG_STATE.timer) return;
+      PG_STATE.timer = setInterval(() => {
+        if (activeTab === 'presupuesto' && !document.hidden) loadBudget();
+      }, 5000);
+    }
+
+    function stopBudgetPolling() {
+      if (PG_STATE.timer) clearInterval(PG_STATE.timer);
+      PG_STATE.timer = null;
+    }
+
+    // Barra con la línea del umbral (1 % de transferencia, 2 % de movilidad).
+    function pgMeter(value, limit) {
+      const v = vcNumber(value);
+      if (v === null) return '';
+      const scale = Math.max(limit * 2, v * 1.25);
+      const fill = Math.min(100, (Math.max(v, 0) / scale) * 100);
+      const line = (limit / scale) * 100;
+      return `<div class="pg-meter" aria-hidden="true"><span class="pg-meter__fill" style="width: ${fill.toFixed(1)}%"></span><span class="pg-meter__line" style="left: ${line.toFixed(1)}%" title="${escapeHtml(`Línea del ${String(limit)} %`)}"></span></div>`;
+    }
+
+    function pgCard(key, label, value, detail, tone, extra = '') {
+      return `<div class="pg-card is-${tone}" data-card="${key}">
+          <div class="pg-card__label">${escapeHtml(label)}</div>
+          <div class="pg-card__value">${value}</div>
+          ${detail ? `<div class="pg-card__detail">${detail}</div>` : ''}${extra}
+        </div>`;
+    }
+
+    function pgCardsHtml(p, r) {
+      if (!r) return '<p class="judge-empty">Sin resumen: hace falta <code>scripts/presupuesto_sgr.py</code> para calcular los totales y los porcentajes.</p>';
+      const total = vcNumber(r.total_sgr);
+      // El resumen trae el tope efectivo (el declarado o el de la rúbrica).
+      const tope = vcNumber(r.tope_sgr) ?? vcNumber(p && p.tope_sgr);
+      const transf = vcNumber(r.transferencia_pct);
+      const mov = vcNumber(r.movilidad_pct);
+      const seg = r.seguimiento;
+      const segOk = seg === true || (vcNumber(seg) || 0) > 0;
+      const faltan = Array.isArray(r.cotizaciones_faltantes) ? r.cotizaciones_faltantes.length : vcNumber(r.cotizaciones_faltantes);
+      return [
+        pgCard('total-sgr', 'Total SGR', vcMoney(r.total_sgr), tope === null ? 'Sin tope declarado' : `Tope ${vcMoney(tope)}`,
+          total === null || tope === null ? 'neutral' : total > tope ? 'bad' : 'ok'),
+        pgCard('especie', 'Contrapartida en especie', vcMoney(r.total_especie), '', 'neutral'),
+        pgCard('efectivo', 'Contrapartida en efectivo', vcMoney(r.total_efectivo), '', 'neutral'),
+        pgCard('cofinanciacion', 'Cofinanciación', pgPct(r.cofinanciacion_pct), `Total del proyecto ${vcMoney(r.total)}`, 'neutral'),
+        pgCard('transferencia', 'Transferencia', pgPct(transf), 'Mínimo 1 % del total SGR',
+          transf === null ? 'neutral' : transf >= 1 ? 'ok' : 'warn', pgMeter(transf, 1)),
+        pgCard('movilidad', 'Movilidad', pgPct(mov), 'Máximo 2 % del total SGR',
+          mov === null ? 'neutral' : mov <= 2 ? 'ok' : 'warn', pgMeter(mov, 2)),
+        pgCard('seguimiento', 'Seguimiento', segOk ? 'Presente' : 'Falta',
+          vcNumber(seg) !== null ? vcMoney(seg) : 'Rubro obligatorio con recursos SGR', segOk ? 'ok' : 'bad'),
+        pgCard('cotizaciones', 'Cotizaciones faltantes', faltan === null ? '—' : escapeHtml(String(faltan)),
+          'Equipos y servicios tecnológicos: mínimo 2 cada uno', faltan === null ? 'neutral' : faltan > 0 ? 'warn' : 'ok'),
+      ].join('');
+    }
+
+    function pgOrderedKeys(rows, map) {
+      const keys = Object.keys(rows && typeof rows === 'object' ? rows : {});
+      if (!map) return keys;
+      const known = Object.keys(map).filter(k => keys.includes(k));
+      return known.concat(keys.filter(k => !known.includes(k)));
+    }
+
+    function pgSourceTable(rows, map, attr, head) {
+      const keys = pgOrderedKeys(rows, map);
+      if (!keys.length) return '<p class="judge-empty">Sin datos todavía.</p>';
+      const tot = { sgr: 0, especie: 0, efectivo: 0 };
+      const body = keys.map(k => {
+        const r = rows[k] && typeof rows[k] === 'object' ? rows[k] : {};
+        PG_SOURCES.forEach(f => { tot[f] += vcNumber(r[f]) || 0; });
+        const label = map ? pgLabel(map, k) : `<span class="vc-code">${escapeHtml(k)}</span>`;
+        return `<tr data-${attr}="${escapeHtml(k)}"><td>${label}</td>${PG_SOURCES.map(f => `<td class="pg-num">${vcMoney(r[f])}</td>`).join('')}<td class="pg-num"><strong>${vcMoney(pgSum(r))}</strong></td></tr>`;
+      }).join('');
+      return `<table class="al-table pg-table">
+          <thead><tr><th>${escapeHtml(head)}</th><th class="pg-num">SGR</th><th class="pg-num">Especie</th><th class="pg-num">Efectivo</th><th class="pg-num">Total</th></tr></thead>
+          <tbody>${body}</tbody>
+          <tfoot><tr><th>Total</th>${PG_SOURCES.map(f => `<th class="pg-num">${vcMoney(tot[f])}</th>`).join('')}<th class="pg-num">${vcMoney(pgSum(tot))}</th></tr></tfoot>
+        </table>`;
+    }
+
+    function pgVistaLabel() {
+      return PG_STATE.vista === 'mga' ? 'Ver rubros de Minciencias' : 'Ver insumos MGA';
+    }
+
+    function pgRubrosInner(r) {
+      if (!r) return '<p class="judge-empty">Sin resumen por rubro todavía.</p>';
+      return PG_STATE.vista === 'mga'
+        ? pgSourceTable(r.por_insumo, PG_INSUMOS, 'clave', 'Insumo MGA')
+        : pgSourceTable(r.por_rubro, PG_RUBROS, 'clave', 'Rubro (Minciencias)');
+    }
+
+    function toggleBudgetView() {
+      PG_STATE.vista = PG_STATE.vista === 'mga' ? 'rubros' : 'mga';
+      const wrap = document.getElementById('pgRubros');
+      if (wrap) {
+        wrap.dataset.vista = PG_STATE.vista;
+        wrap.innerHTML = pgRubrosInner(PG_STATE.data && PG_STATE.data.resumen);
+      }
+      const btn = document.getElementById('pgVistaBtn');
+      if (btn) btn.textContent = pgVistaLabel();
+    }
+
+    function pgItemsHtml(p) {
+      if (!p) return '<p class="judge-empty">Todavía no hay <code>artefactos/sgr/presupuesto.json</code>.</p>';
+      const items = vcList(p.items);
+      if (!items.length) return '<p class="judge-empty">El presupuesto no trae ítems.</p>';
+      return `<table class="al-table pg-table">
+          <thead><tr><th>Ítem</th><th>Rubro</th><th>Insumo MGA</th><th>Descripción</th><th>Entidad</th><th>Fuente</th><th>Actividades</th><th class="pg-num">Valor</th><th>Cotizaciones</th></tr></thead>
+          <tbody>${items.map(it => {
+            const t = it.talento && typeof it.talento === 'object' ? it.talento : null;
+            const detail = t
+              ? `${vcText(t.perfil)} · ${vcText(t.horas_semana)} h/semana × ${vcMoney(t.valor_hora)} × ${vcText(t.meses)} meses`
+              : `${vcText(it.cantidad)} × ${vcMoney(it.valor_unitario)}`;
+            return `<tr data-item="${escapeHtml(String(it.id ?? ''))}">
+              <td><span class="vc-code">${vcText(it.id)}</span></td>
+              <td>${pgLabel(PG_RUBROS, it.rubro)}</td>
+              <td>${pgLabel(PG_INSUMOS, it.insumo_mga)}</td>
+              <td>${vcText(it.descripcion)}<div class="al-meta">${detail}</div></td>
+              <td>${vcText(it.entidad)}</td>
+              <td>${pgLabel(PG_FUENTES, it.fuente)}</td>
+              <td>${alCodes(it.actividades)}</td>
+              <td class="pg-num">${vcMoney(pgItemValue(it, p))}</td>
+              <td data-cotizaciones>${vcText(it.cotizaciones)}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>`;
+    }
+
+    function pgProjectionHtml(proy) {
+      const anios = proy ? vcList(proy.anios) : [];
+      if (!anios.length) return '<p class="judge-empty">Sin proyección anual: la calcula <code>scripts/cronograma_sgr.py</code> con los meses y los costos de la cadena de valor.</p>';
+      return `<table class="al-table pg-table">
+          <thead><tr><th>Año</th><th class="pg-num">Valor</th><th class="pg-num">Porcentaje</th></tr></thead>
+          <tbody>${anios.map(a => `<tr data-anio="${escapeHtml(String(a.anio ?? ''))}"><td>Año ${vcText(a.anio)}</td><td class="pg-num">${vcMoney(a.valor)}</td><td class="pg-num">${pgPct(a.pct)}</td></tr>`).join('')}</tbody>
+        </table>`;
+    }
+
+    function pgMonthCount(d) {
+      let n = vcNumber(d.duracion_meses) || 0;
+      vcList(d.cadena_meses).forEach(a => { const f = vcNumber(a.mes_fin); if (f !== null && f > n) n = f; });
+      vcList(d.hitos).forEach(h => { const m = vcNumber(h.mes); if (m !== null && m > n) n = m; });
+      return Math.min(Math.max(Math.floor(n), 0), 120);
+    }
+
+    function pgHitoTitle(h) {
+      return `${h.codigo ?? ''} ${h.nombre ?? ''} · mes ${h.mes ?? '?'}${h.verificacion ? ` · Verificación: ${h.verificacion}` : ''}`;
+    }
+
+    function pgGanttHtml(d) {
+      const acts = vcList(d.cadena_meses);
+      if (!acts.length) return '<p class="judge-empty">Sin actividades: el Gantt se arma con la cadena de valor (<code>artefactos/sgr/cadena_valor.json</code>).</p>';
+      const n = pgMonthCount(d);
+      if (!n) return '<p class="judge-empty">Las actividades de la cadena de valor todavía no declaran meses de inicio y fin.</p>';
+      const hitos = vcList(d.hitos);
+      const months = Array.from({ length: n }, (_, i) => i + 1);
+      const marks = (list, cls) => list.map(h => `<span class="${cls}" data-hito="${escapeHtml(String(h.codigo ?? ''))}" title="${escapeHtml(pgHitoTitle(h))}">◆</span>`).join('');
+      const head = `<thead><tr><th class="pg-gantt__label">Actividad</th>${months.map(m => `<th class="pg-month">${escapeHtml(String(m))}</th>`).join('')}</tr></thead>`;
+      const hitoRow = hitos.length
+        ? `<tr class="pg-gantt__hitos"><th class="pg-gantt__label">Hitos</th>${months.map(m => `<td data-mes="${m}">${marks(hitos.filter(h => vcNumber(h.mes) === m), 'pg-hito')}</td>`).join('')}</tr>`
+        : '';
+      let rows = '';
+      let oe = null;
+      let prod = null;
+      acts.forEach(a => {
+        const oeKey = String(a.oe ?? '');
+        const prodKey = `${oeKey}|${a.producto ?? ''}`;
+        if (oeKey !== oe) {
+          oe = oeKey;
+          prod = null;
+          rows += `<tr class="pg-gantt__oe" data-oe="${escapeHtml(oeKey)}"><th colspan="${n + 1}">${vcText(a.oe)}${a.oe_texto ? ` · ${escapeHtml(String(a.oe_texto))}` : ''}</th></tr>`;
+        }
+        if (prodKey !== prod) {
+          prod = prodKey;
+          rows += `<tr class="pg-gantt__producto" data-producto="${escapeHtml(String(a.producto ?? ''))}"><th colspan="${n + 1}"><span class="vc-code">${vcText(a.producto)}</span> ${escapeHtml(String(a.producto_nombre || ''))}</th></tr>`;
+        }
+        const ini = vcNumber(a.mes_inicio);
+        const fin = vcNumber(a.mes_fin);
+        const etapa = PG_ETAPAS.some(([k]) => k === a.etapa) ? a.etapa : 'otra';
+        const crit = a.ruta_critica === true;
+        const own = hitos.filter(h => alStrings(h.actividades).includes(String(a.codigo)));
+        rows += `<tr class="pg-gantt__act${crit ? ' is-critical' : ''}" data-actividad="${escapeHtml(String(a.codigo ?? ''))}">
+            <th class="pg-gantt__label"><span class="vc-code">${vcText(a.codigo)}</span> ${vcText(a.nombre)}${crit ? ' <span class="badge badge--bad">ruta crítica</span>' : ''}</th>${months.map(m => {
+              const on = ini !== null && fin !== null && m >= ini && m <= fin;
+              return `<td data-mes="${m}"${on ? ` class="pg-bar pg-bar--${etapa}${crit ? ' is-critical' : ''}"` : ''}>${marks(own.filter(h => vcNumber(h.mes) === m), 'pg-hito-mark')}</td>`;
+            }).join('')}</tr>`;
+      });
+      const legend = `<div class="pg-legend">${PG_ETAPAS.map(([k, label]) => `<span><span class="pg-swatch pg-swatch--${k}"></span>${escapeHtml(label)}</span>`).join('')}<span><span class="pg-swatch pg-swatch--critica"></span>Ruta crítica</span><span><span class="pg-hito">◆</span> Hito</span></div>`;
+      const list = hitos.length
+        ? `<ul class="pg-hitos">${hitos.map(h => `<li><span class="vc-code">${vcText(h.codigo)}</span> ${vcText(h.nombre)} · mes ${vcText(h.mes)} · actividades ${alCodes(h.actividades)} · verificación: ${vcText(h.verificacion)}</li>`).join('')}</ul>`
+        : '<p class="judge-empty">Sin hitos todavía: el investigador los escribe en <code>artefactos/sgr/hitos.json</code> en la Fase 6.45.</p>';
+      return `${legend}<table class="pg-gantt">${head}<tbody>${hitoRow}${rows}</tbody></table>${list}`;
+    }
+
+    function pgFindingsHtml(hallazgos) {
+      const list = vcList(hallazgos);
+      if (!list.length) return '<p class="judge-empty">La revisión del presupuesto y el cronograma no reporta hallazgos.</p>';
+      return VC_SEVERITIES.map(([sev, label, tone, one]) => {
+        const items = list.filter(f => vcSeverity(f) === sev);
+        if (!items.length) return '';
+        return `<div class="judge-alerts__group" data-severidad="${sev}">
+          <h4><span class="badge badge--${tone}">${label}</span> ${escapeHtml(String(items.length))}</h4>
+          <ul>${items.map(f => `<li><span class="badge badge--${tone}">${one}</span><span>${escapeHtml(f.message || f.code || '')}</span><span class="tree-findings__node">${f.node ? `${escapeHtml(String(f.node))} · ` : ''}${escapeHtml(f.code || '')}</span></li>`).join('')}</ul>
+        </div>`;
+      }).join('');
+    }
+
+    function pgStatus(d) {
+      if (!d || d.flujo !== 'sgr' || !d.disponible) return ['Sin datos', ''];
+      if (d.aprobado) return ['Aprobado', 'ok'];
+      const rev = d.revision && typeof d.revision === 'object' ? d.revision : null;
+      if (rev && rev.aprobado && rev.hash !== d.hash) return ['Desactualizado', 'warn'];
+      return ['Por aprobar', 'info'];
+    }
+
+    function renderBudgetReview(d) {
+      const sgr = !!d && d.flujo === 'sgr';
+      const panel = document.getElementById('pgReviewPanel');
+      if (panel) panel.hidden = !sgr;
+      const calc = document.getElementById('pgCalcPanel');
+      if (calc) calc.hidden = !sgr;
+      const [label, tone] = pgStatus(d);
+      const badge = document.getElementById('pgStatusBadge');
+      if (badge) {
+        badge.textContent = label;
+        badge.className = `badge${tone ? ' badge--' + tone : ''}`;
+      }
+      const errors = sgr ? vcList(d.hallazgos).filter(f => vcSeverity(f) === 'error').length : 0;
+      const complete = sgr && !!d.disponible && !!d.presupuesto;
+      const approve = document.getElementById('pgApproveBtn');
+      if (approve) approve.disabled = !complete || !!d.aprobado || errors > 0;
+      const send = document.getElementById('pgSendBtn');
+      if (send) send.disabled = !sgr;
+      const gate = document.getElementById('pgGateNote');
+      if (gate) {
+        gate.textContent = errors ? `Corrige los ${String(errors)} hallazgos de error antes de aprobar.`
+          : sgr && d.disponible && !complete ? 'La aprobación necesita artefactos/sgr/presupuesto.json; los hitos son opcionales hasta la Fase 6.45.' : '';
+      }
+      const note = document.getElementById('pgHashNote');
+      if (note) {
+        const rev = d && d.revision && typeof d.revision === 'object' ? d.revision : null;
+        note.textContent = !sgr || !d.disponible ? ''
+          : d.aprobado ? `Aprobado el ${rev && rev.fecha ? String(rev.fecha).replace('T', ' ') : '—'} (versión ${String(d.hash)}). Si el presupuesto o los hitos cambian, la aprobación caduca.`
+          : label === 'Desactualizado' ? 'El presupuesto o los hitos cambiaron después de aprobarlos: revisa la versión nueva y vuelve a aprobarla.'
+          : `Versión ${String(d.hash)}. La aprobación (compuerta G6.4) queda atada a esta versión del presupuesto y los hitos.`;
+      }
+    }
+
+    function renderBudget() {
+      const d = PG_STATE.data;
+      const el = document.getElementById('pgContent');
+      if (!d || !el) return;
+      document.getElementById('pgRunMeta').textContent = `Corrida ${d.run || '—'}`;
+      renderBudgetReview(d);
+      const errores = Array.isArray(d.errores) ? d.errores.filter(Boolean).map(String) : [];
+      const errHtml = errores.length ? `<div class="judge-validation"><strong>⚠️ No se pudo leer todo lo del presupuesto y el cronograma</strong>
+        <ul>${errores.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div>` : '';
+      if (d.flujo !== 'sgr') {
+        el.innerHTML = `<div class="tree-empty">
+          <p>El presupuesto y el cronograma estructurados se usan solo en el flujo SGR.</p>
+          <small>Este proyecto sigue el flujo base de propuestas de investigación: el presupuesto (§13) y el cronograma (§14) se revisan en «Secciones».</small>
+        </div>`;
+        return;
+      }
+      const ganttBlock = `<h4 class="al-heading">Cronograma por código de actividad</h4><div class="al-scroll" id="pgGantt">${pgGanttHtml(d)}</div>`;
+      const findingsBlock = `<div class="tree-findings" id="pgFindings" aria-live="polite"><h4>Hallazgos del presupuesto y el cronograma</h4>${pgFindingsHtml(d.hallazgos)}</div>`;
+      if (!d.disponible) {
+        el.innerHTML = `${errHtml}<div class="tree-empty">
+          <p>Todavía no hay presupuesto para esta corrida.</p>
+          <p>Lo escribe el presupuestador en la Fase 6.4 (unidad <code>fase6_4</code>): registra cada ítem con su rubro de Minciencias, su insumo MGA, la entidad, la fuente (SGR, especie o efectivo) y las actividades de la cadena de valor en <code>artefactos/sgr/presupuesto.json</code>, y lo revisa con <code>python3 scripts/presupuesto_sgr.py check</code>. Los hitos del cronograma (<code>artefactos/sgr/hitos.json</code>) llegan en la Fase 6.45.</p>
+        </div>${vcList(d.cadena_meses).length ? ganttBlock : ''}${vcList(d.hallazgos).length ? findingsBlock : ''}`;
+        return;
+      }
+      const p = d.presupuesto && typeof d.presupuesto === 'object' ? d.presupuesto : null;
+      const r = d.resumen && typeof d.resumen === 'object' ? d.resumen : null;
+      const nItems = p ? vcList(p.items).length : 0;
+      el.innerHTML = `${errHtml}
+        <div class="vc-summary">
+          <span>Total del proyecto <strong>${r ? vcMoney(r.total) : '—'}</strong></span>
+          <span>${escapeHtml(String(nItems))} ítems · ${escapeHtml(String(vcList(d.hitos).length))} hitos</span>
+          <span>Duración: ${vcNumber(d.duracion_meses) !== null ? `${escapeHtml(String(d.duracion_meses))} meses` : '—'}</span>
+        </div>
+        <h4 class="al-heading">Resumen y controles de la convocatoria</h4>
+        <div class="pg-cards" id="pgCards">${pgCardsHtml(p, r)}</div>
+        <div class="pg-heading-row">
+          <h4 class="al-heading">Presupuesto por fuente</h4>
+          <button class="btn btn--sm" type="button" id="pgVistaBtn" onclick="toggleBudgetView()">${escapeHtml(pgVistaLabel())}</button>
+        </div>
+        <div class="al-scroll" id="pgRubros" data-vista="${escapeHtml(PG_STATE.vista)}">${pgRubrosInner(r)}</div>
+        <h4 class="al-heading">Aportes por entidad</h4>
+        <div class="al-scroll" id="pgEntidades">${r ? pgSourceTable(r.por_entidad, null, 'entidad', 'Entidad') : '<p class="judge-empty">Sin resumen por entidad todavía.</p>'}</div>
+        <h4 class="al-heading">Ítems del presupuesto</h4>
+        <div class="al-scroll" id="pgItems">${pgItemsHtml(p)}</div>
+        <h4 class="al-heading">Proyección financiera anual</h4>
+        <div class="al-scroll" id="pgProyeccion">${pgProjectionHtml(d.proyeccion)}</div>
+        ${ganttBlock}
+        ${findingsBlock}`;
+    }
+
+    async function approveBudget() {
+      const d = PG_STATE.data;
+      if (!d || !d.hash) return;
+      let result;
+      try {
+        result = await postJudge('/api/budget/approve', { hash: d.hash });
+      } catch (err) {
+        pgMessage(`No se pudo aprobar: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { pgMessage(result.error || 'No se pudo aprobar el presupuesto y el cronograma.', 'error'); return; }
+      pgMessage('Presupuesto y cronograma aprobados. Si el presupuesto o los hitos cambian, la aprobación caduca.', 'ok');
+      await loadBudget();
+    }
+
+    async function sendBudgetAdjust() {
+      const input = document.getElementById('pgNoteInput');
+      const nota = input ? input.value.trim() : '';
+      if (!nota) { pgMessage('Escribe qué cambiar en el presupuesto o el cronograma antes de enviarlo al agente.', 'error'); return; }
+      let result;
+      try {
+        result = await postJudge('/api/budget/adjust', { nota });
+      } catch (err) {
+        pgMessage(`No se pudo preparar el ajuste: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { pgMessage(result.error || 'No se pudo preparar el ajuste.', 'error'); return; }
+      if (await deliverBudgetPrompt(result.prompt) && input) input.value = '';
+    }
+
+    async function deliverBudgetPrompt(prompt) {
+      const retry = document.getElementById('pgRetryBtn');
+      PG_STATE.pendingPrompt = prompt;
+      pgMessage('Ajuste: enviando al agente…');
+      const delivered = await sendTerminalPrompt(prompt);
+      if (delivered === false) {
+        if (retry) retry.style.display = '';
+        pgMessage(`El ajuste no llegó al agente: la terminal no conectó en ${Math.round(TERMINAL_READY_TIMEOUT_MS / 1000)} s. Abre el asistente y pulsa «Reintentar envío».`, 'error');
+        return false;
+      }
+      PG_STATE.pendingPrompt = null;
+      if (retry) retry.style.display = 'none';
+      pgMessage('El ajuste se envió al agente. Cuando corra presupuesto_sgr.py check y cronograma_sgr.py check, la versión nueva aparece aquí.', 'ok');
+      return true;
+    }
+
+    async function retryBudgetPrompt() {
+      if (PG_STATE.pendingPrompt) await deliverBudgetPrompt(PG_STATE.pendingPrompt);
+    }
+
     // ── Estilo SGR en Secciones ─────────────────────────────────────────────
     // Columna solo del flujo SGR con los hallazgos de scripts/estilo_sgr.py por
     // sección (/api/style-sgr); en el flujo base la tabla queda como antes.
@@ -5998,6 +6565,9 @@
 
       if (tabId === 'alianza') startAlliancePolling();
       else stopAlliancePolling();
+
+      if (tabId === 'presupuesto') startBudgetPolling();
+      else stopBudgetPolling();
 
       if (tabId === 'sections' && isSgrFlujo()) loadStyleSgr();
 
@@ -6455,6 +7025,7 @@
         renderFlujoBadge(data);
         syncValueChainTab();
         syncAllianceTab();
+        syncBudgetTab();
         if (data.active_run) {
           const footerRun = document.getElementById('terminalFooterRun');
           if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;
@@ -10548,7 +11119,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');

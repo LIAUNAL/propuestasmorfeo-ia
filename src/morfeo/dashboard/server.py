@@ -25,6 +25,7 @@ from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedb
 from ..core.style_sgr import load_style
 from ..core.value_chain import approve as approve_value_chain, build_adjust_prompt, load_value_chain
 from ..core.alliance import approve as approve_alliance, build_adjust_prompt as build_alliance_prompt, load_alliance
+from ..core.budget import approve as approve_budget, build_adjust_prompt as build_budget_prompt, load_budget
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -165,6 +166,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_value_chain()
         elif path == "/api/alliance":
             self.serve_alliance()
+        elif path == "/api/budget":
+            self.serve_budget()
         elif path == "/api/style-sgr":
             self.serve_style_sgr()
         else:
@@ -200,6 +203,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_alliance_approve()
         elif path == "/api/alliance/adjust":
             self.handle_alliance_adjust()
+        elif path == "/api/budget/approve":
+            self.handle_budget_approve()
+        elif path == "/api/budget/adjust":
+            self.handle_budget_adjust()
         else:
             self.send_error(404, "Not Found")
 
@@ -754,6 +761,42 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             return
         try:
             prompt = build_alliance_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    # Presupuesto y cronograma (solo flujo SGR), con las convenciones de la alianza.
+    def serve_budget(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_budget(run_dir)})
+
+    def handle_budget_approve(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = approve_budget(run_dir, str(payload.get("hash") or "") or None)
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_budget_adjust(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            prompt = build_budget_prompt(run_dir, payload.get("nota"))
         except ValueError as err:
             self._send_json(400, {"ok": False, "error": str(err)})
             return
