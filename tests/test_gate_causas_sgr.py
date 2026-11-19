@@ -67,6 +67,27 @@ class GateStatus(unittest.TestCase):
         self.assertEqual(status["G1a"], "PASS")
         self.assertEqual(status["GCausas"], "PENDING")
 
+    def test_approving_g4_does_not_approve_the_value_chain_gate(self) -> None:
+        status = self.status("| G4 | APROBADA |\n")
+        self.assertEqual(status["G4"], "PASS")
+        self.assertEqual(status["G4.cv"], "PENDING")
+
+    def test_the_value_chain_gate_does_not_approve_g4(self) -> None:
+        status = self.status("| G4.cv | APROBADA |\n")
+        self.assertEqual(status["G4.cv"], "PASS")
+        self.assertEqual(status["G4"], "PENDING")
+
+    def test_a_gate_with_a_suffix_is_not_its_prefix_gate(self) -> None:
+        status = self.status("| G6.4 | APROBADA |\n| G1a | APROBADA |\n")
+        self.assertEqual(status["G6.4"], "PASS")
+        self.assertEqual(status["G1a"], "PASS")
+        self.assertEqual(status["G1"], "PENDING")
+
+    def test_a_gate_followed_by_a_label_still_matches(self) -> None:
+        status = self.status("| G4 (objetivos) | APROBADA |\n")
+        self.assertEqual(status["G4"], "PASS")
+        self.assertEqual(status["G4.cv"], "PENDING")
+
     def test_the_causes_gate_is_read_on_its_own(self) -> None:
         status = self.status("| G1a | APROBADA |\n| GCausas | APROBADA |\n")
         self.assertEqual(status["GCausas"], "PASS")
@@ -150,13 +171,13 @@ class InFlightRuns(unittest.TestCase):
         (self.run / "redaccion" / "sections").mkdir(parents=True)
         (self.repo / "proposals" / ".current-run").write_text("2026-01-demo\n")
 
-    def progress(self, next_step: str, estado_rows: str = "") -> dict:
+    def progress(self, next_step: str, estado_rows: str = "", unit: str = "fase1a_sgr") -> dict:
         from morfeo.core.status import get_project_status
 
         (self.run / "artefactos" / "estado_propuesta.md").write_text(
             "## Control de ejecución\n\n- mode: stepped\n"
             f"- next_step: {next_step}\n- last_completed: fase1a\n- intake_complete: true\n\n{estado_rows}")
-        return get_project_status(self.repo, force_refresh=True)["unit_progress"]["fase1a_sgr"]
+        return get_project_status(self.repo, force_refresh=True)["unit_progress"][unit]
 
     def test_run_already_past_g1a_skips_the_gate(self) -> None:
         self.assertEqual(self.progress("fase1b", "| G1a | APROBADA |\n")["state"], "skipped")
@@ -169,6 +190,14 @@ class InFlightRuns(unittest.TestCase):
         arboles.mkdir(parents=True)
         (arboles / "causas_directas.md").write_text("| causa |")
         self.assertEqual(self.progress("fase1b", "| G1a | APROBADA |\n| GCausas | APROBADA |\n")["state"], "verified")
+
+    def test_run_already_past_g4_skips_the_value_chain_gate(self) -> None:
+        state = self.progress("fase5", "| G4 | APROBADA |\n", unit="fase4_sgr")["state"]
+        self.assertEqual(state, "skipped")
+
+    def test_run_at_the_value_chain_gate_keeps_it_pending(self) -> None:
+        state = self.progress("fase4_sgr", "| G4 | APROBADA |\n", unit="fase4_sgr")["state"]
+        self.assertEqual(state, "pending")
 
 
 if __name__ == "__main__":

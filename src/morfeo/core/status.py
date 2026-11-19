@@ -245,6 +245,25 @@ def parse_sections_info(run_dir: Path) -> list[dict[str, Any]]:
     return sections
 
 
+def _gate_token_in(needle: str, haystack: str) -> bool:
+    """True when `needle` appears in `haystack` as a whole gate token.
+
+    A plain substring test confused gates that extend another id (G4 and
+    G4.cv, G6 and G6.4, G1 and G1a): the character after the match may not
+    continue the id (letter, digit or a dot followed by more id).
+    """
+    if not needle:
+        return False
+    start = haystack.find(needle)
+    while start != -1:
+        before = haystack[start - 1] if start > 0 else ""
+        after = haystack[start + len(needle):start + len(needle) + 1]
+        if not (before.isalnum() or before == ".") and not (after.isalnum() or after == "."):
+            return True
+        start = haystack.find(needle, start + 1)
+    return False
+
+
 def parse_gates_info(run_dir: Path, flujo: str | None = None) -> list[dict[str, Any]]:
     """Gate verdicts of a run; with `flujo`, only that flow's gates are listed."""
     estado_file = run_dir / "artefactos" / "estado_propuesta.md"
@@ -285,7 +304,7 @@ def parse_gates_info(run_dir: Path, flujo: str | None = None) -> list[dict[str, 
         for rk, rv in recorded_gates.items():
             rk_lower = rk.lower()
             matched = False
-            if gid_lower in rk_lower or rk_lower in gid_lower:
+            if _gate_token_in(gid_lower, rk_lower) or _gate_token_in(rk_lower, gid_lower):
                 matched = True
             elif phase_key == rk_lower or phase_key.replace("_", "") == rk_lower:
                 matched = True
