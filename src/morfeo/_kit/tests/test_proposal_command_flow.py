@@ -478,7 +478,7 @@ class TestSgrValueChainRecipe(unittest.TestCase):
         self.assertIn("código de la cadena de valor", methodology)
         budget = self._block("Fase 6.4 [COMPUERTA INTERACTIVA", "\nFase 6.45 ")
         self.assertIn("SOLO flujo SGR", budget)
-        self.assertIn("`costo` de cada actividad\n        por su código", budget)
+        self.assertIn("`costo` de cada\n        actividad por su código", budget)
         annex = self._block("Fase 6.47 [SOLO FLUJO SGR]", "\nFase 6.5 ")
         self.assertIn("python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>", annex)
         self.assertIn("no lo\n        escribe el redactor", annex)
@@ -581,6 +581,93 @@ class TestSgrAllianceRecipe(unittest.TestCase):
         self.assertIn("`29_idoneidad_trayectoria`", redactor)
         juez = (agents / "juez-sgr.md").read_text(encoding="utf-8")
         self.assertIn("python3 scripts/alianza_territorio_sgr.py datos <RUN_ROOT> --json", juez)
+
+
+class TestSgrBudgetScheduleRecipe(unittest.TestCase):
+    """SGR budget as data and schedule from the value chain (odd/tasks/sgr-presupuesto-gantt.md, S1, S5)."""
+
+    COMMANDS = REPO_ROOT / ".claude" / "commands"
+
+    def setUp(self):
+        self.raw = (self.COMMANDS / "propuesta.md").read_text(encoding="utf-8")
+
+    def _block(self, start: str, end: str) -> str:
+        i = self.raw.index(start)
+        return " ".join(self.raw[i:self.raw.index(end, i + len(start))].split())
+
+    def _sgr_part(self, block: str, marker: str) -> str:
+        return block[block.index(marker):]
+
+    def test_sgr_budget_is_data_checked_synced_rendered_and_approved_in_the_tab(self):
+        budget = self._sgr_part(self._block("Fase 6.4 [COMPUERTA INTERACTIVA", "\nFase 6.45 "),
+                                "SOLO flujo SGR")
+        steps = ["Task → presupuestador", "artefactos/sgr/presupuesto.json",
+                 "python3 scripts/presupuesto_sgr.py check <RUN_ROOT>",
+                 "python3 scripts/presupuesto_sgr.py sync-cadena <RUN_ROOT>",
+                 "python3 scripts/cadena_valor_sgr.py check <RUN_ROOT>",
+                 "python3 scripts/presupuesto_sgr.py render <RUN_ROOT>", "revisor",
+                 "pestaña «Presupuesto y cronograma»", "G6.4"]
+        positions = [budget.index(step) for step in steps]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("nunca escribe `13_presupuesto.tex` a mano", budget)
+
+    def test_sgr_schedule_is_rendered_from_the_value_chain_and_the_milestones(self):
+        schedule = self._sgr_part(self._block("Fase 6.45 Task → redactor", "\nFase 6.46 "), "SOLO flujo SGR")
+        steps = ["Task → investigador", "artefactos/sgr/hitos.json",
+                 "python3 scripts/cronograma_sgr.py check <RUN_ROOT>",
+                 "python3 scripts/cronograma_sgr.py render <RUN_ROOT>"]
+        positions = [schedule.index(step) for step in steps]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("cada 3 meses como máximo", schedule)
+        self.assertIn("medio de verificación", schedule)
+        self.assertIn("§14 nunca lo escribe el redactor", schedule)
+
+    def test_sgr_annex_renders_the_financing_sources_and_the_final_audit_is_deterministic(self):
+        annex = self._block("Fase 6.47 [SOLO FLUJO SGR]", "\nFase 6.5 ")
+        self.assertIn("30_fuentes_financiacion", annex)
+        self.assertIn("python3 scripts/presupuesto_sgr.py render <RUN_ROOT>", annex)
+        final = self._block("Fase 7  ──→", "\n## Bucle de figuras")
+        sgr = self._sgr_part(final, "En el flujo SGR ese cruce")
+        self.assertIn("python3 scripts/presupuesto_sgr.py check <RUN_ROOT>", sgr)
+        self.assertIn("python3 scripts/cronograma_sgr.py check <RUN_ROOT>", sgr)
+
+    def test_base_flow_text_of_the_budget_and_schedule_is_unchanged(self):
+        budget = self._block("Fase 6.4 [COMPUERTA INTERACTIVA", "\nFase 6.45 ")
+        self.assertIn("(a) Task → presupuestador (MODE=tdr | MODE=base) → primer borrador de "
+                      "`redaccion/sections/13_presupuesto.tex`", budget)
+        base_part = budget[:budget.index("SOLO flujo SGR")]
+        self.assertNotIn("presupuesto_sgr.py", base_part)
+        schedule = self._block("Fase 6.45 Task → redactor", "\nFase 6.46 ")
+        self.assertTrue(schedule.startswith("Fase 6.45 Task → redactor → §14 cronograma de actividades (Gantt)"))
+        self.assertNotIn("cronograma_sgr.py", schedule[:schedule.index("SOLO flujo SGR")])
+        self.assertIn("Presupuesto (§13) ↔ Cronograma de actividades (§14) diferida desde la Fase 6.4",
+                      self._block("Fase 7  ──→", "\n## Bucle de figuras"))
+
+    def test_step_table_names_the_sgr_budget_and_schedule_data(self):
+        steps = (self.COMMANDS / "_propuesta-steps.md").read_text(encoding="utf-8")
+        rows = {cells[0]: line for line in steps.splitlines() if line.startswith("| `")
+                for cells in [[c.strip(" `") for c in line.strip("|").split("|")]]}
+        self.assertIn("presupuesto_sgr.py", rows["fase6_4"])
+        self.assertIn("| G budget | `fase6_45` |", rows["fase6_4"])
+        self.assertIn("cronograma_sgr.py render", rows["fase6_45"])
+        self.assertIn("30 fuentes de financiación", rows["fase6_47"])
+
+    def test_agents_carry_their_sgr_budget_and_schedule_duties(self):
+        agents = REPO_ROOT / ".claude" / "agents"
+        investigador = (agents / "investigador.md").read_text(encoding="utf-8")
+        heading = "## Hitos y etapas SGR (Fase 6.45)\n\nSGR flow only"
+        self.assertIn(heading, investigador)
+        section = investigador[investigador.index(heading):]
+        self.assertIn("`artefactos/sgr/hitos.json`", section)
+        self.assertIn("`etapa`", section)
+        redactor = " ".join((agents / "redactor.md").read_text(encoding="utf-8").split())
+        self.assertIn("never write `13_presupuesto`, `14_cronograma_actividades` or `30_fuentes_financiacion`",
+                      redactor)
+        juez = " ".join((agents / "juez-sgr.md").read_text(encoding="utf-8").split())
+        for command in ("python3 scripts/presupuesto_sgr.py datos <RUN_ROOT> --json",
+                        "python3 scripts/presupuesto_sgr.py resumen <RUN_ROOT> --json",
+                        "python3 scripts/cronograma_sgr.py check <RUN_ROOT> --json"):
+            self.assertIn(command, juez)
 
 
 if __name__ == "__main__":

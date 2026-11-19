@@ -247,7 +247,8 @@ class TestUnitsByFlujo(unittest.TestCase):
         self.assertEqual(nxt["fase6_47"], "fase6_5")
         annex = next(u for u in units if u["id"] == "fase6_47")
         self.assertEqual(annex["gate"], "G6.47")
-        self.assertEqual(annex["sections"], ["19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29"])
+        self.assertEqual(annex["sections"],
+                         ["19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30"])
         self.assertIn("G6.47", {g["id"] for g in canonical_gates("sgr")})
 
     def test_unknown_flow_is_the_base_flow(self) -> None:
@@ -320,6 +321,21 @@ class TestUnitsByFlujo(unittest.TestCase):
             self.assertEqual(unit["agents"], canonical[unit["id"]], unit["id"])
             self.assertNotIn("revisor-estilo-sgr", unit["agents"], unit["id"])
         self.assertIn("grant-flow-auditor", {a for u in units_for_flujo("base") for a in u["agents"]})
+
+    def test_sgr_budget_and_schedule_units_add_their_data_files_only_in_the_sgr_flow(self) -> None:
+        expected = {"fase6_4": ["artefactos/sgr/presupuesto.json"], "fase6_45": ["artefactos/sgr/hitos.json"]}
+        sgr = {u["id"]: u for u in units_for_flujo("sgr")}
+        base = {u["id"]: u for u in units_for_flujo("base")}
+        canonical = {u["id"]: u for u in PIPELINE_UNITS}
+        for uid, files in expected.items():
+            self.assertEqual(sgr[uid]["artifacts"], files, uid)
+            self.assertEqual(base[uid]["artifacts"], [], uid)
+            self.assertEqual(canonical[uid]["artifacts"], [], uid)
+            self.assertNotIn("artifacts_flujo", sgr[uid])
+            self.assertNotIn("artifacts_flujo", base[uid])
+        for uid, unit in base.items():
+            self.assertEqual(unit["artifacts"], canonical[uid]["artifacts"], uid)
+            self.assertEqual(unit["sections"], canonical[uid]["sections"], uid)
 
     def test_without_a_flow_every_gate_is_listed(self) -> None:
         """Llamar `canonical_gates()` sin flujo conserva el comportamiento previo."""

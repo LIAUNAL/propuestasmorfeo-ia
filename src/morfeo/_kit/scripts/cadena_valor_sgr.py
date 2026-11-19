@@ -14,7 +14,11 @@ the budget and the schedule:
          actividades:[{codigo:"1.1.1", nombre,
                        tipo:"tecnica"|"administracion"|"supervision",
                        ruta_critica, mes_inicio|null, mes_fin|null,
-                       costo|null, medio|null}]}]}]}
+                       costo|null, medio|null,
+                       etapa?:"preinversion"|"inversion"|"operacion"}]}]}]}
+
+`etapa` is optional (MGA stage of the activity, «inversion» when absent);
+scripts/cronograma_sgr.py groups the schedule (§14) by it.
 
 Commands:
   init RUN_ROOT [--force] [--duracion-meses N]
@@ -53,6 +57,8 @@ BUDGET_SECTION = Path("redaccion") / "sections" / "13_presupuesto.tex"
 GENERATED_HEADER = "% GENERADO por scripts/cadena_valor_sgr.py"
 
 ACTIVITY_TYPES = ("tecnica", "administracion", "supervision")
+# MGA stages of an activity (optional field `etapa`; «inversion» when absent).
+ACTIVITY_STAGES = ("preinversion", "inversion", "operacion")
 MANAGEMENT_TYPES = {"administracion": "administración", "supervision": "supervisión"}
 # Verbs the MGA forbids at the start of an activity name (Manual MGA 2015,
 # p. 81; guía SGR, A23). They apply to activity names only, never to products.
@@ -181,6 +187,11 @@ def _check_activity(act: dict, expected: str, duration, budget_phase: bool, mean
         out.append(_finding("error", "cadena-tipo-invalido", code,
                             f"La actividad {code} tiene tipo «{act.get('tipo')}»; los tipos válidos son "
                             "tecnica, administracion y supervision."))
+    stage = act.get("etapa")
+    if stage is not None and stage not in ACTIVITY_STAGES:
+        out.append(_finding("error", "cadena-etapa-invalida", code,
+                            f"La actividad {code} tiene etapa «{stage}»; las etapas válidas son preinversion, "
+                            "inversion y operacion."))
     start, end = act.get("mes_inicio"), act.get("mes_fin")
     if start is None or end is None:
         out.append(_finding("warning", "cadena-meses-faltantes", code,

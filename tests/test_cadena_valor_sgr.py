@@ -291,6 +291,20 @@ class Check(unittest.TestCase):
         self.chain["schema"] = "otro"
         self.assertEqual(_codes(self.findings(), "error"), ["cadena-esquema"])
 
+    def test_stage_is_optional_and_takes_the_three_mga_stages(self) -> None:
+        acts = self.chain["objetivos"][0]["productos"][0]["actividades"]
+        for act, etapa in zip(acts, ("preinversion", "inversion", "operacion")):
+            act["etapa"] = etapa
+        self.assertEqual(self.findings(), [])
+        acts[3]["etapa"] = None
+        self.assertEqual(self.findings(), [])
+
+    def test_an_unknown_stage_is_an_error(self) -> None:
+        self.chain["objetivos"][1]["productos"][0]["actividades"][0]["etapa"] = "ejecucion"
+        found = self.findings()
+        self.assertEqual(_codes(found, "error"), ["cadena-etapa-invalida"])
+        self.assertEqual(found[0]["node"], "2.1.1")
+
 
 class CheckCli(unittest.TestCase):
     def setUp(self) -> None:

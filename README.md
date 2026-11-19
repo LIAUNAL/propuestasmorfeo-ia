@@ -89,6 +89,8 @@ La bandera guarda `"flujo": "sgr"` en `.morfeo/config.json` y `.marco/config.jso
 
 En el flujo SGR, después de los árboles (Fase 1b), la unidad `fase1b_sgr` «Alianza y territorio» (compuerta `GTerritorio`) guarda las entidades de la alianza y las demandas territoriales copiadas del TdR en `artefactos/sgr/alianza.json` y `artefactos/sgr/territorio.json`; el operador las revisa y aprueba en la pestaña del tablero del mismo nombre.
 
+El presupuesto SGR también es un dato: `artefactos/sgr/presupuesto.json` (rubros de Minciencias e insumos MGA por entidad y fuente) genera §13 y el anexo de fuentes de financiación con `scripts/presupuesto_sgr.py`, y `scripts/cronograma_sgr.py` genera el Gantt de §14 desde la cadena de valor y `artefactos/sgr/hitos.json`; el operador los revisa y aprueba en la pestaña «Presupuesto y cronograma».
+
 Dentro del directorio inicializado puedes ejecutar los comandos del asistente en Claude Code (`/propuesta-init`, `/propuesta-analizar`, `/propuesta-continuar`) o el pipeline de tu runtime preferido.
 
 ---
@@ -97,7 +99,7 @@ Dentro del directorio inicializado puedes ejecutar los comandos del asistente en
 
 | Comando | Descripción |
 |---|---|
-| `morfeo init <dir> [--title] [--preset] [--tools] [--sgr]` | Inicializa un workspace autocontenido con los 73 activos base del marco. |
+| `morfeo init <dir> [--title] [--preset] [--tools] [--sgr]` | Inicializa un workspace autocontenido con los 100 activos base del marco. |
 | `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF. |
 | `morfeo ui [dir] [--port 8080] [--no-open]` | Despliega el Command Center web interactivo en tiempo real (puerto 8080 por defecto, o el siguiente libre). |
 | `morfeo compile [dir] [--docx] [--run <id>]` | Compila el proyecto LaTeX a PDF (`build.sh`) o exporta a Word (`--docx`). |

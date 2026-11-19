@@ -188,6 +188,9 @@ def normalise_gate(raw: Any) -> str | None:
 # `agents_flujo`: agentes que una unidad común suma solo en un flujo (hoy, el
 # juez SGR asesor al final de la Fase 7). `units_for_flujo` los agrega a
 # `agents` del flujo que corresponde y quita la clave de la copia.
+# `artifacts_flujo`: archivos que una unidad común deja solo en un flujo (hoy, los
+# datos del presupuesto y de los hitos del flujo SGR). `units_for_flujo` los suma
+# a `artifacts` del flujo que corresponde y quita la clave de la copia.
 # `AGENT_REPLACEMENTS_FLUJO` (abajo): agentes que un flujo despacha en lugar de
 # otro en todas sus unidades. En el flujo SGR el revisor de estilo SGR corre
 # donde el flujo base corre `grant-flow-auditor`; el inventario no cambia.
@@ -384,6 +387,7 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "gate": "G6.4",
         "sections": ["13"],
         "artifacts": [],
+        "artifacts_flujo": {"sgr": ["artefactos/sgr/presupuesto.json"]},
         "agents": ["presupuestador", "revisor"],
         "skills": ["estilo-natural-es"],
         "next": "fase6_45",
@@ -396,6 +400,7 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "gate": None,
         "sections": ["14", "15", "16"],
         "artifacts": [],
+        "artifacts_flujo": {"sgr": ["artefactos/sgr/hitos.json"]},
         "agents": ["redactor", "bibliografo-propuesta", "grant-flow-auditor"],
         "skills": ["estilo-natural-es"],
         "next": "fase6_46",
@@ -417,9 +422,9 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "kind": "step",
         "flujo": "sgr",
         "name": "Anexos MGA",
-        "desc": "Solo flujo SGR: alineación con los planes de desarrollo, participantes, población, alternativas, cadena de valor, riesgos y matriz de marco lógico, más identificación, demandas territoriales y matriz de responsabilidades (renderizadas desde los datos de la alianza) e idoneidad y trayectoria de las entidades.",
+        "desc": "Solo flujo SGR: alineación con los planes de desarrollo, participantes, población, alternativas, cadena de valor, riesgos y matriz de marco lógico, más identificación, demandas territoriales y matriz de responsabilidades (renderizadas desde los datos de la alianza), idoneidad y trayectoria de las entidades y resumen de fuentes de financiación (renderizado desde el presupuesto).",
         "gate": "G6.47",
-        "sections": ["19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29"],
+        "sections": ["19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30"],
         "artifacts": [],
         "agents": ["redactor", "presupuestador", "revisor"],
         "skills": ["estilo-natural-es"],
@@ -465,7 +470,8 @@ def units_for_flujo(flujo: str | None) -> list[dict[str, Any]]:
     omiten y el `next` de la unidad previa salta sobre ellas, de modo que el
     flujo base nunca espera una compuerta que no le corresponde. Devuelve copias:
     el inventario canónico no se toca. Una unidad común suma los agentes que
-    declara en `agents_flujo` para este flujo, y cada agente que el flujo
+    declara en `agents_flujo` y los archivos de `artifacts_flujo` para este
+    flujo, y cada agente que el flujo
     reemplaza (`AGENT_REPLACEMENTS_FLUJO`) se lista con su reemplazo.
     """
     flujo = flujo if flujo in ("base", "sgr") else "base"
@@ -477,6 +483,9 @@ def units_for_flujo(flujo: str | None) -> list[dict[str, Any]]:
         extra = unit.pop("agents_flujo", {}).get(flujo, [])
         if extra:
             unit["agents"] = [*unit["agents"], *extra]
+        extra_files = unit.pop("artifacts_flujo", {}).get(flujo, [])
+        if extra_files:
+            unit["artifacts"] = [*unit["artifacts"], *extra_files]
         if replacements:
             unit["agents"] = [replacements.get(a, a) for a in unit["agents"]]
         nxt = unit.get("next")

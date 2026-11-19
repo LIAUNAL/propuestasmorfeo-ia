@@ -529,6 +529,30 @@ activity candidate per means. Edit only that file:
   presupuestador sets them in Fase 6.4). Run nothing: the dispatcher runs
   `cadena_valor_sgr.py check` and returns its errors to you until it is clean.
 
+## Hitos y etapas SGR (Fase 6.45)
+
+SGR flow only, after G6.4. §14 is rendered by `scripts/cronograma_sgr.py`
+from the value chain, so your part is data. The Task carries
+`artefactos/sgr/cadena_valor.json` (with the costs the budget already
+synced) and the TdR excerpt on the execution window. Edit only:
+
+- **`artefactos/sgr/hitos.json`** (schema `morfeo.hitos-sgr/v1`):
+  `{schema, hitos:[{codigo:"H1", nombre, mes, actividades:["1.1.1"],
+  verificacion}]}`. A verifiable milestone at most every 3 months after month
+  3 (the rubric penalises a schedule without milestones for longer), each
+  with the month it is delivered (inside `duracion_meses`), the activity
+  codes that produce it (only codes of the chain) and its `verificacion`
+  (the document or record that proves it: acta, informe técnico, software
+  registrado, artículo sometido). `nombre` is nominal and in third person,
+  never a promise.
+- **`etapa` of each activity in `cadena_valor.json`**: `preinversion`
+  (studies and designs before the investment), `inversion` (the default when
+  absent) or `operacion` (use and sustainability once the products exist).
+  Never change codes, names, months or costs here: a month that must move is
+  a value-chain change and goes back to Fase 4 SGR and the budget.
+- Run nothing: the dispatcher runs `scripts/cronograma_sgr.py check` and
+  returns its errors to you until it is clean, then `render`.
+
 ## Alianza y territorio SGR (Fase 1b SGR, compuerta GTerritorio)
 
 SGR flow only. The insumos-observador has already written

@@ -1465,13 +1465,36 @@ Fase 6.4 [COMPUERTA INTERACTIVA G-Presupuesto] Presupuesto (interactivo).
         `redaccion/sections/13_presupuesto.tex` + su mirror de vault, con el
         self-audit aritmético ya aplicado; cada monto/cantidad no derivable de
         un insumo va marcado `[supuesto]`.
-        SOLO flujo SGR: el prompt lleva `artefactos/sgr/cadena_valor.json`
-        inline y el presupuestador asigna además el `costo` de cada actividad
-        por su código en ese archivo (la suma de los costos coincide con el
-        total de §13). Tras cada ronda, el DISPATCHER corre
-        `python3 scripts/cadena_valor_sgr.py check <RUN_ROOT>` y devuelve los
-        errores al presupuestador; desde esta fase una actividad sin costo es
-        un aviso.
+        SOLO flujo SGR: el presupuesto es un dato y el presupuestador nunca escribe `13_presupuesto.tex` a
+        mano. En lugar de (a), Task → presupuestador con
+        `artefactos/sgr/cadena_valor.json` y `artefactos/sgr/alianza.json`
+        inline → escribe `artefactos/sgr/presupuesto.json` (esquema
+        `morfeo.presupuesto-sgr/v1`: cada ítem con su rubro de Minciencias,
+        su insumo MGA, la entidad, la fuente sgr, especie o efectivo, las
+        cotizaciones y los códigos de las actividades que lo usan). Tras cada
+        ronda el DISPATCHER corre
+        `python3 scripts/presupuesto_sgr.py check <RUN_ROOT>` y devuelve los
+        errores al presupuestador hasta que salga limpio; luego corre
+        `python3 scripts/presupuesto_sgr.py sync-cadena <RUN_ROOT>`, que
+        reparte el valor de cada ítem por partes iguales entre sus
+        actividades y escribe en `cadena_valor.json` el `costo` de cada
+        actividad por su código (la suma de los costos coincide con el total
+        de §13); después
+        `python3 scripts/cadena_valor_sgr.py check <RUN_ROOT>` (desde esta
+        fase una actividad sin costo es un aviso), si `23_cadena_valor.tex`
+        ya existe `python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>`
+        (la sincronización deja el anexo desactualizado) y
+        `python3 scripts/presupuesto_sgr.py render <RUN_ROOT>`, que genera
+        `13_presupuesto.tex` (rubro por fuente y entidad, vista de insumos
+        MGA y proyección anual) y se niega mientras haya hallazgos de error.
+        El GATE Task → revisor recibe la salida de `check` en lugar de
+        recomputar la aritmética. El bucle interactivo de abajo se hace en la
+        pestaña «Presupuesto y cronograma» del tablero (topes,
+        cofinanciación, transferencia, movilidad, Seguimiento, cotizaciones y
+        la calculadora de horas de contrapartida): cada ajuste del usuario
+        vuelve al presupuestador sobre `presupuesto.json`, se repiten
+        `check`, `sync-cadena` y `render`, y el usuario aprueba G6.4 en esa
+        pestaña.
         ──→ BUCLE INTERACTIVO (sin tope de rondas; termina SOLO con
         aprobación explícita del usuario):
           1. El DISPATCHER presenta al usuario: (i) la tabla renderizada
@@ -1525,10 +1548,28 @@ Fase 6.45 Task → redactor → §14 cronograma de actividades (Gantt) (sin gate
         que la Fase 6). Antes de despachar esta Task, el dispatcher arma el
         bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §14
         (Cronograma de actividades) + Convenciones técnicas de LaTeX y lo
-        inyecta inline al inicio del prompt. En el flujo SGR el Gantt agrupa
-        las actividades por etapa y marca la ruta crítica (guía SGR §14);
-        `check_run.py` advierte `sgr-cronograma-sin-etapas` /
-        `sgr-cronograma-sin-ruta-critica`.
+        inyecta inline al inicio del prompt.
+        SOLO flujo SGR: §14 nunca lo escribe el redactor. En lugar de esa
+        Task, Task → investigador (rama "Hitos y etapas SGR") → escribe
+        `artefactos/sgr/hitos.json` (esquema `morfeo.hitos-sgr/v1`: hitos
+        verificables cada 3 meses como máximo, cada uno con su mes, las
+        actividades que lo producen y su medio de verificación) y completa la
+        `etapa` (preinversion, inversion u operacion) de las actividades de
+        `cadena_valor.json`. El DISPATCHER corre
+        `python3 scripts/cronograma_sgr.py check <RUN_ROOT>` y devuelve los
+        errores al investigador hasta que salga limpio, y luego
+        `python3 scripts/cronograma_sgr.py render <RUN_ROOT>`, que genera
+        `14_cronograma_actividades.tex` desde la cadena de valor (objetivo,
+        producto y actividad con su código y su nombre, etapa, ruta crítica
+        e hitos, en la misma convención `ganttchart` del flujo base) y se
+        niega mientras haya hallazgos de error; `check_run.py` sigue
+        advirtiendo `sgr-cronograma-sin-etapas` /
+        `sgr-cronograma-sin-ruta-critica` (guía SGR §14). Si cambian los
+        meses o los hitos, se vuelve a correr `render`. El DISPATCHER compila
+        el Gantt a PNG y SVG con
+        `python3 redaccion/scripts/compile_tikz.py cronograma:gantt`, como
+        en el flujo base. La proyección anual de §13 sale de
+        `python3 scripts/cronograma_sgr.py proyeccion <RUN_ROOT>`.
         Task → redactor → §15 productos esperados (ídem, sin gate propio).
         Antes de despachar esta Task, el dispatcher arma el bloque
         `## FRAGMENTO DE GUÍA` con Directrices Generales + §15 (Productos
@@ -1581,14 +1622,20 @@ Fase 6.47 [SOLO FLUJO SGR] Anexos MGA. Con el flujo `base` esta unidad no
         `python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>`, que lo genera
         desde `cadena_valor.json` y se niega mientras haya hallazgos de error
         (`check_run.py` marca error un A23 escrito a mano o anterior al
-        JSON). Si §13 cambia en esta fase, el presupuestador actualiza los
-        costos en `cadena_valor.json` y se vuelve a correr `render`.
+        JSON). Si el presupuesto cambia en esta fase, el presupuestador
+        ajusta `presupuesto.json` y se repiten `presupuesto_sgr.py check`,
+        `sync-cadena` y `render` y `cadena_valor_sgr.py render`.
         Los apartados de la alianza y el territorio salen de sus datos: el
         DISPATCHER corre `python3 scripts/alianza_territorio_sgr.py render
         <RUN_ROOT>`, que escribe `26_identificacion.tex`,
         `27_demandas_territoriales.tex` y `28_matriz_responsabilidades.tex`
         (ninguno lo escribe el redactor; si cambian los datos, se vuelve a
-        correr `render`). Task → redactor escribe
+        correr `render`). El resumen de fuentes de financiación (Anexo 2
+        cap. 29, `30_fuentes_financiacion.tex`: las tres líneas SGR,
+        contrapartida en especie y contrapartida en efectivo, en letras y en
+        números) tampoco lo escribe el redactor: el DISPATCHER corre
+        `python3 scripts/presupuesto_sgr.py render <RUN_ROOT>`, que lo genera
+        junto con §13 desde `presupuesto.json`. Task → redactor escribe
         `29_idoneidad_trayectoria.tex` desde `artefactos/sgr/alianza.json`:
         un apartado por entidad, en tercera persona, con sus grupos y su
         trayectoria tal como constan en el archivo; no pega texto
@@ -1596,8 +1643,8 @@ Fase 6.47 [SOLO FLUJO SGR] Anexos MGA. Con el flujo `base` esta unidad no
         `main.tex` ya los incluye si existen. El redactor parte de los árboles aprobados, §10,
         §11 (indicador de resultado), §13, §14 y §15. Si un riesgo de A24 o
         una estrategia de participantes de A20 no tiene costo en §13,
-        Task → presupuestador ajusta §13 (vuelve a pasar su recomputo
-        aritmético) antes del gate. Antes de despachar cada Task, el
+        Task → presupuestador ajusta `presupuesto.json` (vuelve a pasar
+        `presupuesto_sgr.py check`, `sync-cadena` y `render`) antes del gate. Antes de despachar cada Task, el
         dispatcher arma el bloque `## FRAGMENTO DE GUÍA` con Directrices
         Generales + Directrices Generales SGR + el bloque `### SGR A<n>` +
         Convenciones técnicas de LaTeX. Mismo mirror de vault que el resto
@@ -1649,6 +1696,13 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         `artefactos/juez/evaluacion.json` de una ronda anterior del juez, el
         prompt le indica al revisor que lea sus alertas `error` abiertas) ──→
         usuario. NO avances sin aprobación.
+        En el flujo SGR ese cruce §13↔§14 es determinista: antes de la Task
+        el DISPATCHER corre `python3 scripts/presupuesto_sgr.py check
+        <RUN_ROOT>` (los costos de la cadena de valor son las partes del
+        presupuesto) y `python3 scripts/cronograma_sgr.py check <RUN_ROOT>`
+        (los meses del Gantt son los de la cadena, porque §14 sale de ella) e
+        inyecta sus hallazgos en el prompt del revisor, que no recomputa ese
+        cruce a mano.
         ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
         `artefactos/pipeline/80-fase7.md` (evento de la auditoría final) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos

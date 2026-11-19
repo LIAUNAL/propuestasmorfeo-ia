@@ -84,6 +84,23 @@ En este orden, y solo lo necesario para cada subcriterio:
   `datos_sgr.json`. Después leés la prosa para completar lo que falta y
   para alertar cuando una sección contradice esos datos. Si los archivos no
   existen (corrida anterior a la unidad), extraés todo de la prosa.
+- El dinero y el calendario, también como datos: si existe
+  `artefactos/sgr/presupuesto.json`, corré
+  `python3 scripts/presupuesto_sgr.py datos <RUN_ROOT> --json` (la parte
+  monetaria de `morfeo.datos-sgr/v1`: `monto_sgr`, los aportes de cada
+  entidad, `transferencia_valor` y los `totales_declarados` del
+  presupuesto) y
+  `python3 scripts/presupuesto_sgr.py resumen <RUN_ROOT> --json` (totales
+  por fuente, rubro, insumo y entidad, `cofinanciacion_pct`,
+  `transferencia_pct`, `movilidad_pct`, `seguimiento` y
+  `cotizaciones_faltantes`); si existe la cadena de valor, corré
+  `python3 scripts/cronograma_sgr.py check <RUN_ROOT> --json` (meses,
+  etapas, ruta crítica y espaciado de hitos). Esas salidas son hechos para
+  los subcriterios de presupuesto, cofinanciación, transferencia y
+  oportunidad del cronograma: no las recalculás desde la prosa de §13 o
+  §14, y una cifra de la prosa que las contradice es una alerta. Que una
+  capacitación arranque antes de la plataforma que necesita no sale de los
+  datos: eso lo juzgás vos leyendo §10 y §14.
 
 ### 3. Extraer los datos (`datos_sgr.json`)
 

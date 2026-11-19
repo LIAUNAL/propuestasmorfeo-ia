@@ -83,10 +83,10 @@ más de 6 h, se muestra como obsoleto y no bloquea el botón «Ejecutar».
 | `fase5` | §8 marco + §9 equipo + grant-flow-auditor + revisor | G5 | `fase5_5` |
 | `fase5_5` | §10 metodología + grant-flow-auditor + spec del diagrama (`figura.py`) + revisor | G5.5 | `fase6` |
 | `fase6` | §11 resultados + §12 ética + grant-flow-auditor (no own gate) | — | `fase6_4` |
-| `fase6_4` | §13 presupuesto + revisor | G budget | `fase6_45` |
-| `fase6_45` | §14 cronograma + §15 productos (xltabular) + §16 bib + grant-flow-auditor (no own gate) | — | `fase6_46` |
+| `fase6_4` | §13 presupuesto + revisor; flujo SGR: presupuestador escribe `artefactos/sgr/presupuesto.json`, `presupuesto_sgr.py check` limpio, `sync-cadena`, `cadena_valor_sgr.py check`, `presupuesto_sgr.py render` (§13 nunca a mano) + revisor; el usuario lo aprueba en la pestaña Presupuesto y cronograma | G budget | `fase6_45` |
+| `fase6_45` | §14 cronograma + §15 productos (xltabular) + §16 bib + grant-flow-auditor (no own gate); flujo SGR: investigador escribe `artefactos/sgr/hitos.json` y las etapas, `cronograma_sgr.py check` limpio y `cronograma_sgr.py render` (§14 nunca a mano) | — | `fase6_46` |
 | `fase6_46` | §17 articulación con comunidades + §18 apropiación social + grant-flow-auditor + revisor | G comunidades | `fase6_47` (flujo SGR) o `fase6_5` (flujo base) |
-| `fase6_47` | Solo flujo SGR: anexos MGA 19 a 25 (`guiaProyectosIA_Agente_Regalias.md`), 26 a 28 renderizados con `alianza_territorio_sgr.py render` y 29 idoneidad y trayectoria + revisor; el flujo base la salta | G anexos | `fase6_5` |
+| `fase6_47` | Solo flujo SGR: anexos MGA 19 a 25 (`guiaProyectosIA_Agente_Regalias.md`), 26 a 28 renderizados con `alianza_territorio_sgr.py render`, 29 idoneidad y trayectoria y 30 fuentes de financiación renderizado con `presupuesto_sgr.py render` + revisor; el flujo base la salta | G anexos | `fase6_5` |
 | `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave; sin sección cuerpo de título) + grant-flow-auditor + revisor | G front | `fase7` |
 | `fase7` | Final audit + assemble `main.tex` (\setcounter{section}{1}, xltabular, bibliografía limpia); flujo SGR: juez-sgr asesor tras el ensamble (ver «Juez final») | G final | `done` |
 | `done` | Pipeline complete | — | print `cd proposal && ./build.sh` |

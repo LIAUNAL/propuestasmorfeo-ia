@@ -79,6 +79,7 @@ Fuentes en el repositorio: la evidencia completa en
 | 8 y 8.1 Demandas territoriales | `27_demandas_territoriales` (generada) | Demanda textual + articulación en presente y futuro, en tercera persona |
 | 10.1 Matriz de responsabilidades | `28_matriz_responsabilidades` (generada) | Responsabilidades con códigos de actividad; gobernanza |
 | 27 Idoneidad y trayectoria | `29_idoneidad_trayectoria` | Una subsección por entidad, tercera persona, sin texto institucional en primera persona |
+| 29 Resumen de fuentes de financiación | `30_fuentes_financiacion` (generada) | Las tres líneas literales en letras y números; cifras iguales a la carta unificada y al Anexo 3 |
 
 Los capítulos 16, 18, 24, 25, 28 y 31 aún no tienen archivo en Morfeo;
 el léxico los lista en `capitulos_sin_archivo` con su nota de redacción.

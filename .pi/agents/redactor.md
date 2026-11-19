@@ -134,6 +134,14 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
   classification or project that the file does not list. Sections `26`, `27`
   and `28` are rendered by `scripts/alianza_territorio_sgr.py render`; never
   write them by hand.
+- **Budget, schedule and financing sources (SGR flow only).** In an SGR
+  project you never write `13_presupuesto`, `14_cronograma_actividades` or
+  `30_fuentes_financiacion`: `scripts/presupuesto_sgr.py render` builds §13
+  and annex 30 from `artefactos/sgr/presupuesto.json`, and
+  `scripts/cronograma_sgr.py render` builds §14 from
+  `artefactos/sgr/cadena_valor.json` and `artefactos/sgr/hitos.json`. When
+  another section cites a figure, a month or a milestone, copy it from those
+  files or from the rendered sections, never recompute it.
 - **SGR flow, existing sections.** When the Task's guide fragment carries a
   `### SGR §N` block, it adds requirements to that section and wins over the
   base guide where they conflict (e.g. §11 result indicator with a numeric
@@ -190,11 +198,11 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
    (persuading on relevance), not a violation.
 4. Avoid repetition across sections. Be concise and technically rigorous.
 5. For §14, produce a Gantt-style table (use `tabular` + `tikz` or a `ganttchart`
-   spec) with responsables and hitos marked. In the SGR flow (the prompt carries `### SGR §14`),
-   group the activities under stage rows (Preinversión, Inversión, Operación)
-   and mark the critical-path activities with a symbol explained in a legend
-   that literally says «ruta crítica»; every product has two or more
-   activities. **Never include prórroga
+   spec) with responsables and hitos marked. In the SGR flow §14 is not yours:
+   `scripts/cronograma_sgr.py render` generates it from the value chain, with
+   the activities by stage (Preinversión, Inversión, Operación) and the
+   critical path marked; if the Task asks you for it anyway, say so and stop.
+   **Never include prórroga
    (extension) stages in the schedule (mandatory, durable backstop — the
    full rule normally arrives via the injected `## FRAGMENTO DE GUÍA` block,
    §14, but apply this even if that fragment is missing).** The cronograma
