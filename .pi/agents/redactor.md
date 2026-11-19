@@ -122,6 +122,18 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
   (result indicator), §13, §14 and §15; never invent a figure, population or
   plan goal (`[supuesto]` when not derivable). Tables use `xltabular`. Never
   write these files in a base-flow project.
+- **Idoneidad y trayectoria (SGR flow only, Fase 6.47)** —
+  `29_idoneidad_trayectoria`, written from `artefactos/sgr/alianza.json`,
+  which the Task carries inline with the guide block for that section. One
+  `\subsection*` per entity, proponent first: its type and role in the
+  alliance, its research groups with their classification and lines, and the
+  trajectory projects listed in the file (code, funder, year), tied to the
+  activities it leads. Third person about the entity («La Universidad… cuenta
+  con…»); never paste first-person institutional text («nuestra
+  institución», «somos») from letters or brochures, and never add a group,
+  classification or project that the file does not list. Sections `26`, `27`
+  and `28` are rendered by `scripts/alianza_territorio_sgr.py render`; never
+  write them by hand.
 - **SGR flow, existing sections.** When the Task's guide fragment carries a
   `### SGR §N` block, it adds requirements to that section and wins over the
   base guide where they conflict (e.g. §11 result indicator with a numeric

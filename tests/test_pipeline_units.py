@@ -28,7 +28,7 @@ from morfeo.core.pipeline_units import (  # noqa: E402
 
 STEPS_DOC = REPO / ".claude" / "commands" / "_propuesta-steps.md"
 
-STEP_UNITS_EXPECTED = 18
+STEP_UNITS_EXPECTED = 19
 
 # Valores de compuerta observados en los artefactos de la corrida de referencia,
 # incluidos los que la tabla no reconoce. El inventario tiene que ubicarlos todos:
@@ -125,13 +125,14 @@ class TestPipelineUnits(unittest.TestCase):
             "G5", "G5.5", "G6.4", "G6.46", "G6.5", "G7",
         ):
             self.assertIn(real, canonical, f"falta {real} en las compuertas canónicas")
-        # Catorce del flujo base más las tres del flujo SGR: GCausas (causas
-        # directas, tras G1a), G4.cv (cadena de valor, tras G4) y G6.47
-        # (anexos MGA).
+        # Catorce del flujo base más las cuatro del flujo SGR: GCausas (causas
+        # directas, tras G1a), GTerritorio (alianza y territorio, tras G1b),
+        # G4.cv (cadena de valor, tras G4) y G6.47 (anexos MGA).
         self.assertIn("G6.47", canonical)
         self.assertIn("GCausas", canonical)
+        self.assertIn("GTerritorio", canonical)
         self.assertIn("G4.cv", canonical)
-        self.assertEqual(len(canonical), 17, "las compuertas canónicas son diecisiete")
+        self.assertEqual(len(canonical), 18, "las compuertas canónicas son dieciocho")
 
     def test_early_units_run_scoping_trees_corpus_then_mga_summary(self) -> None:
         # The trees come right after the subproblems (in SGR, after the GCausas
@@ -139,7 +140,7 @@ class TestPipelineUnits(unittest.TestCase):
         # the MGA summary and §3 from it.
         expected = {
             "base": ["fase0", "fase1a", "fase1b", "fase1c", "fase1", "fase2"],
-            "sgr": ["fase0", "fase1a", "fase1a_sgr", "fase1b", "fase1c", "fase1", "fase2"],
+            "sgr": ["fase0", "fase1a", "fase1a_sgr", "fase1b", "fase1b_sgr", "fase1c", "fase1", "fase2"],
         }
         for flujo in ("base", "sgr"):
             by_id = {u["id"]: u for u in units_for_flujo(flujo)}
@@ -246,7 +247,7 @@ class TestUnitsByFlujo(unittest.TestCase):
         self.assertEqual(nxt["fase6_47"], "fase6_5")
         annex = next(u for u in units if u["id"] == "fase6_47")
         self.assertEqual(annex["gate"], "G6.47")
-        self.assertEqual(annex["sections"], ["19", "20", "21", "22", "23", "24", "25"])
+        self.assertEqual(annex["sections"], ["19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29"])
         self.assertIn("G6.47", {g["id"] for g in canonical_gates("sgr")})
 
     def test_unknown_flow_is_the_base_flow(self) -> None:
@@ -277,6 +278,30 @@ class TestUnitsByFlujo(unittest.TestCase):
         self.assertEqual(unit["sections"], [])
         self.assertIn("G4.cv", {g["id"] for g in canonical_gates("sgr")})
         self.assertEqual(normalise_gate("G cadena"), "G4.cv")
+
+    def test_alliance_unit_runs_only_in_the_sgr_flow_between_trees_and_corpus(self) -> None:
+        base = {u["id"]: u for u in units_for_flujo("base")}
+        self.assertNotIn("fase1b_sgr", base)
+        self.assertEqual(base["fase1b"]["next"], "fase1c")
+        self.assertNotIn("GTerritorio", {g["id"] for g in canonical_gates("base")})
+        sgr = units_for_flujo("sgr")
+        ids = self._ids(sgr)
+        self.assertEqual(ids.index("fase1b_sgr"), ids.index("fase1b") + 1)
+        by_id = {u["id"]: u for u in sgr}
+        self.assertEqual(by_id["fase1b"]["next"], "fase1b_sgr")
+        unit = by_id["fase1b_sgr"]
+        self.assertEqual(unit["next"], "fase1c")
+        self.assertEqual(unit["name"], "Alianza y territorio")
+        self.assertEqual(unit["gate"], "GTerritorio")
+        self.assertEqual(unit["artifacts"], ["artefactos/sgr/alianza.json", "artefactos/sgr/territorio.json"])
+        self.assertEqual(unit["agents"], ["insumos-observador", "investigador", "revisor"])
+        self.assertEqual(unit["sections"], [])
+        self.assertIn("GTerritorio", {g["id"] for g in canonical_gates("sgr")})
+        self.assertEqual(normalise_gate("G territorio"), "GTerritorio")
+        gate = next(g for g in canonical_gates("sgr") if g["id"] == "GTerritorio")
+        self.assertEqual(gate["phase"], "Fase 1b SGR")
+        self.assertIn("Alianza y territorio", gate["name"])
+        self.assertIn("alianza_territorio_sgr.py check", gate["criteria"])
 
     def test_sgr_flow_swaps_the_auditor_for_the_sgr_style_reviewer(self) -> None:
         for unit in units_for_flujo("sgr"):

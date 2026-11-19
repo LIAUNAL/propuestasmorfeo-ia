@@ -70,9 +70,20 @@ En este orden, y solo lo necesario para cada subcriterio:
   `artefactos/guia_ajustada_TDR.md` si existen): requisitos, topes y anexos
   exigidos.
 - Las secciones ensambladas en `redaccion/sections/*.tex`, incluidos los
-  anexos SGR (`19_*` a `25_*`) y el presupuesto (`13_presupuesto.tex`).
+  anexos SGR (`19_*` a `29_*`) y el presupuesto (`13_presupuesto.tex`).
 - Los árboles en `artefactos/arboles/` y el resumen MGA en
   `artefactos/mga_resumido.md`.
+- Los datos de la alianza y el territorio, antes que la prosa:
+  `artefactos/sgr/alianza.json` (entidades, tipo, departamento, aportes,
+  grupos y trayectoria) y `artefactos/sgr/territorio.json` (departamentos y
+  demandas territoriales). Corré
+  `python3 scripts/alianza_territorio_sgr.py datos <RUN_ROOT> --json`: su
+  salida es un `morfeo.datos-sgr/v1` parcial (monto, departamentos,
+  proponente, aliados, conteos de trayectoria, aliado internacional) con la
+  `fuente` apuntando a esos archivos, y es el punto de partida de
+  `datos_sgr.json`. Después leés la prosa para completar lo que falta y
+  para alertar cuando una sección contradice esos datos. Si los archivos no
+  existen (corrida anterior a la unidad), extraés todo de la prosa.
 
 ### 3. Extraer los datos (`datos_sgr.json`)
 

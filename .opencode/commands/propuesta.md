@@ -978,6 +978,52 @@ Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         "G1b — Corpus y subsecciones SOTA" en APROBADA, el corpus ya se hizo;
         trátala como G1c = APROBADA, no repitas la Fase 1c y corre la Fase 1b
         (árboles) antes de la Fase 1.
+Fase 1b SGR [COMPUERTA GTerritorio] Alianza y territorio como datos. SOLO
+        flujo SGR, después de G1b = APROBADA; con el flujo `base` esta unidad
+        no corre y al aprobar G1b se pasa directo a la Fase 1c. La alianza
+        vive en `artefactos/sgr/alianza.json` (esquema
+        `morfeo.alianza-sgr/v1`: entidades con tipo, proponente, rol,
+        posición, departamento, responsabilidades, aportes en especie y en
+        efectivo, grupos de investigación y trayectoria, más el modelo de
+        gobernanza) y el territorio en `artefactos/sgr/territorio.json`
+        (esquema `morfeo.territorio-sgr/v1`: región SGR, departamentos y
+        municipios de ejecución, demandas territoriales y configuración
+        regional). De estos datos salen después §26 a §29 y la vista previa
+        de los criterios contados de la rúbrica (alcance regional,
+        composición de la alianza, arraigo, aliado internacional,
+        cofinanciación).
+        (a) Task → insumos-observador (rama "Alianza y territorio SGR", ver
+        `insumos-observador.md`) con `RUN_ROOT`, los TdR de `insumos/tdr/`,
+        `artefactos/insumos.md` y los insumos de la alianza (cartas,
+        certificados, borrador). Copia cada demanda territorial textual del
+        TdR (código, texto, departamento y fuente con archivo y página o
+        numeral) en `territorio.json` y los datos de cada entidad en
+        `alianza.json`. Lo que no consta en un insumo queda en `null`: nunca
+        inventa un NIT, un monto ni un grupo de investigación.
+        (b) Task → investigador (rama "Alianza y territorio SGR", ver
+        `investigador.md`) con los dos archivos, el árbol de problemas y
+        `artefactos/arboles/arbol_objetivos.json` inline. Liga cada demanda a
+        los ids de nodo de las causas que atiende (`causas`) y a los objetivos
+        específicos (`objetivos`, `OE1`…), y escribe su `articulacion`: cómo
+        el proyecto contribuye a esa demanda. Deja `actividades` y
+        `productos` vacíos: la cadena de valor todavía no existe (se completan
+        tras la Fase 4 SGR). No toca el `texto` de las demandas.
+        ──→ DISPATCHER: `python3 scripts/alianza_territorio_sgr.py check
+        <RUN_ROOT>`. Mientras reporte errores, devolvé la salida exacta al
+        agente dueño del dato (insumos-observador para entidades, aportes y
+        textos de demanda; investigador para causas, objetivos y
+        articulación) y repetí (a) o (b); los avisos se presentan en la
+        compuerta.
+        ──→ GATE Task → revisor (valida que cada demanda conserve el texto
+        del TdR y se ligue a causas y objetivos que de verdad la atienden,
+        que la composición mínima de la alianza esté y que cada aporte tenga
+        soporte en un insumo; recibe la salida limpia de `check`) ──→
+        usuario: la aprobación se da en la pestaña «Alianza y territorio» del
+        tablero, que la ata al hash de los dos archivos. Un ajuste pedido ahí
+        vuelve a (a) o (b) con el comentario exacto. Al aprobar, escribe
+        `GTerritorio = APROBADA` en `artefactos/estado_propuesta.md` (fila
+        `| GTerritorio | APROBADA |`) y el evento
+        `artefactos/pipeline/11-fase1b_sgr.md`. NO avances sin aprobación.
 Fase 1c [COMPUERTA COMBINADA G1c] Expansión de corpus SOTA: se ejecuta
         siempre que la Fase 1a cerró con G1a = APROBADA (ver
         `artefactos/estado_propuesta.md`, sub-tabla "G1a — Scoping temprano");
@@ -1301,6 +1347,13 @@ Fase 4 SGR [COMPUERTA G4.cv] Cadena de valor como datos. SOLO flujo SGR,
         `artefactos/estado_propuesta.md` (fila `| G4.cv | APROBADA |`) y el
         evento `artefactos/pipeline/52-fase4_sgr.md`. NO avances sin
         aprobación.
+        Tras aprobar G4.cv: Task → investigador (rama "Alianza y territorio
+        SGR") completa en `artefactos/sgr/territorio.json` las `actividades` y
+        `productos` de cada demanda, y en `artefactos/sgr/alianza.json` las
+        `actividades` de cada entidad, con los códigos de
+        `cadena_valor.json`; el DISPATCHER corre
+        `python3 scripts/alianza_territorio_sgr.py check <RUN_ROOT>` hasta que
+        no queden errores. Un código que no existe en la cadena es error.
 Fase 5  Task → investigador → §8 marco conceptual (en paralelo; 3-5
         subsecciones, título claro por concepto — ver `investigador.md`
         constraint 10). Antes de
@@ -1531,6 +1584,16 @@ Fase 6.47 [SOLO FLUJO SGR] Anexos MGA. Con el flujo `base` esta unidad no
         (`check_run.py` marca error un A23 escrito a mano o anterior al
         JSON). Si §13 cambia en esta fase, el presupuestador actualiza los
         costos en `cadena_valor.json` y se vuelve a correr `render`.
+        Los apartados de la alianza y el territorio salen de sus datos: el
+        DISPATCHER corre `python3 scripts/alianza_territorio_sgr.py render
+        <RUN_ROOT>`, que escribe `26_identificacion.tex`,
+        `27_demandas_territoriales.tex` y `28_matriz_responsabilidades.tex`
+        (ninguno lo escribe el redactor; si cambian los datos, se vuelve a
+        correr `render`). Task → redactor escribe
+        `29_idoneidad_trayectoria.tex` desde `artefactos/sgr/alianza.json`:
+        un apartado por entidad, en tercera persona, con sus grupos y su
+        trayectoria tal como constan en el archivo; no pega texto
+        institucional en primera persona.
         `main.tex` ya los incluye si existen. El redactor parte de los árboles aprobados, §10,
         §11 (indicador de resultado), §13, §14 y §15. Si un riesgo de A24 o
         una estrategia de participantes de A20 no tiene costo en §13,

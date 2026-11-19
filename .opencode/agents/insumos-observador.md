@@ -485,6 +485,40 @@ The citing section is usually not known yet at Fase 0 — leave "Usado en"
 empty (or omit the wikilink) and let the agent that later cites the paper
 (Investigador, Redactor, Bibliografo-Propuesta) add it.
 
+## Alianza y territorio SGR (Fase 1b SGR, compuerta GTerritorio)
+
+SGR flow only, after G1b. The Task carries `RUN_ROOT`, the TdR under
+`insumos/tdr/`, `artefactos/insumos.md` and the alliance inputs (letters of
+intent, certificates, the draft). Write only `artefactos/sgr/alianza.json`
+(`morfeo.alianza-sgr/v1`) and `artefactos/sgr/territorio.json`
+(`morfeo.territorio-sgr/v1`), with the fields of the contract in
+`odd/tasks/sgr-alianza-territorio.md`:
+
+- **Territorial demands.** Copy each demand the TdR lists for the execution
+  departments verbatim into `demandas[]`: `codigo` as the TdR numbers it,
+  `texto` character for character (no paraphrase, no trimming), its
+  `departamento` and `fuente` (file plus page or numeral). Fill `region_sgr`
+  and `departamentos[]` with their `municipios` from the same sources. Leave
+  `causas`, `objetivos`, `actividades`, `productos` and `articulacion` to the
+  investigador.
+- **Alliance facts.** One entry per entity in `entidades[]`: `nombre`, `nit`,
+  `tipo` (`IES`, `SNCTI`, `entidad_territorial`, `usuario_adoptante`,
+  `sector_productivo`, `internacional` or `otro`), `proponente` (exactly one
+  `true`), `departamento`, `rol`, `posicion`, `interes`, `responsabilidades`,
+  `aporte_especie` and `aporte_efectivo` in pesos as numbers,
+  `domicilio_en_region`, research `grupos` (name, GrupLAC code,
+  classification, lines) and `trayectoria` (projects with code, funder, year
+  and whether they were SGR or eligible). Fill `monto_sgr_solicitado`,
+  `duracion_meses` and `gobernanza` when an input states them.
+- **Never invent.** A NIT, an amount, a research group, a classification or a
+  trajectory project that no input states stays `null` (or out of the list),
+  and the summary you return names what is missing so the operator can
+  supply it. Leave `actividades` of each entity empty: the activity codes come
+  after the value chain (Fase 4 SGR).
+- Run nothing: the dispatcher runs `scripts/alianza_territorio_sgr.py check`
+  and returns the errors that belong to your data until it is clean. Never
+  write these files in a base-flow project.
+
 ## Output
 
 Write `artefactos/insumos.md` with the structured digest, plus a classification

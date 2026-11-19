@@ -509,5 +509,79 @@ class TestSgrValueChainRecipe(unittest.TestCase):
         self.assertIn("**SGR flow only, costs per activity code.**", presupuestador)
 
 
+class TestSgrAllianceRecipe(unittest.TestCase):
+    """SGR-only alliance and territory unit (odd/tasks/sgr-alianza-territorio.md, S1, S5)."""
+
+    COMMANDS = REPO_ROOT / ".claude" / "commands"
+
+    def setUp(self):
+        self.text = (self.COMMANDS / "propuesta.md").read_text(encoding="utf-8")
+
+    def _block(self, start: str, end: str, text: str | None = None) -> str:
+        text = self.text if text is None else text
+        i = text.index(start)
+        return " ".join(text[i:text.index(end, i + len(start))].split())
+
+    def test_alliance_unit_runs_only_in_the_sgr_flow_between_trees_and_corpus(self):
+        block = self._block("Fase 1b SGR [COMPUERTA GTerritorio]", "\nFase 1c ")
+        self.assertIn("SOLO flujo SGR", block)
+        self.assertIn("con el flujo `base` esta unidad no corre", block)
+        self.assertIn("Task → insumos-observador", block)
+        self.assertIn("Task → investigador", block)
+        self.assertIn("python3 scripts/alianza_territorio_sgr.py check <RUN_ROOT>", block)
+        self.assertIn("GATE Task → revisor", block)
+        self.assertIn("pestaña «Alianza y territorio»", block)
+        self.assertIn("| GTerritorio | APROBADA |", block)
+        self.assertIn("artefactos/pipeline/11-fase1b_sgr.md", block)
+        self.assertIn("artefactos/sgr/alianza.json", block)
+        self.assertIn("artefactos/sgr/territorio.json", block)
+        self.assertIn("textual", block)
+        self.assertLess(self.text.index("Fase 1b [G1b]"), self.text.index("Fase 1b SGR [COMPUERTA GTerritorio]"))
+        self.assertLess(self.text.index("Fase 1b SGR [COMPUERTA GTerritorio]"), self.text.index("Fase 1c [COMPUERTA"))
+
+    def test_value_chain_and_annex_phases_complete_the_alliance_data(self):
+        chain = self._block("Fase 4 SGR [COMPUERTA G4.cv]", "\nFase 5  ")
+        self.assertIn("artefactos/sgr/territorio.json", chain)
+        self.assertIn("`actividades` y `productos` de cada demanda", chain)
+        annex = self._block("Fase 6.47 [SOLO FLUJO SGR]", "\nFase 6.5 ")
+        self.assertIn("python3 scripts/alianza_territorio_sgr.py render <RUN_ROOT>", annex)
+        self.assertIn("29_idoneidad_trayectoria.tex", annex)
+        self.assertIn("en tercera persona", annex)
+        for stem in ("26_identificacion", "27_demandas_territoriales", "28_matriz_responsabilidades"):
+            self.assertIn(stem, annex)
+
+    def test_base_flow_blocks_never_run_the_alliance_script(self):
+        for start, end in (("Fase 1b [G1b]", "\nFase 1b SGR "), ("Fase 1c [COMPUERTA", "\nFase 1  "),
+                           ("Fase 4  Task → investigador", "\nFase 4 SGR ")):
+            with self.subTest(block=start):
+                self.assertNotIn("alianza_territorio_sgr.py", self._block(start, end))
+
+    def test_step_table_and_continuar_declare_the_unit(self):
+        steps = (self.COMMANDS / "_propuesta-steps.md").read_text(encoding="utf-8")
+        row = next(line for line in steps.splitlines() if line.startswith("| `fase1b` |"))
+        self.assertTrue(row.endswith("| G1b | `fase1b_sgr` (flujo SGR) o `fase1c` (flujo base) |"), row)
+        row = next(line for line in steps.splitlines() if line.startswith("| `fase1b_sgr` |"))
+        self.assertIn("el flujo base la salta", row)
+        self.assertIn("| G territorio | `fase1c` |", row)
+        continuar = (self.COMMANDS / "propuesta-continuar.md").read_text(encoding="utf-8")
+        self.assertIn("| `fase1b_sgr` | Fase 1b SGR [GTerritorio] (solo flujo SGR) |", continuar)
+        note = self._block("### Gate PASS o unidad sin gate completada", "```", continuar)
+        self.assertIn("tras `fase1b`, `fase1b_sgr` con `sgr` y `fase1c` con `base`", note)
+
+    def test_agents_carry_their_sgr_only_alliance_duties(self):
+        agents = REPO_ROOT / ".claude" / "agents"
+        heading = "## Alianza y territorio SGR (Fase 1b SGR, compuerta GTerritorio)\n\nSGR flow only"
+        observer = (agents / "insumos-observador.md").read_text(encoding="utf-8")
+        self.assertIn(heading, observer)
+        self.assertIn("`null`", observer[observer.index(heading):])
+        investigador = (agents / "investigador.md").read_text(encoding="utf-8")
+        self.assertIn(heading, investigador)
+        self.assertIn("`articulacion`", investigador[investigador.index(heading):])
+        redactor = (agents / "redactor.md").read_text(encoding="utf-8")
+        self.assertIn("`29_idoneidad_trayectoria`", redactor)
+        juez = (agents / "juez-sgr.md").read_text(encoding="utf-8")
+        self.assertIn("python3 scripts/alianza_territorio_sgr.py datos <RUN_ROOT> --json", juez)
+
+
 if __name__ == "__main__":
     unittest.main()

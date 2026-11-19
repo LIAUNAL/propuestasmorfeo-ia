@@ -52,6 +52,21 @@ class Units(unittest.TestCase):
 
     def test_prose_alias_resolves(self) -> None:
         self.assertEqual(normalise_gate("G causas"), "GCausas")
+        self.assertEqual(normalise_gate("G territorio"), "GTerritorio")
+
+    def test_sgr_runs_the_alliance_gate_between_the_trees_and_the_corpus(self) -> None:
+        units = units_for_flujo("sgr")
+        nxt = {u["id"]: u.get("next") for u in units}
+        self.assertEqual(nxt["fase1b"], "fase1b_sgr")
+        self.assertEqual(nxt["fase1b_sgr"], "fase1c")
+        unit = next(u for u in units if u["id"] == "fase1b_sgr")
+        self.assertEqual(unit["gate"], "GTerritorio")
+
+    def test_base_flow_goes_straight_from_the_trees_to_the_corpus(self) -> None:
+        units = units_for_flujo("base")
+        self.assertNotIn("fase1b_sgr", _ids(units))
+        self.assertEqual({u["id"]: u.get("next") for u in units}["fase1b"], "fase1c")
+        self.assertNotIn("GTerritorio", {g["id"] for g in canonical_gates("base")})
 
 
 class GateStatus(unittest.TestCase):
@@ -87,6 +102,16 @@ class GateStatus(unittest.TestCase):
         status = self.status("| G4 (objetivos) | APROBADA |\n")
         self.assertEqual(status["G4"], "PASS")
         self.assertEqual(status["G4.cv"], "PENDING")
+
+    def test_approving_g1b_does_not_approve_the_alliance_gate(self) -> None:
+        status = self.status("| G1b | APROBADA |\n")
+        self.assertEqual(status["G1b"], "PASS")
+        self.assertEqual(status["GTerritorio"], "PENDING")
+
+    def test_the_alliance_gate_is_read_on_its_own(self) -> None:
+        status = self.status("| G1b | APROBADA |\n| GTerritorio | APROBADA |\n")
+        self.assertEqual(status["GTerritorio"], "PASS")
+        self.assertEqual(status["G1c"], "PENDING")
 
     def test_the_causes_gate_is_read_on_its_own(self) -> None:
         status = self.status("| G1a | APROBADA |\n| GCausas | APROBADA |\n")
@@ -198,6 +223,31 @@ class InFlightRuns(unittest.TestCase):
     def test_run_at_the_value_chain_gate_keeps_it_pending(self) -> None:
         state = self.progress("fase4_sgr", "| G4 | APROBADA |\n", unit="fase4_sgr")["state"]
         self.assertEqual(state, "pending")
+
+    def test_run_already_past_g1b_skips_the_alliance_gate(self) -> None:
+        for next_step in ("fase1c", "fase1"):
+            with self.subTest(next_step=next_step):
+                state = self.progress(next_step, "| G1b | APROBADA |\n", unit="fase1b_sgr")["state"]
+                self.assertEqual(state, "skipped")
+
+    def test_run_at_the_alliance_gate_keeps_it_pending(self) -> None:
+        state = self.progress("fase1b_sgr", "| G1b | APROBADA |\n", unit="fase1b_sgr")["state"]
+        self.assertEqual(state, "pending")
+
+    def test_past_run_with_one_alliance_file_is_not_skipped(self) -> None:
+        sgr = self.run / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "alianza.json").write_text("{}")
+        state = self.progress("fase1c", "| G1b | APROBADA |\n", unit="fase1b_sgr")["state"]
+        self.assertEqual(state, "partial")
+
+    def test_alliance_gate_done_with_both_files_is_verified(self) -> None:
+        sgr = self.run / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "alianza.json").write_text("{}")
+        (sgr / "territorio.json").write_text("{}")
+        rows = "| G1b | APROBADA |\n| GTerritorio | APROBADA |\n"
+        self.assertEqual(self.progress("fase1c", rows, unit="fase1b_sgr")["state"], "verified")
 
 
 if __name__ == "__main__":

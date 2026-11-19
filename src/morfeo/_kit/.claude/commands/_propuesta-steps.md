@@ -72,7 +72,8 @@ más de 6 h, se muestra como obsoleto y no bloquea el botón «Ejecutar».
 |-------------|------|------|----------------|
 | `fase1a` | Early scoping (bibliógrafo MODE=scope, codebase-memory scoping, investigador early) | G1a | `fase1a_sgr` (flujo SGR) o `fase1b` (flujo base) |
 | `fase1a_sgr` | Solo flujo SGR: causas directas en lenguaje MGA (`artefactos/arboles/causas_directas.md`), modo plantilla de IA aplicada (levantamiento de datos, plataforma y modelos, apropiación) o exploratorio; el flujo base la salta | G causas | `fase1b` |
-| `fase1b` | Árbol de problemas (spec + `figura.py`) y árbol de objetivos (`arbol_objetivos.json`) con las reglas MGA, en ambos flujos + revisor | G1b | `fase1c` |
+| `fase1b` | Árbol de problemas (spec + `figura.py`) y árbol de objetivos (`arbol_objetivos.json`) con las reglas MGA, en ambos flujos + revisor | G1b | `fase1b_sgr` (flujo SGR) o `fase1c` (flujo base) |
+| `fase1b_sgr` | Solo flujo SGR: alianza y territorio como datos (`artefactos/sgr/alianza.json`, `artefactos/sgr/territorio.json`): insumos-observador extrae las demandas territoriales textuales del TdR y los datos de la alianza, investigador liga cada demanda a causas y objetivos, `alianza_territorio_sgr.py check` limpio + revisor; el usuario la aprueba en la pestaña Alianza y territorio; el flujo base la salta | G territorio | `fase1c` |
 | `fase1c` | SOTA corpus expansion + WRITE-REFS + vault codebase-memory once | G1c | `fase1` |
 | `fase1` | MGA resumido (`artefactos/mga_resumido.md`) + §3 problema derivada de él + grant-flow-auditor + revisor | G1 | `fase2` |
 | `fase2` | §4 SOTA + §5 hipótesis + grant-flow-auditor + spec del mapa SOTA (`figura.py`) + revisor | G2 | `fase3` |
@@ -85,7 +86,7 @@ más de 6 h, se muestra como obsoleto y no bloquea el botón «Ejecutar».
 | `fase6_4` | §13 presupuesto + revisor | G budget | `fase6_45` |
 | `fase6_45` | §14 cronograma + §15 productos (xltabular) + §16 bib + grant-flow-auditor (no own gate) | — | `fase6_46` |
 | `fase6_46` | §17 articulación con comunidades + §18 apropiación social + grant-flow-auditor + revisor | G comunidades | `fase6_47` (flujo SGR) o `fase6_5` (flujo base) |
-| `fase6_47` | Solo flujo SGR: anexos MGA 19 a 25 (`guiaProyectosIA_Agente_Regalias.md`) + revisor; el flujo base la salta | G anexos | `fase6_5` |
+| `fase6_47` | Solo flujo SGR: anexos MGA 19 a 25 (`guiaProyectosIA_Agente_Regalias.md`), 26 a 28 renderizados con `alianza_territorio_sgr.py render` y 29 idoneidad y trayectoria + revisor; el flujo base la salta | G anexos | `fase6_5` |
 | `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave; sin sección cuerpo de título) + grant-flow-auditor + revisor | G front | `fase7` |
 | `fase7` | Final audit + assemble `main.tex` (\setcounter{section}{1}, xltabular, bibliografía limpia); flujo SGR: juez-sgr asesor tras el ensamble (ver «Juez final») | G final | `done` |
 | `done` | Pipeline complete | — | print `cd proposal && ./build.sh` |

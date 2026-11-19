@@ -75,8 +75,12 @@ Fuentes en el repositorio: la evidencia completa en
 | 22 Cronograma | `14_cronograma_actividades` | Meses, etapa y ruta crítica; mismos nombres de actividad |
 | 23 Riesgos | `24_riesgos` | Descripción nominal; medida en infinitivo con responsable y costo |
 | 26 Ética | `12_consideraciones_eticas` | Futuro normativo atado a las actividades |
+| 1 Identificación | `26_identificacion` (generada) | Tablas desde `alianza.json` y `territorio.json`; demandas textuales con su código |
+| 8 y 8.1 Demandas territoriales | `27_demandas_territoriales` (generada) | Demanda textual + articulación en presente y futuro, en tercera persona |
+| 10.1 Matriz de responsabilidades | `28_matriz_responsabilidades` (generada) | Responsabilidades con códigos de actividad; gobernanza |
+| 27 Idoneidad y trayectoria | `29_idoneidad_trayectoria` | Una subsección por entidad, tercera persona, sin texto institucional en primera persona |
 
-Los capítulos 1, 16, 18, 24, 25, 27, 28 y 31 aún no tienen archivo en Morfeo;
+Los capítulos 16, 18, 24, 25, 28 y 31 aún no tienen archivo en Morfeo;
 el léxico los lista en `capitulos_sin_archivo` con su nota de redacción.
 
 ## 4. Ajustes a `estilo-natural-es` y `depuracion-redundancias-es` en SGR

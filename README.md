@@ -87,6 +87,8 @@ morfeo init ~/propuestas/regalias-ia --title "Plataforma de IA para el agro" --s
 
 La bandera guarda `"flujo": "sgr"` en `.morfeo/config.json` y `.marco/config.json`, y el pipeline suma lo que pide la metodología MGA sin reemplazar el flujo base. Sin ella el proyecto queda en `"flujo": "base"`. `morfeo upgrade` conserva el valor, y cada corrida lo registra en su `_run.md`.
 
+En el flujo SGR, después de los árboles (Fase 1b), la unidad `fase1b_sgr` «Alianza y territorio» (compuerta `GTerritorio`) guarda las entidades de la alianza y las demandas territoriales copiadas del TdR en `artefactos/sgr/alianza.json` y `artefactos/sgr/territorio.json`; el operador las revisa y aprueba en la pestaña del tablero del mismo nombre.
+
 Dentro del directorio inicializado puedes ejecutar los comandos del asistente en Claude Code (`/propuesta-init`, `/propuesta-analizar`, `/propuesta-continuar`) o el pipeline de tu runtime preferido.
 
 ---

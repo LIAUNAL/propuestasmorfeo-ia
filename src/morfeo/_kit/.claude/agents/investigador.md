@@ -529,6 +529,28 @@ activity candidate per means. Edit only that file:
   presupuestador sets them in Fase 6.4). Run nothing: the dispatcher runs
   `cadena_valor_sgr.py check` and returns its errors to you until it is clean.
 
+## Alianza y territorio SGR (Fase 1b SGR, compuerta GTerritorio)
+
+SGR flow only. The insumos-observador has already written
+`artefactos/sgr/alianza.json` and `artefactos/sgr/territorio.json`; the Task
+carries both inline with the problem tree and
+`artefactos/arboles/arbol_objetivos.json`. Edit only these fields:
+
+- **After G1b.** For each demand in `territorio.json`, `causas` (the tree node
+  ids of the causes it addresses) and `objetivos` (`OE1`, `OE2`… of the
+  objective tree; at least one), and its `articulacion`: two or three
+  sentences in third person on how the project contributes to that demand,
+  naming the cause or objective it touches. Leave `actividades` and
+  `productos` empty, since the value chain does not exist yet. Never edit
+  `texto`, `codigo` or `fuente`: the demand stays verbatim from the TdR.
+- **After G4.cv.** With `artefactos/sgr/cadena_valor.json` approved, fill the
+  `actividades` (`1.1.1`) and `productos` (`1.1`) of each demand, and the
+  `actividades` of each entity in `alianza.json`, using only codes that exist
+  in the chain. If a demand needs an activity the chain lacks, say so: it is
+  added to the chain first (Fase 4 SGR), never here.
+- Run nothing: the dispatcher runs `scripts/alianza_territorio_sgr.py check`
+  and returns its errors to you until it is clean.
+
 ## Literature search stack (free, no paid API)
 
 When you need to ground subproblems, gaps, novelty positioning, or the
