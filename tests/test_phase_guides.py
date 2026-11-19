@@ -14,7 +14,7 @@ from pathlib import Path
 from morfeo.core.pipeline_units import PIPELINE_UNITS
 
 INDEX = Path(__file__).resolve().parent.parent / "src" / "morfeo" / "dashboard" / "static" / "index.html"
-PANELS = {"pipeline", "trees", "cadena", "mga", "sections", "atlas", "preview", "artifacts", "telemetria", "flow"}
+PANELS = {"pipeline", "trees", "cadena", "alianza", "mga", "sections", "atlas", "preview", "artifacts", "telemetria", "flow"}
 
 
 class PhaseGuidesTest(unittest.TestCase):

@@ -105,7 +105,7 @@ test('SGR: la pestaña «Cadena de valor» aparece justo después del árbol', a
   const i = labels.indexOf('Cadena de valor');
   assert.ok(i > 0, 'la pestaña existe en SGR');
   assert.equal(labels[i - 1], 'Árbol de problemas y objetivos');
-  assert.equal(labels[i + 1], 'MGA resumido');
+  assert.equal(labels[i + 1], 'Alianza y territorio');
 });
 
 test('base: la pestaña no existe y la ruta directa muestra un aviso', async (t) => {

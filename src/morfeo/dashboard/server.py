@@ -24,6 +24,7 @@ from ..core.judge import EVALUACION_FILE, JUDGE_COMMAND, build_action_prompt, lo
 from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
 from ..core.style_sgr import load_style
 from ..core.value_chain import approve as approve_value_chain, build_adjust_prompt, load_value_chain
+from ..core.alliance import approve as approve_alliance, build_adjust_prompt as build_alliance_prompt, load_alliance
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -162,6 +163,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_judge()
         elif path == "/api/value-chain":
             self.serve_value_chain()
+        elif path == "/api/alliance":
+            self.serve_alliance()
         elif path == "/api/style-sgr":
             self.serve_style_sgr()
         else:
@@ -193,6 +196,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_value_chain_approve()
         elif path == "/api/value-chain/adjust":
             self.handle_value_chain_adjust()
+        elif path == "/api/alliance/approve":
+            self.handle_alliance_approve()
+        elif path == "/api/alliance/adjust":
+            self.handle_alliance_adjust()
         else:
             self.send_error(404, "Not Found")
 
@@ -711,6 +718,42 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             return
         try:
             prompt = build_adjust_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    # Alianza y territorio (solo flujo SGR), con las convenciones de la cadena de valor.
+    def serve_alliance(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_alliance(run_dir)})
+
+    def handle_alliance_approve(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = approve_alliance(run_dir, str(payload.get("hash") or "") or None)
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_alliance_adjust(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            prompt = build_alliance_prompt(run_dir, payload.get("nota"))
         except ValueError as err:
             self._send_json(400, {"ok": False, "error": str(err)})
             return

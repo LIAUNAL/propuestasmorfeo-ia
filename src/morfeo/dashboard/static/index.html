@@ -486,6 +486,30 @@
     .sec-style-list { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
     .sec-style-list th, .sec-style-list td { text-align: left; padding: 0.35rem 0.45rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; overflow-wrap: anywhere; }
     .sec-style-list code { font-size: 0.72rem; }
+    /* Alianza y territorio SGR: vista previa de la rúbrica, entidades por tipo y
+       matriz de demandas, con el lenguaje visual de la cadena de valor. */
+    .al-heading { font-size: 0.82rem; color: var(--text); margin: 1rem 0 0.5rem; }
+    .al-scores { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; }
+    .al-score { padding: 0.55rem 0.6rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--ok); font-size: 0.78rem; overflow-wrap: anywhere; }
+    .al-score.is-incomplete { border-left-color: var(--warn); }
+    .al-score__head { display: flex; gap: 0.4rem; align-items: baseline; flex-wrap: wrap; }
+    .al-score__name { font-weight: 600; color: var(--text); flex: 1 1 100px; }
+    .al-score__value { font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0; }
+    .al-score__value strong { font-size: 1.1rem; color: var(--text); }
+    .al-score__calc { color: var(--text-muted); font-size: 0.74rem; }
+    .al-group + .al-group { margin-top: 0.75rem; }
+    .al-group h4 { font-size: 0.78rem; color: var(--text-dim); margin-bottom: 0.4rem; display: flex; gap: 0.4rem; align-items: center; }
+    .al-entities { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.6rem; }
+    .al-entity { padding: 0.55rem 0.6rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--accent); font-size: 0.78rem; overflow-wrap: anywhere; }
+    .al-entity__head { display: flex; gap: 0.4rem; align-items: baseline; flex-wrap: wrap; margin-bottom: 0.3rem; }
+    .al-entity__name { font-weight: 600; color: var(--text); flex: 1 1 140px; }
+    .al-grupos { margin: 0 0 0.35rem 1rem; color: var(--text-muted); }
+    .al-trayectoria, .al-meta, .al-region { font-size: 0.74rem; color: var(--text-muted); }
+    .al-depts { margin-left: 1rem; font-size: 0.8rem; color: var(--text); }
+    .al-scroll { overflow-x: auto; }
+    .al-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+    .al-table th { text-align: left; font-weight: 600; color: var(--text-dim); padding: 0.3rem; border-bottom: 1px solid var(--border-subtle); }
+    .al-table td { padding: 0.35rem 0.3rem; vertical-align: top; border-bottom: 1px solid var(--border-subtle); overflow-wrap: anywhere; }
     /* Juez final: puntaje estimado, criterios, alertas, acciones e historial. */
     .judge-intro { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
     .judge-feedback { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -2761,6 +2785,40 @@
       </div>
     </div>
 
+    <!-- TAB: ALIANZA Y TERRITORIO (solo flujo SGR; el botón se agrega con el flujo) -->
+    <div id="pane-alianza" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Alianza y territorio: entidades, demandas y configuración regional</div>
+          <span class="panel__meta" id="alRunMeta">—</span>
+        </div>
+        <p class="judge-intro">Las entidades de la alianza con su tipo, rol, posición, departamento y aportes; las demandas territoriales del TdR ligadas a causas, objetivos, actividades y productos; y la estimación en vivo de los subcriterios de la rúbrica que se calculan contando (alcance regional, composición de la alianza, arraigo, aliado internacional y cofinanciación).</p>
+      </div>
+      <div class="tree-layout">
+        <div class="panel tree-stage">
+          <div id="alContent"></div>
+        </div>
+        <aside class="panel tree-review" id="alReviewPanel">
+          <div class="panel__header">
+            <div class="panel__title">Revisión con el agente</div>
+            <span class="badge" id="alStatusBadge">—</span>
+          </div>
+          <div class="tree-review__body">
+            <p class="vc-review-note" id="alHashNote"></p>
+            <label class="tree-label" for="alNoteInput">Ajuste solicitado</label>
+            <textarea id="alNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar la Alcaldía de Manizales como entidad territorial o ligar la demanda D2 al OE2"></textarea>
+            <p class="tree-gate-note" id="alGateNote"></p>
+            <div class="tree-actions">
+              <button class="btn btn--sm btn--primary" id="alSendBtn" onclick="sendAllianceAdjust()">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="alApproveBtn" onclick="approveAlliance()">✅ Aprobar alianza y territorio</button>
+              <button class="btn btn--sm" id="alRetryBtn" onclick="retryAlliancePrompt()" style="display: none;">↻ Reintentar envío</button>
+            </div>
+            <p class="tree-message" id="alMessage" role="status"></p>
+          </div>
+        </aside>
+      </div>
+    </div>
+
     <!-- TAB: MGA RESUMIDO -->
     <div id="pane-mga" class="tab-pane">
       <div class="panel">
@@ -3674,6 +3732,7 @@
       fase1a: { label: 'Indicaciones para el scoping', placeholder: 'Términos de búsqueda, ventana de años, venues o grupos de referencia y, si ya los tienes, los tres subproblemas que propones…' },
       fase1a_sgr: { label: 'Indicaciones para las causas directas', placeholder: 'Modo plantilla de IA aplicada (levantamiento de datos, plataforma y modelos, apropiación) o exploratorio; población, territorio y fuentes para la magnitud de cada causa…' },
       fase1b: { label: 'Indicaciones para los árboles', placeholder: 'Problema central (calificativo negativo + variable + población o lugar), causas directas e indirectas, efectos y la magnitud con su fuente…', panel: { tab: 'trees', label: 'Revisar y aprobar en «Árbol de problemas y objetivos»' } },
+      fase1b_sgr: { label: 'Indicaciones para la alianza y el territorio', placeholder: 'Entidades de la alianza (IES, actores del SNCTI, entidades territoriales, usuarios o adoptantes, aliado internacional) con su rol, NIT y aportes; demandas territoriales del TdR que el proyecto atiende; departamentos y municipios de ejecución…', panel: { tab: 'alianza', label: 'Ver alianza y territorio' } },
       fase1c: { label: 'Indicaciones para el corpus SOTA', placeholder: 'Temas y enfoques a cubrir, años, revistas o conferencias, papers semilla que no pueden faltar…' },
       fase1: { label: 'Indicaciones para el MGA resumido y §3', placeholder: 'Sector de aplicación, departamentos o regiones, fuentes de cifras (DANE, IDEAM, ministerios…) e indicador de línea base que buscas mover…', panel: { tab: 'mga', label: 'Ver el MGA resumido' } },
       fase2: { label: 'Indicaciones para el estado del arte y la hipótesis', placeholder: 'Enfoques o familias de modelos a priorizar en el estado del arte, papers clave, brechas que quieres resaltar y la idea de la hipótesis…', panel: { tab: 'sections', label: 'Ver §4 y §5 en Secciones' } },
@@ -5438,6 +5497,342 @@
       if (VC_STATE.pendingPrompt) await deliverValueChainPrompt(VC_STATE.pendingPrompt);
     }
 
+    // ── Alianza y territorio SGR ────────────────────────────────────────────
+    // Lee /api/alliance (artefactos/sgr/alianza.json, territorio.json, los
+    // hallazgos y la vista previa de la rúbrica de scripts/alianza_territorio_sgr.py).
+    // Solo existe en el flujo SGR: el botón se agrega después de «Cadena de valor»
+    // y, en el flujo base, la ruta directa avisa.
+    const AL_STATE = { data: null, sig: null, timer: null, pendingPrompt: null };
+    const AL_TIPOS = [
+      ['IES', 'Instituciones de educación superior'],
+      ['SNCTI', 'Otros actores del SNCTI'],
+      ['entidad_territorial', 'Entidades territoriales'],
+      ['usuario_adoptante', 'Usuarios y adoptantes'],
+      ['sector_productivo', 'Sector productivo'],
+      ['internacional', 'Aliados internacionales'],
+      ['otro', 'Otras entidades'],
+    ];
+    const AL_POSICIONES = { cooperante: 'Cooperante', beneficiario: 'Beneficiario', oponente: 'Oponente', perjudicado: 'Perjudicado' };
+
+    function alStrings(v) {
+      return Array.isArray(v) ? v.filter(x => x !== null && x !== undefined && x !== '').map(String) : [];
+    }
+
+    function alCodes(v) {
+      const list = alStrings(v);
+      return list.length ? list.map(c => `<code>${escapeHtml(c)}</code>`).join(' ') : '—';
+    }
+
+    function alMessage(text, tone) {
+      const el = document.getElementById('alMessage');
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = `tree-message${tone ? ' is-' + tone : ''}`;
+    }
+
+    function syncAllianceTab() {
+      const nav = document.querySelector('.tabs-nav');
+      if (!nav) return;
+      let btn = document.getElementById('allianceTabBtn');
+      if (!isSgrFlujo()) {
+        if (btn) btn.remove();
+        return;
+      }
+      if (btn) return;
+      btn = document.createElement('button');
+      btn.id = 'allianceTabBtn';
+      btn.className = `tab-nav__btn${activeTab === 'alianza' ? ' active' : ''}`;
+      btn.setAttribute('onclick', "navigateTab('alianza')");
+      btn.textContent = 'Alianza y territorio';
+      const anchor = document.getElementById('valueChainTabBtn')
+        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+      if (anchor) anchor.after(btn);
+      else nav.appendChild(btn);
+    }
+
+    async function loadAlliance() {
+      let data = null;
+      try {
+        const res = await fetch('/api/alliance', { cache: 'no-store' });
+        data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      } catch (err) {
+        AL_STATE.data = null;
+        AL_STATE.sig = null;
+        const el = document.getElementById('alContent');
+        if (el) el.innerHTML = `<div class="tree-empty"><p>No se pudo leer la alianza y el territorio de la corrida activa.</p><small>${escapeHtml(err.message || String(err))}</small></div>`;
+        return;
+      }
+      AL_STATE.data = data;
+      const sig = JSON.stringify(data);
+      if (sig !== AL_STATE.sig) {
+        AL_STATE.sig = sig;
+        renderAlliance();
+      }
+    }
+
+    function startAlliancePolling() {
+      loadAlliance();
+      if (AL_STATE.timer) return;
+      AL_STATE.timer = setInterval(() => {
+        if (activeTab === 'alianza' && !document.hidden) loadAlliance();
+      }, 5000);
+    }
+
+    function stopAlliancePolling() {
+      if (AL_STATE.timer) clearInterval(AL_STATE.timer);
+      AL_STATE.timer = null;
+    }
+
+    function alScoresHtml(puntaje) {
+      const list = vcList(puntaje);
+      if (!list.length) return '<p class="judge-empty">Sin vista previa de la rúbrica: hace falta <code>artefactos/juez/rubrica.json</code> o una rúbrica que el juez detecte en el TdR.</p>';
+      return list.map(s => `<div class="al-score${s.incompleto ? ' is-incomplete' : ''}" data-subcriterio="${escapeHtml(String(s.subcriterio ?? ''))}">
+          <div class="al-score__head"><span class="vc-code">${vcText(s.subcriterio)}</span><span class="al-score__name">${vcText(s.nombre)}</span>${s.incompleto ? '<span class="badge badge--warn al-incompleto">incompleto</span>' : ''}</div>
+          <div class="al-score__value"><strong>${vcText(s.puntaje)}</strong> / ${vcText(s.max)}</div>
+          <p class="al-score__calc">${vcText(s.calculo)}</p>
+        </div>`).join('');
+    }
+
+    function alEntityHtml(e) {
+      const tray = vcList(e.trayectoria);
+      const sgr = tray.filter(p => p.sgr_o_elegible === true).length;
+      const grupos = vcList(e.grupos);
+      const posicion = AL_POSICIONES[e.posicion] || e.posicion;
+      return `<article class="al-entity" data-entidad="${escapeHtml(String(e.id ?? ''))}">
+          <div class="al-entity__head"><span class="vc-code">${vcText(e.id)}</span><span class="al-entity__name">${vcText(e.nombre)}</span>${e.proponente === true ? '<span class="badge badge--ok al-proponente">Proponente</span>' : ''}</div>
+          <dl class="vc-fields">
+            <dt>Rol</dt><dd>${vcText(e.rol)}</dd>
+            <dt>Posición</dt><dd>${vcText(posicion)}</dd>
+            <dt>Departamento</dt><dd>${vcText(e.departamento)}</dd>
+            <dt>NIT</dt><dd>${vcText(e.nit)}</dd>
+            <dt>Aporte en especie</dt><dd>${vcMoney(e.aporte_especie)}</dd>
+            <dt>Aporte en efectivo</dt><dd>${vcMoney(e.aporte_efectivo)}</dd>
+            <dt>Actividades</dt><dd>${alCodes(e.actividades)}</dd>
+          </dl>
+          ${grupos.length ? `<ul class="al-grupos">${grupos.map(g => `<li>${vcText(g.nombre)}${g.codigo_gruplac ? ` · <code>${escapeHtml(String(g.codigo_gruplac))}</code>` : ''}${g.clasificacion ? ` · <span class="badge badge--info">${escapeHtml(String(g.clasificacion))}</span>` : ''}</li>`).join('')}</ul>` : ''}
+          <p class="al-trayectoria">${tray.length
+            ? `${escapeHtml(String(tray.length))} proyecto${tray.length === 1 ? '' : 's'} de trayectoria · ${escapeHtml(String(sgr))} SGR o elegible${sgr === 1 ? '' : 's'}`
+            : 'Sin proyectos de trayectoria registrados'}</p>
+        </article>`;
+    }
+
+    function alEntitiesHtml(alianza) {
+      if (!alianza) return '<p class="judge-empty">Todavía no hay <code>artefactos/sgr/alianza.json</code>.</p>';
+      const entidades = vcList(alianza.entidades);
+      if (!entidades.length) return '<p class="judge-empty">La alianza no trae entidades.</p>';
+      const known = new Set(AL_TIPOS.map(([k]) => k));
+      const groups = AL_TIPOS.slice();
+      entidades.forEach(e => {
+        const tipo = String(e.tipo ?? '');
+        if (!known.has(tipo)) { known.add(tipo); groups.push([tipo, tipo || 'Sin tipo']); }
+      });
+      return groups.map(([tipo, label]) => {
+        const items = entidades.filter(e => String(e.tipo ?? '') === tipo);
+        if (!items.length) return '';
+        return `<section class="al-group" data-tipo="${escapeHtml(tipo)}">
+            <h4>${escapeHtml(label)} <span class="badge">${escapeHtml(String(items.length))}</span></h4>
+            <div class="al-entities">${items.map(alEntityHtml).join('')}</div>
+          </section>`;
+      }).join('');
+    }
+
+    function alDepartmentsHtml(territorio) {
+      if (!territorio) return '<p class="judge-empty">Todavía no hay <code>artefactos/sgr/territorio.json</code>.</p>';
+      const depts = vcList(territorio.departamentos);
+      return `<p class="al-region">Región SGR: <strong>${vcText(territorio.region_sgr)}</strong></p>
+        ${depts.length ? `<ul class="al-depts">${depts.map(d => {
+          const muni = alStrings(d.municipios);
+          return `<li class="al-dept"><strong>${vcText(d.nombre)}</strong>: ${muni.length ? escapeHtml(muni.join(', ')) : 'sin municipios registrados'}</li>`;
+        }).join('')}</ul>` : '<p class="judge-empty">Sin departamentos de ejecución.</p>'}`;
+    }
+
+    function alDemandsHtml(territorio) {
+      const list = territorio ? vcList(territorio.demandas) : [];
+      if (!list.length) return '<p class="judge-empty">Sin demandas territoriales todavía.</p>';
+      return `<table class="al-table">
+          <thead><tr><th>Demanda territorial</th><th>Causas y objetivos</th><th>Actividades</th><th>Productos</th><th>Articulación del proyecto</th></tr></thead>
+          <tbody>${list.map(d => `<tr data-demanda="${escapeHtml(String(d.codigo ?? ''))}">
+            <td><span class="vc-code">${vcText(d.codigo)}</span> ${vcText(d.texto)}<div class="al-meta">${vcText(d.departamento)} · ${vcText(d.fuente)}</div></td>
+            <td><div>Causas: ${alCodes(d.causas)}</div><div>Objetivos: ${alCodes(d.objetivos)}</div></td>
+            <td>${alCodes(d.actividades)}</td>
+            <td>${alCodes(d.productos)}</td>
+            <td>${vcText(d.articulacion)}</td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+    }
+
+    function alConfigHtml(territorio) {
+      const list = territorio ? vcList(territorio.configuracion_regional) : [];
+      if (!list.length) return '<p class="judge-empty">Sin configuración regional todavía.</p>';
+      return `<table class="al-table">
+          <thead><tr><th>Actor</th><th>Departamento</th><th>Pertinencia</th></tr></thead>
+          <tbody>${list.map(c => `<tr><td>${vcText(c.actor)}</td><td>${vcText(c.departamento)}</td><td>${vcText(c.pertinencia)}</td></tr>`).join('')}</tbody>
+        </table>`;
+    }
+
+    function alGovernanceHtml(alianza) {
+      const g = alianza && alianza.gobernanza && typeof alianza.gobernanza === 'object' ? alianza.gobernanza : null;
+      if (!g) return '<p class="judge-empty">Sin modelo de gobernanza todavía.</p>';
+      const instancias = Array.isArray(g.instancias) ? (alStrings(g.instancias).join(', ') || null) : g.instancias;
+      return `<dl class="vc-fields">
+          <dt>Toma de decisiones</dt><dd>${vcText(g.toma_decisiones)}</dd>
+          <dt>Instancias</dt><dd>${vcText(instancias)}</dd>
+          <dt>Propiedad intelectual</dt><dd>${vcText(g.propiedad_intelectual)}</dd>
+          <dt>Seguimiento</dt><dd>${vcText(g.seguimiento)}</dd>
+        </dl>`;
+    }
+
+    function alFindingsHtml(hallazgos) {
+      const list = vcList(hallazgos);
+      if (!list.length) return '<p class="judge-empty">La revisión de la alianza y el territorio no reporta hallazgos.</p>';
+      return VC_SEVERITIES.map(([sev, label, tone, one]) => {
+        const items = list.filter(f => vcSeverity(f) === sev);
+        if (!items.length) return '';
+        return `<div class="judge-alerts__group" data-severidad="${sev}">
+          <h4><span class="badge badge--${tone}">${label}</span> ${escapeHtml(String(items.length))}</h4>
+          <ul>${items.map(f => `<li><span class="badge badge--${tone}">${one}</span><span>${escapeHtml(f.message || f.code || '')}</span><span class="tree-findings__node">${f.node ? `${escapeHtml(String(f.node))} · ` : ''}${escapeHtml(f.code || '')}</span></li>`).join('')}</ul>
+        </div>`;
+      }).join('');
+    }
+
+    function alStatus(d) {
+      if (!d || d.flujo !== 'sgr' || !d.disponible) return ['Sin datos', ''];
+      if (d.aprobado) return ['Aprobada', 'ok'];
+      const rev = d.revision && typeof d.revision === 'object' ? d.revision : null;
+      if (rev && rev.aprobado && rev.hash !== d.hash) return ['Desactualizada', 'warn'];
+      return ['Por aprobar', 'info'];
+    }
+
+    function renderAllianceReview(d) {
+      const panel = document.getElementById('alReviewPanel');
+      const sgr = !!d && d.flujo === 'sgr';
+      if (panel) panel.hidden = !sgr;
+      const [label, tone] = alStatus(d);
+      const badge = document.getElementById('alStatusBadge');
+      if (badge) {
+        badge.textContent = label;
+        badge.className = `badge${tone ? ' badge--' + tone : ''}`;
+      }
+      const errors = sgr ? vcList(d.hallazgos).filter(f => vcSeverity(f) === 'error').length : 0;
+      const complete = sgr && !!d.disponible && !!d.alianza && !!d.territorio;
+      const approve = document.getElementById('alApproveBtn');
+      if (approve) approve.disabled = !complete || !!d.aprobado || errors > 0;
+      const send = document.getElementById('alSendBtn');
+      if (send) send.disabled = !sgr;
+      const gate = document.getElementById('alGateNote');
+      if (gate) {
+        gate.textContent = errors ? `Corrige los ${String(errors)} hallazgos de error antes de aprobar.`
+          : sgr && d.disponible && !complete ? 'La aprobación cubre los dos archivos: falta alianza.json o territorio.json.' : '';
+      }
+      const note = document.getElementById('alHashNote');
+      if (note) {
+        const rev = d && d.revision && typeof d.revision === 'object' ? d.revision : null;
+        note.textContent = !sgr || !d.disponible ? ''
+          : d.aprobado ? `Aprobada el ${rev && rev.fecha ? String(rev.fecha).replace('T', ' ') : '—'} (versión ${String(d.hash)}). Si alguno de los dos archivos cambia, la aprobación caduca.`
+          : label === 'Desactualizada' ? 'La alianza o el territorio cambiaron después de aprobarlos: revisa la versión nueva y vuelve a aprobarla.'
+          : `Versión ${String(d.hash)}. La aprobación queda atada a esta versión de los dos archivos.`;
+      }
+    }
+
+    function renderAlliance() {
+      const d = AL_STATE.data;
+      const el = document.getElementById('alContent');
+      if (!d || !el) return;
+      document.getElementById('alRunMeta').textContent = `Corrida ${d.run || '—'}`;
+      renderAllianceReview(d);
+      const errores = Array.isArray(d.errores) ? d.errores.filter(Boolean).map(String) : [];
+      const errHtml = errores.length ? `<div class="judge-validation"><strong>⚠️ No se pudo leer todo lo de la alianza y el territorio</strong>
+        <ul>${errores.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div>` : '';
+      if (d.flujo !== 'sgr') {
+        el.innerHTML = `<div class="tree-empty">
+          <p>La alianza y el territorio se usan solo en el flujo SGR.</p>
+          <small>Este proyecto sigue el flujo base de propuestas de investigación, que no estructura las entidades aliadas ni las demandas territoriales.</small>
+        </div>`;
+        return;
+      }
+      if (!d.disponible) {
+        el.innerHTML = `${errHtml}<div class="tree-empty">
+          <p>Todavía no hay alianza ni territorio para esta corrida.</p>
+          <p>Los escribe la unidad <code>fase1b_sgr</code> «Alianza y territorio», después de los árboles: el agente extrae del TdR las demandas territoriales literales y de los insumos las entidades, sus aportes y su trayectoria en <code>artefactos/sgr/alianza.json</code> y <code>artefactos/sgr/territorio.json</code>, y los revisa con <code>python3 scripts/alianza_territorio_sgr.py check</code>.</p>
+        </div>`;
+        return;
+      }
+      const a = d.alianza;
+      const terr = d.territorio;
+      const nEnt = a ? vcList(a.entidades).length : 0;
+      const nDep = terr ? vcList(terr.departamentos).length : 0;
+      el.innerHTML = `${errHtml}
+        <div class="vc-summary">
+          <span>Monto SGR solicitado <strong>${a ? vcMoney(a.monto_sgr_solicitado) : '—'}</strong></span>
+          <span>${escapeHtml(String(nEnt))} entidades · ${escapeHtml(String(nDep))} departamentos</span>
+          <span>Duración: ${a && a.duracion_meses ? `${escapeHtml(String(a.duracion_meses))} meses` : '—'}</span>
+        </div>
+        <h4 class="al-heading">Vista previa de la rúbrica (subcriterios contados)</h4>
+        <div class="al-scores" id="alScores">${alScoresHtml(d.puntaje)}</div>
+        <h4 class="al-heading">Entidades de la alianza</h4>
+        <div id="alEntidades">${alEntitiesHtml(a)}</div>
+        <h4 class="al-heading">Departamentos y municipios de ejecución</h4>
+        <div id="alDepartamentos">${alDepartmentsHtml(terr)}</div>
+        <h4 class="al-heading">Matriz de demandas territoriales</h4>
+        <div class="al-scroll" id="alDemandas">${alDemandsHtml(terr)}</div>
+        <h4 class="al-heading">Configuración regional</h4>
+        <div class="al-scroll" id="alConfig">${alConfigHtml(terr)}</div>
+        <h4 class="al-heading">Modelo de gobernanza</h4>
+        <div id="alGobernanza">${alGovernanceHtml(a)}</div>
+        <div class="tree-findings" id="alFindings" aria-live="polite"><h4>Hallazgos de la alianza y el territorio</h4>${alFindingsHtml(d.hallazgos)}</div>`;
+    }
+
+    async function approveAlliance() {
+      const d = AL_STATE.data;
+      if (!d || !d.hash) return;
+      let result;
+      try {
+        result = await postJudge('/api/alliance/approve', { hash: d.hash });
+      } catch (err) {
+        alMessage(`No se pudo aprobar: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { alMessage(result.error || 'No se pudo aprobar la alianza y el territorio.', 'error'); return; }
+      alMessage('Alianza y territorio aprobados. Si alguno de los dos archivos cambia, la aprobación caduca.', 'ok');
+      await loadAlliance();
+    }
+
+    async function sendAllianceAdjust() {
+      const input = document.getElementById('alNoteInput');
+      const nota = input ? input.value.trim() : '';
+      if (!nota) { alMessage('Escribe qué cambiar en la alianza o el territorio antes de enviarlo al agente.', 'error'); return; }
+      let result;
+      try {
+        result = await postJudge('/api/alliance/adjust', { nota });
+      } catch (err) {
+        alMessage(`No se pudo preparar el ajuste: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { alMessage(result.error || 'No se pudo preparar el ajuste.', 'error'); return; }
+      if (await deliverAlliancePrompt(result.prompt) && input) input.value = '';
+    }
+
+    async function deliverAlliancePrompt(prompt) {
+      const retry = document.getElementById('alRetryBtn');
+      AL_STATE.pendingPrompt = prompt;
+      alMessage('Ajuste: enviando al agente…');
+      const delivered = await sendTerminalPrompt(prompt);
+      if (delivered === false) {
+        if (retry) retry.style.display = '';
+        alMessage(`El ajuste no llegó al agente: la terminal no conectó en ${Math.round(TERMINAL_READY_TIMEOUT_MS / 1000)} s. Abre el asistente y pulsa «Reintentar envío».`, 'error');
+        return false;
+      }
+      AL_STATE.pendingPrompt = null;
+      if (retry) retry.style.display = 'none';
+      alMessage('El ajuste se envió al agente. Cuando corra alianza_territorio_sgr.py check, la versión nueva aparece aquí.', 'ok');
+      return true;
+    }
+
+    async function retryAlliancePrompt() {
+      if (AL_STATE.pendingPrompt) await deliverAlliancePrompt(AL_STATE.pendingPrompt);
+    }
+
     // ── Estilo SGR en Secciones ─────────────────────────────────────────────
     // Columna solo del flujo SGR con los hallazgos de scripts/estilo_sgr.py por
     // sección (/api/style-sgr); en el flujo base la tabla queda como antes.
@@ -5600,6 +5995,9 @@
 
       if (tabId === 'cadena') startValueChainPolling();
       else stopValueChainPolling();
+
+      if (tabId === 'alianza') startAlliancePolling();
+      else stopAlliancePolling();
 
       if (tabId === 'sections' && isSgrFlujo()) loadStyleSgr();
 
@@ -6056,6 +6454,7 @@
         currentStatus = data;
         renderFlujoBadge(data);
         syncValueChainTab();
+        syncAllianceTab();
         if (data.active_run) {
           const footerRun = document.getElementById('terminalFooterRun');
           if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;
@@ -10149,7 +10548,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');
