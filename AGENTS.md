@@ -18,6 +18,7 @@ cada fase al subagente correspondiente definido en `.claude/agents/`.
 | `/propuesta` | Pipeline completo en una sesión (gates) |
 | `/propuesta-exportar` | Empaqueta y exporta la corrida activa con artefactos a .tar.gz o .zip |
 | `/propuesta-limpiar` | Cierra la corrida activa |
+| `/propuesta-juez` | Juez SGR: puntaje estimado, alertas y acciones (asesor) |
 | `/compilar-pdf` | Compila la corrida activa a PDF (`build.sh` en `redaccion/`) |
 | `/compilar-docx` | Exporta la corrida activa a Word (`build.sh --docx` en `redaccion/`) |
 
@@ -235,7 +236,7 @@ dispatcher inyecta.
 
 ## Roster de agentes (`.claude/agents/`) y modelos por defecto
 
-El marco tiene **11 agentes**, todos definidos en `.claude/agents/` (fuente de
+El marco tiene **12 agentes**, todos definidos en `.claude/agents/` (fuente de
 verdad):
 
 | Agente | Modelo por defecto | Rol |
@@ -251,6 +252,7 @@ verdad):
 | `disenador-tikz` | sonnet | Autoría de la **spec JSON** de los diagramas (nunca del LaTeX) |
 | `revisor-figuras` | haiku | Juicio visual (escala, centrado, armonía, etiquetas) sobre el preview PNG ya auditado |
 | `tikz-optimizer` | haiku | Corrección de la spec cuando la auditoría determinista falla |
+| `juez-sgr` | opus | Juez final SGR (asesor): puntaje con la rúbrica, alertas y acciones |
 
 No existen agentes llamados `orquestador`, `observador` (a secas) ni
 `bibliotecario`; esos nombres no forman parte de este marco.

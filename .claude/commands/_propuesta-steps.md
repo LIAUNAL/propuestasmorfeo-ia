@@ -86,7 +86,7 @@ más de 6 h, se muestra como obsoleto y no bloquea el botón «Ejecutar».
 | `fase6_46` | §17 articulación con comunidades + §18 apropiación social + grant-flow-auditor + revisor | G comunidades | `fase6_47` (flujo SGR) o `fase6_5` (flujo base) |
 | `fase6_47` | Solo flujo SGR: anexos MGA 19 a 25 (`guiaProyectosIA_Agente_Regalias.md`) + revisor; el flujo base la salta | G anexos | `fase6_5` |
 | `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave; sin sección cuerpo de título) + grant-flow-auditor + revisor | G front | `fase7` |
-| `fase7` | Final audit + assemble `main.tex` (\setcounter{section}{1}, xltabular, bibliografía limpia) | G final | `done` |
+| `fase7` | Final audit + assemble `main.tex` (\setcounter{section}{1}, xltabular, bibliografía limpia); flujo SGR: juez-sgr asesor tras el ensamble (ver «Juez final») | G final | `done` |
 | `done` | Pipeline complete | — | print `cd proposal && ./build.sh` |
 
 **Pre-intake units** (only in analizar / start of auto, not as `next_step` after
@@ -96,6 +96,18 @@ intake):
 |--------------|---------|-------------------|
 | `fase0` | run-id, collision, insumos-observador, INTAKE, TDR/draft routing | (internal) |
 | `g0_5` | Optional guide adjusted to TDR | `next_step: fase1a`, `intake_complete: true` |
+
+## Juez final (asesor)
+
+En el flujo SGR, la Fase 7 termina con un paso del agente `juez-sgr`, después
+del ensamble, la compilación y la pasada de pixelshot. Estima el puntaje con la
+rúbrica de la convocatoria (`scripts/juez_sgr.py preparar` y `calificar`) y deja
+la ronda en `artefactos/juez/`. El resultado se presenta en la compuerta G7 con
+el total y las acciones prioritarias, pero nunca cambia el veredicto PASS/FAIL
+del `revisor` ni bloquea el cierre; si falla, se registra la razón y la unidad
+se cierra igual. No es una unidad propia ni un `next_step`: `/propuesta-juez`
+lo corre en cualquier momento. La auditoría final del `revisor` lee las
+alertas `error` abiertas de `artefactos/juez/evaluacion.json` cuando existe.
 
 ## Stepped vs auto
 

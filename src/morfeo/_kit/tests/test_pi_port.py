@@ -311,5 +311,67 @@ class TestSubagentRoster(unittest.TestCase):
                 self.assertIn("documento de referencia", self._roster_block(relpath))
 
 
+def _literal_assignment(path: Path, name: str):
+    """Value of the module-level literal `name` in `path`, without importing it."""
+    import ast
+
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in tree.body:
+        targets = node.targets if isinstance(node, ast.Assign) else (
+            [node.target] if isinstance(node, ast.AnnAssign) else []
+        )
+        if any(isinstance(t, ast.Name) and t.id == name for t in targets):
+            return ast.literal_eval(node.value)
+    raise AssertionError(f"{path.relative_to(REPO)} no define {name}")
+
+
+class TestJuezSgrRegistration(unittest.TestCase):
+    """The SGR judge agent and its command must appear in every registry.
+
+    A new agent that misses one map runs on the wrong model in that runtime or
+    is never ported, and nothing else notices.
+    """
+
+    AGENT = "juez-sgr"
+    COMMAND = "propuesta-juez"
+
+    def test_the_canonical_sources_exist(self):
+        self.assertTrue((REPO / ".claude" / "agents" / f"{self.AGENT}.md").is_file())
+        self.assertTrue((REPO / ".claude" / "commands" / f"{self.COMMAND}.md").is_file())
+
+    def test_the_pi_model_table_assigns_it_a_tier(self):
+        models = _load_json(REPO / "scripts" / "agent-models.json")
+        self.assertIn(models["agents"].get(self.AGENT), models["tiers"])
+
+    def test_every_model_preset_names_it(self):
+        sources = [(REPO / "scripts" / "marco_cli.py", "_MODEL_PRESETS")]
+        manifest = REPO / "src" / "morfeo" / "core" / "manifest.py"
+        if manifest.is_file():
+            sources.append((manifest, "MODEL_PRESETS"))
+        for path, name in sources:
+            presets = _literal_assignment(path, name)
+            for preset, lineup in presets.items():
+                with self.subTest(source=path.name, preset=preset):
+                    self.assertTrue(lineup.get(self.AGENT))
+
+    def test_every_generator_ports_it(self):
+        for gen in ("opencode", "pi"):
+            paths = _load_json(REPO / "scripts" / f"gen-{gen}.rules.json")["paths"]
+            with self.subTest(generator=gen):
+                self.assertIn(f"{self.AGENT}.md", paths["agent_files"])
+                self.assertIn(f"{self.COMMAND}.md", paths["command_files"])
+        antigravity = _load_json(REPO / "scripts" / "gen-antigravity.rules.json")
+        self.assertIn(f"{self.COMMAND}.md", antigravity["command_files"])
+
+    def test_the_documentation_lists_both(self):
+        for doc in ("AGENTS.md", "README.md"):
+            if not (REPO / doc).is_file():
+                continue
+            text = (REPO / doc).read_text(encoding="utf-8")
+            with self.subTest(doc=doc):
+                self.assertIn(f"`{self.AGENT}`", text)
+                self.assertIn(f"/{self.COMMAND}", text)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -37,6 +37,7 @@
     "bibliografo-propuesta": "analysis",
     "insumos-observador": "analysis",
     "revisor": "analysis",
+    "juez-sgr": "analysis",
     "disenador-tikz": "mechanical",
     "tikz-optimizer": "mechanical",
     "revisor-figuras": "mechanical",

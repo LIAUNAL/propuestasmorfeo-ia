@@ -171,6 +171,9 @@ def normalise_gate(raw: Any) -> str | None:
 # `skills`: skills del marco que la unidad levanta.
 # `flujo`: solo en las unidades exclusivas de un flujo (hoy, los anexos MGA del
 # flujo SGR). Las demás corren en todos los flujos; ver `units_for_flujo`.
+# `agents_flujo`: agentes que una unidad común suma solo en un flujo (hoy, el
+# juez SGR asesor al final de la Fase 7). `units_for_flujo` los agrega a
+# `agents` del flujo que corresponde y quita la clave de la copia.
 
 PIPELINE_UNITS: list[dict[str, Any]] = [
     {
@@ -400,6 +403,7 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "sections": [],
         "artifacts": ["redaccion/main.tex"],
         "agents": ["revisor", "coordinador-propuesta"],
+        "agents_flujo": {"sgr": ["juez-sgr"]},
         "skills": ["estilo-natural-es", "depuracion-redundancias-es"],
         "next": "done",
     },
@@ -412,13 +416,17 @@ def units_for_flujo(flujo: str | None) -> list[dict[str, Any]]:
     Un flujo desconocido es el base. Las unidades exclusivas de otro flujo se
     omiten y el `next` de la unidad previa salta sobre ellas, de modo que el
     flujo base nunca espera una compuerta que no le corresponde. Devuelve copias:
-    el inventario canónico no se toca.
+    el inventario canónico no se toca. Una unidad común suma los agentes que
+    declara en `agents_flujo` para este flujo.
     """
     flujo = flujo if flujo in ("base", "sgr") else "base"
     kept = [dict(u) for u in PIPELINE_UNITS if u.get("flujo", flujo) == flujo]
     ids = {u["id"] for u in kept}
     by_id = {u["id"]: u for u in PIPELINE_UNITS}
     for unit in kept:
+        extra = unit.pop("agents_flujo", {}).get(flujo, [])
+        if extra:
+            unit["agents"] = [*unit["agents"], *extra]
         nxt = unit.get("next")
         while nxt and nxt not in ids and nxt in by_id:
             nxt = by_id[nxt].get("next")

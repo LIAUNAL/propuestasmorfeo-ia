@@ -19,7 +19,7 @@
 
 **Morfeo IA** (`propuestasmorfeo-ia`) es un entorno de trabajo agéntico y determinista diseñado para investigar, redactar, estructurar y auditar propuestas completas de investigación científica y desarrollo tecnológico en Inteligencia Artificial. Produce documentos formales en **español** bajo formato LaTeX nativo (con exportación determinista a Word/DOCX), articulados rigurosamente en 18 secciones metodológicas con coherencia matemática, lógica, presupuestal y de impacto social (TRL 6 o 7).
 
-El sistema coordina un equipo de **11 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
+El sistema coordina un equipo de **12 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
 
 ---
 
@@ -121,6 +121,7 @@ En entornos asistidos (Claude Code, OpenCode, Antigravity, Pi), el framework ofr
 | `/propuesta` | Ejecuta el pipeline completo de formulación de extremo a extremo, deteniéndose interactivamente en cada compuerta de revisión (*gate*). |
 | `/propuesta-exportar` | Empaqueta y exporta la propuesta activa con todos sus artefactos, insumos y PDF listo para compartir con un colaborador. |
 | `/propuesta-limpiar` | Cierra y archiva la corrida activa en `_run.md` y `registry.md`, dejando el entorno listo para una nueva formulación sin borrar datos. |
+| `/propuesta-juez` | Juez final (flujo SGR): estima el puntaje de la evaluación por pares con la rúbrica de la convocatoria, señala inconsistencias y propone acciones para cada agente. Es asesor y se puede correr en cualquier momento. |
 | `/compilar-pdf` | Compila de forma determinista la propuesta activa a PDF ejecutando `build.sh` en `redaccion/`. |
 | `/compilar-docx` | Exporta la propuesta activa a formato Word DOCX mediante `build.sh --docx` en `redaccion/` vía Pandoc y CSL APA. |
 
@@ -189,7 +190,7 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
 
 ## Ecosistema de Agentes Especializados
 
-El marco cuenta con **11 subagentes especializados** con roles no solapados:
+El marco cuenta con **12 subagentes especializados** con roles no solapados:
 
 | Agente | Modelo sugerido | Responsabilidad |
 |---|---|---|
@@ -204,6 +205,7 @@ El marco cuenta con **11 subagentes especializados** con roles no solapados:
 | `disenador-tikz` | Sonnet | Autoría de la especificación JSON de los diagramas (nunca escribe LaTeX directo). |
 | `revisor-figuras` | Haiku | Juicio visual (escala, legibilidad, armonía) sobre el render PNG de las figuras. |
 | `tikz-optimizer` | Haiku | Corrección asistida de especificaciones JSON cuando falla la compilación o la auditoría. |
+| `juez-sgr` | Opus | Juez final del flujo SGR: puntaje estimado con la rúbrica oficial, alertas de inconsistencia y acciones de mejora (asesor, no cambia el veredicto del `revisor`). |
 
 ---
 

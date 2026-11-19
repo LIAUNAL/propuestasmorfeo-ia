@@ -207,6 +207,18 @@ you) before reporting a FAIL for a missing artifact.
      the Fase 6.4 gate.
    If the budget section does not exist yet (budget phase not run), skip this
    item entirely.
+9. **Juez SGR alerts — only in the Fase 7 final audit of an SGR run:** if
+   `artefactos/juez/evaluacion.json` exists (written by
+   `scripts/juez_sgr.py calificar` after a `juez-sgr` round), read its
+   `alertas` and its `verificaciones` and verify each one with severidad
+   `error` against the current sections. List every error that still holds
+   under CORRECCIONES with its alert id, file and the fix, and add one
+   `[JUEZ-SGR]` line per alert to HALLAZGOS. The judge is advisory: its score
+   never decides your verdict, but an error you confirm in the document is a
+   finding of your own checklist and is judged by it. Mark an alert the
+   current text already resolved as `resolved` and leave it out of
+   CORRECCIONES. Skip this item in the base flow, at any
+   other gate, or when the file does not exist.
 
 ## Output format
 
@@ -223,6 +235,9 @@ HALLAZGOS:
   EVIDENCIA DE GRAFO block was injected into your prompt. This line NEVER by
   itself flips VEREDICTO — it is advisory only, the manual checklist above
   remains authoritative. Omit entirely if no graph evidence was provided. -->
+- [JUEZ-SGR] <alert id>: <confirmed | resolved> <detail> <!-- OPTIONAL;
+  only in the Fase 7 final audit of an SGR run with
+  artefactos/juez/evaluacion.json (item 9). -->
 
 CORRECCIONES (si FAIL):
 1. <archivo>: <qué cambiar exactamente>

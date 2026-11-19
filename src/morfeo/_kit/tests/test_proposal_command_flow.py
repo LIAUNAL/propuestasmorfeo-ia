@@ -32,6 +32,7 @@ EXPECTED_COMMAND_FILES = [
     "propuesta-analizar.md",
     "propuesta-continuar.md",
     "propuesta-limpiar.md",
+    "propuesta-juez.md",
 ]
 
 STEP_TABLE_FILE = PI_COMMANDS_DIR / "_propuesta-steps.md"
@@ -386,6 +387,53 @@ class TestPreconditionMessages(unittest.TestCase):
         self.assertIn("/propuesta-limpiar", section,
                        "Done-state precondition does not reference "
                        "/propuesta-limpiar")
+
+
+
+class TestJuezCommand(unittest.TestCase):
+    """`/propuesta-juez` judges SGR runs, stops in the base flow and stays advisory."""
+
+    CANONICAL = REPO_ROOT / ".claude" / "commands" / "propuesta-juez.md"
+
+    def setUp(self):
+        if not self.CANONICAL.is_file():
+            self.fail(f"falta el comando canonico {self.CANONICAL}")
+        self.text = self.CANONICAL.read_text(encoding="utf-8")
+
+    def _section(self, heading: str) -> str:
+        start = self.text.index(heading)
+        end = self.text.find("\n## ", start + 1)
+        return self.text[start:end if end > 0 else len(self.text)]
+
+    def test_sgr_flow_dispatches_the_judge_and_its_script(self):
+        section = self._section("## 3. Flujo `sgr`")
+        self.assertIn("juez-sgr", section)
+        self.assertIn("scripts/juez_sgr.py preparar <RUN_ROOT>", section)
+        self.assertIn("scripts/juez_sgr.py calificar <RUN_ROOT>", section)
+        self.assertIn("artefactos/juez/evaluacion.json", section)
+
+    def test_base_flow_announces_a_later_delivery_and_stops(self):
+        section = self._section("## 2. Flujo `base`")
+        self.assertIn("entrega posterior", section)
+        self.assertIn("Detenete", section)
+        self.assertNotIn("juez-sgr", section)
+
+    def test_actions_go_to_their_agent_then_the_auditor(self):
+        section = self._section("## 4. Flujo `sgr`: aplicar acciones")
+        self.assertIn("grant-flow-auditor", section)
+        self.assertIn("usuario", section)
+        self.assertIn("/propuesta-juez", section)
+
+    def test_it_never_changes_the_reviewer_verdict(self):
+        self.assertIn("No cambia el VEREDICTO PASS/FAIL del `revisor`", self.text)
+
+    def test_the_sgr_final_phase_runs_the_judge_as_an_advisory_step(self):
+        body = (REPO_ROOT / ".claude" / "commands" / "propuesta.md").read_text(encoding="utf-8")
+        start = body.index("SOLO flujo SGR (`\"flujo\": \"sgr\"`), después de la pasada de")
+        step = body[start:body.index("```", start)]
+        self.assertIn("Task → juez-sgr", step)
+        self.assertIn("NUNCA altera el VEREDICTO PASS/FAIL", step)
+        self.assertIn("Con el flujo `base` este paso no corre.", step)
 
 
 if __name__ == "__main__":

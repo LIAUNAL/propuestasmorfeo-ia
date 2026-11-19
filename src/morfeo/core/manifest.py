@@ -24,6 +24,7 @@ MODEL_PRESETS: dict[str, dict[str, str]] = {
         "tikz-optimizer": "sonnet",
         "revisor-figuras": "sonnet",
         "coordinador-propuesta": "sonnet",
+        "juez-sgr": "opus",
     },
     "gpt": {
         "investigador": "gpt-5.6-sol",
@@ -36,6 +37,7 @@ MODEL_PRESETS: dict[str, dict[str, str]] = {
         "tikz-optimizer": "gpt-5.6-terra",
         "revisor-figuras": "gpt-5.6-terra",
         "coordinador-propuesta": "gpt-5.6-terra",
+        "juez-sgr": "gpt-5.6-sol",
     },
     "opencode-go": {
         "investigador": "opencode-go/glm-5.2",
@@ -48,6 +50,7 @@ MODEL_PRESETS: dict[str, dict[str, str]] = {
         "tikz-optimizer": "opencode-go/glm-5.2",
         "revisor-figuras": "opencode-go/glm-5.2",
         "coordinador-propuesta": "opencode-go/glm-5.2",
+        "juez-sgr": "opencode-go/glm-5.2",
     },
 }
 
@@ -223,6 +226,7 @@ def project_readme(
         "| `/propuesta-analizar [idea]` | Inicia el análisis e ingesta de insumos (Fase 0) |",
         "| `/propuesta-continuar` | Ejecuta el siguiente paso del pipeline |",
         "| `/propuesta` | Pipeline completo con compuertas interactivas |",
+        "| `/propuesta-juez` | Juez final SGR: puntaje estimado, alertas y acciones de mejora (asesor) |",
         "| `/propuesta-limpiar` | Cierra y archiva la corrida activa |",
         "| `/compilar-pdf` | Compila `main.pdf` |",
         "| `/compilar-docx` | Exporta a Word `main.docx` |",

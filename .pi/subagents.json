@@ -33,6 +33,10 @@
       "model": "nan/deepseek-v4-flash",
       "effort": "high"
     },
+    "juez-sgr": {
+      "model": "nan/glm5.3-flash",
+      "effort": "medium"
+    },
     "presupuestador": {
       "model": "nan/deepseek-v4-flash",
       "effort": "high"

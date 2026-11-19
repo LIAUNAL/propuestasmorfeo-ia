@@ -60,8 +60,9 @@ nombres de índice se derivan del mismo run-id: `<run-id>-papers` y
 
 `insumos-observador`, `investigador`, `redactor`, `bibliografo-propuesta`,
 `disenador-tikz`, `tikz-optimizer`, `revisor-figuras`, `revisor`,
-`presupuestador`, `grant-flow-auditor`. (No existen `orquestador`, `observador`
-ni `bibliotecario`: usa siempre estos 10 nombres reales. `coordinador-propuesta`
+`presupuestador`, `grant-flow-auditor`, `juez-sgr` (solo flujo SGR). (No
+existen `orquestador`, `observador` ni `bibliotecario`: usa siempre
+estos 11 nombres reales. `coordinador-propuesta`
 existe como documento de referencia del pipeline, no como subagente despachable.)
 
 ## Cómo usar `codebase-memory` (MCP `codegraph`)
@@ -1515,8 +1516,10 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         Task → revisor → auditoría final (con bloque EVIDENCIA DE GRAFO inline;
         incluye AHORA la verificación cruzada Presupuesto (§13) ↔ Cronograma
         de actividades (§14) diferida desde la Fase 6.4, ya que ambas
-        secciones existen recién en este punto) ──→ usuario. NO avances sin
-        aprobación.
+        secciones existen recién en este punto; en el flujo SGR, si existe
+        `artefactos/juez/evaluacion.json` de una ronda anterior del juez, el
+        prompt le indica al revisor que lea sus alertas `error` abiertas) ──→
+        usuario. NO avances sin aprobación.
         ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
         `artefactos/pipeline/80-fase7.md` (evento de la auditoría final) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
@@ -1586,6 +1589,24 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         timeout), registra una fila "QA visual no disponible en esta corrida:
         `<razón>`" en la misma sección y continúa — la Fase 7 se da por
         completa igual.
+        [NUEVO] SOLO flujo SGR (`"flujo": "sgr"`), después de la pasada de
+        pixelshot: juez final asesor. Task → juez-sgr con `RUN_ROOT`
+        absoluto (receta y salida en `/propuesta-juez`, sección 3): corre
+        `python3 scripts/juez_sgr.py preparar <RUN_ROOT>`, escribe
+        `artefactos/juez/datos_sgr.json` y
+        `artefactos/juez/evaluacion_ronda_<N>.json` y corre
+        `python3 scripts/juez_sgr.py calificar <RUN_ROOT>` hasta que sale con
+        0. Al cerrar la compuerta G7 le mostrás al usuario, desde
+        `artefactos/juez/evaluacion.json`, el total frente al umbral, la
+        elegibilidad y las tres acciones de mayor prioridad, y le decís cómo
+        iterar (pestaña «Juez final» del tablero o `/propuesta-juez AC<n>`).
+        Igual que pixelshot, este paso NUNCA altera el VEREDICTO PASS/FAIL del
+        `revisor` ni bloquea el cierre de la Fase 7. Si el juez falla (rúbrica
+        no detectada, `calificar` sin salir con 0 tras los reintentos del
+        agente), registra una fila "Juez SGR no disponible en esta corrida:
+        `<razón>`" en `## Hallazgos del juez SGR` de
+        `artefactos/estado_propuesta.md` (crea la sección la primera vez) y
+        continúa. Con el flujo `base` este paso no corre.
 ```
 
 ## Bucle de figuras (canónico)

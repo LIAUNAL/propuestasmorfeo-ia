@@ -310,3 +310,28 @@ del plan de desarrollo), propósito (objetivo general), productos y actividades;
 columnas descripción, indicadores, fuentes de verificación y supuestos. Los
 riesgos del anexo A24 pasan a ser supuestos (Manual MGA 2015, pp. 79-82). La
 fila del propósito usa el indicador de resultado de §11.
+
+---
+
+## Juez SGR (asesor, Fase 7 y `/propuesta-juez`)
+
+El agente `juez-sgr` estima el puntaje que la propuesta obtendría en la
+evaluación por pares de la convocatoria. Califica cada subcriterio de la
+rúbrica oficial (`scripts/rubricas_sgr/<convocatoria>.json`, con los niveles
+textuales del TdR) y se apoya en la capa guía `scripts/rubricas_sgr/_guia_comun.json`,
+que reúne por familia de criterio las preguntas de un par exigente, las señales
+de alerta y la evidencia mínima. La capa guía orienta; los puntos salen solo de
+los niveles oficiales, y sin evidencia en el documento no hay puntos.
+
+Cada ronda deja en `artefactos/juez/` los datos extraídos con su fuente
+(`datos_sgr.json`), la calificación del agente (`evaluacion_ronda_<N>.json`) y
+el consolidado que escribe `scripts/juez_sgr.py calificar`: `evaluacion.json`
+(total, subtotales, elegibilidad, alertas, acciones e historial de rondas) y
+`evaluacion.md`, el formulario legible.
+
+Para iterar se aplican las acciones, cada una dirigida a un agente o al
+usuario: desde la pestaña «Juez final» del tablero o con
+`/propuesta-juez AC1 AC3`. Las secciones de prosa pasan después por
+`grant-flow-auditor`, y una nueva ronda de `/propuesta-juez` muestra si el
+total sube. El juez nunca cambia el veredicto PASS/FAIL del `revisor`; la
+auditoría final de la Fase 7 sí lee sus alertas `error` abiertas.

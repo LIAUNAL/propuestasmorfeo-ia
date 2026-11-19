@@ -226,6 +226,14 @@ class TestUnitsByFlujo(unittest.TestCase):
         self.assertEqual(nxt["fase6_46"], "fase6_5")
         self.assertNotIn("G6.47", {g["id"] for g in canonical_gates("base")})
 
+    def test_only_the_sgr_final_audit_lists_the_sgr_judge(self) -> None:
+        final = {f: next(u for u in units_for_flujo(f) if u["id"] == "fase7") for f in ("base", "sgr")}
+        self.assertEqual(final["base"]["agents"], ["revisor", "coordinador-propuesta"])
+        self.assertEqual(final["sgr"]["agents"], ["revisor", "coordinador-propuesta", "juez-sgr"])
+        self.assertNotIn("agents_flujo", final["sgr"])
+        canonical = next(u for u in PIPELINE_UNITS if u["id"] == "fase7")
+        self.assertEqual(canonical["agents"], ["revisor", "coordinador-propuesta"])
+
     def test_sgr_flow_runs_the_annexes_between_communities_and_front_matter(self) -> None:
         units = units_for_flujo("sgr")
         ids = self._ids(units)
