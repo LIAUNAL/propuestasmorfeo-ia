@@ -1,0 +1,505 @@
+{
+  "schema": "morfeo.rubrica-sgr/v1",
+  "id": "conv56",
+  "convocatoria": "CONVOCATORIA 56 \"CONVOCATORIA DE EMERGENCIA PARA LA RECUPERACIÓN Y GENERACIÓN DE CAPACIDADES TRANSFORMADORAS, EN EL MARCO DEL DECRETO 1414 DE 17 DE SEPTIEMBRE DE 2026\"",
+  "fuente": "Formato oficial M801PR02MO8 «Rúbrica para evaluación de programas, propuestas o proyectos de CTeI» (versión 01) de la Convocatoria 56 y sus términos de referencia: numerales 11.5 y 14 (tope), 15 (criterios), 16 (tercer evaluador) y 17 (desempate).",
+  "deteccion": [
+    "CONVOCATORIA\\s+56\\b",
+    "Decreto\\s+(Legislativo\\s+)?1414\\b",
+    "M801PR02MO8"
+  ],
+  "total": 100,
+  "elegibilidad": {
+    "umbral_total": 75,
+    "minimos": []
+  },
+  "justificacion": {
+    "min_chars": 1000,
+    "max_chars": 4000,
+    "excepciones": {
+      "7": [
+        150,
+        300
+      ]
+    }
+  },
+  "concepto": {
+    "min_palabras": 300
+  },
+  "tope_solicitud_sgr": 14000000000,
+  "desempate": [
+    "1",
+    "3",
+    "2",
+    "6",
+    "4",
+    "5",
+    "1.1",
+    "3.1"
+  ],
+  "tercer_evaluador": {
+    "diferencia": 30,
+    "promedio_min": 75
+  },
+  "notas": [
+    "Nota: Los puntajes de cada criterio y subcriterio son cerrados y no fraccionables; únicamente podrán asignarse los valores definidos en la respectiva escala, sin puntajes intermedios.",
+    "CONCEPTO FINAL: Espacio para que el evaluador sintetice las fortalezas y debilidades de la propuesta y haga las recomendaciones que considere pertinentes (mínimo 300 palabras)",
+    "Cada proyecto podrá solicitar hasta $14.000.000.000. El valor deberá corresponder con las actividades, productos, territorios, duración y capacidad de ejecución demostrada.",
+    "Los proyectos que igualen o superen 75 puntos en la evaluación conformarán el listado de proyectos elegibles."
+  ],
+  "criterios": [
+    {
+      "id": "1",
+      "nombre": "CALIDAD TÉCNICO-CIENTÍFICA Y PRESUPUESTAL DEL PROYECTO",
+      "max": 30,
+      "subcriterios": [
+        {
+          "id": "1.1",
+          "nombre": "Calidad técnico-científica y coherencia del proyecto en el desarrollo de los siguientes componentes",
+          "descripcion": "Evaluará la coherencia entre la problemática o brecha de CTeI derivada de la emergencia, objetivos, metodología, actividades, productos, resultados, indicadores, cronograma y línea(s) temática(s) seleccionada(s).",
+          "max": 20,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 20,
+              "descriptor": "Coherencia integral, técnicamente sustentada y orientada a resultados verificables de CTeI."
+            },
+            {
+              "puntos": 15,
+              "descriptor": "Coherencia adecuada, con aspectos menores por fortalecer que no comprometen los resultados."
+            },
+            {
+              "puntos": 10,
+              "descriptor": "Coherencia parcial entre los componentes técnicos del proyecto."
+            },
+            {
+              "puntos": 5,
+              "descriptor": "Coherencia débil, con inconsistencias que afectan el logro de los resultados."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No existe coherencia técnico-científica suficiente."
+            }
+          ],
+          "notas": [],
+          "familia": "coherencia",
+          "evidencia": [
+            "03_descripcion_problema",
+            "06_objetivo_general",
+            "07_objetivos_especificos",
+            "10_metodologia",
+            "11_resultados_esperados",
+            "14_cronograma_actividades",
+            "15_productos_esperados",
+            "23_cadena_valor"
+          ],
+          "agentes": [
+            "investigador",
+            "redactor",
+            "disenador-tikz"
+          ]
+        },
+        {
+          "id": "1.2",
+          "nombre": "Coherencia entre el presupuesto total, las actividades, los alcances planteados y la justificación de los rubros en términos de necesidad y eficiencia",
+          "descripcion": "",
+          "max": 10,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 10,
+              "descriptor": "El presupuesto está completamente soportado con documentación clara y precisa; todos los costos están justificados con argumentos sólidos; incluye un desglose detallado; se alinea perfectamente con las necesidades del proyecto, su alcance, objetivos y los productos esperados; muestra un uso óptimo de los recursos."
+            },
+            {
+              "puntos": 5,
+              "descriptor": "El presupuesto tiene soporte limitado; la justificación de los costos no está lo suficientemente soportada; el desglose es limitado y no incluye todos los componentes; hay varias áreas en las que no refleja adecuadamente las necesidades; se identifican componentes de potencial uso ineficiente de los recursos."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "El presupuesto presenta debilidades importantes en la justificación y coherencia con las actividades y metas; aunque existe estructura presupuestal y relación básica con el alcance del proyecto, se evidencian inconsistencias técnicas, omisiones relevantes en el desglose, o subestimación o sobreestimación de rubros que requieren ajustes sustanciales para garantizar su viabilidad financiera."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No se presenta un presupuesto técnicamente estructurado o este es manifiestamente incoherente con los objetivos y actividades; no existe correspondencia verificable entre los rubros y los productos; no hay justificación de costos; los valores son incompletos o financieramente inviables, impidiendo determinar la factibilidad de ejecución del proyecto."
+            }
+          ],
+          "notas": [],
+          "familia": "presupuesto",
+          "evidencia": [
+            "13_presupuesto",
+            "23_cadena_valor",
+            "14_cronograma_actividades"
+          ],
+          "agentes": [
+            "presupuestador",
+            "usuario"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "nombre": "CONTRIBUCIÓN DEL PROYECTO A LA ATENCIÓN DE LA EMERGENCIA Y LAS DEMANDAS TERRITORIALES",
+      "max": 20,
+      "subcriterios": [
+        {
+          "id": "2.1",
+          "nombre": "Relación directa y específica con la emergencia",
+          "descripcion": "Evalúa la relación directa y específica entre los efectos de la emergencia, la demanda o brecha de CTeI identificada, las actividades propuestas y los productos y resultados previstos para contribuir a su atención y superación. La sola ejecución del proyecto en un territorio afectado no acredita esta contribución.",
+          "max": 17,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 17,
+              "descriptor": "Demuestra una relación directa, específica y verificable entre los efectos de la emergencia, la demanda o brecha de CTeI, las actividades y los productos y resultados previstos para su atención y superación."
+            },
+            {
+              "puntos": 15,
+              "descriptor": "Demuestra una relación directa entre estos elementos, aunque presenta aspectos menores por fortalecer en su trazabilidad o sustentación."
+            },
+            {
+              "puntos": 10,
+              "descriptor": "Demuestra una relación parcial; existen vacíos en la articulación entre la afectación, la demanda o brecha, las actividades y los resultados previstos."
+            },
+            {
+              "puntos": 5,
+              "descriptor": "La relación con la emergencia es general o débilmente sustentada y se fundamenta principalmente en la localización territorial del proyecto."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No demuestra una relación directa y específica entre la afectación producida o agravada por la emergencia, la demanda o brecha de CTeI identificada y la intervención propuesta, o sustenta dicha relación únicamente en la localización territorial del proyecto."
+            }
+          ],
+          "notas": [],
+          "familia": "emergencia",
+          "evidencia": [
+            "02_justificacion",
+            "03_descripcion_problema",
+            "11_resultados_esperados",
+            "19_alineacion_planes"
+          ],
+          "agentes": [
+            "investigador",
+            "redactor",
+            "usuario"
+          ]
+        },
+        {
+          "id": "2.2",
+          "nombre": "Articulación territorial para el desarrollo regional",
+          "descripcion": "Se evaluará la articulación territorial entre entidades territoriales pertenecientes a departamentos diferentes para el desarrollo de una solución común de CTeI que atienda problemáticas, necesidades o brechas compartidas derivadas de la emergencia.",
+          "max": 3,
+          "modo": "conteo",
+          "niveles": [
+            {
+              "puntos": 3,
+              "descriptor": "El proyecto se ejecutará en al menos dos entidades territoriales ubicadas en departamentos afectados diferentes."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "El proyecto se ejecutará en entidades territoriales ubicadas en un solo departamento afectado."
+            }
+          ],
+          "regla_conteo": {
+            "tipo": "departamentos",
+            "dato": "departamentos_ejecucion",
+            "tramos": [
+              {
+                "op": ">=",
+                "valor": 2,
+                "puntos": 3
+              }
+            ]
+          },
+          "notas": [
+            "Nota: Para la evaluación de este criterio, se tendrán en cuenta exclusivamente el o los lugares de ejecución registrados por el proponente en el SIGP"
+          ],
+          "familia": "alcance_regional",
+          "evidencia": [
+            "21_poblacion",
+            "19_alineacion_planes",
+            "20_participantes"
+          ],
+          "agentes": [
+            "usuario"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "nombre": "APLICABILIDAD, TRANSFERENCIA Y SOSTENIBILIDAD",
+      "max": 23,
+      "subcriterios": [
+        {
+          "id": "3.1",
+          "nombre": "Aplicabilidad, validación, transferencia, apropiación o escalamiento",
+          "descripcion": "Evalúa el nivel de madurez y aplicabilidad que alcanzará la solución al finalizar el proyecto, así como la ruta prevista para su validación, transferencia, apropiación, implementación o escalamiento, según su naturaleza. Se valorará especialmente que la solución alcance niveles avanzados de madurez tecnológica y pueda demostrar su funcionamiento y aplicación efectiva en condiciones reales.",
+          "max": 13,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 13,
+              "descriptor": "La solución alcanza TRL 9, demostrando su funcionamiento y aplicación efectiva en condiciones reales, y presenta una ruta clara y viable para su transferencia, apropiación, implementación o escalamiento, con actores, mecanismos y resultados verificables."
+            },
+            {
+              "puntos": 8,
+              "descriptor": "La solución alcanza TRL 8, encontrándose completa y calificada mediante pruebas y demostraciones en condiciones reales, con una ruta clara para su aplicación, transferencia, apropiación o escalamiento."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "La solución alcanza TRL 7, demostrando un prototipo o sistema en un entorno operacional, y presenta mecanismos definidos para avanzar en su aplicación o transferencia."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No demuestra un nivel de madurez tecnológica entre TRL 7 y TRL 9 alcanzable durante el proyecto ni presenta mecanismos verificables para la aplicación, validación, transferencia, apropiación, implementación o escalamiento de la solución."
+            }
+          ],
+          "notas": [],
+          "trl_salida_por_puntaje": {
+            "13": 9,
+            "8": 8,
+            "3": 7,
+            "0": null
+          },
+          "familia": "trl",
+          "evidencia": [
+            "02_justificacion",
+            "10_metodologia",
+            "11_resultados_esperados",
+            "15_productos_esperados"
+          ],
+          "agentes": [
+            "investigador",
+            "redactor"
+          ]
+        },
+        {
+          "id": "3.2",
+          "nombre": "Sostenibilidad y permanencia de los resultados",
+          "descripcion": "Evalúa las condiciones técnicas, institucionales, operativas o financieras previstas para la continuidad y aprovechamiento de los resultados una vez finalice el proyecto.",
+          "max": 10,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 10,
+              "descriptor": "Presenta condiciones claras y viables para la continuidad y aprovechamiento de los resultados."
+            },
+            {
+              "puntos": 8,
+              "descriptor": "Presenta condiciones adecuadas, con algunos aspectos por precisar."
+            },
+            {
+              "puntos": 5,
+              "descriptor": "Presenta condiciones de sostenibilidad parcialmente desarrolladas."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "La sostenibilidad se plantea de manera general, sin mecanismos concretos."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No presenta condiciones de sostenibilidad."
+            }
+          ],
+          "notas": [],
+          "familia": "sostenibilidad",
+          "evidencia": [
+            "11_resultados_esperados",
+            "17_articulacion_comunidades",
+            "20_participantes"
+          ],
+          "agentes": [
+            "redactor",
+            "usuario"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "nombre": "CAPACIDADES Y ARTICULACIÓN DE LA ALIANZA",
+      "max": 10,
+      "subcriterios": [
+        {
+          "id": "4",
+          "nombre": "Capacidades y articulación de la alianza",
+          "descripcion": "Evalúa la correspondencia entre las capacidades y experiencia de los integrantes de la alianza y las responsabilidades asignadas, así como su complementariedad y articulación para alcanzar los resultados del proyecto.",
+          "max": 10,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 10,
+              "descriptor": "La alianza demuestra capacidades y experiencia pertinentes, con roles, responsabilidades y mecanismos de articulación claramente definidos y complementarios."
+            },
+            {
+              "puntos": 7,
+              "descriptor": "La alianza cuenta con capacidades pertinentes y adecuada articulación, con aspectos menores por precisar en roles o responsabilidades."
+            },
+            {
+              "puntos": 5,
+              "descriptor": "La alianza presenta capacidades pertinentes, pero con articulación o complementariedad parcialmente desarrollada."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "Las capacidades o la articulación entre los integrantes son limitadas frente a las necesidades del proyecto."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No se evidencia correspondencia entre las capacidades de la alianza, los roles asignados y las necesidades del proyecto."
+            }
+          ],
+          "notas": [],
+          "familia": "alianza",
+          "evidencia": [
+            "09_equipo_trabajo",
+            "20_participantes"
+          ],
+          "agentes": [
+            "usuario",
+            "redactor"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "nombre": "APROPIACIÓN SOCIAL DEL CONOCIMIENTO (ASC)",
+      "max": 5,
+      "subcriterios": [
+        {
+          "id": "5",
+          "nombre": "Apropiación Social del Conocimiento (ASC)",
+          "descripcion": "Se evaluará la pertinencia, coherencia y nivel de desarrollo de la Estrategia de ASC en relación con la línea temática, la problemática, los objetivos, la vinculación de actores de los territorios afectados y los resultados esperados del proyecto, mediante procesos de participación, intercambio de conocimientos y retroalimentación que contribuyan al desarrollo, validación, transferencia, apropiación, uso o sostenibilidad de los resultados de CTeI.",
+          "max": 5,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 5,
+              "descriptor": "Presenta una estrategia clara y articulada con el proyecto. Identifica los actores y sus roles, mecanismos concretos de participación, intercambio de saberes, construcción colaborativa y resultados verificables. Incluye un producto de ASC, claramente formulado, verificable y articulado con los resultados esperados."
+            },
+            {
+              "puntos": 4,
+              "descriptor": "Presenta una estrategia pertinente y relacionada con el proyecto, con mecanismos de participación e intercambio de saberes identificados. La participación y los roles de los actores están definidos de manera general e incluye productos de ASC."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "Presenta una estrategia que incorpora elementos de ASC, pero presenta una articulación limitada entre los actores, sus roles, los mecanismos de participación y los resultados del proyecto. Los productos de ASC están definidos parcialmente."
+            },
+            {
+              "puntos": 1,
+              "descriptor": "Presenta una incorporación limitada de la ASC, sin una estrategia claramente estructurada ni mecanismos suficientes de participación e intercambio de saberes. Los roles de los actores y los productos de ASC no están claramente definidos o presentan una relación limitada con el proyecto."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No presenta una estrategia de Apropiación Social del Conocimiento."
+            }
+          ],
+          "notas": [],
+          "familia": "asc",
+          "evidencia": [
+            "18_apropiacion_social",
+            "17_articulacion_comunidades",
+            "15_productos_esperados"
+          ],
+          "agentes": [
+            "redactor"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "nombre": "CAPACIDAD DE RESPUESTA Y OPORTUNIDAD DE LOS RESULTADOS",
+      "max": 10,
+      "subcriterios": [
+        {
+          "id": "6",
+          "nombre": "Capacidad de respuesta y oportunidad de los resultados",
+          "descripcion": "Evalúa la capacidad del proyecto para generar resultados de CTeI en tiempos y condiciones acordes con las necesidades derivadas de la emergencia, considerando la priorización de actividades, los hitos previstos y la disponibilidad de capacidades para su ejecución.",
+          "max": 10,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 10,
+              "descriptor": "Presenta una ruta de ejecución claramente priorizada, con hitos y resultados oportunos frente a las necesidades de la emergencia."
+            },
+            {
+              "puntos": 8,
+              "descriptor": "Presenta una ruta adecuada y resultados oportunos, con aspectos menores por precisar."
+            },
+            {
+              "puntos": 5,
+              "descriptor": "La ruta permite alcanzar resultados, pero presenta limitaciones en su oportunidad frente a las necesidades identificadas."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "La programación presenta debilidades que pueden afectar la oportunidad de los resultados."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No demuestra capacidad para generar resultados oportunos frente a la emergencia."
+            }
+          ],
+          "notas": [],
+          "familia": "oportunidad",
+          "evidencia": [
+            "14_cronograma_actividades",
+            "10_metodologia",
+            "24_riesgos"
+          ],
+          "agentes": [
+            "redactor",
+            "investigador"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "nombre": "CONTRAPARTIDA EN EFECTIVO",
+      "max": 2,
+      "subcriterios": [
+        {
+          "id": "7",
+          "nombre": "Contrapartida en efectivo",
+          "descripcion": "Se valorará el aporte de contrapartida en efectivo realizado por uno o más actores que integran la alianza, calculado como porcentaje del valor total solicitado a la Asignación para la Ciencia, Tecnología e Innovación del SGR.",
+          "max": 2,
+          "modo": "conteo",
+          "niveles": [
+            {
+              "puntos": 2,
+              "descriptor": "Contrapartida en efectivo igual o superior al 1 %."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "Contrapartida en efectivo menor al 1 % o no presenta."
+            }
+          ],
+          "regla_conteo": {
+            "tipo": "contrapartida_efectivo",
+            "dato": "aliados",
+            "tramos": [
+              {
+                "op": ">=",
+                "valor": 1,
+                "puntos": 2
+              }
+            ]
+          },
+          "notas": [
+            "Nota: El porcentaje se calculará sobre el valor solicitado a la Asignación para la Ciencia, Tecnología e Innovación del SGR."
+          ],
+          "familia": "cofinanciacion",
+          "evidencia": [
+            "13_presupuesto"
+          ],
+          "agentes": [
+            "presupuestador",
+            "usuario"
+          ]
+        }
+      ]
+    }
+  ]
+}

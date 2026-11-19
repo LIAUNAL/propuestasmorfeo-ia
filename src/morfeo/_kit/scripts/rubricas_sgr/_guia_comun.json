@@ -1,0 +1,378 @@
+{
+  "schema": "morfeo.guia-juez-sgr/v1",
+  "version": 1,
+  "descripcion": "Capa guía del juez SGR. Orienta la lectura de un par exigente por familia de criterio: qué pregunta, qué señales le restan puntos, qué evidencia mínima espera encontrar en el documento y de qué fuente sale cada exigencia. No asigna puntos: el puntaje sale solo de los niveles oficiales de la rúbrica de la convocatoria. Los patrones de revisión por pares están generalizados y no contienen datos de ningún proyecto evaluado.",
+  "fuentes_catalogo": {
+    "tdr": "Términos de referencia de la convocatoria (criterios, requisitos, condiciones inhabilitantes y topes).",
+    "anexo2": "Anexo 2. Documento técnico de la convocatoria (capítulos obligatorios del proyecto).",
+    "anexo3": "Anexo 3. Presupuesto (hoja de resumen por entidad, especie, efectivo y SGR; soportes de estimación).",
+    "instructivo_mga_2023": "Instructivo MGA. Proyectos en Colombia, DNP, 2023, versión 2.0.",
+    "manual_mga_2015": "Manual conceptual de la Metodología General Ajustada (MGA), DNP, 2015.",
+    "diplomado_m1": "Módulo 1 del diplomado SGR (UdeA): marco general de proyectos de inversión pública.",
+    "diplomado_m2": "Módulo 2 del diplomado SGR (UdeA): Sistema General de Regalías.",
+    "diplomado_m3": "Módulo 3 del diplomado SGR (UdeA): fase de identificación (árboles, involucrados, población, alternativas).",
+    "diplomado_m4": "Módulo 4 del diplomado SGR (UdeA): preparación, cadena de valor, riesgos y vigencias futuras.",
+    "guia_sgr_morfeo": "guiaProyectosIA_Agente_Regalias.md, complemento SGR de la guía de formulación de Morfeo.",
+    "check_run": "Reglas deterministas de scripts/check_run.py para corridas SGR.",
+    "proyectos_referencia": "Patrones observados en proyectos de referencia presentados a convocatorias SGR de CTeI (sin datos de proyecto).",
+    "revision_pares": "Patrones generalizados de pérdida de puntos en revisiones por pares SGR (sin título, código, proponente, cifras ni lugares)."
+  },
+  "familias": {
+    "coherencia": {
+      "nombre": "Coherencia técnica y científica",
+      "preguntas_par": [
+        "¿El problema central es un estado negativo existente, con una sola variable medible, su población o territorio y su magnitud con fuente?",
+        "¿Cada objetivo específico es la conversión en positivo de una causa directa, en el mismo orden, y cada producto responde a un objetivo específico?",
+        "¿Puedo seguir una misma actividad, con la misma clave (objetivo, producto, actividad), en la metodología, la cadena de valor, el presupuesto, el cronograma y la matriz de responsables?",
+        "¿Los métodos miden la misma variable o amenaza que nombran el problema y la justificación?",
+        "¿El título del proyecto es idéntico en la MGA, el documento técnico, las cartas y el presupuesto?",
+        "¿Los indicadores tienen línea base, meta, unidad y método de medición?"
+      ],
+      "senales_alerta": [
+        "El problema central se formula como la ausencia de una solución («falta de un sistema…»).",
+        "Las actividades de la metodología no coinciden en nombre, número o costo con las del cronograma y la cadena de valor.",
+        "Los métodos atienden una amenaza o variable distinta de la que nombran el problema o la emergencia.",
+        "Los indicadores de impacto no traen línea base ni método de medición.",
+        "La cifra de población no se deriva del área de influencia descrita.",
+        "El título varía entre documentos o no se deriva del objetivo general."
+      ],
+      "evidencia_minima": [
+        "Árbol de problemas y árbol de objetivos con magnitud en el tronco, las causas directas y los efectos directos.",
+        "Tabla de cadena de valor objetivo específico, producto, actividad, con claves que se repiten en presupuesto y cronograma.",
+        "Tabla de indicadores con línea base, meta, unidad, fuente y año."
+      ],
+      "fuentes": ["tdr", "anexo2", "manual_mga_2015", "instructivo_mga_2023", "diplomado_m3", "guia_sgr_morfeo", "check_run", "proyectos_referencia", "revision_pares"]
+    },
+    "metodologia_novedad": {
+      "nombre": "Solidez metodológica y novedad",
+      "preguntas_par": [
+        "¿La metodología define métodos, técnicas, fuentes, instrumentos y criterios de validación de cada resultado?",
+        "Si hay un componente de inteligencia artificial, ¿qué variables usa, con qué datos se entrena, qué umbrales, métricas y protocolo de validación tiene?",
+        "¿La técnica nombrada hace de verdad el trabajo que se le atribuye?",
+        "¿El estado del arte se apoya en referencias verificables y muestra en qué se diferencia la solución de lo que ya existe en el territorio?",
+        "¿Los perfiles del equipo corresponden a las actividades que se les asignan?"
+      ],
+      "senales_alerta": [
+        "El componente de IA se describe sin variables, datos de entrenamiento, umbrales, métricas ni validación.",
+        "Se nombra una técnica que no resuelve la tarea declarada.",
+        "La novedad se afirma sin compararla con alternativas disponibles en el territorio.",
+        "El equipo no incluye el perfil que exige una actividad central de la metodología."
+      ],
+      "evidencia_minima": [
+        "Descripción por objetivo específico de métodos, datos, instrumentos y criterios de aceptación.",
+        "Estado del arte con referencias verificables y contraste explícito con las alternativas.",
+        "Tabla de equipo con rol, dedicación y actividades asignadas."
+      ],
+      "fuentes": ["tdr", "anexo2", "guia_sgr_morfeo", "revision_pares"]
+    },
+    "trl": {
+      "nombre": "Madurez tecnológica (TRL)",
+      "preguntas_par": [
+        "¿El documento declara de forma explícita el TRL de entrada y el TRL de salida, y coinciden en todas las secciones?",
+        "¿El TRL de entrada se soporta con la evidencia que exige el TdR para la tipología declarada?",
+        "¿La ruta de maduración nombra actividades, hitos y recursos que llevan de un nivel al siguiente?",
+        "¿El plan de verificación del TRL de salida fija escenario, responsables, criterios de aceptación y evidencias?",
+        "¿La evidencia de desempeño incluye registros de operación y no solo un acta de entrega?"
+      ],
+      "senales_alerta": [
+        "El TRL de entrada o de salida cambia entre secciones o no se declara.",
+        "El TRL declarado no corresponde al alcance de la tipología elegida.",
+        "El nivel alcanzado se sustenta con un certificado de entrega, sin registros de desempeño (alertas emitidas, tasas de acierto y de falsa alarma, tiempo de anticipación, disponibilidad).",
+        "La verificación en entorno operativo no involucra al actor usuario que adoptará la solución."
+      ],
+      "evidencia_minima": [
+        "Frase explícita con el TRL de entrada y el TRL de salida comprometido.",
+        "Hitos de maduración ubicados en el cronograma.",
+        "Protocolo de verificación con criterios de aceptación medibles y responsables."
+      ],
+      "fuentes": ["tdr", "anexo2", "revision_pares", "check_run"]
+    },
+    "presupuesto": {
+      "nombre": "Coherencia presupuestal",
+      "preguntas_par": [
+        "¿Cada rubro se liga a actividades, productos, responsables, territorios y meses del cronograma?",
+        "¿Los costos tienen desglose por componente y cotizaciones independientes y del sector?",
+        "¿Las cifras coinciden entre el SIGP, la carta unificada, el documento técnico y el Anexo 3, incluida la contrapartida de cada integrante?",
+        "¿Los costos se clasifican en las categorías de insumos de la MGA y se financian solo gastos de inversión?",
+        "¿Está costeada la mitigación de cada riesgo y la estrategia de manejo de oponentes o perjudicados?"
+      ],
+      "senales_alerta": [
+        "Un solo rubro concentra casi todo el recurso SGR sin costos itemizados ni cotizaciones por componente.",
+        "Las cotizaciones provienen de un aliado del proyecto, de una firma ajena al campo o repiten las cifras del proponente.",
+        "Una misma actividad tiene costos distintos en el documento técnico y en el Anexo 3.",
+        "El recurso SGR paga licencias de un software propiedad del ejecutor, que conserva la propiedad intelectual.",
+        "Se financian gastos permanentes de funcionamiento.",
+        "El total del capítulo de presupuesto del documento técnico no coincide con el total del Anexo 3."
+      ],
+      "evidencia_minima": [
+        "Tabla de presupuesto por rubro con cantidad, valor unitario, fuente y actividad asociada.",
+        "Soportes de estimación (cotizaciones o estudios de mercado) independientes del proyecto.",
+        "Hoja de resumen por entidad con especie, efectivo y SGR, y el mismo total en todos los documentos."
+      ],
+      "fuentes": ["tdr", "anexo3", "instructivo_mga_2023", "diplomado_m1", "diplomado_m4", "guia_sgr_morfeo", "proyectos_referencia", "revision_pares"]
+    },
+    "riesgos": {
+      "nombre": "Análisis de riesgos",
+      "preguntas_par": [
+        "¿Hay al menos un riesgo por nivel (propósito, productos y actividades de ruta crítica)?",
+        "¿Cada riesgo trae probabilidad e impacto valorados, efectos, medida de manejo y responsable?",
+        "¿Las medidas de manejo aparecen en el cronograma y tienen costo en el presupuesto?",
+        "¿Se incluye el riesgo de desastres y climático del territorio?"
+      ],
+      "senales_alerta": [
+        "Riesgos enunciados sin valoración de probabilidad e impacto.",
+        "Medidas genéricas («hacer seguimiento») sin responsable ni costo.",
+        "Ningún riesgo cubre las actividades de la ruta crítica."
+      ],
+      "evidencia_minima": [
+        "Matriz de riesgos con tipo, descripción, probabilidad, impacto, efectos, medida, responsable y costo.",
+        "Actividades de mitigación visibles en el cronograma."
+      ],
+      "fuentes": ["tdr", "instructivo_mga_2023", "diplomado_m4", "guia_sgr_morfeo"]
+    },
+    "demandas_territoriales": {
+      "nombre": "Pertinencia frente a las demandas territoriales",
+      "preguntas_par": [
+        "¿Las demandas territoriales citadas pertenecen a la línea temática elegida y a los departamentos de ejecución?",
+        "¿Cada resultado contribuye de forma verificable a una demanda concreta en cada departamento?",
+        "¿La alineación con los planes nombra programa y meta de cada plan?",
+        "¿La contribución se mide con un indicador y no solo se afirma?"
+      ],
+      "senales_alerta": [
+        "Las demandas territoriales citadas no guardan relación con la línea elegida.",
+        "El vínculo con el territorio descansa solo en la localización del proyecto.",
+        "La contribución por departamento se describe en términos generales, sin indicador."
+      ],
+      "evidencia_minima": [
+        "Tabla de alineación con planes y demandas: plan o demanda, programa, meta y contribución del proyecto.",
+        "Resultado esperado y su indicador por departamento de ejecución."
+      ],
+      "fuentes": ["tdr", "anexo2", "diplomado_m4", "guia_sgr_morfeo", "revision_pares"]
+    },
+    "alcance_regional": {
+      "nombre": "Alcance regional y articulación territorial",
+      "preguntas_par": [
+        "¿Cuántos departamentos de ejecución quedan registrados en el SIGP y coinciden con los del documento técnico?",
+        "¿Hay actividades y resultados en cada departamento declarado, o alguno figura solo de nombre?",
+        "¿La georreferenciación de los sitios es correcta y no repite coordenadas?"
+      ],
+      "senales_alerta": [
+        "Departamentos declarados sin actividades, presupuesto ni resultados propios.",
+        "Coordenadas erradas, duplicadas o fuera del departamento declarado.",
+        "El número de departamentos difiere entre el SIGP y el documento técnico."
+      ],
+      "evidencia_minima": [
+        "Lista de lugares de ejecución por departamento, igual en el SIGP y en el documento técnico.",
+        "Actividades o sitios con su departamento y su georreferenciación verificada."
+      ],
+      "fuentes": ["tdr", "anexo2", "revision_pares"]
+    },
+    "transferencia": {
+      "nombre": "Transferencia, adopción y valorización",
+      "preguntas_par": [
+        "¿La ruta de transferencia nombra resultados transferibles, usuarios o receptores, mecanismos, validaciones, barreras y acciones de continuidad?",
+        "¿El plan de transferencia tiene línea presupuestal propia?",
+        "¿Quién queda con la propiedad intelectual y con la capacidad de operar la solución?",
+        "¿El territorio se apropia de la tecnología o queda dependiente del ejecutor?"
+      ],
+      "senales_alerta": [
+        "El plan de transferencia no tiene línea presupuestal o su valor es simbólico frente al recurso solicitado.",
+        "El ejecutor conserva la propiedad intelectual del software que paga el SGR y el territorio queda dependiente.",
+        "Se habla de transferencia sin usuarios receptores identificados ni mecanismo concreto."
+      ],
+      "evidencia_minima": [
+        "Ruta de transferencia por resultado, con receptor, mecanismo, validación y responsable.",
+        "Línea de presupuesto del plan de transferencia.",
+        "Cláusula o acuerdo de propiedad intelectual coherente con la apropiación territorial."
+      ],
+      "fuentes": ["tdr", "anexo2", "anexo3", "revision_pares"]
+    },
+    "asc": {
+      "nombre": "Apropiación social del conocimiento",
+      "preguntas_par": [
+        "¿La estrategia identifica actores, roles y mecanismos concretos de participación e intercambio de saberes?",
+        "¿Los actores participan a lo largo del ciclo del proyecto o solo al final?",
+        "¿Cada producto de ASC tiene presupuesto, medio de verificación y mes de entrega?",
+        "¿Las actividades de formación ocurren después de que existe el equipo o la herramienta sobre la que se forma?"
+      ],
+      "senales_alerta": [
+        "Productos de ASC sin presupuesto, medio de verificación ni mes de entrega.",
+        "La ASC se reduce a divulgación o a talleres de cierre.",
+        "Capacitaciones programadas antes de que exista el equipo o la plataforma."
+      ],
+      "evidencia_minima": [
+        "Tabla de la estrategia de ASC: actor, rol, mecanismo, momento del ciclo y producto.",
+        "Productos de ASC con indicador, medio de verificación, mes y costo."
+      ],
+      "fuentes": ["tdr", "anexo2", "guia_sgr_morfeo", "revision_pares"]
+    },
+    "productos_divulgacion": {
+      "nombre": "Productos adicionales y divulgación pública de la ciencia",
+      "preguntas_par": [
+        "¿Cuántos productos de CTeI se comprometen por encima del mínimo del TdR y de qué tipo según el modelo de medición vigente?",
+        "¿La estrategia de divulgación define públicos, medios, productos, responsable y cronograma, y está costeada?",
+        "¿Los productos se toman del catálogo del DNP con indicador, unidad y meta?"
+      ],
+      "senales_alerta": [
+        "Se cuentan como adicionales los productos que el TdR exige como mínimo.",
+        "La divulgación no tiene responsable, cronograma ni costo.",
+        "Productos de ASC contados en este subcriterio cuando se evalúan en otro."
+      ],
+      "evidencia_minima": [
+        "Tabla de productos con tipología, indicador, meta y si es adicional al mínimo.",
+        "Plan de divulgación con público, medio, responsable, mes y costo."
+      ],
+      "fuentes": ["tdr", "instructivo_mga_2023", "guia_sgr_morfeo"]
+    },
+    "trayectoria": {
+      "nombre": "Trayectoria de la alianza",
+      "preguntas_par": [
+        "¿Cuántos proyectos de CTeI adicionales al mínimo se acreditan, sin contar dos veces el mismo proyecto?",
+        "¿Cuáles fueron financiados con recursos del SGR o integraron listados de elegibles en los dos últimos bienios?",
+        "¿Los proyectos acreditados se relacionan con las líneas temáticas de la convocatoria?"
+      ],
+      "senales_alerta": [
+        "El mismo proyecto aparece acreditado por dos integrantes.",
+        "Se cuentan como adicionales proyectos usados para cumplir un requisito habilitante.",
+        "No hay soporte del financiamiento SGR o de la inclusión en un listado de elegibles."
+      ],
+      "evidencia_minima": [
+        "Lista de proyectos con nombre o código, entidad que lo acredita, fuente de financiación y relación con la línea.",
+        "Soportes de financiación SGR o de listado de elegibles."
+      ],
+      "fuentes": ["tdr"]
+    },
+    "alianza": {
+      "nombre": "Conformación de la alianza, arraigo y aliados internacionales",
+      "preguntas_par": [
+        "¿Qué categoría de alianza se cumple de forma íntegra, contando al proponente y una sola categoría por entidad?",
+        "¿La alianza incluye el nivel departamental o territorial del que depende la operación de la solución?",
+        "¿Cada integrante tiene un rol en las actividades y una contrapartida cuantificada?",
+        "¿El aliado internacional acredita su participación con carta de intención y aporte en pesos?",
+        "¿El proponente tiene domicilio en la región de impacto?"
+      ],
+      "senales_alerta": [
+        "La alianza deja por fuera el nivel departamental del que depende la solución.",
+        "Una entidad figura con doble categoría (por ejemplo, sector productivo y actor del SNCTI).",
+        "Integrantes sin rol en el cronograma ni contrapartida.",
+        "Aliado internacional sin carta de intención o sin aporte cuantificado."
+      ],
+      "evidencia_minima": [
+        "Matriz de participantes con entidad, tipo, rol, actividades y contrapartida.",
+        "Cartas de compromiso o de intención con el aporte de cada integrante."
+      ],
+      "fuentes": ["tdr", "instructivo_mga_2023", "diplomado_m3", "revision_pares"]
+    },
+    "gobernanza": {
+      "nombre": "Modelo de gobernanza",
+      "preguntas_par": [
+        "¿El modelo define acuerdos, roles, mecanismo de decisión, propiedad intelectual, seguimiento y control?",
+        "¿Los roles de la gobernanza corresponden a las actividades asignadas en el proyecto?",
+        "¿Queda claro quién decide ante un conflicto entre integrantes?"
+      ],
+      "senales_alerta": [
+        "El modelo enuncia un comité sin funciones, periodicidad ni reglas de decisión.",
+        "La propiedad intelectual no se trata o contradice el plan de transferencia.",
+        "Los roles de la gobernanza no aparecen en el cronograma ni en el presupuesto."
+      ],
+      "evidencia_minima": [
+        "Descripción del modelo con instancias, funciones, periodicidad y regla de decisión.",
+        "Tratamiento explícito de la propiedad intelectual por resultado."
+      ],
+      "fuentes": ["tdr", "anexo2"]
+    },
+    "sostenibilidad": {
+      "nombre": "Sostenibilidad y uso de resultados",
+      "preguntas_par": [
+        "¿Quién opera los bienes y servicios cuando termina el proyecto y con qué fuente de recursos?",
+        "¿El actor usuario acredita su compromiso de adopción sobre resultados concretos?",
+        "¿La operación posterior evita gastos permanentes de funcionamiento con cargo al SGR?"
+      ],
+      "senales_alerta": [
+        "No se nombra responsable de la operación posterior.",
+        "La fuente de financiación posterior se enuncia en términos generales.",
+        "La continuidad depende de licencias o servicios que solo presta el ejecutor."
+      ],
+      "evidencia_minima": [
+        "Plan de sostenibilidad con responsable, fuente de recursos y horizonte.",
+        "Carta o acuerdo de adopción del actor usuario."
+      ],
+      "fuentes": ["tdr", "diplomado_m1", "instructivo_mga_2023", "revision_pares"]
+    },
+    "cofinanciacion": {
+      "nombre": "Cofinanciación y contrapartida",
+      "preguntas_par": [
+        "¿Qué porcentaje del valor solicitado al SGR representa la contrapartida, y cuánto de ella es en efectivo?",
+        "¿La suma de los aportes de los integrantes coincide con el total de contrapartida declarado en todos los documentos?",
+        "¿Cada aporte está registrado en el Anexo 3 y soportado?"
+      ],
+      "senales_alerta": [
+        "La suma de contrapartidas por integrante no coincide con el total declarado.",
+        "La contrapartida en efectivo se anuncia en el texto pero no aparece en el Anexo 3.",
+        "Aportes en especie sin valoración ni soporte."
+      ],
+      "evidencia_minima": [
+        "Hoja de resumen del Anexo 3 por entidad con especie, efectivo y SGR.",
+        "Cartas de compromiso con el valor del aporte de cada integrante."
+      ],
+      "fuentes": ["tdr", "anexo3", "proyectos_referencia"]
+    },
+    "enfoque_diferencial": {
+      "nombre": "Enfoque diferencial e interseccional",
+      "preguntas_par": [
+        "¿El documento identifica barreras de acceso por grupo poblacional con fuente?",
+        "¿Cada barrera tiene medida, actividad, indicador, meta y evidencia?",
+        "Si no identifica barreras, ¿justifica esa conclusión?",
+        "Cuando hay comunidades étnicas, ¿se verificó la necesidad de consulta previa?"
+      ],
+      "senales_alerta": [
+        "Las medidas diferenciales se enuncian sin actividades ni indicadores.",
+        "La población no se caracteriza por edad, etnia, género, condición de víctima y discapacidad.",
+        "No se menciona la consulta previa en territorios con comunidades étnicas."
+      ],
+      "evidencia_minima": [
+        "Caracterización de la población objetivo con fuente.",
+        "Tabla de barreras y medidas con actividad, indicador, meta y evidencia."
+      ],
+      "fuentes": ["tdr", "anexo2", "instructivo_mga_2023", "diplomado_m1", "guia_sgr_morfeo"]
+    },
+    "emergencia": {
+      "nombre": "Relación con la emergencia",
+      "preguntas_par": [
+        "¿El documento muestra cómo la emergencia produjo o agravó la brecha de CTeI que atiende el proyecto?",
+        "¿Las actividades y los productos atacan los efectos de la emergencia y no un problema previo sin relación?",
+        "¿El problema central nombra el evento en forma breve?",
+        "¿El vínculo se sostiene con datos de afectación y no solo con la ubicación del proyecto?"
+      ],
+      "senales_alerta": [
+        "La relación con la emergencia se apoya solo en que el proyecto se ejecuta en un territorio afectado.",
+        "Los métodos miden una amenaza distinta de la que causó la emergencia.",
+        "Los datos de afectación no tienen fuente ni fecha."
+      ],
+      "evidencia_minima": [
+        "Párrafo con la cadena efecto de la emergencia, brecha de CTeI, actividad y resultado, con cifras y fuente.",
+        "Acto administrativo de declaratoria de desastre o calamidad, cuando el TdR lo exige."
+      ],
+      "fuentes": ["tdr", "guia_sgr_morfeo", "revision_pares"]
+    },
+    "oportunidad": {
+      "nombre": "Capacidad de respuesta y oportunidad",
+      "preguntas_par": [
+        "¿El cronograma prioriza las actividades que entregan resultados primero a quienes los necesitan?",
+        "¿Hay hitos por sitio y por mes, no solo por trimestre?",
+        "¿La secuencia es viable: equipos antes de capacitaciones, datos antes de modelos?",
+        "¿El equipo y la alianza tienen capacidad disponible desde el inicio?"
+      ],
+      "senales_alerta": [
+        "Cronograma trimestral sin hitos por sitio.",
+        "Capacitaciones programadas antes de que exista el equipo.",
+        "Los primeros resultados útiles llegan al final del proyecto."
+      ],
+      "evidencia_minima": [
+        "Cronograma mensual con etapas, ruta crítica e hitos por sitio.",
+        "Lista de entregables tempranos con su mes."
+      ],
+      "fuentes": ["tdr", "diplomado_m4", "guia_sgr_morfeo", "revision_pares"]
+    }
+  }
+}
