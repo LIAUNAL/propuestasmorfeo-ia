@@ -131,6 +131,36 @@ class LexiconSchema(unittest.TestCase):
         self.assertEqual(mapped[29][0], "30_fuentes_financiacion")
         self.assertNotIn(29, {item["capitulo"] for item in self.lex["capitulos_sin_archivo"]})
 
+    def test_component_sections_have_their_lexicon(self) -> None:
+        for stem in ("31_trl", "32_sostenibilidad", "33_uso_posterior", "34_transferencia",
+                     "35_medidas_diferenciales", "18_apropiacion_social"):
+            with self.subTest(stem=stem):
+                entries = self.lex["secciones"][stem]
+                self.assertIn("favorecida", {e["tipo"] for e in entries})
+                self.assertTrue(any(e["regex"] for e in entries if e["tipo"] != "favorecida"))
+
+    def test_component_lexicon_catches_the_rubric_pitfalls(self) -> None:
+        cases = {"32_sostenibilidad": "La alianza garantiza la sostenibilidad del servicio.",
+                 "34_transferencia": "La transferencia se hará mediante artículos y eventos académicos.",
+                 "35_medidas_diferenciales": "El proyecto atiende a la población vulnerable del municipio.",
+                 "18_apropiacion_social": "La estrategia consiste en la socialización de resultados."}
+        for stem, sentence in cases.items():
+            with self.subTest(stem=stem):
+                rules = [estilo.compile_rule(e["regex"]) for e in self.lex["secciones"][stem]
+                         if e["regex"] and e["tipo"] == "prohibida"]
+                self.assertTrue(any(r.search(sentence) for r in rules), sentence)
+
+    def test_chapters_14_to_21_map_to_the_component_sections(self) -> None:
+        mapped = {item["capitulo"]: item["secciones"] for item in self.lex["mapa_capitulos"]}
+        self.assertIn("31_trl", mapped[14])
+        self.assertEqual(mapped[16], ["32_sostenibilidad"])
+        self.assertIn("33_uso_posterior", mapped[17])
+        self.assertEqual(mapped[18], ["34_transferencia"])
+        self.assertEqual(mapped[19], ["18_apropiacion_social"])
+        self.assertIn("35_medidas_diferenciales", mapped[21])
+        pending = {item["capitulo"] for item in self.lex["capitulos_sin_archivo"]}
+        self.assertFalse({16, 18} & pending)
+
     def test_whitelist_kinds(self) -> None:
         kinds = {item["tipo"] for item in self.lex["repeticion_obligatoria"]}
         for kind in ("titulo", "problema_central", "objetivo_general", "objetivos_especificos",
@@ -246,6 +276,19 @@ class Findings(unittest.TestCase):
         self.assertNotIn("sgr-estilo-inflacion", found)
         self.assertNotIn("sgr-estilo-redundancia-entre-secciones", found)
 
+    def test_component_names_repeat_verbatim(self) -> None:
+        milestone = "Piloto del tamizaje con fundamental validación en la red departamental de salud mental"
+        sgr = self.root / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "componentes.json").write_text(json.dumps({
+            "schema": "morfeo.componentes-sgr/v1", "trl": {"ruta": [{"hito": milestone}]}}, ensure_ascii=False),
+            encoding="utf-8")
+        self.write("31_trl", f"El hito {milestone} cierra la ruta.")
+        self.write("14_cronograma_actividades", f"En el mes 20 se alcanza el hito {milestone}.")
+        found = self.codes()
+        self.assertNotIn("sgr-estilo-inflacion", found)
+        self.assertNotIn("sgr-estilo-redundancia-entre-secciones", found)
+
     def test_copied_prose_between_sections_is_an_info_signal(self) -> None:
         copied = ("la cuenca media registra una cobertura de monitoreo de apenas cuatro estaciones activas "
                   "para una población ribereña dispersa en once veredas del territorio")
@@ -346,8 +389,9 @@ class Cli(unittest.TestCase):
 class GuideWritingPatterns(unittest.TestCase):
     """S2: every `### SGR` block gains a «Redacción» part the parser still returns."""
 
-    EXPECTED = {"§2", "§3", "§6", "§7", "§10", "§11", "§13", "§14", "§15", "§17",
-                "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27", "A28", "A29", "A30"}
+    EXPECTED = {"§2", "§3", "§6", "§7", "§10", "§11", "§13", "§14", "§15", "§17", "§18",
+                "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27", "A28", "A29", "A30",
+                "A31", "A32", "A33", "A34", "A35"}
 
     def setUp(self) -> None:
         self.text = (REPO / GUIDE).read_text(encoding="utf-8")
@@ -373,6 +417,20 @@ class GuideWritingPatterns(unittest.TestCase):
         for line in ("Valor total contrapartida (en efectivo y en especie):", "Valor total del proyecto:",
                      "en letras y números"):
             self.assertIn(line, sources)
+
+    def test_component_blocks_describe_their_data(self) -> None:
+        asc = " ".join(self.blocks["§18"].split())
+        self.assertIn("componentes.json", asc)
+        self.assertIn("siete elementos", asc)
+        self.assertIn("no se limita a la divulgación", asc)
+        for key, stem in (("A31", "31_trl"), ("A32", "32_sostenibilidad"), ("A33", "33_uso_posterior"),
+                          ("A34", "34_transferencia"), ("A35", "35_medidas_diferenciales")):
+            with self.subTest(block=key):
+                body = " ".join(self.blocks[key].split())
+                self.assertIn(f"{stem}.tex", body)
+                self.assertIn("componentes_sgr.py render", body)
+        self.assertIn("Hito | Mes | TRL | Actividades | Evidencia", " ".join(self.blocks["A31"].split()))
+        self.assertIn("1 %", self.blocks["A34"])
 
     def test_section_3_drops_the_research_question_in_sgr(self) -> None:
         body = self.blocks["§3"]

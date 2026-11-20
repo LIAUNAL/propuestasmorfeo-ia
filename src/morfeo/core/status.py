@@ -47,6 +47,12 @@ SECTION_TITLES = {
     "29_idoneidad_trayectoria": "§29 Idoneidad y trayectoria",
     # Resumen de fuentes de financiación del flujo SGR (Anexo 2 cap. 29), generado desde presupuesto.json.
     "30_fuentes_financiacion": "§30 Resumen de fuentes de financiación",
+    # TRL y componentes transversales del flujo SGR, generados desde componentes.json.
+    "31_trl": "§31 TRL y verificación",
+    "32_sostenibilidad": "§32 Sostenibilidad social y ambiental",
+    "33_uso_posterior": "§33 Uso y operación posterior",
+    "34_transferencia": "§34 Transferencia, adopción y valoración",
+    "35_medidas_diferenciales": "§35 Medidas diferenciales",
 }
 
 VALID_FLUJOS = ("base", "sgr")

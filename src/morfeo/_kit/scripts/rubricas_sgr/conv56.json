@@ -267,6 +267,7 @@
           },
           "familia": "trl",
           "evidencia": [
+            "31_trl",
             "02_justificacion",
             "10_metodologia",
             "11_resultados_esperados",
@@ -308,6 +309,8 @@
           "notas": [],
           "familia": "sostenibilidad",
           "evidencia": [
+            "32_sostenibilidad",
+            "33_uso_posterior",
             "11_resultados_esperados",
             "17_articulacion_comunidades",
             "20_participantes"

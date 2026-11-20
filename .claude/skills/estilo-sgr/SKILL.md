@@ -68,10 +68,15 @@ Fuentes en el repositorio: la evidencia completa en
 | 12 Objetivos | `06_objetivo_general`, `07_objetivos_especificos` | Textos literales del árbol; sin medio, fin, meta ni producto |
 | 13 Alternativas | `22_alternativas` | Párrafos rotulados por factor; descarte por razón técnica |
 | 14 Metodología | `10_metodologia` | «Actividad <n.n.n>: <infinitivo + objeto>» con Responsable, Tareas, Resultados y Medio de verificación; futuro e impersonal |
+| 14.1 y 14.2 Madurez tecnológica y verificación del TRL | `31_trl` (generada) | TRL de entrada con evidencia, hitos hasta el TRL de salida y plan de verificación; sin TRL declarado sin evidencia |
 | 15 Cadena de valor | `23_cadena_valor` | Tabla; productos del catálogo DNP; dos o más actividades por producto |
+| 16 Sostenibilidad social y ambiental | `32_sostenibilidad` (generada) | ODS con número y productos que lo respaldan; actores con compromiso y fuente; nunca «garantiza la sostenibilidad» sin responsable; presente |
 | 17 Resultados | `11_resultados_esperados` | Meta, plazo e indicador; oraciones cortas |
-| 19 ASC | `18_apropiacion_social` | Participación, diálogo de saberes, co-creación, incidencia; no solo socializar |
+| 17.1 Uso y operación posterior | `33_uso_posterior` (generada) | Operador y fuente de recursos por bien; compromiso de adopción del actor usuario; sin gastos de funcionamiento con SGR |
+| 18 Transferencia, adopción y valoración | `34_transferencia` (generada) | Usuarios por resultado, ruta con barreras, actividades con presupuesto (mínimo 1 %); no reducida a publicaciones o eventos; futuro |
+| 19 ASC | `18_apropiacion_social` (generada en SGR) | Siete elementos de la ruta con meses y actividades; participación, diálogo de saberes, co-creación, incidencia; no solo socializar |
 | 21 Productos | `15_productos_esperados` | Nombre del catálogo sin participio; el participio va en el indicador |
+| 21.1 Medidas diferenciales | `35_medidas_diferenciales` (generada) | Barrera, medida, actividad, indicador, meta y evidencia; «población vulnerable» siempre con su barrera |
 | 22 Cronograma | `14_cronograma_actividades` | Meses, etapa y ruta crítica; mismos nombres de actividad |
 | 23 Riesgos | `24_riesgos` | Descripción nominal; medida en infinitivo con responsable y costo |
 | 26 Ética | `12_consideraciones_eticas` | Futuro normativo atado a las actividades |
@@ -81,7 +86,7 @@ Fuentes en el repositorio: la evidencia completa en
 | 27 Idoneidad y trayectoria | `29_idoneidad_trayectoria` | Una subsección por entidad, tercera persona, sin texto institucional en primera persona |
 | 29 Resumen de fuentes de financiación | `30_fuentes_financiacion` (generada) | Las tres líneas literales en letras y números; cifras iguales a la carta unificada y al Anexo 3 |
 
-Los capítulos 16, 18, 24, 25, 28 y 31 aún no tienen archivo en Morfeo;
+Los capítulos 24, 25, 28 y 31 aún no tienen archivo en Morfeo;
 el léxico los lista en `capitulos_sin_archivo` con su nota de redacción.
 
 ## 4. Ajustes a `estilo-natural-es` y `depuracion-redundancias-es` en SGR

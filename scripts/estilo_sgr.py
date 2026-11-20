@@ -11,7 +11,7 @@ same folder.
 Usage:
   python3 scripts/estilo_sgr.py RUN_ROOT [--section KEY] [--json]
 
-KEY is a Morfeo section stem (02_justificacion, ..., 30_fuentes_financiacion). Exit 0
+KEY is a Morfeo section stem (02_justificacion, ..., 35_medidas_diferenciales). Exit 0
 whatever the findings; exit 2 for bad input (missing run folder, unknown
 section, unreadable lexicon). --json prints {"seccion": KEY|null,
 "findings": [...]}, each finding being
@@ -34,8 +34,10 @@ Rules:
 Exempt from every prose and table rule: quoted text, official names listed in
 `exenciones`, and the texts that must repeat verbatim (title, central problem,
 general and specific objectives, product and activity names, the demand texts
-of artefactos/sgr/territorio.json and the entity and research group names of
-artefactos/sgr/alianza.json).
+of artefactos/sgr/territorio.json, the entity and research group names of
+artefactos/sgr/alianza.json, and the TRL milestones, transfer results and ASC
+products of artefactos/sgr/componentes.json, which the rendered sections and
+the schedule repeat).
 """
 
 from __future__ import annotations
@@ -55,6 +57,7 @@ SECTIONS_DIR = Path("redaccion") / "sections"
 CHAIN_FILE = Path("artefactos") / "sgr" / "cadena_valor.json"
 ALLIANCE_FILE = Path("artefactos") / "sgr" / "alianza.json"
 TERRITORY_FILE = Path("artefactos") / "sgr" / "territorio.json"
+COMPONENTS_FILE = Path("artefactos") / "sgr" / "componentes.json"
 ACTIVITY_SECTIONS = ("10_metodologia", "14_cronograma_actividades", "23_cadena_valor")
 SKIPPED_SECTIONS = frozenset({"16_bibliografia"})
 SEVERITY = {"prohibida": "advertencia", "desaconsejada": "info"}
@@ -243,7 +246,7 @@ def _phrase_pattern(text: str) -> re.Pattern | None:
 
 def whitelist_patterns(run_root: Path) -> list[re.Pattern]:
     """Texts that must repeat verbatim: title, central problem, objectives, products, activities,
-    demand texts, entity and research group names."""
+    demand texts, entity and research group names, TRL milestones, transfer results and ASC products."""
     cr = _check_run()
     texts: list[str] = [cr.project_title(run_root / "redaccion")]
     spec = cr._read_json_file(run_root / cr.PROBLEM_SPEC) or {}
@@ -255,6 +258,7 @@ def whitelist_patterns(run_root: Path) -> list[re.Pattern]:
         texts += [objective.get("texto") or "", product.get("nombre") or "",
                   (activity or {}).get("nombre") or ""]
     texts += _alliance_territory_texts(run_root)
+    texts += _component_texts(run_root)
     patterns = {}
     for text in texts:
         pattern = _phrase_pattern(str(text))
@@ -280,6 +284,18 @@ def _alliance_territory_texts(run_root: Path) -> list[str]:
             continue
         texts.append(str(entity.get("nombre") or ""))
         texts += [str(g.get("nombre") or "") for g in entity.get("grupos") or [] if isinstance(g, dict)]
+    return texts
+
+
+def _component_texts(run_root: Path) -> list[str]:
+    """TRL milestone names, transfer results and ASC product names of componentes.json."""
+    data = _check_run()._read_json_file(run_root / COMPONENTS_FILE)
+    data = data if isinstance(data, dict) else {}
+    texts: list[str] = []
+    for block, items, key in (("trl", "ruta", "hito"), ("transferencia", "resultados", "resultado"),
+                              ("asc", "productos", "producto")):
+        section = data.get(block) if isinstance(data.get(block), dict) else {}
+        texts += [str(item.get(key) or "") for item in section.get(items) or [] if isinstance(item, dict)]
     return texts
 
 

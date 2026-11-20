@@ -8,19 +8,21 @@ según el material de `sgrguia`: Instructivo MGA 2023, Manual conceptual MGA 201
 y los módulos de Identificación y Preparación del diplomado SGR.
 
 **Orden de precedencia.** TDR de la convocatoria > este complemento > guía base.
-Lo que este archivo no toca (TRL, ética, densidad de citas, pisos bibliográficos,
-convenciones de LaTeX, estilo) sigue rigiéndose por la guía base o por la guía
-ajustada al TDR. La MGA no cubre los términos de referencia de Minciencias: el
-TRL, los productos de CTeI y los criterios de evaluación de una convocatoria
-salen siempre de su TDR.
+Lo que este archivo no toca (el TRL fuera del bloque A31, ética, densidad de
+citas, pisos bibliográficos, convenciones de LaTeX, estilo) sigue rigiéndose por
+la guía base o por la guía ajustada al TDR. La MGA no cubre los términos de
+referencia de Minciencias: el TRL, los productos de CTeI y los criterios de
+evaluación de una convocatoria salen siempre de su TDR.
 
 **Cómo lo usa el dispatcher.** Con el flujo `sgr`, el dispatcher lee la guía
 aplicable (base o ajustada) y además este archivo, una sola vez por corrida. Cada
 vez que arma un `## FRAGMENTO DE GUÍA` con la sección `N`, agrega al final el
 bloque `### SGR §N` de este archivo, si existe. Los bloques `### SGR A19` a
 `### SGR A25` se inyectan en la Fase 6.47 (anexos MGA); `### SGR A30` acompaña
-a §13 en la Fase 6.4 y en la fase de anexos. Con el flujo base este
-archivo no se lee.
+a §13 en la Fase 6.4 y en la fase de anexos; `### SGR A31` a `### SGR A35` y
+`### SGR §18` acompañan la unidad «TRL y componentes transversales»
+(`fase5_5_sgr`), donde se escriben los textos de `componentes.json`. Con el
+flujo base este archivo no se lee.
 
 ---
 
@@ -474,6 +476,43 @@ certificado correspondiente.
   proyecto`; `Actores | Pertinencia frente a los objetivos y las demandas
   territoriales`.
 
+### SGR §18
+
+En el flujo SGR, §18 (`18_apropiacion_social.tex`, Anexo 2 cap. 19) no se
+redacta a mano: lo genera `python3 scripts/componentes_sgr.py render <RUN_ROOT>`
+desde el bloque `asc` de `artefactos/sgr/componentes.json`, con la cabecera
+`% GENERADO`. La ruta cubre los siete elementos del TdR 6.1 (identificación del
+problema, vinculación de actores, diseño, planeación, ejecución, seguimiento y
+resultados y sostenibilidad), cada uno con sus meses, lo que se hace con los
+actores y las actividades de la cadena de valor; la estrategia no se limita a
+la divulgación o la socialización de resultados. `redactor` escribe la
+`introduccion` y los textos de los actores, de la ruta y de los productos;
+`check` exige los siete elementos y al menos un producto con medio de
+verificación y mes. En el flujo base §18 sigue la guía base.
+
+**Redacción.** (Anexo 2, cap. 19; TdR 6.1; rúbrica 2.4.)
+
+* Apertura: «La estrategia de Apropiación Social del Conocimiento (ASC) del
+  proyecto se concibe como un proceso transversal de participación, diálogo
+  de saberes, colaboración y co-creación entre…» o «La estrategia se
+  desarrollará mediante el reconocimiento de los contextos territoriales…».
+* Favorecer: quiénes participan, cómo participan, en qué momentos inciden, qué
+  aportan y qué deciden o validan juntos; el léxico del TdR (participación,
+  diálogo de saberes, co-creación, incidencia, validación conjunta, mesas de
+  trabajo, grupos focales, comunidades de práctica, seguimiento participativo,
+  sistematización).
+* Evitar: reducir la ASC a «socialización» o «divulgación» de resultados,
+  «capacitar a la comunidad», «sensibilizar» o «llevar el conocimiento a»
+  (comunicación unidireccional); «empoderar» sin mecanismo; concentrar la ASC
+  al final del cronograma; productos sin medio de verificación ni mes.
+* Tiempo: futuro para la estrategia y los productos; presente para el
+  reconocimiento del contexto.
+* Extensión: introducción de 150 a 300 palabras; el detalle va en las tablas.
+* Tablas (generadas): `Grupo y actores | Relación con la problemática |
+  Saberes y capacidades | Rol y momento de participación | Incidencia`;
+  `Elemento | Meses | Qué se hace con los actores | Actividades`;
+  `Producto | Descripción | Medio de verificación | Mes | Actividad`.
+
 ---
 
 ## Anexos MGA (Fase 6.47, solo flujo SGR)
@@ -481,7 +520,8 @@ certificado correspondiente.
 Cada anexo es un archivo de `redaccion/sections/` que `main.tex` incluye después
 de §18 y antes de la bibliografía. Los redacta `redactor`, salvo los que se
 generan desde datos: A23 (`cadena_valor.json`), A26 a A28 (`alianza.json` y
-`territorio.json`) y A30 (`presupuesto.json`, con §13).
+`territorio.json`), A30 (`presupuesto.json`, con §13) y A31 a A35
+(`componentes.json`, con §18).
 Las tablas usan `xltabular`; la prosa sigue `estilo-natural-es` con los
 ajustes de la skill `estilo-sgr`.
 
@@ -818,6 +858,163 @@ cuyo título textual es «RESUMEN DE FUENTES DE FINANCIACIÓN».
 * Tiempo: no aplica; líneas nominales.
 * Extensión: solo la tabla y las tres líneas.
 * Tabla (generada): `Entidad | Fuente de recursos | Valor`.
+
+### SGR A31
+
+`31_trl.tex`, «Estado de desarrollo y madurez tecnológica de la solución» y
+«Plan de verificación del TRL de salida» (Anexo 2 Conv 54, caps. 14.1 y 14.2).
+Fuente: el bloque `trl` de `artefactos/sgr/componentes.json` (tipología A o B,
+TRL de entrada con su evidencia, ruta de maduración con hitos, meses, TRL y
+actividades, y el plan de verificación con escenario, responsables, criterios
+de aceptación, evidencias y actor usuario). Lo genera
+`python3 scripts/componentes_sgr.py render <RUN_ROOT>` con la cabecera
+`% GENERADO`; con `artefactos/estructura_tdr.json` entra como subsección del
+capítulo «METODOLOGÍA PARA DESARROLLAR LA ALTERNATIVA SELECCIONADA». `check`
+verifica que la salida supere la entrada, que los hitos lleguen al TRL de
+salida dentro de la duración y el rango de la convocatoria (Conv 54: tipología
+A hasta TRL 6 con evidencia de entrada; tipología B desde TRL 4 y salida entre
+7 y 9; Conv 56: una salida menor que 7 vale 0 en el criterio 3.1).
+
+**Redacción.** (Anexo 2, caps. 14.1 y 14.2; rúbrica 1.3.) Rige la
+`introduccion` del bloque `trl`.
+
+* Apertura: «El punto de partida tecnológico corresponde a <activo>, …»; «La
+  verificación del TRL <n> se sustentará en…»; «La demostración se realizará
+  en un entorno pertinente, mediante…».
+* Favorecer: la evidencia concreta del TRL de entrada (informe, línea base,
+  resultados previos con fecha); el entorno de verificación de la tipología
+  (laboratorio o entorno relevante en A; entorno operativo real con el actor
+  usuario en B); «<Entidad> coordinará la ejecución y documentación de…».
+* Evitar: el TRL declarado sin evidencia («No será suficiente la sola
+  declaración del nivel de madurez»); «se determinará durante la ejecución»
+  sin criterio de decisión; prometer un TRL de salida fuera del rango de la
+  tipología; «de manera integral» o «robusto» como relleno; nombrar el TRL en
+  los objetivos.
+* Tiempo: presente para el punto de partida; futuro para la ruta y la
+  verificación.
+* Extensión: introducción de 120 a 250 palabras.
+* Tablas (generadas): `Tipología declarada | TRL de entrada | Evidencia del
+  punto de partida | TRL de salida comprometido`; `Hito | Mes | TRL |
+  Actividades | Evidencia`; `Escenario | Responsables | Criterios de
+  aceptación | Evidencias`.
+
+### SGR A32
+
+`32_sostenibilidad.tex`, «Sostenibilidad social y ambiental del proyecto»
+(Anexo 2, cap. 16). Fuente: el bloque `sostenibilidad` de
+`artefactos/sgr/componentes.json` (ODS con su contribución y los productos
+que la respaldan, actores con funciones y compromiso, efectos ambientales por
+actividad con su manejo). Lo genera
+`python3 scripts/componentes_sgr.py render <RUN_ROOT>`; con la estructura del
+TdR abre el capítulo «SOSTENIBILIDAD SOCIAL Y AMBIENTAL DEL PROYECTO».
+
+**Redacción.** (Anexo 2, cap. 16; rúbrica 4.2.) Rige la `introduccion` del
+bloque `sostenibilidad`.
+
+* Apertura: «El proyecto contribuye de manera directa a los ODS <n>…»; «La
+  sostenibilidad se plantea desde la formulación y se apoya en…».
+* Favorecer: párrafos rotulados de una o dos oraciones («Capacidad instalada y
+  talento humano: …», «Mecanismos de continuidad: …», «Gestión de riesgos
+  ambientales: …»); cada ODS con número y meta; cada compromiso con su actor y
+  su fuente de recursos.
+* Evitar: «garantiza la sostenibilidad» sin responsable ni fuente de
+  recursos; copiar la alineación del cap. 4 (R3); afirmaciones absolutas
+  («no genera impactos negativos») sin análisis; ODS sin número.
+* Tiempo: presente.
+* Extensión: introducción de 120 a 250 palabras.
+* Tablas (generadas): `ODS | Contribución del proyecto | Productos y
+  resultados que la respaldan`; `Actores | Funciones en el proyecto |
+  Compromiso con la sostenibilidad`; `Actividad | Medio | Efecto | Manejo`.
+
+### SGR A33
+
+`33_uso_posterior.tex`, «Uso y operación posterior de los resultados» (Anexo
+2, cap. 17.1). Fuente: el bloque `uso_posterior` de
+`artefactos/sgr/componentes.json` (bienes con valor SGR, entidad que los
+opera, fuente de recursos y mantenimiento; compromisos de adopción de los
+actores usuarios de la alianza). Lo genera
+`python3 scripts/componentes_sgr.py render <RUN_ROOT>`; con la estructura del
+TdR entra como subsección del capítulo «RESULTADOS E IMPACTOS…». Todo bien con
+valor SGR necesita operador y fuente de recursos.
+
+**Redacción.** (Anexo 2, cap. 17.1; rúbrica 4.2.) Rige la `introduccion` del
+bloque `uso_posterior`.
+
+* Apertura: «Cada bien queda a cargo de <entidad>, que…»; «El proyecto no
+  destina recursos SGR a la operación posterior de los bienes.».
+* Favorecer: la entidad responsable de la operación y el mantenimiento con su
+  fuente de recursos; el compromiso del actor usuario con las condiciones de
+  adopción.
+* Evitar: financiar con el SGR la operación permanente o gastos de
+  funcionamiento; «transformará la región» o «beneficiará a miles de
+  personas» sin indicador ni actor; un bien sin operador.
+* Tiempo: futuro de compromiso.
+* Extensión: introducción de 80 a 180 palabras.
+* Tablas (generadas): `Bienes adquiridos con SGR | Valor SGR | Entidad
+  responsable | Operación y mantenimiento posterior | Fuente de recursos`;
+  `Actor | Resultado que adoptará | Condiciones de adopción`.
+
+### SGR A34
+
+`34_transferencia.tex`, «Componente transversal de transferencia, adopción y
+valoración tecnológica del conocimiento» (Anexo 2, cap. 18, numerales 18.1 a
+18.5). Fuente: el bloque `transferencia` de `artefactos/sgr/componentes.json`
+(resultados con usuarios y protección de PI, ruta con etapas, mecanismos,
+barreras y acciones, actividades y continuidad), los nombres, productos y meses
+de la cadena de valor, los responsables de la alianza y la parte de
+presupuesto de cada actividad. Lo genera
+`python3 scripts/componentes_sgr.py render <RUN_ROOT>`; con la estructura del
+TdR abre el capítulo del componente de transferencia. `check` avisa cuando el
+componente no llega al 1 % del total SGR o cuando sus actividades no coinciden
+con los ítems de `presupuesto.json` con componente «transferencia».
+
+**Redacción.** (Anexo 2, cap. 18; TdR numeral 9; rúbrica 2.3.) Rige la
+`introduccion` (numeral 18.1) y la `continuidad` (numeral 18.5).
+
+* Apertura: «El componente transversal de transferencia establecerá las
+  condiciones para que los conocimientos, tecnologías y metodologías generados
+  por el proyecto puedan ser utilizados por <usuarios>.»; «El alcance será
+  proporcional al estado de desarrollo de cada solución.»; para 18.5: «Una vez
+  finalizado el proyecto, se dará continuidad al proceso de transferencia
+  mediante…».
+* Favorecer: el usuario, beneficiario o receptor de cada resultado; la
+  evidencia de uso, adopción y valor generado; «Se destinará como mínimo el
+  uno por ciento (1 %) del valor solicitado al SGR a…».
+* Evitar: reducir la transferencia a publicaciones, artículos, talleres o
+  eventos («no constituirán por sí solas evidencia de transferencia»);
+  receptores genéricos («la comunidad en general»); prometer
+  comercialización con un TRL bajo; anglicismos no oficiales («partners»,
+  «stakeholders»).
+* Tiempo: futuro.
+* Extensión: introducción de 150 a 300 palabras; continuidad de 60 a 150.
+* Tablas (generadas): `Resultado | Usuarios | Protección de PI`; `Etapa |
+  Mecanismo | Barreras | Acciones`; `Actividad | Resultado | Producto |
+  Indicador | Responsable | Periodo | Presupuesto`.
+
+### SGR A35
+
+`35_medidas_diferenciales.tex`, «Medidas diferenciales» (Anexo 2 Conv 54, cap.
+21.1). Fuente: el bloque `diferencial` de `artefactos/sgr/componentes.json`
+(barreras con población, medida, actividades, indicador, meta y evidencia, o
+la justificación de que no hay barreras). Lo genera
+`python3 scripts/componentes_sgr.py render <RUN_ROOT>`; con la estructura del
+TdR entra como subsección del capítulo «PRODUCTOS ESPERADOS».
+
+**Redacción.** (Anexo 2, cap. 21.1; TdR 6.2; rúbrica 4.4.) Rige la
+`introduccion` y, sin barreras, la `justificacion_sin_barreras`.
+
+* Apertura: la barrera concreta que enfrenta la población («La población
+  rural de <municipios> accede con conectividad limitada…»), seguida de la
+  medida y su actividad.
+* Favorecer: la secuencia barrera, medida, actividad, indicador, meta y
+  evidencia; si no hay barreras, la razón verificable de esa conclusión.
+* Evitar: «población vulnerable» sin nombrar la barrera; medidas sin
+  indicador ni meta; «enfoque incluyente» o «de manera inclusiva» sin
+  medida.
+* Tiempo: presente para la barrera; futuro para la medida.
+* Extensión: introducción de 60 a 150 palabras.
+* Tabla (generada): `Barrera | Población | Medida | Actividades | Indicador |
+  Meta | Evidencia`.
 
 ---
 

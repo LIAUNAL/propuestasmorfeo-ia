@@ -196,6 +196,7 @@
           ],
           "familia": "trl",
           "evidencia": [
+            "31_trl",
             "02_justificacion",
             "10_metodologia",
             "11_resultados_esperados",
@@ -412,6 +413,7 @@
           "notas": [],
           "familia": "transferencia",
           "evidencia": [
+            "34_transferencia",
             "11_resultados_esperados",
             "15_productos_esperados",
             "10_metodologia",
@@ -787,6 +789,8 @@
           "notas": [],
           "familia": "sostenibilidad",
           "evidencia": [
+            "32_sostenibilidad",
+            "33_uso_posterior",
             "11_resultados_esperados",
             "17_articulacion_comunidades",
             "20_participantes"
@@ -865,6 +869,7 @@
           ],
           "familia": "enfoque_diferencial",
           "evidencia": [
+            "35_medidas_diferenciales",
             "21_poblacion",
             "17_articulacion_comunidades",
             "10_metodologia"

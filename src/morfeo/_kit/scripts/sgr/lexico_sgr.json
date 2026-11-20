@@ -792,6 +792,24 @@
         "motivo": "Apertura de la referencia.",
         "fuente": "Proyecto de referencia, cap. 19",
         "aplica_a": "prosa"
+      },
+      {
+        "id": "asc-solo-divulgacion",
+        "tipo": "prohibida",
+        "expresion": "ASC reducida a socialización o divulgación (socialización de resultados, divulgación a la comunidad como única actividad)",
+        "regex": "\\b(socializaci[óo]n|divulgaci[óo]n)\\s+(de\\s+(los\\s+)?resultados|a\\s+la\\s+comunidad)\\b",
+        "motivo": "La ruta ASC cubre siete elementos (identificación del problema a resultados y sostenibilidad); la socialización sola es comunicación unidireccional.",
+        "fuente": "TdR 6.1; rúbrica Conv 54 2.4; L22",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "asc-concentrada-al-final",
+        "tipo": "desaconsejada",
+        "expresion": "ASC concentrada al final del cronograma",
+        "regex": null,
+        "motivo": "La ASC se desarrolla desde la formulación: cada elemento de la ruta tiene sus meses y actividades.",
+        "fuente": "Patrones SGR cap. 19; TdR 6.1",
+        "aplica_a": "prosa"
       }
     ],
     "19_alineacion_planes": [
@@ -1159,6 +1177,187 @@
         "fuente": "Plantilla Anexo 2 cap. 29; Anexo 3",
         "aplica_a": "prosa"
       }
+    ],
+    "31_trl": [
+      {
+        "id": "trl-apertura",
+        "tipo": "favorecida",
+        "expresion": "El punto de partida tecnológico corresponde a <activo>, …; La verificación del TRL <n> se sustentará en…; La demostración se realizará en un entorno pertinente, mediante…; Los criterios de aceptación se establecerán a partir de…",
+        "regex": "\\b(punto\\s+de\\s+partida\\s+tecnol[óo]gico|la\\s+verificaci[óo]n\\s+del\\s+TRL|criterios\\s+de\\s+aceptaci[óo]n)\\b",
+        "motivo": "Aperturas de la referencia para la madurez tecnológica y su verificación, en tercera persona y futuro.",
+        "fuente": "Proyecto de referencia, caps. 14.1 y 14.2; rúbrica 1.3",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "trl-sin-evidencia",
+        "tipo": "prohibida",
+        "expresion": "TRL declarado sin evidencia («la solución se encuentra en TRL <n>» sin informe, línea base ni resultados previos)",
+        "regex": null,
+        "motivo": "«No será suficiente la sola declaración del nivel de madurez»: el TRL de entrada se respalda con la evidencia de la Tabla 4.",
+        "fuente": "Plantilla Conv 56, 13.2; rúbrica Conv 54 1.3",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "trl-indeterminado",
+        "tipo": "desaconsejada",
+        "expresion": "se determinará durante la ejecución, se definirá más adelante",
+        "regex": "\\bse\\s+(determinar[áa]n?|definir[áa]n?)\\s+(durante\\s+la\\s+ejecuci[óo]n|m[áa]s\\s+adelante|en\\s+su\\s+momento)\\b",
+        "motivo": "La ruta y el plan de verificación fijan hitos, escenario, criterios y evidencias desde la formulación.",
+        "fuente": "Patrones SGR cap. 14; rúbrica 1.3",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "trl-relleno",
+        "tipo": "desaconsejada",
+        "expresion": "de manera integral, robusto",
+        "regex": "\\b(de\\s+manera\\s+integral|robust[oa]s?)\\b",
+        "motivo": "Relleno sin criterio verificable en la descripción de la madurez tecnológica.",
+        "fuente": "Patrones SGR cap. 14",
+        "aplica_a": "prosa"
+      }
+    ],
+    "32_sostenibilidad": [
+      {
+        "id": "sostenibilidad-apertura",
+        "tipo": "favorecida",
+        "expresion": "El proyecto contribuye de manera directa a los ODS <n>…; La sostenibilidad se plantea desde la formulación y se apoya en…; La Tabla N sintetiza las funciones y los compromisos de cada grupo de actores…",
+        "regex": "\\b(contribuye\\s+de\\s+manera\\s+directa\\s+a\\s+los\\s+ODS|la\\s+sostenibilidad\\s+se\\s+plantea)\\b",
+        "motivo": "Aperturas de la referencia: contribución con productos que la respaldan y compromisos de actores, en presente.",
+        "fuente": "Proyecto de referencia, cap. 16",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "sostenibilidad-garantiza",
+        "tipo": "prohibida",
+        "expresion": "garantiza la sostenibilidad (sin responsable ni fuente de recursos)",
+        "regex": "\\bgarantiz\\w*\\s+(la\\s+)?sostenibilidad\\b",
+        "motivo": "La rúbrica 4.2 pide el operador, la fuente de recursos y el compromiso del adoptante; la sostenibilidad no se afirma, se demuestra con actores y recursos.",
+        "fuente": "Rúbrica Conv 54 4.2; patrones SGR cap. 16",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "sostenibilidad-absoluta",
+        "tipo": "desaconsejada",
+        "expresion": "no genera impactos negativos (afirmación absoluta sin análisis)",
+        "regex": "\\bno\\s+genera(r[áa])?\\s+(ning[úu]n\\s+)?impactos?\\s+negativos?\\b",
+        "motivo": "Los efectos ambientales se analizan por actividad con su medida de manejo.",
+        "fuente": "Patrones SGR cap. 16",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "sostenibilidad-ods-sin-numero",
+        "tipo": "desaconsejada",
+        "expresion": "ODS nombrado sin número ni meta",
+        "regex": null,
+        "motivo": "Cada ODS lleva su número y su meta, y la contribución va respaldada por productos (R3: la alineación vive en el cap. 4).",
+        "fuente": "Patrones SGR cap. 16; R3",
+        "aplica_a": "prosa"
+      }
+    ],
+    "33_uso_posterior": [
+      {
+        "id": "uso-apertura",
+        "tipo": "favorecida",
+        "expresion": "El proyecto no destina recursos SGR a la operación posterior de los bienes.; Cada bien queda a cargo de <entidad>, que…",
+        "regex": "\\b(queda\\s+a\\s+cargo\\s+de|no\\s+destina\\s+recursos\\s+SGR)\\b",
+        "motivo": "Aperturas de la referencia para el numeral 17.1: operador, fuente de recursos y compromiso de adopción.",
+        "fuente": "Proyecto de referencia, cap. 17.1; rúbrica 4.2",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "uso-funcionamiento",
+        "tipo": "prohibida",
+        "expresion": "financiar con SGR la operación permanente o el funcionamiento de los bienes",
+        "regex": "\\b(gastos?\\s+(permanentes\\s+)?de\\s+funcionamiento|operaci[óo]n\\s+permanente)\\b",
+        "motivo": "El SGR financia inversión, «nunca gastos permanentes de funcionamiento»: la operación posterior la asume una entidad con su propia fuente.",
+        "fuente": "Módulo 1 del diplomado SGR; patrones SGR cap. 17",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "uso-promesa",
+        "tipo": "desaconsejada",
+        "expresion": "transformará la región, beneficiará a miles de personas",
+        "regex": "\\b(transformar[áa]\\s+la\\s+regi[óo]n|beneficiar[áa]\\s+a\\s+miles)\\b",
+        "motivo": "Promesa sin indicador, plazo ni actor que adopta el resultado.",
+        "fuente": "Patrones SGR cap. 17",
+        "aplica_a": "prosa"
+      }
+    ],
+    "34_transferencia": [
+      {
+        "id": "transferencia-apertura",
+        "tipo": "favorecida",
+        "expresion": "El componente transversal de transferencia establecerá las condiciones para que…; El alcance será proporcional al estado de desarrollo de cada solución.; Se destinará como mínimo el uno por ciento (1 %) del valor solicitado al SGR a…; Una vez finalizado el proyecto, se dará continuidad al proceso de transferencia mediante…",
+        "regex": "\\b(el\\s+componente\\s+transversal\\s+de\\s+transferencia|se\\s+dar[áa]\\s+continuidad|uno\\s+por\\s+ciento)\\b",
+        "motivo": "Aperturas de la plantilla y de la referencia, en futuro de compromiso.",
+        "fuente": "Plantilla Anexo 2 cap. 18; proyecto de referencia, cap. 18",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "transferencia-solo-divulgacion",
+        "tipo": "prohibida",
+        "expresion": "transferencia reducida a publicaciones, artículos, talleres o eventos",
+        "regex": "\\btransferencia\\b[^.]{0,80}\\b(art[íi]culos?|publicaciones?|ponencias?|eventos?|talleres?)\\b",
+        "motivo": "La transferencia «no se limita a la divulgación de resultados ni a la producción de publicaciones»; estas «no constituirán por sí solas evidencia de transferencia».",
+        "fuente": "L23; plantilla Anexo 2 cap. 18; rúbrica 2.3",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "transferencia-receptor-generico",
+        "tipo": "desaconsejada",
+        "expresion": "la comunidad en general, la sociedad en general",
+        "regex": "\\b(la\\s+)?(comunidad|sociedad|poblaci[óo]n)\\s+en\\s+general\\b",
+        "motivo": "Cada resultado nombra su usuario, beneficiario o receptor (numeral 18.2).",
+        "fuente": "Plantilla Anexo 2 cap. 18.2",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "transferencia-comercializacion-temprana",
+        "tipo": "desaconsejada",
+        "expresion": "prometer comercialización o licenciamiento con un TRL bajo",
+        "regex": null,
+        "motivo": "El alcance de la transferencia es proporcional al TRL de salida declarado en §31.",
+        "fuente": "Patrones SGR cap. 18",
+        "aplica_a": "prosa"
+      }
+    ],
+    "35_medidas_diferenciales": [
+      {
+        "id": "diferencial-apertura",
+        "tipo": "favorecida",
+        "expresion": "barrera → medida → actividad → indicador → meta → evidencia; si no hay barreras, la justificación de esa conclusión",
+        "regex": null,
+        "motivo": "Estructura que puntúa la rúbrica 4.4.",
+        "fuente": "Rúbrica Conv 54 4.4; Anexo 2 cap. 21.1",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "diferencial-vulnerable-sin-barrera",
+        "tipo": "prohibida",
+        "expresion": "población vulnerable sin nombrar la barrera que enfrenta",
+        "regex": "\\bpoblaci[óo]n(es)?\\s+vulnerables?\\b",
+        "motivo": "Una medida diferencial parte de una barrera concreta (acceso, idioma, conectividad, discapacidad); «población vulnerable» sola no la nombra.",
+        "fuente": "Rúbrica Conv 54 4.4; TdR 6.2",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "diferencial-sin-indicador",
+        "tipo": "desaconsejada",
+        "expresion": "medida diferencial sin indicador ni meta",
+        "regex": null,
+        "motivo": "Cada medida lleva actividad, indicador, meta y evidencia.",
+        "fuente": "Patrones SGR cap. 21; rúbrica 4.4",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "diferencial-inclusion-vaga",
+        "tipo": "desaconsejada",
+        "expresion": "enfoque incluyente, de manera inclusiva (sin medida)",
+        "regex": "\\b(enfoque\\s+incluyente|de\\s+manera\\s+inclusiva|con\\s+enfoque\\s+diferencial)\\b",
+        "motivo": "El enfoque se demuestra con la medida y su indicador, no con el adjetivo.",
+        "fuente": "Rúbrica Conv 54 4.4",
+        "aplica_a": "prosa"
+      }
     ]
   },
   "exenciones": [
@@ -1382,7 +1581,8 @@
       "capitulo": 14,
       "titulo": "METODOLOGÍA PARA DESARROLLAR LA ALTERNATIVA SELECCIONADA",
       "secciones": [
-        "10_metodologia"
+        "10_metodologia",
+        "31_trl"
       ]
     },
     {
@@ -1393,10 +1593,25 @@
       ]
     },
     {
+      "capitulo": 16,
+      "titulo": "SOSTENIBILIDAD SOCIAL Y AMBIENTAL DEL PROYECTO",
+      "secciones": [
+        "32_sostenibilidad"
+      ]
+    },
+    {
       "capitulo": 17,
       "titulo": "RESULTADOS E IMPACTOS PARA LA REGIÓN Y LOS DEPARTAMENTOS OBJETO DEL PROYECTO",
       "secciones": [
-        "11_resultados_esperados"
+        "11_resultados_esperados",
+        "33_uso_posterior"
+      ]
+    },
+    {
+      "capitulo": 18,
+      "titulo": "COMPONENTE TRANSVERSAL DE TRANSFERENCIA, ADOPCIÓN Y VALORACIÓN TECNOLÓGICA DEL CONOCIMIENTO",
+      "secciones": [
+        "34_transferencia"
       ]
     },
     {
@@ -1417,7 +1632,8 @@
       "capitulo": 21,
       "titulo": "PRODUCTOS ESPERADOS",
       "secciones": [
-        "15_productos_esperados"
+        "15_productos_esperados",
+        "35_medidas_diferenciales"
       ]
     },
     {
@@ -1465,16 +1681,6 @@
     }
   ],
   "capitulos_sin_archivo": [
-    {
-      "capitulo": 16,
-      "titulo": "SOSTENIBILIDAD SOCIAL Y AMBIENTAL DEL PROYECTO",
-      "nota": "Presente; contribución a los ODS con productos que la respaldan; evitar «garantiza la sostenibilidad» sin responsable ni fuente y copiar la alineación (R3)."
-    },
-    {
-      "capitulo": 18,
-      "titulo": "COMPONENTE TRANSVERSAL DE TRANSFERENCIA, ADOPCIÓN Y VALORACIÓN TECNOLÓGICA DEL CONOCIMIENTO",
-      "nota": "Futuro dominante; transferencia verificada con evidencia de uso, no reducida a publicaciones o eventos (L23); mínimo 1 % del valor SGR."
-    },
     {
       "capitulo": 24,
       "titulo": "INDICADORES DE GESTIÓN",

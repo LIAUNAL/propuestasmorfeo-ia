@@ -70,6 +70,15 @@ objective trees when their files exist:
     (error: 30_fuentes_financiacion, or 13_presupuesto when presupuesto.json
     exists, lacks the GENERADO header) and presupuesto-anexo-desactualizado
     (error: the section is older than the json it is rendered from).
+  TRL and transversal components (SGR flow only; scripts/componentes_sgr.py):
+    every `componentes-*` finding of artefactos/sgr/componentes.json when it
+    exists; componentes-datos-faltantes (warning: GComponentes is approved in
+    estado_propuesta.md and the file is missing); componentes-anexo-manual
+    (error: 31_trl to 35_medidas_diferenciales, or 18_apropiacion_social when
+    componentes.json exists, lacks the GENERADO header) and
+    componentes-anexo-desactualizado (error: the section is older than the
+    json it is rendered from). A hand-written §18 of an older SGR run without
+    componentes.json is left alone.
   tree figures (both flows): figura-desincronizada (error: diag_<tree>.tex is
     not the render of its spec), figura-spec-invalida, figura-sin-verificar.
   TDR chapters (artefactos/estructura_tdr.json, any flow):
@@ -116,6 +125,7 @@ SGR_SECTIONS = (
     "23_cadena_valor", "24_riesgos", "25_marco_logico",
     "26_identificacion", "27_demandas_territoriales", "28_matriz_responsabilidades", "29_idoneidad_trayectoria",
     "30_fuentes_financiacion",
+    "31_trl", "32_sostenibilidad", "33_uso_posterior", "34_transferencia", "35_medidas_diferenciales",
 )
 FLUJOS = ("base", "sgr")
 PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
@@ -1159,6 +1169,51 @@ def check_sgr_budget_schedule(report: Report, run_root: Path, sec_dir: Path, flu
                        "python3 scripts/presupuesto_sgr.py render <RUN_ROOT>.", tex)
 
 
+COMPONENTS_FILE = Path("artefactos") / "sgr" / "componentes.json"
+COMPONENTS_HEADER = "% GENERADO por scripts/componentes_sgr.py"
+# Sections rendered by scripts/componentes_sgr.py and the json files they come from.
+COMPONENTS_SECTIONS = {
+    "31_trl": (COMPONENTS_FILE, CHAIN_FILE, ALLIANCE_FILE),
+    "32_sostenibilidad": (COMPONENTS_FILE, CHAIN_FILE),
+    "33_uso_posterior": (COMPONENTS_FILE, ALLIANCE_FILE),
+    "34_transferencia": (COMPONENTS_FILE, CHAIN_FILE, ALLIANCE_FILE, BUDGET_FILE),
+    "35_medidas_diferenciales": (COMPONENTS_FILE, CHAIN_FILE),
+    "18_apropiacion_social": (COMPONENTS_FILE, CHAIN_FILE),
+}
+GCOMPONENTES_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.])GComponentes(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def check_sgr_components(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """TRL route and transversal components as data (scripts/componentes_sgr.py): findings, absence
+    after GComponentes and the rendered sections 31 to 35 and 18."""
+    if flujo != "sgr":
+        return
+    data = run_root / COMPONENTS_FILE
+    if data.is_file():
+        for f in _module_findings(report, "componentes_sgr", "componentes-no-verificable", run_root, data):
+            report.add(f["severity"], f["code"], f["message"], data, node=f.get("node"))
+    else:
+        estado = run_root / "artefactos" / "estado_propuesta.md"
+        if estado.is_file() and GCOMPONENTES_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+            report.add("warning", "componentes-datos-faltantes",
+                       "En el flujo SGR, después de GComponentes el TRL y los componentes transversales viven en "
+                       "artefactos/sgr/componentes.json (unidad fase5_5_sgr «TRL y componentes transversales»).")
+    for stem, sources in COMPONENTS_SECTIONS.items():
+        tex = sec_dir / f"{stem}.tex"
+        if not tex.is_file() or (stem == "18_apropiacion_social" and not data.is_file()):
+            continue
+        first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        stamps = [(run_root / s).stat().st_mtime for s in sources if (run_root / s).is_file()]
+        if not first or first[0].strip() != COMPONENTS_HEADER:
+            report.add("error", "componentes-anexo-manual",
+                       f"En el flujo SGR {stem}.tex no se escribe a mano: lo genera "
+                       "python3 scripts/componentes_sgr.py render <RUN_ROOT> desde componentes.json.", tex)
+        elif stamps and tex.stat().st_mtime < max(stamps):
+            report.add("error", "componentes-anexo-desactualizado",
+                       f"{stem}.tex es anterior a los datos de los que sale: volvé a correr "
+                       "python3 scripts/componentes_sgr.py render <RUN_ROOT>.", tex)
+
+
 def check_sgr_style(report: Report, run_root: Path, flujo: str) -> None:
     """SGR style findings (scripts/estilo_sgr.py), as warnings: advice for the style reviewer."""
     if flujo != "sgr":
@@ -1227,6 +1282,7 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_sgr_value_chain(report, run_root, sec_dir, report.flujo)
     check_sgr_alliance_territory(report, run_root, sec_dir, report.flujo)
     check_sgr_budget_schedule(report, run_root, sec_dir, report.flujo)
+    check_sgr_components(report, run_root, sec_dir, report.flujo)
     check_sgr_style(report, run_root, report.flujo)
     return report
 
