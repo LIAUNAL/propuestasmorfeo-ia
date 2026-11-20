@@ -670,5 +670,116 @@ class TestSgrBudgetScheduleRecipe(unittest.TestCase):
             self.assertIn(command, juez)
 
 
+class TestSgrComponentsRecipe(unittest.TestCase):
+    """SGR-only TRL and transversal components unit (odd/tasks/sgr-trl-componentes.md, S1, S5)."""
+
+    COMMANDS = REPO_ROOT / ".claude" / "commands"
+
+    def setUp(self):
+        self.raw = (self.COMMANDS / "propuesta.md").read_text(encoding="utf-8")
+
+    def _block(self, start: str, end: str, text: str | None = None) -> str:
+        text = self.raw if text is None else text
+        i = text.index(start)
+        return " ".join(text[i:text.index(end, i + len(start))].split())
+
+    def _sgr_part(self, block: str) -> str:
+        return block[block.index("SOLO flujo SGR"):]
+
+    def test_components_unit_runs_only_in_the_sgr_flow_between_methodology_and_results(self):
+        block = self._block("Fase 5.5 SGR [COMPUERTA GComponentes]", "\nFase 6  ")
+        self.assertIn("SOLO flujo SGR", block)
+        self.assertIn("con el flujo `base` esta unidad no corre", block)
+        steps = ["Task → investigador", "Task → redactor", "Task → revisor-estilo-sgr",
+                 "python3 scripts/componentes_sgr.py check <RUN_ROOT>",
+                 "python3 scripts/componentes_sgr.py render <RUN_ROOT>", "GATE Task → revisor",
+                 "pestaña «TRL y componentes»", "| GComponentes | APROBADA |",
+                 "artefactos/pipeline/65-fase5_5_sgr.md"]
+        positions = [block.index(step) for step in steps]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("artefactos/sgr/componentes.json", block)
+        for field in ("`trl`", "`transferencia`", "`uso_posterior`", "`introduccion`", "`asc`",
+                      "`sostenibilidad`", "`diferencial`"):
+            self.assertIn(field, block)
+        self.assertIn("siete elementos", block)
+        self.assertIn("tercera persona", block)
+        for stem in ("31_trl", "32_sostenibilidad", "33_uso_posterior", "34_transferencia",
+                     "35_medidas_diferenciales"):
+            self.assertIn(stem, block)
+        self.assertLess(self.raw.index("Fase 5.5 [NUEVO]"), self.raw.index("Fase 5.5 SGR [COMPUERTA GComponentes]"))
+        self.assertLess(self.raw.index("Fase 5.5 SGR [COMPUERTA GComponentes]"), self.raw.index("\nFase 6  "))
+
+    def test_budget_schedule_and_communities_use_the_components_in_sgr(self):
+        budget = self._sgr_part(self._block("Fase 6.4 [COMPUERTA INTERACTIVA", "\nFase 6.45 "))
+        self.assertIn("`componente`", budget)
+        self.assertIn("python3 scripts/componentes_sgr.py check <RUN_ROOT>", budget)
+        schedule = self._sgr_part(self._block("Fase 6.45 Task → redactor", "\nFase 6.46 "))
+        self.assertIn("hitos de la ruta del TRL", schedule)
+        communities = self._block("Fase 6.46 Task → redactor", "\nFase 6.47 ")
+        sgr = self._sgr_part(communities)
+        self.assertIn("solo §17", sgr)
+        self.assertIn("python3 scripts/componentes_sgr.py render <RUN_ROOT>", sgr)
+        self.assertIn("18_apropiacion_social.tex", sgr)
+
+    def test_base_flow_text_never_runs_the_components_script(self):
+        methodology = self._block("Fase 5.5 [NUEVO]", "\nFase 5.5 SGR ")
+        self.assertNotIn("componentes_sgr.py", methodology)
+        self.assertNotIn("componentes_sgr.py", self._block("Fase 6  Task → redactor", "\nFase 6.4 "))
+        for start, end in (("Fase 6.4 [COMPUERTA INTERACTIVA", "\nFase 6.45 "),
+                           ("Fase 6.45 Task → redactor", "\nFase 6.46 "),
+                           ("Fase 6.46 Task → redactor", "\nFase 6.47 ")):
+            with self.subTest(block=start):
+                block = self._block(start, end)
+                self.assertNotIn("componentes_sgr.py", block[:block.index("SOLO flujo SGR")])
+        communities = self._block("Fase 6.46 Task → redactor", "\nFase 6.47 ")
+        self.assertTrue(communities.startswith(
+            "Fase 6.46 Task → redactor → §17 Estrategia de articulación con comunidades y actores territoriales "
+            "(redaccion/sections/17_articulacion_comunidades.tex) y §18 Estrategia de acceso"), communities)
+
+    def test_step_table_and_continuar_declare_the_unit(self):
+        steps = (self.COMMANDS / "_propuesta-steps.md").read_text(encoding="utf-8")
+        rows = {cells[0]: line for line in steps.splitlines() if line.startswith("| `")
+                for cells in [[c.strip(" `") for c in line.strip("|").split("|")]]}
+        self.assertTrue(rows["fase5_5"].endswith("| G5.5 | `fase5_5_sgr` (flujo SGR) o `fase6` (flujo base) |"),
+                        rows["fase5_5"])
+        self.assertIn("el flujo base la salta", rows["fase5_5_sgr"])
+        self.assertIn("| G componentes | `fase6` |", rows["fase5_5_sgr"])
+        self.assertIn("componentes_sgr.py check", rows["fase5_5_sgr"])
+        self.assertIn("componentes_sgr.py check", rows["fase6_4"])
+        self.assertIn("ruta del TRL", rows["fase6_45"])
+        self.assertIn("componentes_sgr.py render", rows["fase6_46"])
+        self.assertTrue(rows["fase6_46"].startswith(
+            "| `fase6_46` | §17 articulación con comunidades + §18 apropiación social + grant-flow-auditor + revisor"))
+        continuar = (self.COMMANDS / "propuesta-continuar.md").read_text(encoding="utf-8")
+        self.assertIn("| `fase5_5_sgr` | Fase 5.5 SGR [GComponentes] (solo flujo SGR) |", continuar)
+        note = self._block("### Gate PASS o unidad sin gate completada", "```", continuar)
+        self.assertIn("tras `fase5_5`, `fase5_5_sgr` con `sgr` y `fase6` con `base`", note)
+
+    def test_agents_carry_their_sgr_only_components_duties(self):
+        agents = REPO_ROOT / ".claude" / "agents"
+        heading = "## TRL y componentes SGR (Fase 5.5 SGR, compuerta GComponentes)\n\nSGR flow only"
+        investigador = (agents / "investigador.md").read_text(encoding="utf-8")
+        self.assertIn(heading, investigador)
+        section = " ".join(investigador[investigador.index(heading):].split())
+        for field in ("`trl`", "`transferencia`", "`uso_posterior`", "`evidencia_entrada`", "`verificacion`"):
+            self.assertIn(field, section)
+        self.assertIn("never declare a TRL", section)
+        redactor = (agents / "redactor.md").read_text(encoding="utf-8")
+        self.assertIn(heading, redactor)
+        section = " ".join(redactor[redactor.index(heading):].split())
+        for field in ("`introduccion`", "`asc`", "`sostenibilidad`", "`diferencial`"):
+            self.assertIn(field, section)
+        self.assertIn("seven elements", section)
+        self.assertIn("third person", section)
+        self.assertIn("never write `18_apropiacion_social`", section)
+        presupuestador = " ".join((agents / "presupuestador.md").read_text(encoding="utf-8").split())
+        self.assertIn("artefactos/sgr/componentes.json", presupuestador)
+        self.assertIn("python3 scripts/componentes_sgr.py check <RUN_ROOT>", presupuestador)
+        juez = " ".join((agents / "juez-sgr.md").read_text(encoding="utf-8").split())
+        for command in ("python3 scripts/componentes_sgr.py datos <RUN_ROOT> --json",
+                        "python3 scripts/componentes_sgr.py check <RUN_ROOT> --json"):
+            self.assertIn(command, juez)
+
+
 if __name__ == "__main__":
     unittest.main()

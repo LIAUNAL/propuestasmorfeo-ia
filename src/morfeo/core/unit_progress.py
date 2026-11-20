@@ -163,6 +163,10 @@ def unit_progress(
             # SGR run that passed G4 before the value-chain gate existed: the chain
             # is built later from §10 and A23, so the unit is not owed retroactively.
             state = "skipped"
+        elif uid == "fase5_5_sgr" and done and verdict != "PASS" and not any(f["exists"] for f in files):
+            # SGR run that passed G5.5 before the components gate existed: the TRL
+            # route and the transversal components are not owed retroactively.
+            state = "skipped"
         elif verdict == "PASS" or done or event is not None:
             state = "partial"
         else:

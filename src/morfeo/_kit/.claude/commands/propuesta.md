@@ -1437,6 +1437,75 @@ Fase 5.5 [NUEVO] Task → redactor → §10 metodología (compuerta propia,
         `artefactos/pipeline/65-fase5_5.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
         de uso acumulados de la fase (ver "Telemetría de uso por fase").
+Fase 5.5 SGR [COMPUERTA GComponentes] TRL y componentes transversales como
+        datos. SOLO flujo SGR, después de G5.5 = APROBADA; con el flujo `base`
+        esta unidad no corre y al aprobar G5.5 se pasa directo a la Fase 6.
+        Los componentes viven en `artefactos/sgr/componentes.json` (esquema
+        `morfeo.componentes-sgr/v1`, documentado al inicio de
+        `scripts/componentes_sgr.py`): `trl` (tipología, nivel de entrada y
+        de salida, evidencia del nivel de entrada, ruta de maduración por
+        hitos y plan de verificación), `transferencia`, `asc` (apropiación
+        social del conocimiento), `sostenibilidad`, `uso_posterior` y
+        `diferencial`, cada bloque con su `introduccion` y ligado a los
+        códigos de actividad de `cadena_valor.json` y a los ids de entidad de
+        `alianza.json`. De estos datos salen `31_trl.tex`,
+        `32_sostenibilidad.tex`, `33_uso_posterior.tex`,
+        `34_transferencia.tex` y `35_medidas_diferenciales.tex` y, en la Fase
+        6.46, `18_apropiacion_social.tex`; ninguno lo escribe un agente a
+        mano.
+        (a) Task → investigador (rama "TRL y componentes SGR", ver
+        `investigador.md`) con `RUN_ROOT`, `cadena_valor.json`,
+        `alianza.json`, §10 y el extracto de los TdR sobre TRL, transferencia
+        y uso posterior inline, y el bloque `## FRAGMENTO DE GUÍA` con
+        Directrices Generales SGR + los bloques `### SGR` de §31, §33 y §34.
+        Escribe `trl` (tipología A o B según los TdR, nivel de entrada y de
+        salida, `evidencia_entrada` con lo que ya demuestra el nivel de
+        entrada, la `ruta` de hitos de maduración, cada uno con su mes, el
+        nivel que alcanza y las actividades de la cadena que lo producen, y
+        la `verificacion` del nivel de salida: escenario, responsables,
+        criterios de aceptación, evidencias y actor usuario), `transferencia`
+        (resultados con sus usuarios, ruta por etapas con barreras y
+        acciones, actividades y continuidad) y `uso_posterior` (bienes con
+        valor SGR, operador, financiación y mantenimiento, y adopción por los
+        usuarios adoptantes). No declara un TRL sin la evidencia que los TdR
+        piden para la tipología.
+        (b) Task → redactor (rama "TRL y componentes SGR", ver `redactor.md`)
+        con el archivo, §10, §17 si existe y el bloque `## FRAGMENTO DE GUÍA`
+        con Directrices Generales SGR + los bloques `### SGR` de §18, §32 y
+        §35. Escribe la `introduccion` de cada bloque, en tercera persona, y
+        los bloques `asc` (actores, la ruta con los siete elementos
+        —identificación del problema, vinculación de actores, diseño,
+        planeación, ejecución, seguimiento y resultados y sostenibilidad—,
+        cada uno con sus actividades, y los productos con medio de
+        verificación y mes), `sostenibilidad` (ODS con los productos que la
+        respaldan, actores con su compromiso y efectos ambientales con su
+        manejo) y `diferencial` (barreras, medidas, actividades, indicador,
+        meta y evidencia, o la justificación de su ausencia). La apropiación
+        social no se reduce a divulgación.
+        (a) y (b) se despachan en el MISMO turno: editan bloques distintos
+        del archivo. Luego Task → revisor-estilo-sgr sobre las
+        `introduccion` (voz, léxico y redundancia de la skill `estilo-sgr`).
+        ──→ DISPATCHER: `python3 scripts/componentes_sgr.py check <RUN_ROOT>`.
+        Mientras reporte errores, devolvé la salida exacta al agente dueño
+        del bloque (investigador para `trl`, `transferencia` y
+        `uso_posterior`; redactor para `asc`, `sostenibilidad`, `diferencial`
+        y las introducciones) y repetí (a) o (b); los avisos se presentan en
+        la compuerta. Con `check` limpio, el DISPATCHER corre
+        `python3 scripts/componentes_sgr.py render <RUN_ROOT>`, que genera
+        §31 a §35 y se niega mientras haya hallazgos de error; si cambian los
+        datos, se vuelve a correr `render`.
+        ──→ GATE Task → revisor (valida que la ruta del TRL parta de un nivel
+        de entrada con evidencia y llegue al de salida con un plan de
+        verificación completo, que transferencia, apropiación social, uso
+        posterior y medidas diferenciales se apoyen en actividades reales de
+        la cadena de valor y que las secciones renderizadas no contradigan
+        §10; recibe la salida limpia de `check`) ──→ usuario: la aprobación
+        se da en la pestaña «TRL y componentes» del tablero, que la ata al
+        hash del archivo. Un ajuste pedido ahí vuelve a (a) o (b) con el
+        comentario exacto. Al aprobar, escribe `GComponentes = APROBADA` en
+        `artefactos/estado_propuesta.md` (fila `| GComponentes | APROBADA |`)
+        y el evento `artefactos/pipeline/65-fase5_5_sgr.md`. NO avances sin
+        aprobación.
 Fase 6  Task → redactor → §11 resultados esperados (sin gate propio; §11 y
         §12 se auditan juntas en la Fase 7 junto con el resto del
         documento, igual que antes). Antes de despachar esta
@@ -1483,7 +1552,9 @@ Fase 6.4 [COMPUERTA INTERACTIVA G-Presupuesto] Presupuesto (interactivo).
         `python3 scripts/cadena_valor_sgr.py check <RUN_ROOT>` (desde esta
         fase una actividad sin costo es un aviso), si `23_cadena_valor.tex`
         ya existe `python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>`
-        (la sincronización deja el anexo desactualizado) y
+        (la sincronización deja el anexo desactualizado), si
+        `componentes.json` existe `python3 scripts/componentes_sgr.py render <RUN_ROOT>`
+        (por la misma razón: 18 y 31–35 dependen de la cadena) y
         `python3 scripts/presupuesto_sgr.py render <RUN_ROOT>`, que genera
         `13_presupuesto.tex` (rubro por fuente y entidad, vista de insumos
         MGA y proyección anual) y se niega mientras haya hallazgos de error.
@@ -1494,7 +1565,16 @@ Fase 6.4 [COMPUERTA INTERACTIVA G-Presupuesto] Presupuesto (interactivo).
         la calculadora de horas de contrapartida): cada ajuste del usuario
         vuelve al presupuestador sobre `presupuesto.json`, se repiten
         `check`, `sync-cadena` y `render`, y el usuario aprueba G6.4 en esa
-        pestaña.
+        pestaña. El prompt lleva además `artefactos/sgr/componentes.json`
+        (aprobado en GComponentes) inline: cada ítem que financia la
+        transferencia, la apropiación social o el seguimiento declara su
+        `componente` (`transferencia`, `asc` o `seguimiento`), y los de
+        transferencia y apropiación social usan las actividades que ese
+        bloque de `componentes.json` lista. Tras `presupuesto_sgr.py check`,
+        el DISPATCHER corre también
+        `python3 scripts/componentes_sgr.py check <RUN_ROOT>` (el componente
+        de transferencia frente al 1 % del total SGR y sus actividades frente
+        a los ítems marcados) y devuelve sus hallazgos al presupuestador.
         ──→ BUCLE INTERACTIVO (sin tope de rondas; termina SOLO con
         aprobación explícita del usuario):
           1. El DISPATCHER presenta al usuario: (i) la tabla renderizada
@@ -1553,7 +1633,9 @@ Fase 6.45 Task → redactor → §14 cronograma de actividades (Gantt) (sin gate
         Task, Task → investigador (rama "Hitos y etapas SGR") → escribe
         `artefactos/sgr/hitos.json` (esquema `morfeo.hitos-sgr/v1`: hitos
         verificables cada 3 meses como máximo, cada uno con su mes, las
-        actividades que lo producen y su medio de verificación) y completa la
+        actividades que lo producen y su medio de verificación), con los
+        hitos de la ruta del TRL de `artefactos/sgr/componentes.json` (mismo
+        mes y mismas actividades), y completa la
         `etapa` (preinversion, inversion u operacion) de las actividades de
         `cadena_valor.json`. El DISPATCHER corre
         `python3 scripts/cronograma_sgr.py check <RUN_ROOT>` y devuelve los
@@ -1602,6 +1684,17 @@ Fase 6.46 Task → redactor → §17 Estrategia de articulación con comunidades
         Antes de despachar cada Task, el dispatcher arma el bloque
         `## FRAGMENTO DE GUÍA` con Directrices Generales + §17 (o §18) +
         Convenciones técnicas de LaTeX y lo inyecta inline al inicio del prompt.
+        SOLO flujo SGR: el redactor escribe solo §17.
+        `18_apropiacion_social.tex` (Anexo 2 cap. 19) no lo escribe ningún
+        agente: el DISPATCHER corre
+        `python3 scripts/componentes_sgr.py render <RUN_ROOT>`, que lo genera
+        desde el bloque `asc` de `artefactos/sgr/componentes.json` aprobado
+        en GComponentes (actores, ruta con los siete elementos y productos)
+        junto con §31 a §35. §17 copia de ese bloque los actores y los
+        momentos de participación que nombra. Un ajuste a la apropiación
+        social vuelve al redactor sobre `componentes.json` (rama "TRL y
+        componentes SGR"), se repite `componentes_sgr.py check` y se vuelve a
+        correr `render`.
         ──→ [NUEVO] DISPATCHER: vault-graph refresh: guardia — ejecuta este
         bloque solo si en esta fase se crearon o editaron secciones del vault.
         Mecánica: `index_repository(repo_path="<RUN_ROOT>/artefactos/vault",

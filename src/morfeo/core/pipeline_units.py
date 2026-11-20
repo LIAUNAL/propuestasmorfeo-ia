@@ -96,6 +96,12 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "reviewer": "Revisor",
         "criteria": "Cadena de valor por fase, causalidad y esquema metodológico.",
     },
+    "GComponentes": {
+        "name": "TRL y componentes transversales (flujo SGR)",
+        "phase": "Fase 5.5 SGR",
+        "reviewer": "Revisor & Usuario",
+        "criteria": "Ruta del TRL con tipología, nivel de entrada respaldado por evidencia, hitos de maduración ligados a actividades de la cadena de valor y plan de verificación del nivel de salida; transferencia, apropiación social con sus siete elementos, sostenibilidad, uso posterior y medidas diferenciales, sin hallazgos de error en componentes_sgr.py check; el usuario los aprueba en la pestaña TRL y componentes.",
+    },
     "G6.4": {
         "name": "Presupuesto Financiero",
         "phase": "Fase 6.4",
@@ -143,6 +149,7 @@ GATE_ALIASES: dict[str, str] = {
     "G causas": "GCausas",
     "G territorio": "GTerritorio",
     "G cadena": "G4.cv",
+    "G componentes": "GComponentes",
     "G front": "G6.5",
     "G final": "G7",
 }
@@ -365,6 +372,19 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "artifacts": [],
         "agents": ["redactor", "grant-flow-auditor", "disenador-tikz", "revisor-figuras", "revisor"],
         "skills": ["estilo-natural-es"],
+        "next": "fase5_5_sgr",
+    },
+    {
+        "id": "fase5_5_sgr",
+        "kind": "step",
+        "flujo": "sgr",
+        "name": "TRL y componentes transversales",
+        "desc": "Solo flujo SGR: ruta y verificación del TRL, transferencia, apropiación social del conocimiento con sus siete elementos, sostenibilidad, uso posterior y medidas diferenciales como datos en `artefactos/sgr/componentes.json`, ligados a las actividades de la cadena de valor; los valida `scripts/componentes_sgr.py check`, `render` genera §31 a §35 y el usuario los aprueba en la pestaña TRL y componentes.",
+        "gate": "GComponentes",
+        "sections": ["31", "32", "33", "34", "35"],
+        "artifacts": ["artefactos/sgr/componentes.json"],
+        "agents": ["investigador", "redactor", "revisor-estilo-sgr", "revisor"],
+        "skills": [],
         "next": "fase6",
     },
     {

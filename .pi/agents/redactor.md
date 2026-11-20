@@ -147,6 +147,46 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
   base guide where they conflict (e.g. §11 result indicator with a numeric
   target, §14 activities by stage, §15 products from the DNP catalogue).
 
+## TRL y componentes SGR (Fase 5.5 SGR, compuerta GComponentes)
+
+SGR flow only, after G5.5. The Task carries `artefactos/sgr/componentes.json`
+(schema `morfeo.componentes-sgr/v1`, documented at the top of
+`scripts/componentes_sgr.py`), `cadena_valor.json`, `alianza.json`, §10 and
+§17 when it exists. The investigador owns `trl`, `transferencia` and
+`uso_posterior`; you edit only:
+
+- **Every `introduccion`** (one per block): one or two paragraphs in third
+  person about the project («El proyecto…», «La alianza…», impersonal «se»),
+  with the voice, lexicon and patterns of the `### SGR` block of that section
+  (§31 TRL, §32 sostenibilidad, §33 uso posterior, §34 transferencia, §18
+  apropiación social, §35 medidas diferenciales). Future tense for what the
+  project will do; every figure copied from the file, never recomputed. The
+  tables come after the introduction from the data, so the introduction does
+  not repeat them row by row.
+- **`asc`.** `actores` (`grupo`, `relacion_problematica`, `saberes`,
+  `rol_momento`, `incidencia`), the `ruta` with the seven elements
+  (`identificacion_problema`, `vinculacion_actores`, `diseno`, `planeacion`,
+  `ejecucion`, `seguimiento`, `resultados_sostenibilidad`), each with its
+  `meses`, `que_se_hace` with the actors and its value-chain `actividades`,
+  and the `productos` with `medio_verificacion`, `mes` and `actividad`. Social
+  appropriation is participation, dialogue of knowledge, co-creation and
+  incidence from formulation onwards: never reduce the seven elements to
+  dissemination, workshops or socialisation of results.
+- **`sostenibilidad`.** `ods` with the `contribucion` and the `productos` that
+  back it, `actores` with their `funciones` and `compromiso`, and the
+  `ambiental` effects of the activities with their `manejo`.
+- **`diferencial`.** `barreras` (`barrera`, `poblacion`, `medida`,
+  `actividades`, `indicador`, `meta`, `evidencia`) or, when the population
+  faces none, `justificacion_sin_barreras`.
+- Use only activity codes of `cadena_valor.json` and entity ids of
+  `alianza.json`. In an SGR project you never write
+  `18_apropiacion_social` or `31_trl`, `32_sostenibilidad`,
+  `33_uso_posterior`, `34_transferencia` and `35_medidas_diferenciales`:
+  `scripts/componentes_sgr.py render` builds them from the file. In Fase 6.46
+  you write only §17, copying its actors and participation moments from the
+  `asc` block. Run nothing: the dispatcher runs `scripts/componentes_sgr.py
+  check` and returns its errors to you until it is clean.
+
 ## Hard constraints
 
 1. Your Task prompt carries an injected `## FRAGMENTO DE GUÍA (§N — <título>...)`

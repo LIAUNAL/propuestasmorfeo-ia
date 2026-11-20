@@ -28,7 +28,7 @@ from morfeo.core.pipeline_units import (  # noqa: E402
 
 STEPS_DOC = REPO / ".claude" / "commands" / "_propuesta-steps.md"
 
-STEP_UNITS_EXPECTED = 19
+STEP_UNITS_EXPECTED = 20
 
 # Valores de compuerta observados en los artefactos de la corrida de referencia,
 # incluidos los que la tabla no reconoce. El inventario tiene que ubicarlos todos:
@@ -125,14 +125,16 @@ class TestPipelineUnits(unittest.TestCase):
             "G5", "G5.5", "G6.4", "G6.46", "G6.5", "G7",
         ):
             self.assertIn(real, canonical, f"falta {real} en las compuertas canónicas")
-        # Catorce del flujo base más las cuatro del flujo SGR: GCausas (causas
+        # Catorce del flujo base más las cinco del flujo SGR: GCausas (causas
         # directas, tras G1a), GTerritorio (alianza y territorio, tras G1b),
-        # G4.cv (cadena de valor, tras G4) y G6.47 (anexos MGA).
+        # G4.cv (cadena de valor, tras G4), GComponentes (TRL y componentes
+        # transversales, tras G5.5) y G6.47 (anexos MGA).
         self.assertIn("G6.47", canonical)
         self.assertIn("GCausas", canonical)
         self.assertIn("GTerritorio", canonical)
         self.assertIn("G4.cv", canonical)
-        self.assertEqual(len(canonical), 18, "las compuertas canónicas son dieciocho")
+        self.assertIn("GComponentes", canonical)
+        self.assertEqual(len(canonical), 19, "las compuertas canónicas son diecinueve")
 
     def test_early_units_run_scoping_trees_corpus_then_mga_summary(self) -> None:
         # The trees come right after the subproblems (in SGR, after the GCausas
@@ -303,6 +305,32 @@ class TestUnitsByFlujo(unittest.TestCase):
         self.assertEqual(gate["phase"], "Fase 1b SGR")
         self.assertIn("Alianza y territorio", gate["name"])
         self.assertIn("alianza_territorio_sgr.py check", gate["criteria"])
+
+    def test_components_unit_runs_only_in_the_sgr_flow_between_methodology_and_results(self) -> None:
+        base = {u["id"]: u for u in units_for_flujo("base")}
+        self.assertNotIn("fase5_5_sgr", base)
+        self.assertEqual(base["fase5_5"]["next"], "fase6")
+        self.assertNotIn("GComponentes", {g["id"] for g in canonical_gates("base")})
+        self.assertNotIn("31", {s for u in base.values() for s in u["sections"]})
+        self.assertEqual(base["fase6_46"]["sections"], ["17", "18"])
+        sgr = units_for_flujo("sgr")
+        ids = self._ids(sgr)
+        self.assertEqual(ids.index("fase5_5_sgr"), ids.index("fase5_5") + 1)
+        by_id = {u["id"]: u for u in sgr}
+        self.assertEqual(by_id["fase5_5"]["next"], "fase5_5_sgr")
+        unit = by_id["fase5_5_sgr"]
+        self.assertEqual(unit["next"], "fase6")
+        self.assertEqual(unit["name"], "TRL y componentes transversales")
+        self.assertEqual(unit["gate"], "GComponentes")
+        self.assertEqual(unit["artifacts"], ["artefactos/sgr/componentes.json"])
+        self.assertEqual(unit["agents"], ["investigador", "redactor", "revisor-estilo-sgr", "revisor"])
+        self.assertEqual(unit["sections"], ["31", "32", "33", "34", "35"])
+        self.assertEqual(by_id["fase6_46"]["sections"], ["17", "18"])
+        self.assertEqual(normalise_gate("G componentes"), "GComponentes")
+        gate = next(g for g in canonical_gates("sgr") if g["id"] == "GComponentes")
+        self.assertEqual(gate["phase"], "Fase 5.5 SGR")
+        self.assertIn("TRL y componentes transversales", gate["name"])
+        self.assertIn("componentes_sgr.py check", gate["criteria"])
 
     def test_sgr_flow_swaps_the_auditor_for_the_sgr_style_reviewer(self) -> None:
         for unit in units_for_flujo("sgr"):

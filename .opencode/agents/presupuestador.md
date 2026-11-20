@@ -142,7 +142,14 @@ G4.cv), `artefactos/sgr/alianza.json` (entities, `aporte_especie`,
    and `servicios_tecnologicos_pruebas` items need at least 2.
 7. **Components.** `componente: "transferencia"` items reach at least 1 % of
    the SGR total; mark `asc` items; a `seguimiento` item with SGR money is
-   mandatory. SGR `gastos_viaje` stay within 2 % of the SGR total. Set
+   mandatory. The Task carries `artefactos/sgr/componentes.json` (approved
+   at GComponentes): every item that finances transfer, social appropriation
+   or follow-up carries its `componente`, and the `transferencia` and `asc`
+   items list activities that the matching block of that file lists
+   (`transferencia.actividades`, the activities of the `asc` route). After
+   `presupuesto_sgr.py check`, the dispatcher also runs
+   `python3 scripts/componentes_sgr.py check <RUN_ROOT>` and returns its
+   findings to you. SGR `gastos_viaje` stay within 2 % of the SGR total. Set
    `tope_sgr` from the TdR (or leave it null: the rubric's cap applies) and
    `duracion_meses`.
 8. **Then the dispatcher runs**, in this order, and returns every error to you:

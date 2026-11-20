@@ -70,7 +70,8 @@ En este orden, y solo lo necesario para cada subcriterio:
   `artefactos/guia_ajustada_TDR.md` si existen): requisitos, topes y anexos
   exigidos.
 - Las secciones ensambladas en `redaccion/sections/*.tex`, incluidos los
-  anexos SGR (`19_*` a `29_*`) y el presupuesto (`13_presupuesto.tex`).
+  anexos SGR (`19_*` a `30_*`), los componentes transversales (`31_*` a
+  `35_*`) y el presupuesto (`13_presupuesto.tex`).
 - Los árboles en `artefactos/arboles/` y el resumen MGA en
   `artefactos/mga_resumido.md`.
 - Los datos de la alianza y el territorio, antes que la prosa:
@@ -101,6 +102,21 @@ En este orden, y solo lo necesario para cada subcriterio:
   §14, y una cifra de la prosa que las contradice es una alerta. Que una
   capacitación arranque antes de la plataforma que necesita no sale de los
   datos: eso lo juzgás vos leyendo §10 y §14.
+- El TRL y los componentes transversales, también como datos: si existe
+  `artefactos/sgr/componentes.json`, corré
+  `python3 scripts/componentes_sgr.py datos <RUN_ROOT> --json` (el `trl` de
+  `morfeo.datos-sgr/v1`, con tipología, entrada, salida y `fuente`, y el
+  `transferencia_valor` cuando hay presupuesto) y
+  `python3 scripts/componentes_sgr.py check <RUN_ROOT> --json` (hallazgos
+  `componentes-*` sobre la ruta y la verificación del TRL, la
+  transferencia, los siete elementos de la apropiación social, la
+  sostenibilidad, el uso posterior y las medidas diferenciales). Son los
+  hechos de los subcriterios de viabilidad del TRL, transferencia,
+  apropiación social, sostenibilidad y uso, y medidas diferenciales: la
+  evidencia está en `31_trl` a `35_medidas_diferenciales` y en
+  `18_apropiacion_social`, y un hallazgo `error` de `check` es candidato a
+  alerta. Que la ruta de maduración sea creíble para el problema no sale de
+  los datos: eso lo juzgás vos leyendo §10 y §31.
 
 ### 3. Extraer los datos (`datos_sgr.json`)
 

@@ -91,6 +91,8 @@ En el flujo SGR, después de los árboles (Fase 1b), la unidad `fase1b_sgr` «Al
 
 El presupuesto SGR también es un dato: `artefactos/sgr/presupuesto.json` (rubros de Minciencias e insumos MGA por entidad y fuente) genera §13 y el anexo de fuentes de financiación con `scripts/presupuesto_sgr.py`, y `scripts/cronograma_sgr.py` genera el Gantt de §14 desde la cadena de valor y `artefactos/sgr/hitos.json`; el operador los revisa y aprueba en la pestaña «Presupuesto y cronograma».
 
+Tras la metodología (Fase 5.5), la unidad SGR `fase5_5_sgr` «TRL y componentes transversales» (compuerta `GComponentes`) guarda en `artefactos/sgr/componentes.json` la ruta y la verificación del TRL, la transferencia, los siete elementos de la apropiación social, la sostenibilidad, el uso posterior y las medidas diferenciales; `scripts/componentes_sgr.py` genera §31 a §35 y §18, y el operador los aprueba en la pestaña «TRL y componentes».
+
 Dentro del directorio inicializado puedes ejecutar los comandos del asistente en Claude Code (`/propuesta-init`, `/propuesta-analizar`, `/propuesta-continuar`) o el pipeline de tu runtime preferido.
 
 ---

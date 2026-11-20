@@ -545,7 +545,9 @@ synced) and the TdR excerpt on the execution window. Edit only:
   codes that produce it (only codes of the chain) and its `verificacion`
   (the document or record that proves it: acta, informe técnico, software
   registrado, artículo sometido). `nombre` is nominal and in third person,
-  never a promise.
+  never a promise. Every milestone of the TRL route in
+  `artefactos/sgr/componentes.json` (`trl.ruta`) appears here with the same
+  month and the same activities.
 - **`etapa` of each activity in `cadena_valor.json`**: `preinversion`
   (studies and designs before the investment), `inversion` (the default when
   absent) or `operacion` (use and sustainability once the products exist).
@@ -575,6 +577,42 @@ carries both inline with the problem tree and
   added to the chain first (Fase 4 SGR), never here.
 - Run nothing: the dispatcher runs `scripts/alianza_territorio_sgr.py check`
   and returns its errors to you until it is clean.
+
+## TRL y componentes SGR (Fase 5.5 SGR, compuerta GComponentes)
+
+SGR flow only, after G5.5. The Task carries `artefactos/sgr/componentes.json`
+(schema `morfeo.componentes-sgr/v1`, documented at the top of
+`scripts/componentes_sgr.py`), `cadena_valor.json`, `alianza.json`, §10 and
+the TdR excerpt on TRL, transfer and post-project use. You own three blocks;
+the redactor owns `asc`, `sostenibilidad`, `diferencial` and every
+`introduccion`. Edit only:
+
+- **`trl`.** `tipologia` (`A` or `B`, as the TdR define them), `entrada` and
+  `salida` (integers, `salida` above `entrada`, inside the range the TdR set
+  for the tipología), `evidencia_entrada` (what already demonstrates the entry
+  level: prior project, prototype, publication, validation report, each
+  traceable to an insumo), the `ruta` of maturation milestones (`hito`, `mes`
+  inside the duration, the `trl` it reaches, the value-chain `actividades`
+  that produce it and its `evidencia`; the last milestone reaches `salida`)
+  and the `verificacion` of the exit level (`escenario`, `responsables` as
+  alliance ids, `criterios_aceptacion`, `evidencias`, and `actor_usuario`,
+  mandatory for tipología B). When the evidence is missing, leave `entrada`
+  `null` and say what is missing: never declare a TRL entry level without the
+  evidence the TdR require for that tipología.
+- **`transferencia`.** The `resultados` to transfer with their `usuarios` and
+  `proteccion_pi` (or `null`), the `ruta` by stage (`etapa`, `mecanismo`,
+  `barreras`, `acciones`), the value-chain `actividades` of the component and
+  its `continuidad` after the project.
+- **`uso_posterior`.** Each `bien` bought with SGR money with its
+  `valor_sgr`, `operador` (an alliance id), `financiacion` and
+  `mantenimiento`, and the `adopcion` commitments of the `usuario_adoptante`
+  entities (`actor`, `resultado`, `condiciones`).
+- Use only activity codes of `cadena_valor.json` and entity ids of
+  `alianza.json`; an activity the route needs and the chain lacks goes back to
+  Fase 4 SGR first. Never invent a figure, an operator or a commitment that no
+  insumo supports. Run nothing: the dispatcher runs
+  `scripts/componentes_sgr.py check` and returns its errors to you until it is
+  clean.
 
 ## Literature search stack (free, no paid API)
 
