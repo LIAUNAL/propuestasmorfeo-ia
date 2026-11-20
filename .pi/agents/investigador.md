@@ -652,6 +652,39 @@ owns `talento`; you edit only:
   `scripts/productos_sgr.py check` and returns its errors to you until it is
   clean.
 
+## Requisitos y anexos SGR (Fase 6.9 SGR, compuerta GRequisitos)
+
+SGR flow only, after G6.5. The Task carries `artefactos/sgr/requisitos.json`
+(schema `morfeo.requisitos-sgr/v1`, documented at the top of
+`scripts/requisitos_sgr.py`), `alianza.json`, `territorio.json`,
+`componentes.json` when it exists, §10, §12 and the TdR excerpt on enabling
+requirements, licences and permits. The redactor owns
+`licencias.introduccion`, and the user marks the requirement `items`, the
+`cifras` and the `aval_institucional` in the dashboard tab «Requisitos y
+anexos»; you edit only:
+
+- **`licencias.items`.** One row per licence, study or permit of the Anexo 2
+  cap. 28 list (environmental licences, access to genetic resources,
+  specimen collection, biological collections, informed consent, prior
+  consultation), with `licencia`, `norma` (the rule that requires it),
+  `aplica` (true or false), `justificacion`, `responsable` (an alliance id)
+  and `momento` (`previo` when it must be obtained before the start,
+  `ejecucion` when it is processed during execution). A row with `aplica`
+  true needs `norma`, `responsable` and `momento`; a row with `aplica` false
+  needs the `justificacion`, written in third person about the project
+  («Por la naturaleza del objetivo general, el proyecto no requiere …»).
+- Check prior consultation (consulta previa) against `territorio.json`: when
+  the territory has ethnic communities, the row applies or its
+  `justificacion` says why it does not. Informed consent follows §12 and the
+  ethics endorsement requirement of the rubric.
+- List only licences and permits with their justification; never copy the
+  normative table of the conceptual framework here (estilo-sgr chapter 28,
+  redundancy R5). Never invent a rule, a procedure or a responsible entity
+  that no insumo supports, and never mark a requirement item or declare a
+  figure: those are the user's. Run nothing: the dispatcher runs
+  `scripts/requisitos_sgr.py check` and returns its errors to you until it
+  is clean.
+
 ## Literature search stack (free, no paid API)
 
 When you need to ground subproblems, gaps, novelty positioning, or the

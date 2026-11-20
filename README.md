@@ -95,6 +95,8 @@ Tras el marco y el equipo (Fase 5), la unidad SGR `fase5_sgr` «Productos, talen
 
 Tras la metodología (Fase 5.5), la unidad SGR `fase5_5_sgr` «TRL y componentes transversales» (compuerta `GComponentes`) guarda en `artefactos/sgr/componentes.json` la ruta y la verificación del TRL, la transferencia, los siete elementos de la apropiación social, la sostenibilidad, el uso posterior y las medidas diferenciales; `scripts/componentes_sgr.py` genera §31 a §35 y §18, y el operador los aprueba en la pestaña «TRL y componentes».
 
+Antes de la auditoría final (Fase 7), la unidad SGR `fase6_9_sgr` «Requisitos y anexos» (compuerta `GRequisitos`) guarda en `artefactos/sgr/requisitos.json` el estado de cada requisito habilitante de la convocatoria (copiados del TdR en la rúbrica), los documentos del aval institucional, las cifras declaradas en el SIGP, el Anexo 1, el Anexo 3 y la MGA Web y las licencias y permisos; `scripts/requisitos_sgr.py` verifica la coherencia de esas cifras con el presupuesto y la alianza y genera §38 (licencias y permisos) y §39 (anexos), y el operador marca los requisitos y los aprueba en la pestaña «Requisitos y anexos».
+
 Dentro del directorio inicializado puedes ejecutar los comandos del asistente en Claude Code (`/propuesta-init`, `/propuesta-analizar`, `/propuesta-continuar`) o el pipeline de tu runtime preferido.
 
 ---
@@ -103,7 +105,7 @@ Dentro del directorio inicializado puedes ejecutar los comandos del asistente en
 
 | Comando | Descripción |
 |---|---|
-| `morfeo init <dir> [--title] [--preset] [--tools] [--sgr]` | Inicializa un workspace autocontenido con los 100 activos base del marco. |
+| `morfeo init <dir> [--title] [--preset] [--tools] [--sgr]` | Inicializa un workspace autocontenido con los 104 activos base del marco. |
 | `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF. |
 | `morfeo ui [dir] [--port 8080] [--no-open]` | Despliega el Command Center web interactivo en tiempo real (puerto 8080 por defecto, o el siguiente libre). |
 | `morfeo compile [dir] [--docx] [--run <id>]` | Compila el proyecto LaTeX a PDF (`build.sh`) o exporta a Word (`--docx`). |

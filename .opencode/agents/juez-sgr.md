@@ -70,8 +70,9 @@ En este orden, y solo lo necesario para cada subcriterio:
   exigidos.
 - Las secciones ensambladas en `redaccion/sections/*.tex`, incluidos los
   anexos SGR (`19_*` a `30_*`), los componentes transversales (`31_*` a
-  `35_*`), el talento humano y los indicadores (`36_*` y `37_*`) y el
-  presupuesto (`13_presupuesto.tex`).
+  `35_*`), el talento humano y los indicadores (`36_*` y `37_*`), las
+  licencias y los anexos (`38_*` y `39_*`) y el presupuesto
+  (`13_presupuesto.tex`).
 - Los árboles en `artefactos/arboles/` y el resumen MGA en
   `artefactos/mga_resumido.md`.
 - Los datos de la alianza y el territorio, antes que la prosa:
@@ -133,6 +134,26 @@ En este orden, y solo lo necesario para cada subcriterio:
   hallazgo `error` de `check` es candidato a alerta. Que un producto
   adicional sea alcanzable con las actividades de la cadena no sale de los
   datos: eso lo juzgás vos leyendo §10 y §15.
+- Los requisitos habilitantes y la coherencia de las cifras, también como
+  datos: si existe `artefactos/sgr/requisitos.json`, corré
+  `python3 scripts/requisitos_sgr.py datos <RUN_ROOT> --json` (`requisitos`
+  con `aplicables`, `listos`, `pendientes` y `no_aplica`,
+  `cifras_coherentes` y `fuente`) y
+  `python3 scripts/requisitos_sgr.py check <RUN_ROOT> --json` (hallazgos
+  `requisitos-*` sobre los estados, los archivos adjuntos, las cifras
+  declaradas del SIGP, el Anexo 1, el Anexo 3 y la MGA Web frente al
+  presupuesto y la alianza, las licencias y el aval institucional). Cada id
+  de `pendientes` es un requisito habilitante aplicable que todavía no está
+  listo: emití una alerta por cada uno, porque los TdR dan por no cumplida
+  toda condición que no esté soportada documentalmente. Con
+  `cifras_coherentes` en `false`, emití una alerta por cada hallazgo de
+  cifras de `check` (documento, cifra declarada y cifra esperada): son los
+  hechos del criterio 1.4 de la Conv 54 (coherencia de las cifras entre el
+  SIGP y los anexos) y la evidencia está en `13_presupuesto` y
+  `30_fuentes_financiacion`. Con `cifras_coherentes` en `null` no hay cifras
+  declaradas: no lo tomés como coherencia. Que una licencia que el proyecto
+  necesita falte en la tabla de `38_licencias_permisos` no sale de los
+  datos: eso lo juzgás vos leyendo §10 y §12.
 
 ### 3. Extraer los datos (`datos_sgr.json`)
 

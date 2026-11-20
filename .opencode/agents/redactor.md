@@ -217,6 +217,33 @@ talent minimums of the call rubric (`minimos_talento`). The investigador owns
   nothing: the dispatcher runs `scripts/productos_sgr.py check` and returns
   its errors to you until it is clean.
 
+## Requisitos y anexos SGR (Fase 6.9 SGR, compuerta GRequisitos)
+
+SGR flow only, after G6.5. The Task carries `artefactos/sgr/requisitos.json`
+(schema `morfeo.requisitos-sgr/v1`, documented at the top of
+`scripts/requisitos_sgr.py`), `alianza.json` and the `### SGR A28` block of
+the guide. The investigador owns `licencias.items`, and the user marks the
+requirement `items` and the `cifras` in the dashboard tab «Requisitos y
+anexos»; you edit only:
+
+- **`licencias.introduccion`.** One paragraph in third person about the
+  alliance and the project, written after the licence rows exist: it names
+  the licences and permits that apply, who processes them and when, and the
+  commitment to comply with them during execution. Openings from estilo-sgr
+  chapter 28: «La entidad proponente y las demás entidades aliadas se
+  comprometen a que, durante la ejecución del proyecto, se cumpla con …» or,
+  when a licence does not apply, «Por la naturaleza del objetivo general y
+  los objetivos específicos, el proyecto no requiere <licencia>; sin
+  embargo, si durante la ejecución …». Future tense for the commitments; no
+  first person, no normative table (that belongs to the conceptual
+  framework) and no row-by-row repetition of the table that follows.
+- In an SGR project you never write `38_licencias_permisos` or
+  `39_anexos`: `scripts/requisitos_sgr.py render` builds them from the file,
+  and §39 (cap. 31, «ANEXOS REQUISITOS SECTORIALES QUE LE SEAN
+  APLICABLES.») is a list without prose. Run nothing: the dispatcher runs
+  `scripts/requisitos_sgr.py check` and returns its errors to you until it
+  is clean.
+
 ## Hard constraints
 
 1. Your Task prompt carries an injected `## FRAGMENTO DE GUÍA (§N — <título>...)`

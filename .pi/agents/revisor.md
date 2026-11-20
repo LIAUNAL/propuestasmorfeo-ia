@@ -218,6 +218,22 @@ you) before reporting a FAIL for a missing artifact.
    current text already resolved as `resolved` and leave it out of
    CORRECCIONES. Skip this item in the base flow, at any
    other gate, or when the file does not exist.
+10. **Requisitos y anexos — only at GRequisitos and in the Fase 7 final audit of an SGR run:**
+   your dispatch prompt carries the output of `scripts/requisitos_sgr.py check`
+   (with `--final` in Fase 7); do not recompute it. At GRequisitos, check in
+   `38_licencias_permisos.tex` that every licence or permit that applies has
+   its rule, responsible entity and moment of the procedure, that every one
+   that does not apply has its justification, that prior consultation is
+   addressed when the territory has ethnic communities, that the table does
+   not repeat the normative table of the conceptual framework, and that the
+   introduction is in third person; check that `39_anexos.tex` lists only
+   the documents of the requirements that apply, without prose; neither
+   section may contradict §10 or §12. In Fase 7, every `error` of
+   `check --final` (an applicable requirement not `listo`, a declared figure
+   that does not match the budget or the alliance) goes under CORRECCIONES
+   with the requirement id or the document and figure, and the fix happens in
+   the dashboard tab «Requisitos y anexos», not in the prose. Skip this item
+   in the base flow or at any other gate.
 
 ## Output format
 

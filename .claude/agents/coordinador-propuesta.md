@@ -68,7 +68,7 @@ truth.
 Post-intake order (see `_propuesta-steps.md` for control block fields):
 
 `fase1a` → `fase1b` → `fase1c` → `fase1` → `fase2` → `fase3` → `fase4` → `fase5` →
-`fase5_5` → `fase6` → `fase6_4` → `fase6_45` → `fase6_46` → [`fase6_47`, solo flujo SGR] → `fase6_5` → `fase7` → `done`
+`fase5_5` → `fase6` → `fase6_4` → `fase6_45` → `fase6_46` → [`fase6_47`, solo flujo SGR] → `fase6_5` → [`fase6_9_sgr`, solo flujo SGR] → `fase7` → `done`
 
 - **auto** (`/propuesta`): loop all units in one session; stop at gates.
 - **stepped** (`/propuesta-analizar` then `/propuesta-continuar`): one unit per
@@ -173,6 +173,11 @@ Fase 6.5  redactor → front-matter (Resumen, Resumen ejecutivo, Palabras
         clave); el título e identificación van exclusivamente en el encabezado de `main.tex` (sin sección de cuerpo §1)
         → grant-flow-auditor (pule front-matter con estilo-natural-es)
         ──→ GATE revisor ──→ user
+Fase 6.9 SGR [solo flujo SGR] `requisitos_sgr.py init` → investigador
+        (licencias y permisos) → redactor (introducción) → revisor-estilo-sgr;
+        el usuario marca los requisitos y declara las cifras de los anexos en
+        la pestaña Requisitos y anexos → `check` limpio → `render` (§38 y
+        §39) ──→ GATE GRequisitos revisor ──→ user
 Fase 7  [NUEVO] refresh del índice del vault sobre el vault completo + bloque
         `EVIDENCIA DE GRAFO` ──→ revisor → auditoría final ──→ user;
         coordinador-propuesta → ensambla main.tex (con \documentclass[11pt,a4paper]{article}, sectsty para títulos dos tamaños menos, \setcounter{section}{1}, xltabular y bibliografía limpia)

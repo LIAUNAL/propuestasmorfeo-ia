@@ -1863,6 +1863,83 @@ Fase 6.5 Task → redactor → secciones preliminares (front-matter), como
         `artefactos/pipeline/_estado.md`,
         incluye además los campos de uso acumulados de la fase (ver
         "Telemetría de uso por fase").
+Fase 6.9 SGR [COMPUERTA GRequisitos] Requisitos habilitantes, licencias y
+        anexos como datos. SOLO flujo SGR, después de G6.5 = APROBADA; con el
+        flujo `base` esta unidad no corre y al aprobar G6.5 se pasa directo a
+        la Fase 7. Los datos viven en `artefactos/sgr/requisitos.json`
+        (esquema `morfeo.requisitos-sgr/v1`, documentado al inicio de
+        `scripts/requisitos_sgr.py`): `items` (un estado por cada requisito
+        habilitante de la rúbrica de la convocatoria, `pendiente`,
+        `en_tramite`, `listo` o `no_aplica`, con la entidad responsable, el
+        archivo adjunto bajo `insumos/requisitos/`, la fecha, la nota y la
+        `justificacion` de un `no_aplica`), `cifras` (los totales que declaran
+        el SIGP, el Anexo 1 por entidad, el Anexo 3 y la MGA Web),
+        `licencias` (su `introduccion` y una fila por licencia, estudio o
+        permiso) y `aval_institucional` (los documentos del aval interno de la
+        institución proponente, cuando la rúbrica trae su procedimiento). Un
+        `no_aplica` solo cabe en un requisito con condición y siempre lleva
+        `justificacion`. De estos datos salen `38_licencias_permisos.tex`
+        (Anexo 2 cap. 28: introducción y tabla «Licencia o permiso | Norma |
+        ¿Aplica? | Justificación | Responsable | Momento del trámite») y
+        `39_anexos.tex` (cap. 31, título «ANEXOS REQUISITOS SECTORIALES QUE
+        LE SEAN APLICABLES.», la lista sin prosa de los documentos de los
+        requisitos que aplican); ninguno lo escribe un agente a mano.
+        (0) DISPATCHER: `python3 scripts/requisitos_sgr.py init <RUN_ROOT>`,
+        que siembra el archivo desde los `requisitos` de la rúbrica. Es
+        idempotente y nunca sobrescribe un estado, un archivo, una cifra o un
+        bloque ya escrito: en una segunda corrida solo agrega los requisitos
+        que falten.
+        (a) Task → investigador (rama "Requisitos y anexos SGR", ver
+        `investigador.md`) con `RUN_ROOT`, el archivo, `alianza.json`,
+        `territorio.json`, `componentes.json` si existe, §10, §12 y el
+        extracto de los TdR sobre requisitos habilitantes, licencias y
+        permisos inline, y el bloque `## FRAGMENTO DE GUÍA` con Directrices
+        Generales SGR + el bloque `### SGR A28`. Escribe `licencias.items`:
+        una fila por cada licencia, estudio o permiso de la lista de la
+        plantilla del cap. 28 (licencias ambientales, acceso a recursos
+        genéticos, recolección de especímenes, colecciones biológicas,
+        consentimiento informado, consulta previa), con `licencia`, `norma`,
+        `aplica`, `justificacion`, la entidad `responsable` y el `momento`
+        del trámite (`previo` o `ejecucion`). No copia la tabla normativa del
+        marco conceptual: aquí van solo las licencias y los permisos, con su
+        justificación. No inventa una norma ni un trámite que ningún insumo
+        respalde.
+        (b) Tras (a), Task → redactor (rama "Requisitos y anexos SGR", ver
+        `redactor.md`) con el archivo, `alianza.json` y el bloque
+        `## FRAGMENTO DE GUÍA` con Directrices Generales SGR + el bloque
+        `### SGR A28` inline. Escribe `licencias.introduccion`: un párrafo en
+        tercera persona sobre la alianza y el proyecto que nombra las
+        licencias que aplican y el compromiso de tramitarlas. Luego Task →
+        revisor-estilo-sgr sobre esa `introduccion` (voz, léxico y
+        redundancia de la skill `estilo-sgr`).
+        (c) Usuario: en la pestaña «Requisitos y anexos» del tablero marca
+        cada requisito (estado, entidad responsable, archivo adjunto, fecha y
+        nota, o la `justificacion` de un `no_aplica`) y declara las cifras de
+        cada anexo (SIGP, Anexo 1, Anexo 3 y MGA Web). Ni el DISPATCHER ni un
+        agente marcan un requisito como `listo` ni inventan una cifra.
+        ──→ DISPATCHER: `python3 scripts/requisitos_sgr.py check <RUN_ROOT>`.
+        Mientras reporte errores, devolvé la salida exacta a quien los
+        resuelve (investigador para `licencias.items`, redactor para
+        `licencias.introduccion`, el usuario en la pestaña para los estados,
+        los archivos y las cifras) y repetí (a), (b) o (c); los avisos se
+        presentan en la compuerta. Un requisito aplicable todavía pendiente
+        no bloquea esta unidad, pero sí el cierre de la Fase 7
+        (`check --final`). Con `check` limpio, el DISPATCHER corre
+        `python3 scripts/requisitos_sgr.py render <RUN_ROOT>`, que genera
+        `38_licencias_permisos.tex` y `39_anexos.tex`; si cambian los datos,
+        se vuelve a correr `render`.
+        ──→ GATE Task → revisor (valida que cada licencia que aplica tenga
+        norma, responsable y momento del trámite y cada una que no aplica su
+        justificación, que la tabla no repita la normativa del marco
+        conceptual, que §39 liste solo los documentos de los requisitos que
+        aplican y que las secciones renderizadas no contradigan §10 ni §12;
+        recibe la salida limpia de `check`) ──→ usuario: la aprobación se da
+        en la pestaña «Requisitos y anexos» del tablero, que la ata al hash
+        del archivo. Un ajuste pedido ahí vuelve a (a) o (b) con el
+        comentario exacto. Al aprobar, escribe `GRequisitos = APROBADA` en
+        `artefactos/estado_propuesta.md` (fila `| GRequisitos | APROBADA |`)
+        y el evento `artefactos/pipeline/75-fase6_9_sgr.md`. NO avances sin
+        aprobación.
 Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del índice
         del vault" sobre el vault completo (todas las secciones ya escritas),
         con `mode="full"` en vez de `"fast"` — es la última auditoría, conviene
@@ -1885,6 +1962,22 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         (los meses del Gantt son los de la cadena, porque §14 sale de ella) e
         inyecta sus hallazgos en el prompt del revisor, que no recomputa ese
         cruce a mano.
+        SOLO flujo SGR: requisitos habilitantes al cierre. Antes de la misma
+        Task el DISPATCHER corre también
+        `python3 scripts/requisitos_sgr.py check <RUN_ROOT> --final`: con
+        `--final`, cada requisito habilitante aplicable que no esté `listo`
+        en `artefactos/sgr/requisitos.json` es un error, además de los
+        hallazgos de la Fase 6.9 SGR (cifras declaradas que no coinciden con
+        el presupuesto o la alianza, licencias incompletas). Inyecta sus
+        hallazgos en el prompt del revisor, que no los recalcula. La Fase 7
+        no se cierra mientras haya errores: cada uno se resuelve en la
+        pestaña «Requisitos y anexos» del tablero (adjuntar el documento y
+        marcarlo `listo`, o justificar el `no_aplica` de un requisito con
+        condición), se vuelve a correr
+        `python3 scripts/requisitos_sgr.py render <RUN_ROOT>` y luego
+        `check --final`. En el flujo SGR,
+        `python3 scripts/check_run.py <RUN_ROOT> --final` exige además
+        `38_licencias_permisos.tex` y `39_anexos.tex`.
         ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
         `artefactos/pipeline/80-fase7.md` (evento de la auditoría final) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos

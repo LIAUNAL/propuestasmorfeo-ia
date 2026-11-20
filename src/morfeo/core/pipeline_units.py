@@ -138,6 +138,12 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "reviewer": "Revisor",
         "criteria": "Resumen ejecutivo, palabras clave y unicidad del título.",
     },
+    "GRequisitos": {
+        "name": "Requisitos y anexos (flujo SGR)",
+        "phase": "Fase 6.9 SGR",
+        "reviewer": "Revisor & Usuario",
+        "criteria": "Requisitos habilitantes de la convocatoria con su estado, entidad responsable y documento adjunto, o la justificación de un no_aplica en un requisito condicionado; cifras declaradas del SIGP, el Anexo 1, el Anexo 3 y la MGA Web coherentes con el presupuesto y la alianza; licencias y permisos con norma, responsable y momento del trámite, o la justificación de que no aplican, sin hallazgos de error en requisitos_sgr.py check; el usuario los aprueba en la pestaña Requisitos y anexos.",
+    },
     "G7": {
         "name": "Auditoría Final y Ensamble",
         "phase": "Fase 7",
@@ -158,6 +164,7 @@ GATE_ALIASES: dict[str, str] = {
     "G productos": "GProductos",
     "G componentes": "GComponentes",
     "G front": "G6.5",
+    "G requisitos": "GRequisitos",
     "G final": "G7",
 }
 
@@ -480,6 +487,19 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "artifacts": [],
         "agents": ["redactor", "grant-flow-auditor", "revisor"],
         "skills": ["estilo-natural-es"],
+        "next": "fase6_9_sgr",
+    },
+    {
+        "id": "fase6_9_sgr",
+        "kind": "step",
+        "flujo": "sgr",
+        "name": "Requisitos y anexos",
+        "desc": "Solo flujo SGR: lista de los requisitos habilitantes de la convocatoria y del aval institucional, con estado, entidad responsable y documento adjunto, cifras declaradas de los anexos (SIGP, Anexo 1, Anexo 3 y MGA Web) y licencias y permisos como datos en `artefactos/sgr/requisitos.json`; `scripts/requisitos_sgr.py init` lo siembra desde la rúbrica, `scripts/requisitos_sgr.py check` lo valida, `render` genera §38 y §39 y el usuario marca los requisitos y los aprueba en la pestaña Requisitos y anexos.",
+        "gate": "GRequisitos",
+        "sections": ["38", "39"],
+        "artifacts": ["artefactos/sgr/requisitos.json"],
+        "agents": ["investigador", "redactor", "revisor-estilo-sgr", "revisor"],
+        "skills": [],
         "next": "fase7",
     },
     {

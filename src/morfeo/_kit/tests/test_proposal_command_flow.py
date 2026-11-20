@@ -895,5 +895,170 @@ class TestSgrProductsRecipe(unittest.TestCase):
         self.assertIn("`36_*` y `37_*`", juez)
 
 
+class TestSgrRequirementsRecipe(unittest.TestCase):
+    """SGR-only requirements and annexes unit (odd/tasks/sgr-requisitos-anexos.md, S1, S6)."""
+
+    COMMANDS = REPO_ROOT / ".claude" / "commands"
+    AGENTS = REPO_ROOT / ".claude" / "agents"
+    HEADING = "## Requisitos y anexos SGR (Fase 6.9 SGR, compuerta GRequisitos)\n\nSGR flow only"
+
+    def setUp(self):
+        self.raw = (self.COMMANDS / "propuesta.md").read_text(encoding="utf-8")
+
+    def _block(self, start: str, end: str, text: str | None = None) -> str:
+        text = self.raw if text is None else text
+        i = text.index(start)
+        return " ".join(text[i:text.index(end, i + len(start))].split())
+
+    def _sgr_part(self, block: str) -> str:
+        return block[block.index("SOLO flujo SGR"):]
+
+    def _rows(self) -> dict[str, str]:
+        steps = (self.COMMANDS / "_propuesta-steps.md").read_text(encoding="utf-8")
+        return {cells[0]: line for line in steps.splitlines() if line.startswith("| `")
+                for cells in [[c.strip(" `") for c in line.strip("|").split("|")]]}
+
+    def _agent_section(self, name: str, heading: str | None = None) -> str:
+        raw = (self.AGENTS / f"{name}.md").read_text(encoding="utf-8")
+        heading = self.HEADING if heading is None else heading
+        self.assertIn(heading, raw, name)
+        start = raw.index(heading)
+        end = raw.find("\n## ", start + len(heading))
+        return " ".join(raw[start:end if end != -1 else len(raw)].split())
+
+    def test_requirements_unit_runs_only_in_the_sgr_flow_between_front_matter_and_final_audit(self):
+        block = self._block("Fase 6.9 SGR [COMPUERTA GRequisitos]", "\nFase 7  ──→")
+        self.assertIn("SOLO flujo SGR", block)
+        self.assertIn("con el flujo `base` esta unidad no corre", block)
+        steps = ["python3 scripts/requisitos_sgr.py init <RUN_ROOT>", "Task → investigador",
+                 "Task → redactor", "Task → revisor-estilo-sgr", "pestaña «Requisitos y anexos»",
+                 "python3 scripts/requisitos_sgr.py check <RUN_ROOT>",
+                 "python3 scripts/requisitos_sgr.py render <RUN_ROOT>", "GATE Task → revisor",
+                 "| GRequisitos | APROBADA |", "artefactos/pipeline/75-fase6_9_sgr.md"]
+        positions = [block.index(step) for step in steps]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("idempotente", block)
+        self.assertIn("nunca sobrescribe", block)
+        self.assertIn("artefactos/sgr/requisitos.json", block)
+        self.assertIn("morfeo.requisitos-sgr/v1", block)
+        for field in ("`licencias`", "`introduccion`", "`items`", "`cifras`", "`aval_institucional`",
+                      "`listo`", "`no_aplica`", "`justificacion`", "`momento`"):
+            self.assertIn(field, block)
+        for stem in ("38_licencias_permisos", "39_anexos"):
+            self.assertIn(stem, block)
+        self.assertIn("ANEXOS REQUISITOS SECTORIALES QUE LE SEAN APLICABLES.", block)
+        for figure in ("SIGP", "Anexo 1", "Anexo 3", "MGA Web"):
+            self.assertIn(figure, block)
+        self.assertIn("### SGR A28", block)
+        self.assertLess(self.raw.index("\nFase 6.5 Task → redactor"),
+                        self.raw.index("\nFase 6.9 SGR [COMPUERTA GRequisitos]"))
+        self.assertLess(self.raw.index("\nFase 6.9 SGR [COMPUERTA GRequisitos]"), self.raw.index("\nFase 7  ──→"))
+
+    def test_sgr_final_audit_checks_the_requirements_and_the_new_sections(self):
+        final = self._block("Fase 7  ──→", "\n## Bucle de figuras")
+        sgr = self._sgr_part(final)
+        self.assertIn("python3 scripts/requisitos_sgr.py check <RUN_ROOT> --final", sgr)
+        self.assertIn("aplicable que no esté `listo`", sgr)
+        self.assertIn("`38_licencias_permisos.tex` y `39_anexos.tex`", sgr)
+        self.assertIn("python3 scripts/check_run.py <RUN_ROOT> --final", sgr)
+        self.assertIn("pestaña «Requisitos y anexos»", sgr)
+        self.assertLess(sgr.index("requisitos_sgr.py check <RUN_ROOT> --final"), sgr.index("Task → juez-sgr"))
+
+    def test_base_flow_text_never_runs_the_requirements_script(self):
+        front = self._block("Fase 6.5 Task → redactor", "\nFase 6.9 SGR ")
+        self.assertNotIn("requisitos_sgr.py", front)
+        self.assertTrue(front.endswith("incluye además los campos de uso acumulados de la fase (ver "
+                                       "\"Telemetría de uso por fase\")."), front[-200:])
+        final = self._block("Fase 7  ──→", "\n## Bucle de figuras")
+        # Base text of Fase 7: everything outside its SGR paragraphs (the
+        # deterministic §13↔§14 cross-check, the requirements check and the judge).
+        sgr_start = final.index("En el flujo SGR ese cruce")
+        base = (final[:sgr_start]
+                + final[final.index("──→ [NUEVO] DISPATCHER: pipeline-graph: escribe `artefactos/pipeline/80-fase7.md`"):
+                        final.index("[NUEVO] SOLO flujo SGR (`\"flujo\": \"sgr\"`), después de la pasada de pixelshot")])
+        self.assertNotIn("SGR", base.replace("en el flujo SGR, si existe `artefactos/juez/evaluacion.json`", ""))
+        self.assertNotIn("requisitos_sgr.py", base)
+        self.assertNotIn("38_licencias_permisos", base)
+        self.assertIn("correr `python3 scripts/check_run.py <RUN_ROOT> --final` hasta que salga sin errores.", base)
+        self.assertIn("Presupuesto (§13) ↔ Cronograma de actividades (§14) diferida desde la Fase 6.4", base)
+        annex = self._block("Fase 6.47 [SOLO FLUJO SGR]", "\nFase 6.5 ")
+        self.assertNotIn("requisitos_sgr.py", annex)
+
+    def test_step_table_and_continuar_declare_the_unit(self):
+        rows = self._rows()
+        self.assertTrue(rows["fase6_5"].startswith(
+            "| `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave; sin sección cuerpo de título)"
+            " + grant-flow-auditor + revisor |"), rows["fase6_5"])
+        self.assertTrue(rows["fase6_5"].endswith("| G front | `fase6_9_sgr` (flujo SGR) o `fase7` (flujo base) |"),
+                        rows["fase6_5"])
+        row = rows["fase6_9_sgr"]
+        self.assertTrue(row.startswith("| `fase6_9_sgr` | Solo flujo SGR:"), row)
+        self.assertIn("el flujo base la salta", row)
+        self.assertIn("| G requisitos | `fase7` |", row)
+        for fragment in ("artefactos/sgr/requisitos.json", "requisitos_sgr.py init", "requisitos_sgr.py check",
+                         "requisitos_sgr.py render", "revisor-estilo-sgr", "pestaña Requisitos y anexos",
+                         "§38 y §39"):
+            self.assertIn(fragment, row)
+        self.assertTrue(rows["fase7"].startswith(
+            "| `fase7` | Final audit + assemble `main.tex` (\\setcounter{section}{1}, xltabular, bibliografía limpia);"
+            " flujo SGR:"), rows["fase7"])
+        self.assertIn("requisitos_sgr.py check --final", rows["fase7"])
+        self.assertIn("juez-sgr asesor tras el ensamble", rows["fase7"])
+        self.assertTrue(rows["fase7"].endswith("| G final | `done` |"), rows["fase7"])
+        continuar = (self.COMMANDS / "propuesta-continuar.md").read_text(encoding="utf-8")
+        self.assertIn("| `fase6_9_sgr` | Fase 6.9 SGR [GRequisitos] (solo flujo SGR) |", continuar)
+        self.assertLess(continuar.index("| `fase6_5` | Fase 6.5 |"), continuar.index("| `fase6_9_sgr` |"))
+        self.assertLess(continuar.index("| `fase6_9_sgr` |"), continuar.index("| `fase7` | Fase 7 |"))
+        note = self._block("### Gate PASS o unidad sin gate completada", "```", continuar)
+        self.assertIn("tras `fase6_5`, `fase6_9_sgr` con `sgr` y `fase7` con `base`", note)
+        self.assertIn("tras `fase6_46`, `fase6_47` con `sgr` y `fase6_5` con `base`", note)
+
+    def test_agents_carry_their_sgr_only_requirements_duties(self):
+        investigador = self._agent_section("investigador")
+        for field in ("`licencias.items`", "`licencia`", "`norma`", "`aplica`", "`justificacion`",
+                      "`responsable`", "`momento`", "`previo`", "`ejecucion`"):
+            self.assertIn(field, investigador)
+        self.assertIn("consulta previa", investigador)
+        self.assertIn("scripts/requisitos_sgr.py check", investigador)
+        redactor = self._agent_section("redactor")
+        self.assertIn("`licencias.introduccion`", redactor)
+        self.assertIn("### SGR A28", redactor)
+        self.assertIn("never write `38_licencias_permisos` or `39_anexos`", redactor)
+        juez = " ".join((self.AGENTS / "juez-sgr.md").read_text(encoding="utf-8").split())
+        for command in ("python3 scripts/requisitos_sgr.py datos <RUN_ROOT> --json",
+                        "python3 scripts/requisitos_sgr.py check <RUN_ROOT> --json"):
+            self.assertIn(command, juez)
+        self.assertIn("`cifras_coherentes`", juez)
+        self.assertIn("`pendientes`", juez)
+        self.assertIn("1.4", juez)
+        self.assertIn("`38_*` y `39_*`", juez)
+        revisor = " ".join((self.AGENTS / "revisor.md").read_text(encoding="utf-8").split())
+        self.assertIn("**Requisitos y anexos — only at GRequisitos and in the Fase 7 final audit of an SGR run:**",
+                      revisor)
+        coordinador = (self.AGENTS / "coordinador-propuesta.md").read_text(encoding="utf-8")
+        self.assertIn("`fase6_5` → [`fase6_9_sgr`, solo flujo SGR] → `fase7` → `done`", coordinador)
+        self.assertIn("\nFase 6.9 SGR [solo flujo SGR]", coordinador)
+
+    def test_agent_text_outside_the_sgr_requirements_blocks_is_unchanged(self):
+        # The new duties live only in SGR-labelled blocks: no other part of an
+        # agent mentions the requirements script or the new section stems.
+        for name in ("investigador", "redactor"):
+            with self.subTest(agent=name):
+                raw = (self.AGENTS / f"{name}.md").read_text(encoding="utf-8")
+                start = raw.index(self.HEADING)
+                end = raw.index("\n## ", start + len(self.HEADING))
+                rest = raw[:start] + raw[end:]
+                for token in ("requisitos_sgr", "38_licencias_permisos", "39_anexos", "GRequisitos"):
+                    self.assertNotIn(token, rest)
+        revisor = (self.AGENTS / "revisor.md").read_text(encoding="utf-8")
+        item = revisor.index("10. **Requisitos y anexos")
+        rest = revisor[:item] + revisor[revisor.index("\n## ", item):]
+        self.assertNotIn("requisitos_sgr", rest)
+        self.assertIn("9. **Juez SGR alerts — only in the Fase 7 final audit of an SGR run:**", rest)
+        coordinador = (self.AGENTS / "coordinador-propuesta.md").read_text(encoding="utf-8")
+        self.assertIn("\nFase 6.5  redactor → front-matter (Resumen, Resumen ejecutivo, Palabras\n", coordinador)
+        self.assertIn("\nFase 7  [NUEVO] refresh del índice del vault sobre el vault completo + bloque\n", coordinador)
+
+
 if __name__ == "__main__":
     unittest.main()
