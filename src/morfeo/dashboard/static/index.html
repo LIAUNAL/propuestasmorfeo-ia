@@ -602,6 +602,17 @@
     .a2-rule dt { font-weight: 600; margin-top: 0.3rem; }
     .a2-rule dd { margin: 0 0 0 0.8rem; }
     .a2-findings ul { margin: 0.4rem 0 0; padding-left: 1rem; font-size: 0.8rem; }
+    .cv-toolbar { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 0.7rem; font-size: 0.8rem; color: var(--text); }
+    .cv-toolbar select { font: inherit; font-size: 0.78rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.2rem 0.35rem; }
+    .cv-card { border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.6rem 0.75rem; margin-bottom: 0.7rem; background: var(--surface-2); }
+    .cv-card__head { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between; }
+    .cv-card__title { font-size: 0.9rem; font-weight: 600; color: var(--accent); overflow-wrap: anywhere; }
+    .cv-card__meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; overflow-wrap: anywhere; }
+    .cv-aviso { font-size: 0.8rem; color: var(--warn); margin: 0.45rem 0 0; }
+    .cv-resumen { font-size: 0.82rem; line-height: 1.5; color: var(--text); margin: 0.45rem 0 0; }
+    .cv-evidencia { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem; }
+    .cv-evidencia ul, .cv-sources { margin: 0.2rem 0 0; padding-left: 1rem; font-size: 0.78rem; overflow-wrap: anywhere; }
+    .cv-card__actions { margin-top: 0.5rem; }
     .rq-table td { min-width: 6rem; }
     .rq-input { width: 100%; min-width: 6rem; font: inherit; font-size: 0.74rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.2rem 0.3rem; margin-top: 0.2rem; }
     .rq-input--num { min-width: 8rem; }
@@ -2641,6 +2652,7 @@
   <!-- Navigation tabs -->
   <nav class="tabs-nav" aria-label="Navegación del tablero">
     <button class="tab-nav__btn active" onclick="navigateTab('flow')">Flujo general</button>
+    <button class="tab-nav__btn" onclick="navigateTab('convocatorias')">Convocatorias</button>
     <button class="tab-nav__btn" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
     <button class="tab-nav__btn" onclick="navigateTab('trees')">Árbol de problemas y objetivos</button>
     <button class="tab-nav__btn" onclick="navigateTab('mga')">MGA resumido</button>
@@ -3064,6 +3076,24 @@
             <p class="tree-message" id="rqMessage" role="status"></p>
           </div>
         </aside>
+      </div>
+    </div>
+
+    <!-- TAB: CONVOCATORIAS (ambos flujos, nivel de espacio de trabajo, solo lectura) -->
+    <div id="pane-convocatorias" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Convocatorias afines a la idea del proyecto y al banco LIA</div>
+          <span class="panel__meta" id="cvMeta">—</span>
+        </div>
+        <p class="judge-intro">Convocatorias de Colombia, América Latina e internacionales, en español e inglés, ordenadas por afinidad con la idea del proyecto y el banco LIA, con el rol que puede tener un aplicante colombiano y la cuenta regresiva del cierre. Es una vista de solo lectura: «Buscar convocatorias» pide al agente una búsqueda nueva y «Iniciar propuesta con esta» baja el TdR de la convocatoria a la corrida activa.</p>
+        <div class="cv-toolbar">
+          <button class="btn btn--sm btn--primary" id="cvSearchBtn" onclick="searchOpportunities()">🔎 Buscar convocatorias</button>
+        </div>
+        <p class="tree-message" id="cvMessage" role="status"></p>
+      </div>
+      <div class="panel">
+        <div id="cvContent"></div>
       </div>
     </div>
 
@@ -8122,6 +8152,271 @@
       openSectionStructure(stem);
     }
 
+    // ── Convocatorias ───────────────────────────────────────────────────────
+    // Lee /api/convocatorias: la vista morfeo.convocatorias-vista/v1 que arma
+    // scripts/convocatorias.py a nivel de espacio de trabajo (no necesita una
+    // corrida activa). Existe en ambos flujos. Es de solo lectura: «Buscar
+    // convocatorias» e «Iniciar propuesta con esta» piden el prompt al servidor
+    // y lo entregan a la terminal con sendTerminalPrompt, como el juez.
+    const CV_STATE = { data: null, sig: null, timer: null, filters: { ambito: '', idioma: '', aplicante: '', soloVigentes: false } };
+    const CV_AMBITOS = [['colombia', 'Colombia'], ['latam', 'América Latina'], ['internacional', 'Internacional']];
+    const CV_IDIOMAS = [['es', 'Español'], ['en', 'Inglés'], ['pt', 'Portugués'], ['fr', 'Francés']];
+    const CV_APLICANTES = [['investigador', 'Investigador'], ['estudiante', 'Estudiante'], ['grupo', 'Grupo de investigación'],
+      ['centro', 'Centro'], ['universidad', 'Universidad'], ['empresa', 'Empresa']];
+    const CV_ROLES = {
+      lider: ['Puede liderar', 'ok'],
+      socio: ['Solo como socio', 'warn'],
+      coaplicante: ['Solo como coaplicante', 'warn'],
+      anfitrion_exterior: ['Requiere anfitrión en el exterior', 'warn'],
+      no_elegible: ['No elegible desde Colombia', 'bad'],
+      desconocido: ['Rol por confirmar', 'info'],
+    };
+    const CV_ESTADOS = { proxima: ['Próxima', 'info'], pausada: ['Pausada', 'warn'] };
+    const CV_RESULTADOS = {
+      ok: ['Consultada', 'ok'], sin_resultados: ['Sin resultados', 'info'], bloqueado: ['Bloqueada', 'warn'], error: ['Error', 'bad'],
+    };
+
+    async function loadOpportunities() {
+      let data = null;
+      try {
+        const res = await fetch('/api/convocatorias', { cache: 'no-store' });
+        data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      } catch (err) {
+        CV_STATE.data = null;
+        CV_STATE.sig = null;
+        const el = document.getElementById('cvContent');
+        if (el) el.innerHTML = `<div class="tree-empty"><p>No se pudo leer la vista de convocatorias.</p><small>${escapeHtml(err.message || String(err))}</small></div>`;
+        return;
+      }
+      CV_STATE.data = data;
+      const sig = JSON.stringify(data);
+      if (sig !== CV_STATE.sig) {
+        CV_STATE.sig = sig;
+        renderOpportunities();
+      }
+    }
+
+    function startOpportunitiesPolling() {
+      loadOpportunities();
+      if (CV_STATE.timer) return;
+      // La lista solo cambia cuando el agente termina una búsqueda: basta un sondeo lento.
+      CV_STATE.timer = setInterval(() => {
+        if (activeTab === 'convocatorias' && !document.hidden) loadOpportunities();
+      }, 15000);
+    }
+
+    function stopOpportunitiesPolling() {
+      if (CV_STATE.timer) clearInterval(CV_STATE.timer);
+      CV_STATE.timer = null;
+    }
+
+    function cvLabel(pairs, key) {
+      const found = pairs.find(([k]) => k === key);
+      return found ? found[1] : String(key || '—');
+    }
+
+    // Solo se enlazan direcciones http(s): una URL «javascript:» del JSON no llega al href.
+    function cvSafeUrl(url) {
+      const s = typeof url === 'string' ? url.trim() : '';
+      return /^https?:\/\//i.test(s) ? s : '';
+    }
+
+    function cvLink(url, text) {
+      const safe = cvSafeUrl(url);
+      const label = escapeHtml(String(text || url || ''));
+      return safe ? `<a href="${escapeHtml(safe)}" target="_blank" rel="noopener noreferrer">${label || escapeHtml(safe)}</a>` : label;
+    }
+
+    function cvCountdown(o) {
+      const dias = vcNumber(o.dias_restantes);
+      if (o.estado === 'cerrada' || (dias !== null && dias < 0)) return ['Cerrada', 'bad'];
+      if (dias === null) return ['Sin fecha', 'info'];
+      const n = Math.round(dias);
+      if (n === 0) return ['Cierra hoy', 'bad'];
+      if (n === 1) return ['Cierra en 1 día', 'warn'];
+      return [`Cierra en ${n} días`, n <= 15 ? 'warn' : 'ok'];
+    }
+
+    function cvAmount(monto) {
+      const m = cpObj(monto);
+      const min = vcNumber(m.min);
+      const max = vcNumber(m.max);
+      const fmt = n => n.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+      const cur = m.moneda ? ` ${m.moneda}` : '';
+      if (min === null && max === null) return 'Monto no indicado';
+      if (min !== null && max !== null && min !== max) return `${fmt(min)} – ${fmt(max)}${cur}`;
+      if (min === null) return `Hasta ${fmt(max)}${cur}`;
+      if (max === null) return `Desde ${fmt(min)}${cur}`;
+      return `${fmt(max)}${cur}`;
+    }
+
+    function cvSummaryHtml(resumen) {
+      const r = cpObj(resumen);
+      const amb = cpObj(r.por_ambito);
+      const rol = cpObj(r.por_rol);
+      const chip = (attr, key, label, tone, n) =>
+        `<span class="badge badge--${tone}" data-${attr}="${key}" data-n="${escapeHtml(String(n))}">${escapeHtml(label)}: ${escapeHtml(String(n))}</span>`;
+      return `<div class="a2-summary" id="cvResumen">
+          <strong>${a2Plural(a2Int(r.total), 'convocatoria', 'convocatorias')}</strong>
+          <span class="badge badge--ok" data-vigentes="${escapeHtml(String(a2Int(r.vigentes)))}">${a2Plural(a2Int(r.vigentes), 'vigente', 'vigentes')}</span>
+          ${CV_AMBITOS.map(([key, label]) => chip('ambito', key, label, 'info', a2Int(amb[key]))).join('')}
+          ${Object.entries(CV_ROLES).filter(([key]) => a2Int(rol[key]) > 0)
+            .map(([key, [label, tone]]) => chip('rol', key, label, tone, a2Int(rol[key]))).join('')}
+        </div>`;
+    }
+
+    function cvSelect(id, field, pairs, allLabel) {
+      const value = CV_STATE.filters[field];
+      return `<select id="${id}" onchange="setOpportunityFilter('${field}', this.value)">
+          <option value="">${escapeHtml(allLabel)}</option>
+          ${pairs.map(([key, label]) => `<option value="${key}"${value === key ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('')}
+        </select>`;
+    }
+
+    function cvFiltersHtml() {
+      return `<div class="cv-toolbar" id="cvFiltros">
+          <label>Ámbito ${cvSelect('cvAmbito', 'ambito', CV_AMBITOS, 'Todos los ámbitos')}</label>
+          <label>Idioma ${cvSelect('cvIdioma', 'idioma', CV_IDIOMAS, 'Todos los idiomas')}</label>
+          <label>Aplicante ${cvSelect('cvAplicante', 'aplicante', CV_APLICANTES, 'Todos los aplicantes')}</label>
+          <label class="a2-filter"><input type="checkbox" id="cvSoloVigentes"${CV_STATE.filters.soloVigentes ? ' checked' : ''} onchange="setOpportunityFilter('soloVigentes', this.checked)"> Solo vigentes</label>
+        </div>`;
+    }
+
+    function cvVisible(list) {
+      const f = CV_STATE.filters;
+      return list.filter(o => (!f.ambito || o.ambito === f.ambito)
+        && (!f.idioma || o.idioma === f.idioma)
+        && (!f.aplicante || (Array.isArray(o.aplicantes) && o.aplicantes.includes(f.aplicante)))
+        && (!f.soloVigentes || o.vigente === true));
+    }
+
+    function cvCardHtml(o) {
+      const id = String(o.id || '');
+      const url = cvSafeUrl(o.url);
+      const title = escapeHtml(String(o.titulo || id || 'Convocatoria sin título'));
+      const titleHtml = url
+        ? `<a class="cv-card__title" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${title}</a>`
+        : `<span class="cv-card__title">${title}</span>`;
+      const rolKey = CV_ROLES[o.rol_colombia] ? o.rol_colombia : 'desconocido';
+      const [rolLabel, rolTone] = CV_ROLES[rolKey];
+      const agente = o.rol_agente && o.rol_agente !== rolKey && CV_ROLES[o.rol_agente]
+        ? ` title="${escapeHtml(`El agente indicó: ${CV_ROLES[o.rol_agente][0]}`)}"` : '';
+      const [cuenta, tone] = cvCountdown(o);
+      const estado = CV_ESTADOS[o.estado] && cuenta !== 'Cerrada'
+        ? `<span class="badge badge--${CV_ESTADOS[o.estado][1]}">${escapeHtml(CV_ESTADOS[o.estado][0])}</span>` : '';
+      const puntaje = vcNumber(o.puntaje);
+      const evidencia = vcList(o.evidencia).map(e => `<li>${cvLink(e.url, e.texto)}</li>`).join('');
+      return `<article class="cv-card" data-id="${escapeHtml(id)}" data-vigente="${o.vigente === true ? '1' : '0'}">
+          <div class="cv-card__head">${titleHtml}<span class="badge badge--${tone} cv-cuenta">${escapeHtml(cuenta)}</span></div>
+          <div class="cv-card__meta">${vcText(o.financiador)}${o.programa ? ` · ${escapeHtml(String(o.programa))}` : ''}</div>
+          <div class="a2-meta">
+            <span class="badge badge--info cv-ambito">${escapeHtml(cvLabel(CV_AMBITOS, o.ambito))}</span>
+            <span class="badge cv-idioma">${escapeHtml(cvLabel(CV_IDIOMAS, o.idioma))}</span>
+            <span class="badge badge--${rolTone} cv-rol" data-rol="${rolKey}"${agente}>${escapeHtml(rolLabel)}</span>
+            ${estado}
+            <span class="cv-monto">${escapeHtml(cvAmount(o.monto))}</span>
+            <span class="cv-puntaje" title="Afinidad combinada: puntaje del agente y coincidencia de palabras con el perfil">Afinidad: ${puntaje === null ? '—' : escapeHtml(String(puntaje))}/100</span>
+          </div>
+          ${o.aviso ? `<p class="cv-aviso">${escapeHtml(String(o.aviso))}</p>` : ''}
+          ${o.resumen ? `<p class="cv-resumen">${escapeHtml(String(o.resumen))}</p>` : ''}
+          ${evidencia ? `<div class="cv-evidencia">Evidencia:<ul>${evidencia}</ul></div>` : ''}
+          <div class="cv-card__actions"><button class="btn btn--xs btn--primary" data-iniciar="${escapeHtml(id)}" onclick="startOpportunity(this.getAttribute('data-iniciar'))">🚀 Iniciar propuesta con esta</button></div>
+        </article>`;
+    }
+
+    function cvSourcesHtml(fuentes) {
+      const list = vcList(fuentes);
+      if (!list.length) return '';
+      return `<h4 class="cv-sources__title">Fuentes consultadas</h4><ul class="cv-sources" id="cvFuentes">${list.map(f => {
+        const key = CV_RESULTADOS[f.resultado] ? f.resultado : 'desconocido';
+        const [label, tone] = CV_RESULTADOS[key] || [String(f.resultado || '—'), 'info'];
+        const n = vcNumber(f.n);
+        const detail = [f.fecha ? String(f.fecha) : '', n !== null ? `${n} ${n === 1 ? 'resultado' : 'resultados'}` : ''].filter(Boolean).join(' · ');
+        return `<li data-resultado="${key}"><span class="badge badge--${tone}">${escapeHtml(label)}</span> ${cvLink(f.url, f.fuente)}${detail ? ` <span class="tree-findings__node">${escapeHtml(detail)}</span>` : ''}</li>`;
+      }).join('')}</ul>`;
+    }
+
+    const CV_HOWTO = '<small>Pulsa «Buscar convocatorias»: el agente arma el perfil de búsqueda con la idea del proyecto y el banco LIA, consulta las fuentes fijas y la web, y deja aquí las convocatorias ordenadas por afinidad. También puedes escribir <code>/propuesta-convocatorias</code> en la terminal.</small>';
+
+    function renderOpportunities() {
+      const d = CV_STATE.data;
+      const el = document.getElementById('cvContent');
+      if (!d || !el) return;
+      const meta = document.getElementById('cvMeta');
+      if (!d.disponible || !d.vista) {
+        if (meta) meta.textContent = '—';
+        el.innerHTML = `<div class="tree-empty">
+          <p>La vista de convocatorias no está disponible.</p>
+          ${d.error ? `<p class="judge-validation">${escapeHtml(String(d.error))}</p>` : ''}
+          ${CV_HOWTO}
+        </div>`;
+        return;
+      }
+      const v = cpObj(d.vista);
+      if (meta) meta.textContent = v.hoy ? `Al ${v.hoy}` : '—';
+      const all = vcList(v.oportunidades);
+      if (!all.length) {
+        el.innerHTML = `<div class="tree-empty"><p>Todavía no hay convocatorias para este espacio de trabajo.</p>${CV_HOWTO}</div>
+          ${cvSourcesHtml(v.fuentes_consultadas)}`;
+        return;
+      }
+      const perfil = cpObj(v.perfil);
+      const perfilLine = perfil.existe
+        ? `Perfil de búsqueda: ${a2Plural(a2Int(perfil.n_palabras_clave), 'palabra clave', 'palabras clave')}`
+        : 'Todavía no hay perfil de búsqueda: la afinidad usa solo el puntaje del agente.';
+      const visibles = cvVisible(all);
+      el.innerHTML = `${cvSummaryHtml(v.resumen)}
+        <p class="judge-empty">${perfilLine}</p>
+        ${cvFiltersHtml()}
+        <div id="cvLista">${visibles.length ? visibles.map(cvCardHtml).join('')
+          : '<p class="judge-empty">Ninguna convocatoria cumple los filtros.</p>'}</div>
+        ${cvSourcesHtml(v.fuentes_consultadas)}`;
+    }
+
+    function setOpportunityFilter(field, value) {
+      if (!(field in CV_STATE.filters)) return;
+      CV_STATE.filters[field] = field === 'soloVigentes' ? !!value : String(value || '');
+      renderOpportunities();
+    }
+
+    function cvMessage(text, tone) {
+      const el = document.getElementById('cvMessage');
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = `tree-message${tone ? ' is-' + tone : ''}`;
+    }
+
+    // El prompt sale del servidor; aquí solo se entrega a la terminal.
+    async function deliverOpportunityPrompt(url, body, label) {
+      let result = null;
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        result = await res.json();
+        if (!res.ok || !result.ok) throw new Error(result.error || `HTTP ${res.status}`);
+      } catch (err) {
+        cvMessage(`${label}: no se pudo pedir el comando (${err.message || err}).`, 'error');
+        return false;
+      }
+      cvMessage(`${label}: enviando al agente…`);
+      const delivered = await sendTerminalPrompt(result.prompt);
+      if (delivered === false) {
+        cvMessage(`${label} no llegó al agente: la terminal no conectó en ${Math.round(TERMINAL_READY_TIMEOUT_MS / 1000)} s. Abre el asistente y vuelve a pulsar el botón.`, 'error');
+        return false;
+      }
+      cvMessage(`Se envió ${result.prompt} al agente. Los resultados aparecen aquí cuando termine.`, 'ok');
+      return true;
+    }
+
+    function searchOpportunities() {
+      return deliverOpportunityPrompt('/api/convocatorias/buscar', {}, 'La búsqueda de convocatorias');
+    }
+
+    function startOpportunity(id) {
+      if (!id) return Promise.resolve(false);
+      return deliverOpportunityPrompt('/api/convocatorias/iniciar', { id }, 'El inicio de la propuesta');
+    }
+
     // ── Estilo SGR en Secciones ─────────────────────────────────────────────
     // Columna solo del flujo SGR con los hallazgos de scripts/estilo_sgr.py por
     // sección (/api/style-sgr); en el flujo base la tabla queda como antes.
@@ -8302,6 +8597,9 @@
 
       if (tabId === 'anexo2') startAnnex2Polling();
       else stopAnnex2Polling();
+
+      if (tabId === 'convocatorias') startOpportunitiesPolling();
+      else stopOpportunitiesPolling();
 
       if (tabId === 'sections' && isSgrFlujo()) loadStyleSgr();
 
@@ -12972,7 +13270,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'requisitos', 'anexo2', 'estilo', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'requisitos', 'anexo2', 'convocatorias', 'estilo', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');

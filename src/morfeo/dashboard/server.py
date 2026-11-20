@@ -32,6 +32,7 @@ from ..core.budget import approve as approve_budget, build_adjust_prompt as buil
 from ..core.components import approve as approve_components, build_adjust_prompt as build_components_prompt, load_components
 from ..core.products import approve as approve_products, build_adjust_prompt as build_products_prompt, load_products
 from ..core.annex2 import load_annex2
+from ..core.opportunities import SEARCH_COMMAND as OPPORTUNITIES_COMMAND, build_start_prompt, load_opportunities
 from ..core.requirements import (
     MAX_BODY_BYTES as REQUIREMENTS_MAX_BODY,
     approve as approve_requirements,
@@ -195,6 +196,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_annex2()
         elif path == "/api/style-sgr":
             self.serve_style_sgr()
+        elif path == "/api/convocatorias":
+            self.serve_opportunities()
         else:
             self.send_error(404, "Not Found")
 
@@ -248,6 +251,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_requirements_adjust()
         elif path == "/api/requirements/item":
             self.handle_requirements_item()
+        elif path == "/api/convocatorias/buscar":
+            self.handle_opportunities_search()
+        elif path == "/api/convocatorias/iniciar":
+            self.handle_opportunities_start()
         else:
             self.send_error(404, "Not Found")
 
@@ -1003,6 +1010,27 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self._send_json(409, {"ok": False, "run": run_dir.name, **data})
             return
         self._send_json(200, {"ok": True, "run": run_dir.name, **data})
+
+    # Convocatorias (ambos flujos, nivel de espacio de trabajo, solo lectura): no
+    # necesita corrida activa. Los botones devuelven el prompt y el tablero lo
+    # entrega a la terminal con sendTerminalPrompt, como el juez.
+    def serve_opportunities(self) -> None:
+        self._send_json(200, {"ok": True, **load_opportunities(self.workspace_dir)})
+
+    def handle_opportunities_search(self) -> None:
+        self._send_json(200, {"ok": True, "prompt": OPPORTUNITIES_COMMAND})
+
+    def handle_opportunities_start(self) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        try:
+            prompt = build_start_prompt(payload.get("id"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
 
     def serve_style_sgr(self) -> None:
         run_dir = self._active_run_dir()
