@@ -469,10 +469,19 @@ class Guide(unittest.TestCase):
         self.assertIn("indicador de gestión", self.blocks["§11"])
         self.assertIn("Licencias y permisos", self.blocks["§12"])
         self.assertIn("Resumen de fuentes de financiación", self.blocks["§13"])
+        self.assertIn("Instructivo MGA 2023, pp. 48-49", self.blocks["A38"])
+        self.assertIn("24_riesgos.tex", self.blocks["A38"])
         self.assertIn("Poder-Interés", self.blocks["A20"])
         self.assertIn("Evaluación MGA", self.blocks["A23"])
         self.assertIn("RPC", self.blocks["A23"])
         self.assertIn("9 %", self.blocks["A23"])
+
+    def test_the_ethics_block_writes_chapter_26_and_leaves_licences_to_a38(self) -> None:
+        block = self.blocks["§12"]
+        for text in ("ASPECTOS ÉTICOS", "consentimiento informado", "Ley 1581 de 2012", "comité de ética",
+                     "Resolución 8430 de 1993", "anexo A38"):
+            self.assertIn(text, block)
+        self.assertNotIn("requisitos.json", block)
 
     def test_the_call_fixes_the_number_of_objectives_and_chapters(self) -> None:
         self.assertIn("artefactos/convocatoria.json", self.blocks["§3"])

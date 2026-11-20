@@ -456,27 +456,39 @@ oficiales, informes, evaluaciones, encuestas o registros contables (Instructivo 
 
 ### SGR §12
 
-**Licencias y permisos.** Sea cual sea la fase de formulación, el proyecto analiza
-en detalle sus obligaciones legales en materia de permisos, autorizaciones,
-licencias o cualquier otro requisito previo a la ejecución (Instructivo MGA 2023,
-pp. 48-49). Cada requisito se nombra con la actividad que condiciona, y su trámite
-entra al cronograma. Si la demora de un permiso puede frenar el proyecto, va como
-riesgo en el anexo `24_riesgos.tex` con su medida, por ejemplo la solicitud
-anticipada y el seguimiento al trámite (Módulo 4, p. 41). Con
-`requisitos.json`, cada licencia o permiso se declara además en el bloque
-`licencias` que genera el anexo A38.
+En el flujo SGR §12 llena el capítulo «ASPECTOS ÉTICOS» del Anexo 2 (Conv 54,
+cap. 26), cuya plantilla pide: «Incluya aspectos éticos y bioéticos relevantes
+del proyecto en caso de aplicar.» Se mantienen los cuatro ejes de la guía base
+(consentimiento informado, protección de datos personales, aval del
+comité de ética o bioética y uso responsable de la IA), y cada uno se ata a la actividad
+de la cadena de valor que lo hace necesario: quién participa, qué dato se
+recolecta, en qué actividad y con qué salvaguarda. Si el proyecto investiga con
+seres humanos en el campo de la salud, declara la categoría de riesgo de la
+Resolución 8430 de 1993. El eje que no aplica se declara con su razón.
 
-**Redacción.** (Instructivo MGA 2023, pp. 48-49; el detalle va en A38.)
+**Licencias y permisos.** No se tratan en §12: van en el anexo A38
+(`38_licencias_permisos.tex`), que también lista el consentimiento informado y
+el aval de comité cuando son un trámite previo a la ejecución. §12 describe el
+tratamiento ético; A38, el trámite, su norma y su momento.
 
-* Apertura: «El proyecto requiere <licencia o permiso> para la actividad
-  <n.n.n>…» o «Por la naturaleza de sus actividades, el proyecto no requiere
-  <licencia>, porque…».
-* Favorecer: cada requisito con la actividad que condiciona, la autoridad
-  competente y el momento del trámite en el cronograma.
-* Evitar: «los permisos necesarios» o «las licencias pertinentes» sin
-  nombrarlos; dar por obtenido un permiso que está en trámite; repetir la
-  tabla del anexo A38.
-* Tiempo: presente para las obligaciones; futuro para los trámites.
+**Redacción.** (Anexo 2, cap. 26.)
+
+* Apertura: «La investigación tendrá en cuenta los principios éticos
+  establecidos en <norma>…»; «El tratamiento de datos personales se regirá por
+  la Ley 1581 de 2012…»; «Para este proyecto, se tendrán las siguientes
+  consideraciones:».
+* Favorecer: cada consideración con la actividad <n.n.n> y la población que
+  la origina; el mecanismo concreto (formato de consentimiento, anonimización,
+  acceso restringido a los datos, revisión de sesgos del modelo) y la entidad
+  que responde por él; tercera persona sobre el proyecto.
+* Evitar: fórmulas genéricas sin relación con las actividades («evitando malas
+  prácticas como el plagio y el fraude»); «no aplica» sin justificación; dar
+  por obtenido un aval que no existe; repetir la tabla de licencias del anexo
+  A38.
+* Tiempo: futuro para el tratamiento durante la ejecución («los datos se
+  anonimizarán»); presente para los compromisos y para lo ya obtenido.
+* Extensión: unas 300 palabras en tres a cinco párrafos (la referencia mide
+  298 en cuatro).
 
 ### SGR §13
 
@@ -1323,6 +1335,14 @@ requerimientos que se consideren necesarios previo o durante la ejecución del
 proyecto» (licencias ambientales, acceso a recursos genéticos, recolección de
 especímenes, colecciones biológicas, consentimiento informado, consulta
 previa).
+
+Sea cual sea la fase de formulación, el proyecto analiza en detalle sus
+obligaciones legales en materia de permisos, autorizaciones, licencias o
+cualquier otro requisito previo a la ejecución
+(Instructivo MGA 2023, pp. 48-49). El trámite de cada licencia que aplica entra al cronograma con la
+actividad que condiciona. Si su demora puede frenar el proyecto, va además
+como riesgo en el anexo `24_riesgos.tex` con su medida, por ejemplo la
+solicitud anticipada y el seguimiento al trámite (Módulo 4, p. 41).
 
 **Redacción.** (Anexo 2, cap. 28; TdR Conv 54 numeral 21.) `investigador`
 escribe la tabla de licencias; `redactor` escribe la introducción, que revisa
