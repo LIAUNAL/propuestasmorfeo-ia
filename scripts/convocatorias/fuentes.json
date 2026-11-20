@@ -1,0 +1,176 @@
+{
+  "schema": "morfeo.fuentes-convocatorias/v1",
+  "revisado": "2026-11-20",
+  "fuentes": [
+    {
+      "id": "minciencias",
+      "nombre": "Minciencias: convocatorias",
+      "url": "https://minciencias.gov.co/convocatorias",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "html",
+      "aplicantes": ["investigador", "estudiante", "empresa", "centro", "universidad", "grupo"],
+      "notas": "Sin API. robots.txt fija Crawl-delay: 10, así que va una petición cada 10 s como mínimo. Los términos de uso (/node/722) prohíben reproducir los contenidos: se guardan solo metadatos, enlace y un resumen propio."
+    },
+    {
+      "id": "sgr-plan-bienal",
+      "nombre": "Plan bienal de convocatorias del SGR (Asignación para la CTeI)",
+      "url": "https://www.sgr.gov.co/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "pdf",
+      "aplicantes": ["centro", "universidad", "grupo", "empresa"],
+      "notas": "El plan bienal se publica en PDF; se lee con WebFetch y se guardan solo las fechas, los montos y el enlace."
+    },
+    {
+      "id": "innpulsa",
+      "nombre": "iNNpulsa Colombia",
+      "url": "https://www.innpulsacolombia.com/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "rss",
+      "aplicantes": ["empresa", "centro"],
+      "notas": "Canal RSS del sitio; si no responde, se consulta la página de convocatorias."
+    },
+    {
+      "id": "fulbright-colombia",
+      "nombre": "Fulbright Colombia",
+      "url": "https://www.fulbright.edu.co/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "rss",
+      "aplicantes": ["investigador", "estudiante"],
+      "notas": "Canal RSS de becas; las condiciones de cada beca se verifican en su página."
+    },
+    {
+      "id": "eu-sedia",
+      "nombre": "EU Funding & Tenders Portal (API de búsqueda SEDIA)",
+      "url": "https://api.tech.ec.europa.eu/search-api/prod/rest/search",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "api",
+      "aplicantes": ["investigador", "empresa", "centro", "universidad", "grupo"],
+      "notas": "API pública sin clave personal. En Horizonte Europa Colombia participa como socio financiado; aplican las reglas de reglas_co.json."
+    },
+    {
+      "id": "grants-gov",
+      "nombre": "Grants.gov (search2)",
+      "url": "https://api.grants.gov/v1/api/search2",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "api",
+      "aplicantes": ["investigador", "universidad", "centro"],
+      "notas": "API search2 sin clave. Muchos programas federales no financian entidades extranjeras; revisar la elegibilidad de cada anuncio."
+    },
+    {
+      "id": "ukri",
+      "nombre": "UKRI: funding finder",
+      "url": "https://www.ukri.org/opportunity/",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "rss",
+      "aplicantes": ["investigador", "universidad", "centro"],
+      "notas": "Canal RSS del buscador de oportunidades. Casi siempre lidera una entidad del Reino Unido."
+    },
+    {
+      "id": "humboldt",
+      "nombre": "Fundación Alexander von Humboldt",
+      "url": "https://www.humboldt-foundation.de/en/apply/sponsorship-programmes",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "html",
+      "aplicantes": ["investigador"],
+      "notas": "Programas de becas con anfitrión en Alemania; las becas Georg Forster están pausadas."
+    },
+    {
+      "id": "fundsforngos",
+      "nombre": "fundsforNGOs",
+      "url": "https://www.fundsforngos.org/",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "rss",
+      "aplicantes": ["centro", "empresa", "grupo"],
+      "notas": "Agregador: RSS y API REST de WordPress. Cada convocatoria se verifica en la fuente original antes de registrarla."
+    },
+    {
+      "id": "opportunity-desk",
+      "nombre": "Opportunity Desk",
+      "url": "https://opportunitydesk.org/",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "rss",
+      "aplicantes": ["investigador", "estudiante", "empresa"],
+      "notas": "Agregador: RSS y API REST de WordPress. Cada convocatoria se verifica en la fuente original antes de registrarla."
+    },
+    {
+      "id": "scholars4dev",
+      "nombre": "Scholars4Dev",
+      "url": "https://www.scholars4dev.com/",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "rss",
+      "aplicantes": ["estudiante"],
+      "notas": "Agregador de becas de posgrado: RSS. Cada beca se verifica en la fuente original antes de registrarla."
+    },
+    {
+      "id": "profellow",
+      "nombre": "ProFellow",
+      "url": "https://www.profellow.com/",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "rss",
+      "aplicantes": ["investigador", "estudiante"],
+      "notas": "Agregador de becas y fellowships: RSS. Cada convocatoria se verifica en la fuente original antes de registrarla."
+    },
+    {
+      "id": "euraxess",
+      "nombre": "EURAXESS: funding",
+      "url": "https://euraxess.ec.europa.eu/funding/search",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "html",
+      "aplicantes": ["investigador", "estudiante"],
+      "notas": "Buscador de financiación para investigadores con movilidad hacia Europa."
+    },
+    {
+      "id": "cyted",
+      "nombre": "CYTED (Programa Iberoamericano de Ciencia y Tecnología para el Desarrollo)",
+      "url": "https://www.cyted.org/",
+      "ambito": "latam",
+      "idioma": "es",
+      "metodo": "navegador",
+      "aplicantes": ["investigador", "grupo", "centro", "universidad"],
+      "notas": "El contenido se carga con JavaScript; requiere navegador (Playwright MCP o Claude in Chrome)."
+    },
+    {
+      "id": "idb-lab",
+      "nombre": "BID Lab (IDB Lab)",
+      "url": "https://bidlab.org/",
+      "ambito": "latam",
+      "idioma": "es",
+      "metodo": "navegador",
+      "aplicantes": ["empresa", "centro"],
+      "notas": "Responde 403 a los lectores automáticos. Se consulta con un navegador atendido o se registra como bloqueado; nunca se evade la protección."
+    },
+    {
+      "id": "idrc",
+      "nombre": "IDRC (International Development Research Centre)",
+      "url": "https://idrc-crdi.ca/en/funding",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "html",
+      "aplicantes": ["investigador", "centro", "universidad", "grupo"],
+      "notas": "En AI4D América Latina no es región líder; aplican las reglas de reglas_co.json."
+    },
+    {
+      "id": "google-research",
+      "nombre": "Google Research: programas",
+      "url": "https://research.google/programs-and-events/",
+      "ambito": "internacional",
+      "idioma": "en",
+      "metodo": "html",
+      "aplicantes": ["investigador", "estudiante", "universidad"],
+      "notas": "Programas de becas y premios de investigación con convocatorias anuales."
+    }
+  ]
+}
