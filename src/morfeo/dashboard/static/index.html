@@ -549,6 +549,32 @@
     .pg-calc input { font: inherit; font-size: 0.82rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.35rem 0.5rem; }
     .pg-calc__result { margin-top: 0.7rem; font-size: 0.88rem; color: var(--text-muted); }
     .pg-calc__result strong { font-size: 1.1rem; color: var(--text); }
+    /* TRL y componentes SGR: escalera de TRL con hitos por nivel, lista de los
+       siete elementos ASC y tarjetas de ODS. */
+    .cp-trl { display: flex; flex-direction: column; gap: 0.25rem; margin: 0.4rem 0 0.6rem; }
+    .cp-trl__level { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.35rem 0.5rem; border-radius: var(--radius); border: 1px solid var(--border-subtle); background: var(--surface-2); font-size: 0.78rem; }
+    .cp-trl__level.is-ruta { border-left: 4px solid var(--accent); }
+    .cp-trl__level.is-entrada { border-left: 4px solid var(--warn); }
+    .cp-trl__level.is-salida { border-left: 4px solid var(--ok); }
+    .cp-trl__num { flex: 0 0 4.2rem; font-weight: 600; color: var(--text); }
+    .cp-trl__body { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+    .cp-trl__tag { font-size: 0.7rem; margin-right: 0.3rem; }
+    .cp-trl__hito { color: var(--text-muted); margin-top: 0.15rem; }
+    .cp-trl__hito strong { color: var(--text); }
+    .cp-card { padding: 0.55rem 0.7rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); font-size: 0.78rem; overflow-wrap: anywhere; margin-bottom: 0.6rem; }
+    .cp-card ul { margin: 0.2rem 0 0.3rem 1rem; }
+    .cp-intro { font-size: 0.8rem; color: var(--text-muted); margin: 0.3rem 0 0.5rem; }
+    .cp-intro summary { cursor: pointer; color: var(--text-dim); }
+    .cp-intro p { margin: 0.35rem 0 0; line-height: 1.5; white-space: pre-line; }
+    .cp-asc { list-style: none; margin: 0.4rem 0 0.6rem; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+    .cp-asc__step { padding: 0.4rem 0.55rem; border-radius: var(--radius); border: 1px solid var(--border-subtle); border-left: 4px solid var(--ok); background: var(--surface-2); font-size: 0.78rem; overflow-wrap: anywhere; }
+    .cp-asc__step.is-warn { border-left-color: var(--warn); }
+    .cp-asc__step.is-missing { border-left-color: var(--bad); }
+    .cp-asc__head { font-weight: 600; color: var(--text); }
+    .cp-asc__detail { color: var(--text-muted); margin-top: 0.15rem; }
+    .cp-ods-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; margin-bottom: 0.6rem; }
+    .cp-ods { padding: 0.5rem 0.6rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); border-top: 3px solid var(--accent); font-size: 0.78rem; overflow-wrap: anywhere; }
+    .cp-ods__name { font-weight: 600; color: var(--text); }
     /* Juez final: puntaje estimado, criterios, alertas, acciones e historial. */
     .judge-intro { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
     .judge-feedback { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -2907,6 +2933,40 @@
       </div>
     </div>
 
+    <!-- TAB: TRL Y COMPONENTES (solo flujo SGR; el botón se agrega con el flujo) -->
+    <div id="pane-componentes" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">TRL y componentes transversales: ruta, transferencia, apropiación social y sostenibilidad</div>
+          <span class="panel__meta" id="cpRunMeta">—</span>
+        </div>
+        <p class="judge-intro">La ruta del TRL desde el nivel de entrada hasta el de salida, con sus hitos y el plan de verificación; la transferencia con sus resultados, usuarios, barreras y el porcentaje del presupuesto frente a la línea del 1 %; la ruta de apropiación social del conocimiento con sus siete elementos, actividades y productos; la sostenibilidad social y ambiental; el uso posterior de los bienes; y las medidas diferenciales.</p>
+      </div>
+      <div class="tree-layout">
+        <div class="panel tree-stage">
+          <div id="cpContent"></div>
+        </div>
+        <aside class="panel tree-review" id="cpReviewPanel">
+          <div class="panel__header">
+            <div class="panel__title">Revisión con el agente</div>
+            <span class="badge" id="cpStatusBadge">—</span>
+          </div>
+          <div class="tree-review__body">
+            <p class="vc-review-note" id="cpHashNote"></p>
+            <label class="tree-label" for="cpNoteInput">Ajuste solicitado</label>
+            <textarea id="cpNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar el elemento de resultados y sostenibilidad a la ruta ASC o subir el TRL de salida a 7"></textarea>
+            <p class="tree-gate-note" id="cpGateNote"></p>
+            <div class="tree-actions">
+              <button class="btn btn--sm btn--primary" id="cpSendBtn" onclick="sendComponentsAdjust()">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="cpApproveBtn" onclick="approveComponents()">✅ Aprobar TRL y componentes</button>
+              <button class="btn btn--sm" id="cpRetryBtn" onclick="retryComponentsPrompt()" style="display: none;">↻ Reintentar envío</button>
+            </div>
+            <p class="tree-message" id="cpMessage" role="status"></p>
+          </div>
+        </aside>
+      </div>
+    </div>
+
     <!-- TAB: MGA RESUMIDO -->
     <div id="pane-mga" class="tab-pane">
       <div class="panel">
@@ -3829,6 +3889,7 @@
       fase4_sgr: { label: 'Indicaciones para la cadena de valor', placeholder: 'Productos del catálogo DNP que esperas por objetivo, indicadores y metas, actividades críticas, duración en meses…', panel: { tab: 'cadena', label: 'Ver la cadena de valor' } },
       fase5: { label: 'Indicaciones para el marco conceptual y el equipo', placeholder: 'Conceptos que deben aparecer en el marco conceptual; integrantes del equipo con su rol, perfil, dedicación e institución…', panel: { tab: 'sections', label: 'Ver §8 y §9 en Secciones' } },
       fase5_5: { label: 'Indicaciones para la metodología', placeholder: 'Fases de trabajo, métodos y algoritmos por objetivo específico, datos y equipos disponibles, validación y trayectoria de TRL…', panel: { tab: 'sections', label: 'Ver §10 en Secciones' } },
+      fase5_5_sgr: { label: 'Indicaciones para el TRL y los componentes transversales', placeholder: 'TRL de entrada con su evidencia y TRL de salida, tipología, hitos de maduración y escenario de verificación; resultados a transferir y sus usuarios; actores y productos de la apropiación social; ODS, actores que sostienen el proyecto, bienes y quién los opera; barreras de poblaciones diferenciales…', panel: { tab: 'componentes', label: 'Ver TRL y componentes' } },
       fase6: { label: 'Indicaciones para resultados y ética', placeholder: 'Resultados esperados por objetivo, indicadores, consideraciones éticas (datos personales, consentimiento, comité de ética)…', panel: { tab: 'sections', label: 'Ver §11 y §12 en Secciones' } },
       fase6_4: { label: 'Indicaciones para el presupuesto', placeholder: 'Tope de la convocatoria, cofinanciación y contrapartidas, rubros, honorarios, equipos y viajes; la compuerta del presupuesto se negocia contigo en la terminal…', panel: { tab: 'sections', label: 'Ver §13 en Secciones' } },
       fase6_45: { label: 'Indicaciones para cronograma y productos', placeholder: 'Duración en meses, hitos y entregables por fase, productos esperados (artículos, software, prototipos, eventos)…', panel: { tab: 'sections', label: 'Ver §14 a §16 en Secciones' } },
@@ -6400,6 +6461,389 @@
       if (PG_STATE.pendingPrompt) await deliverBudgetPrompt(PG_STATE.pendingPrompt);
     }
 
+    // ── TRL y componentes transversales SGR ─────────────────────────────────
+    // Lee /api/components (artefactos/sgr/componentes.json, los hallazgos de
+    // scripts/componentes_sgr.py, el porcentaje de transferencia del resumen de
+    // scripts/presupuesto_sgr.py y los nombres de actividades y entidades). Solo
+    // existe en el flujo SGR: el botón se agrega después de «Presupuesto y
+    // cronograma» y, en el flujo base, la ruta directa avisa.
+    const CP_STATE = { data: null, sig: null, timer: null, pendingPrompt: null };
+    const CP_ASC_ELEMENTOS = [
+      ['identificacion_problema', 'Identificación del problema'],
+      ['vinculacion_actores', 'Vinculación de actores'],
+      ['diseno', 'Diseño'],
+      ['planeacion', 'Planeación'],
+      ['ejecucion', 'Ejecución'],
+      ['seguimiento', 'Seguimiento'],
+      ['resultados_sostenibilidad', 'Resultados y sostenibilidad'],
+    ];
+    const CP_TRANSFER_LINE = 1;
+
+    function cpObj(v) {
+      return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+    }
+
+    function cpMessage(text, tone) {
+      const el = document.getElementById('cpMessage');
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = `tree-message${tone ? ' is-' + tone : ''}`;
+    }
+
+    // Entidad de la alianza por su id: «Nombre (E1)», o el id si no está.
+    function cpEntity(id) {
+      if (id === null || id === undefined || id === '') return '—';
+      const name = cpObj(CP_STATE.data && CP_STATE.data.entidades)[String(id)];
+      return name ? `${escapeHtml(String(name))} <span class="vc-code">${escapeHtml(String(id))}</span>` : escapeHtml(String(id));
+    }
+
+    function cpEntities(list) {
+      const ids = alStrings(list);
+      return ids.length ? ids.map(cpEntity).join(', ') : '—';
+    }
+
+    // Actividades de la cadena de valor con su nombre: «1.1.1 Levantar datos».
+    function cpActs(list) {
+      const codes = alStrings(Array.isArray(list) ? list : (list ? [list] : []));
+      if (!codes.length) return '—';
+      const names = cpObj(CP_STATE.data && CP_STATE.data.cadena);
+      return codes.map(c => `<code>${escapeHtml(c)}</code>${names[c] ? ' ' + escapeHtml(String(names[c])) : ''}`).join('; ');
+    }
+
+    function cpTexts(list) {
+      const items = alStrings(list);
+      return items.length ? escapeHtml(items.join(', ')) : '—';
+    }
+
+    function cpUl(list) {
+      const items = alStrings(list);
+      return items.length ? `<ul>${items.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : '<p class="judge-empty">—</p>';
+    }
+
+    function cpIntro(block) {
+      const text = cpObj(block).introduccion;
+      if (typeof text !== 'string' || !text.trim()) return '';
+      return `<details class="cp-intro"><summary>Introducción</summary><p>${escapeHtml(text)}</p></details>`;
+    }
+
+    // Tabla genérica: cols = [[encabezado, fila => html]].
+    function cpTable(rows, cols, empty) {
+      const list = vcList(rows);
+      if (!list.length) return `<p class="judge-empty">${escapeHtml(empty)}</p>`;
+      return `<div class="al-scroll"><table class="al-table"><thead><tr>${cols.map(([h]) => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
+        <tbody>${list.map(r => `<tr>${cols.map(([, fn]) => `<td>${fn(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    }
+
+    function syncComponentsTab() {
+      const nav = document.querySelector('.tabs-nav');
+      if (!nav) return;
+      let btn = document.getElementById('componentsTabBtn');
+      if (!isSgrFlujo()) {
+        if (btn) btn.remove();
+        return;
+      }
+      if (btn) return;
+      btn = document.createElement('button');
+      btn.id = 'componentsTabBtn';
+      btn.className = `tab-nav__btn${activeTab === 'componentes' ? ' active' : ''}`;
+      btn.setAttribute('onclick', "navigateTab('componentes')");
+      btn.textContent = 'TRL y componentes';
+      const anchor = document.getElementById('budgetTabBtn') || document.getElementById('allianceTabBtn')
+        || document.getElementById('valueChainTabBtn')
+        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+      if (anchor) anchor.after(btn);
+      else nav.appendChild(btn);
+    }
+
+    async function loadComponents() {
+      let data = null;
+      try {
+        const res = await fetch('/api/components', { cache: 'no-store' });
+        data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      } catch (err) {
+        CP_STATE.data = null;
+        CP_STATE.sig = null;
+        const el = document.getElementById('cpContent');
+        if (el) el.innerHTML = `<div class="tree-empty"><p>No se pudo leer el TRL y los componentes de la corrida activa.</p><small>${escapeHtml(err.message || String(err))}</small></div>`;
+        return;
+      }
+      CP_STATE.data = data;
+      const sig = JSON.stringify(data);
+      if (sig !== CP_STATE.sig) {
+        CP_STATE.sig = sig;
+        renderComponents();
+      }
+    }
+
+    function startComponentsPolling() {
+      loadComponents();
+      if (CP_STATE.timer) return;
+      CP_STATE.timer = setInterval(() => {
+        if (activeTab === 'componentes' && !document.hidden) loadComponents();
+      }, 5000);
+    }
+
+    function stopComponentsPolling() {
+      if (CP_STATE.timer) clearInterval(CP_STATE.timer);
+      CP_STATE.timer = null;
+    }
+
+    // Escalera TRL 9 → 1: entrada y salida marcadas, niveles de la ruta
+    // resaltados y cada hito ubicado en su nivel con mes y evidencia.
+    function cpTrlHtml(trl) {
+      const t = cpObj(trl);
+      const entrada = vcNumber(t.entrada), salida = vcNumber(t.salida);
+      const hitos = vcList(t.ruta);
+      const levelOf = h => { const n = vcNumber(h.trl); return n !== null && Number.isInteger(n) && n >= 1 && n <= 9 ? n : null; };
+      const hitoHtml = h => `<div class="cp-trl__hito"><strong>${vcText(h.hito)}</strong> · mes ${vcText(h.mes)} · evidencia: ${vcText(h.evidencia)} · actividades ${cpActs(h.actividades)}</div>`;
+      const levels = [];
+      for (let n = 9; n >= 1; n -= 1) {
+        const cls = [
+          n === entrada ? 'is-entrada' : '',
+          n === salida ? 'is-salida' : '',
+          entrada !== null && salida !== null && n >= entrada && n <= salida ? 'is-ruta' : '',
+        ].filter(Boolean).join(' ');
+        const tags = `${n === entrada ? '<span class="badge badge--warn cp-trl__tag">Entrada</span>' : ''}${n === salida ? '<span class="badge badge--ok cp-trl__tag">Salida</span>' : ''}`;
+        const own = hitos.filter(h => levelOf(h) === n);
+        levels.push(`<div class="cp-trl__level${cls ? ' ' + cls : ''}" data-nivel="${String(n)}">
+            <div class="cp-trl__num">TRL ${escapeHtml(String(n))}</div>
+            <div class="cp-trl__body">${tags}${own.map(hitoHtml).join('')}</div>
+          </div>`);
+      }
+      const sinNivel = hitos.filter(h => levelOf(h) === null);
+      const v = cpObj(t.verificacion);
+      const tipologia = t.tipologia === null || t.tipologia === undefined || t.tipologia === ''
+        ? '<span class="badge badge--warn" data-tipologia="">Tipología sin definir</span>'
+        : `<span class="badge badge--info" data-tipologia="${escapeHtml(String(t.tipologia))}">Tipología ${escapeHtml(String(t.tipologia))}</span>`;
+      return `${cpIntro(t)}
+        <div class="vc-summary">
+          <span>${tipologia}</span>
+          <span>TRL de entrada <strong>${vcText(entrada)}</strong> → salida <strong>${vcText(salida)}</strong></span>
+          <span>${escapeHtml(String(hitos.length))} hitos de la ruta</span>
+        </div>
+        <div class="cp-card"><strong>Evidencia del TRL de entrada</strong>${cpUl(t.evidencia_entrada)}</div>
+        <div class="cp-trl">${levels.join('')}</div>
+        ${sinNivel.length ? `<div class="cp-card"><strong>Hitos sin nivel TRL válido</strong>${sinNivel.map(hitoHtml).join('')}</div>` : ''}
+        <div class="cp-card" id="cpVerificacion">
+          <strong>Plan de verificación del TRL de salida</strong>
+          <p>Escenario: ${vcText(v.escenario)}</p>
+          <p>Responsables: ${cpEntities(v.responsables)}</p>
+          <p>Actor usuario: ${cpEntity(v.actor_usuario)}</p>
+          <div>Criterios de aceptación${cpUl(v.criterios_aceptacion)}</div>
+          <div>Evidencias${cpUl(v.evidencias)}</div>
+        </div>`;
+    }
+
+    function cpTransferHtml(tr, pct) {
+      const t = cpObj(tr);
+      const v = vcNumber(pct);
+      const tone = v === null ? 'warn' : v >= CP_TRANSFER_LINE ? 'ok' : 'warn';
+      const meter = v === null
+        ? '<div class="pg-card__detail">Sin porcentaje: se calcula con el resumen de <code>scripts/presupuesto_sgr.py</code> cuando existe <code>artefactos/sgr/presupuesto.json</code>.</div>'
+        : `<div class="pg-card__detail">Mínimo de la convocatoria: ${pgPct(CP_TRANSFER_LINE)} del total SGR</div>${pgMeter(v, CP_TRANSFER_LINE)}`;
+      return `${cpIntro(t)}
+        <div class="pg-cards"><div class="pg-card is-${tone}" data-pct="${v === null ? '' : escapeHtml(String(v))}">
+          <div class="pg-card__label">Componente de transferencia en el presupuesto</div>
+          <div class="pg-card__value">${pgPct(v)}</div>${meter}
+        </div></div>
+        <h5 class="al-heading">Resultados a transferir</h5>
+        ${cpTable(t.resultados, [['Resultado', r => vcText(r.resultado)], ['Usuarios', r => cpTexts(r.usuarios)], ['Protección de PI', r => vcText(r.proteccion_pi)]], 'Sin resultados a transferir.')}
+        <h5 class="al-heading">Ruta de transferencia</h5>
+        ${cpTable(t.ruta, [['Etapa', r => vcText(r.etapa)], ['Mecanismo', r => vcText(r.mecanismo)], ['Barreras', r => vcText(r.barreras)], ['Acciones', r => vcText(r.acciones)]], 'Sin etapas de transferencia.')}
+        <p>Actividades: ${cpActs(t.actividades)}</p>
+        <p>Continuidad: ${vcText(t.continuidad)}</p>`;
+    }
+
+    // Ruta ASC como lista de los siete elementos en el orden de la convocatoria:
+    // los que faltan se marcan y los que no tienen actividades se advierten.
+    function cpAscHtml(asc) {
+      const a = cpObj(asc);
+      const ruta = vcList(a.ruta);
+      const steps = CP_ASC_ELEMENTOS.map(([key, label], i) => {
+        const rows = ruta.filter(r => r.elemento === key);
+        if (!rows.length) {
+          return `<li class="cp-asc__step is-missing" data-elemento="${key}">
+            <div class="cp-asc__head">${escapeHtml(String(i + 1))}. ${escapeHtml(label)} <span class="badge badge--bad">Falta</span></div>
+            <div class="cp-asc__detail">La ruta no incluye este elemento.</div></li>`;
+        }
+        const noActs = rows.every(r => !alStrings(r.actividades).length);
+        return `<li class="cp-asc__step ${noActs ? 'is-warn' : 'is-done'}" data-elemento="${key}">
+            <div class="cp-asc__head">${escapeHtml(String(i + 1))}. ${escapeHtml(label)}${noActs ? ' <span class="badge badge--warn">Sin actividades</span>' : ''}</div>
+            ${rows.map(r => `<div class="cp-asc__detail">Meses ${vcText(r.meses)} · ${vcText(r.que_se_hace)} · actividades ${cpActs(r.actividades)}</div>`).join('')}
+          </li>`;
+      }).join('');
+      return `${cpIntro(a)}
+        <h5 class="al-heading">Actores</h5>
+        ${cpTable(a.actores, [['Grupo y actores', r => vcText(r.grupo)], ['Relación con la problemática', r => vcText(r.relacion_problematica)], ['Saberes y capacidades', r => vcText(r.saberes)], ['Rol y momento', r => vcText(r.rol_momento)], ['Incidencia', r => vcText(r.incidencia)]], 'Sin actores de la apropiación social.')}
+        <h5 class="al-heading">Ruta de los siete elementos</h5>
+        <ol class="cp-asc">${steps}</ol>
+        <h5 class="al-heading">Productos</h5>
+        ${cpTable(a.productos, [['Producto', r => vcText(r.producto)], ['Descripción', r => vcText(r.descripcion)], ['Medio de verificación', r => vcText(r.medio_verificacion)], ['Mes', r => vcText(r.mes)], ['Actividad', r => cpActs(r.actividad)]], 'Sin productos de apropiación social.')}`;
+    }
+
+    function cpSustainHtml(sost) {
+      const s = cpObj(sost);
+      const ods = vcList(s.ods);
+      return `${cpIntro(s)}
+        <h5 class="al-heading">Objetivos de Desarrollo Sostenible</h5>
+        ${ods.length ? `<div class="cp-ods-grid">${ods.map(o => `<div class="cp-ods"><div class="cp-ods__name">${vcText(o.ods)}</div><div>${vcText(o.contribucion)}</div><div class="pg-card__detail">Productos: ${cpTexts(o.productos)}</div></div>`).join('')}</div>` : '<p class="judge-empty">Sin ODS.</p>'}
+        <h5 class="al-heading">Actores</h5>
+        ${cpTable(s.actores, [['Actor', r => vcText(r.actor)], ['Funciones', r => vcText(r.funciones)], ['Compromiso', r => vcText(r.compromiso)]], 'Sin actores que sostengan el proyecto.')}
+        <h5 class="al-heading">Efectos ambientales</h5>
+        ${cpTable(s.ambiental, [['Actividad', r => cpActs(r.actividad)], ['Medio', r => vcText(r.medio)], ['Efecto', r => vcText(r.efecto)], ['Manejo', r => vcText(r.manejo)]], 'Sin efectos ambientales registrados.')}`;
+    }
+
+    function cpUseHtml(uso) {
+      const u = cpObj(uso);
+      return `${cpIntro(u)}
+        <h5 class="al-heading">Bienes adquiridos con SGR</h5>
+        ${cpTable(u.bienes, [['Bien', r => vcText(r.bien)], ['Valor SGR', r => vcMoney(r.valor_sgr)], ['Operador', r => cpEntity(r.operador)], ['Financiación', r => vcText(r.financiacion)], ['Mantenimiento', r => vcText(r.mantenimiento)]], 'Sin bienes adquiridos con SGR.')}
+        <h5 class="al-heading">Adopción de resultados</h5>
+        ${cpTable(u.adopcion, [['Actor', r => cpEntity(r.actor)], ['Resultado que adoptará', r => vcText(r.resultado)], ['Condiciones de adopción', r => vcText(r.condiciones)]], 'Sin compromisos de adopción.')}`;
+    }
+
+    function cpDifferentialHtml(dif) {
+      const d = cpObj(dif);
+      const barreras = vcList(d.barreras);
+      const just = typeof d.justificacion_sin_barreras === 'string' && d.justificacion_sin_barreras.trim() ? d.justificacion_sin_barreras : '';
+      const table = barreras.length ? cpTable(barreras, [['Barrera', r => vcText(r.barrera)], ['Población', r => vcText(r.poblacion)], ['Medida', r => vcText(r.medida)], ['Actividades', r => cpActs(r.actividades)], ['Indicador', r => vcText(r.indicador)], ['Meta', r => vcText(r.meta)], ['Evidencia', r => vcText(r.evidencia)]], '') : '';
+      const justHtml = just ? `<div class="cp-card"><strong>Justificación de la ausencia de barreras</strong><p>${escapeHtml(just)}</p></div>` : '';
+      return `${cpIntro(d)}${table}${justHtml}${!table && !justHtml ? '<p class="judge-empty">Sin barreras ni justificación de su ausencia.</p>' : ''}`;
+    }
+
+    function cpFindingsHtml(hallazgos) {
+      const list = vcList(hallazgos);
+      if (!list.length) return '<p class="judge-empty">La revisión del TRL y los componentes no reporta hallazgos.</p>';
+      return VC_SEVERITIES.map(([sev, label, tone, one]) => {
+        const items = list.filter(f => vcSeverity(f) === sev);
+        if (!items.length) return '';
+        return `<div class="judge-alerts__group" data-severidad="${sev}">
+          <h4><span class="badge badge--${tone}">${label}</span> ${escapeHtml(String(items.length))}</h4>
+          <ul>${items.map(f => `<li><span class="badge badge--${tone}">${one}</span><span>${escapeHtml(f.message || f.code || '')}</span><span class="tree-findings__node">${f.node ? `${escapeHtml(String(f.node))} · ` : ''}${escapeHtml(f.code || '')}</span></li>`).join('')}</ul>
+        </div>`;
+      }).join('');
+    }
+
+    function renderComponentsReview(d) {
+      const sgr = !!d && d.flujo === 'sgr';
+      const panel = document.getElementById('cpReviewPanel');
+      if (panel) panel.hidden = !sgr;
+      const [label, tone] = pgStatus(d);
+      const badge = document.getElementById('cpStatusBadge');
+      if (badge) {
+        badge.textContent = label;
+        badge.className = `badge${tone ? ' badge--' + tone : ''}`;
+      }
+      const errors = sgr ? vcList(d.hallazgos).filter(f => vcSeverity(f) === 'error').length : 0;
+      const complete = sgr && !!d.disponible && !!d.componentes;
+      const approve = document.getElementById('cpApproveBtn');
+      if (approve) approve.disabled = !complete || !!d.aprobado || errors > 0;
+      const send = document.getElementById('cpSendBtn');
+      if (send) send.disabled = !sgr;
+      const gate = document.getElementById('cpGateNote');
+      if (gate) gate.textContent = errors ? `Corrige los ${String(errors)} hallazgos de error antes de aprobar.` : '';
+      const note = document.getElementById('cpHashNote');
+      if (note) {
+        const rev = d && d.revision && typeof d.revision === 'object' ? d.revision : null;
+        note.textContent = !sgr || !d.disponible ? ''
+          : d.aprobado ? `Aprobado el ${rev && rev.fecha ? String(rev.fecha).replace('T', ' ') : '—'} (versión ${String(d.hash)}). Si el TRL o los componentes cambian, la aprobación caduca.`
+          : label === 'Desactualizado' ? 'El TRL o los componentes cambiaron después de aprobarlos: revisa la versión nueva y vuelve a aprobarla.'
+          : `Versión ${String(d.hash)}. La aprobación (compuerta GComponentes) queda atada a esta versión de componentes.json.`;
+      }
+    }
+
+    function renderComponents() {
+      const d = CP_STATE.data;
+      const el = document.getElementById('cpContent');
+      if (!d || !el) return;
+      document.getElementById('cpRunMeta').textContent = `Corrida ${d.run || '—'}`;
+      renderComponentsReview(d);
+      const errores = Array.isArray(d.errores) ? d.errores.filter(Boolean).map(String) : [];
+      const errHtml = errores.length ? `<div class="judge-validation"><strong>⚠️ No se pudo leer todo lo del TRL y los componentes</strong>
+        <ul>${errores.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div>` : '';
+      if (d.flujo !== 'sgr') {
+        el.innerHTML = `<div class="tree-empty">
+          <p>El TRL y los componentes transversales estructurados se usan solo en el flujo SGR.</p>
+          <small>Este proyecto sigue el flujo base de propuestas de investigación: la trayectoria de TRL y la apropiación social se revisan en «Secciones».</small>
+        </div>`;
+        return;
+      }
+      const findingsBlock = `<div class="tree-findings" id="cpFindings" aria-live="polite"><h4>Hallazgos del TRL y los componentes</h4>${cpFindingsHtml(d.hallazgos)}</div>`;
+      if (!d.disponible) {
+        el.innerHTML = `${errHtml}<div class="tree-empty">
+          <p>Todavía no hay TRL ni componentes transversales para esta corrida.</p>
+          <p>Los escribe la unidad <code>fase5_5_sgr</code> «TRL y componentes transversales», después de la metodología: el investigador registra la ruta y la verificación del TRL, la transferencia y el uso posterior, y el redactor las introducciones, la apropiación social, la sostenibilidad y las medidas diferenciales en <code>artefactos/sgr/componentes.json</code>; se revisan con <code>python3 scripts/componentes_sgr.py check</code>.</p>
+        </div>${vcList(d.hallazgos).length ? findingsBlock : ''}`;
+        return;
+      }
+      const c = cpObj(d.componentes);
+      el.innerHTML = `${errHtml}
+        <h4 class="al-heading">Ruta y verificación del TRL</h4>
+        <div id="cpTrl">${cpTrlHtml(c.trl)}</div>
+        <h4 class="al-heading">Transferencia</h4>
+        <div id="cpTransferencia">${cpTransferHtml(c.transferencia, d.transferencia_pct)}</div>
+        <h4 class="al-heading">Apropiación social del conocimiento</h4>
+        <div id="cpAsc">${cpAscHtml(c.asc)}</div>
+        <h4 class="al-heading">Sostenibilidad social y ambiental</h4>
+        <div id="cpSostenibilidad">${cpSustainHtml(c.sostenibilidad)}</div>
+        <h4 class="al-heading">Uso posterior y operación</h4>
+        <div id="cpUso">${cpUseHtml(c.uso_posterior)}</div>
+        <h4 class="al-heading">Medidas diferenciales</h4>
+        <div id="cpDiferencial">${cpDifferentialHtml(c.diferencial)}</div>
+        ${findingsBlock}`;
+    }
+
+    async function approveComponents() {
+      const d = CP_STATE.data;
+      if (!d || !d.hash) return;
+      let result;
+      try {
+        result = await postJudge('/api/components/approve', { hash: d.hash });
+      } catch (err) {
+        cpMessage(`No se pudo aprobar: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { cpMessage(result.error || 'No se pudo aprobar el TRL y los componentes.', 'error'); return; }
+      cpMessage('TRL y componentes aprobados. Si componentes.json cambia, la aprobación caduca.', 'ok');
+      await loadComponents();
+    }
+
+    async function sendComponentsAdjust() {
+      const input = document.getElementById('cpNoteInput');
+      const nota = input ? input.value.trim() : '';
+      if (!nota) { cpMessage('Escribe qué cambiar en el TRL o los componentes antes de enviarlo al agente.', 'error'); return; }
+      let result;
+      try {
+        result = await postJudge('/api/components/adjust', { nota });
+      } catch (err) {
+        cpMessage(`No se pudo preparar el ajuste: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { cpMessage(result.error || 'No se pudo preparar el ajuste.', 'error'); return; }
+      if (await deliverComponentsPrompt(result.prompt) && input) input.value = '';
+    }
+
+    async function deliverComponentsPrompt(prompt) {
+      const retry = document.getElementById('cpRetryBtn');
+      CP_STATE.pendingPrompt = prompt;
+      cpMessage('Ajuste: enviando al agente…');
+      const delivered = await sendTerminalPrompt(prompt);
+      if (delivered === false) {
+        if (retry) retry.style.display = '';
+        cpMessage(`El ajuste no llegó al agente: la terminal no conectó en ${Math.round(TERMINAL_READY_TIMEOUT_MS / 1000)} s. Abre el asistente y pulsa «Reintentar envío».`, 'error');
+        return false;
+      }
+      CP_STATE.pendingPrompt = null;
+      if (retry) retry.style.display = 'none';
+      cpMessage('El ajuste se envió al agente. Cuando corra componentes_sgr.py check, la versión nueva aparece aquí.', 'ok');
+      return true;
+    }
+
+    async function retryComponentsPrompt() {
+      if (CP_STATE.pendingPrompt) await deliverComponentsPrompt(CP_STATE.pendingPrompt);
+    }
+
     // ── Estilo SGR en Secciones ─────────────────────────────────────────────
     // Columna solo del flujo SGR con los hallazgos de scripts/estilo_sgr.py por
     // sección (/api/style-sgr); en el flujo base la tabla queda como antes.
@@ -6568,6 +7012,9 @@
 
       if (tabId === 'presupuesto') startBudgetPolling();
       else stopBudgetPolling();
+
+      if (tabId === 'componentes') startComponentsPolling();
+      else stopComponentsPolling();
 
       if (tabId === 'sections' && isSgrFlujo()) loadStyleSgr();
 
@@ -7026,6 +7473,7 @@
         syncValueChainTab();
         syncAllianceTab();
         syncBudgetTab();
+        syncComponentsTab();
         if (data.active_run) {
           const footerRun = document.getElementById('terminalFooterRun');
           if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;
@@ -11119,7 +11567,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');

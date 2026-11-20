@@ -130,7 +130,7 @@ test('SGR: la pestaña «Presupuesto y cronograma» aparece justo después de «
   const i = labels.indexOf('Presupuesto y cronograma');
   assert.ok(i > 0, 'la pestaña existe en SGR');
   assert.equal(labels[i - 1], 'Alianza y territorio');
-  assert.equal(labels[i + 1], 'MGA resumido');
+  assert.equal(labels[i + 1], 'TRL y componentes');
   viewer.viewer('navigateTab', 'presupuesto');
   await flush();
   const active = viewer.document.querySelector('.tab-nav__btn.active');
