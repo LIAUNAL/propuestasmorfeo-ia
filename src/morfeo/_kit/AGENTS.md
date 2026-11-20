@@ -19,6 +19,7 @@ cada fase al subagente correspondiente definido en `.claude/agents/`.
 | `/propuesta-exportar` | Empaqueta y exporta la corrida activa con artefactos a .tar.gz o .zip |
 | `/propuesta-limpiar` | Cierra la corrida activa |
 | `/propuesta-juez` | Juez SGR: puntaje estimado, alertas y acciones (asesor) |
+| `/propuesta-convocatorias` | Convocatorias afines (CO, LatAm, intl.; es/en) al tablero |
 | `/compilar-pdf` | Compila la corrida activa a PDF (`build.sh` en `redaccion/`) |
 | `/compilar-docx` | Exporta la corrida activa a Word (`build.sh --docx` en `redaccion/`) |
 
@@ -225,13 +226,13 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
    `.claude/commands/propuesta.md`.
 11. **Captions de tablas y figuras:**
    - Todo caption (`\caption{...}` o `\caption[...]{...}`) debe ser **concreto, informativo y humanizado** aplicando estrictamente la skill `estilo-natural-es`.
-   - Se prohíben las descripciones mecánicas o meta-visuales vacías (por ejemplo, evitar explicaciones como "las barras azules son las actividades y los rombos rojos los hitos" o "las raíces agrupan causas y el tronco el problema central"). En su lugar, el caption debe enunciar el contenido científico y metodológico real: el objeto del estudio, los grupos temáticos, la articulación con los objetivos específicos, las responsabilidades operativas o los mecanismos de transferencia con la comunidad de interés.
+   - Se prohíben las descripciones mecánicas o meta-visuales vacías (p. ej., "las barras azules son las actividades y los rombos rojos los hitos" o "las raíces agrupan causas y el tronco el problema central"). En su lugar, el caption debe enunciar el contenido científico y metodológico real: el objeto del estudio, los grupos temáticos, la articulación con los objetivos específicos, las responsabilidades operativas o los mecanismos de transferencia con la comunidad de interés.
    - Prohibición estricta de rayas anglosajonas (` — `) o dobles guiones (`--`).
    - Se mantiene la sintaxis `\caption[Título corto]{Descripción concreta}` para figuras y `\caption{Descripción concreta}` para tablas, conservando siempre las etiquetas `\label{...}` intactas.
    - Esta regla rige para `redactor`, `disenador-tikz`, `revisor-figuras`, `presupuestador`, `coordinador-propuesta`, `grant-flow-auditor` y cualquier agente que proponga o audite tablas y figuras.
 12. **Autonomía e independencia de herramientas de memoria externa (Engram):**
    - El marco, sus flujos de trabajo, las skills, las restricciones y los agentes son **100% autónomos y portables en disco** (`insumos/`, `artefactos/`, `redaccion/`, `specs/`).
-   - Ninguna fase, comando, validación ni regla depende de forma obligatoria de Engram. Si Engram está instalado y configurado en el entorno local, puede utilizarse como acelerador opcional de caché o espejo pasivo; si no está disponible (otros equipos, o Pi, OpenCode, Antigravity o Claude Code sin Engram), el pipeline opera de manera completa, determinista y sin errores.
+   - Ninguna fase, comando, validación ni regla exige Engram. Con Engram instalado sirve como caché o espejo pasivo opcional; sin él (otros equipos, Pi, OpenCode, Antigravity o Claude Code sin Engram), el pipeline funciona completo y determinista.
 
 ## Roster de agentes (`.claude/agents/`) y modelos por defecto
 
@@ -254,6 +255,7 @@ verdad):
 | `tikz-optimizer` | haiku | Corrección de la spec cuando la auditoría determinista falla |
 | `juez-sgr` | opus | Juez final SGR (asesor): puntaje por rúbrica, alertas y acciones |
 | `revisor-estilo-sgr` | sonnet | Solo SGR: estilo, voz, léxico y redundancia (skill `estilo-sgr`), en lugar de `grant-flow-auditor` |
+| `explorador-convocatorias` | sonnet | Convocatorias afines y rol de Colombia (fuera del pipeline) |
 
 No existen agentes llamados `orquestador`, `observador` (a secas) ni
 `bibliotecario`; esos nombres no forman parte de este marco.
@@ -266,7 +268,7 @@ que un agente carga cuando la tarea lo pide), con la misma fuente de verdad
 
 | Skill | Para qué | La usa |
 |-------|----------|--------|
-| `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): corrige 35 patrones mecánicos (aperturas cósmicas, gerundios de cierre, inflación de trascendencia, falsos rangos, regla de tres, monotonía de ritmo), prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No es una herramienta de evasión: no introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
+| `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): corrige 35 patrones mecánicos (aperturas cósmicas, gerundios de cierre, inflación de trascendencia, falsos rangos, regla de tres, monotonía de ritmo), prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
 | `depuracion-redundancias-es` | Auditar y eliminar redundancias conceptuales, léxicas y estructurales dentro de una misma sección, asegurando que cada párrafo aporte avance argumentativo y articulando la aplicación integral de `estilo-natural-es` (humanización y ritmo). | `grant-flow-auditor`, `redactor`, `investigador` y el asistente primario en revisiones integrales de texto |
 | `constelacion-sota` | Construir la constelación SOTA de una corrida: un sistema por paper con planetas tipados (tema de aplicación y de IA, problema, aplicación, novedad, familia, resultados, conclusiones), cada uno con cita textual del abstract, validada por `scripts/check_atlas.py` y dibujada por `scripts/render_atlas.py` en `grafos/papers-graph.html`, con el estudio por familia en `grafos/papers-constellation-report.md`. Port de `plausibility` de papersmith-ai. | `bibliografo-propuesta` (MODE=atlas, Fases 1a y 1c), en ambos flujos |
 | `estilo-sgr` | Solo flujo SGR: voz en tercera persona, patrones por capítulo del Anexo 2, léxico `scripts/sgr/lexico_sgr.json` y redundancia R1–R14; ajusta las dos skills anteriores a la MGA (C1–C18). | `revisor-estilo-sgr` |

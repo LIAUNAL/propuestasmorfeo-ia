@@ -59,9 +59,11 @@ nombres de índice se derivan del mismo run-id: `<run-id>-papers` y
 `insumos-observador`, `investigador`, `redactor`, `bibliografo-propuesta`,
 `disenador-tikz`, `tikz-optimizer`, `revisor-figuras`, `revisor`,
 `presupuestador`, `grant-flow-auditor`, `revisor-redundancia`, `juez-sgr`
-(solo flujo SGR), `revisor-estilo-sgr` (solo flujo SGR). (No existen
+(solo flujo SGR), `revisor-estilo-sgr` (solo flujo SGR),
+`explorador-convocatorias` (fuera del pipeline: lo despacha
+`/propuesta-convocatorias`). (No existen
 `orquestador`, `observador` ni `bibliotecario`: usa siempre
-estos 13 nombres reales. `coordinador-propuesta`
+estos 14 nombres reales. `coordinador-propuesta`
 existe como documento de referencia del pipeline, no como subagente despachable.)
 
 **Regla del flujo SGR para la auditoría de estilo.** Con `"flujo": "sgr"` en

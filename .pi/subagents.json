@@ -21,6 +21,10 @@
       "model": "nan/glm5.3-flash",
       "effort": "low"
     },
+    "explorador-convocatorias": {
+      "model": "nan/glm5.3-flash",
+      "effort": "medium"
+    },
     "grant-flow-auditor": {
       "model": "nan/glm5.3-flash",
       "effort": "low"

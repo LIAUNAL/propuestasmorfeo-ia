@@ -1,0 +1,143 @@
+{
+  "schema": "morfeo.reglas-elegibilidad-co/v1",
+  "fuente": "Revisión de elegibilidad para solicitantes colombianos del 2026-11-20 (odd/tasks/convocatorias-explorador.md, L4). Los patrones se comparan sin tildes ni mayúsculas contra financiador + programa + título; gana la primera regla que coincide.",
+  "revisado": "2026-11-20",
+  "reglas": [
+    {
+      "id": "msca-global",
+      "patron": "\\bmsca\\b.*\\bglobal\\b|\\bglobal postdoctoral|marie.*curie.*\\bglobal\\b",
+      "rol": "no_elegible",
+      "estado": null,
+      "aviso": "Las becas MSCA Global exigen nacionalidad o residencia larga en un país de la UE o asociado; investigadores colombianos no son elegibles.",
+      "fuente_url": "https://marie-sklodowska-curie-actions.ec.europa.eu/actions/postdoctoral-fellowships"
+    },
+    {
+      "id": "msca-staff-exchanges-doctoral-networks",
+      "patron": "staff exchanges?|doctoral networks?",
+      "rol": "socio",
+      "estado": null,
+      "aviso": "La entidad colombiana participa como socia del consorcio; la coordinación es de una entidad de la UE o de un país asociado.",
+      "fuente_url": "https://marie-sklodowska-curie-actions.ec.europa.eu/"
+    },
+    {
+      "id": "msca-postdoctoral",
+      "patron": "\\bmsca\\b.*postdoc|marie.*curie.*postdoc|\\bmsca\\b.*\\bpf\\b",
+      "rol": "anfitrion_exterior",
+      "estado": null,
+      "aviso": "Requiere institución anfitriona en la UE o en un país asociado; la persona investigadora colombiana se vincula allí.",
+      "fuente_url": "https://marie-sklodowska-curie-actions.ec.europa.eu/actions/postdoctoral-fellowships"
+    },
+    {
+      "id": "erc",
+      "patron": "\\berc\\b|european research council|consejo europeo de investigacion",
+      "rol": "anfitrion_exterior",
+      "estado": null,
+      "aviso": "Requiere institución anfitriona en la UE o en un país asociado; la entidad colombiana no es beneficiaria.",
+      "fuente_url": "https://erc.europa.eu/"
+    },
+    {
+      "id": "horizon-europe",
+      "patron": "horizon europe|horizonte europa|\\bhorizon-",
+      "rol": "socio",
+      "estado": null,
+      "aviso": "Colombia participa como socio financiado; no cuenta para el mínimo de tres países de la UE o asociados.",
+      "fuente_url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/list-3rd-country-participation_horizon-euratom_en.pdf"
+    },
+    {
+      "id": "erasmus-cbhe",
+      "patron": "capacity building in (the field of )?higher education|\\bcbhe\\b|fortalecimiento de capacidades.*educacion superior",
+      "rol": "socio",
+      "estado": null,
+      "aviso": "Solo proyectos multipaís de la Región 10 (América Latina); la institución colombiana participa como socia.",
+      "fuente_url": "https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-2/capacity-building-higher-education"
+    },
+    {
+      "id": "erasmus-ka171",
+      "patron": "\\bka171\\b|international credit mobility|movilidad internacional de creditos",
+      "rol": "socio",
+      "estado": null,
+      "aviso": "Solicita la universidad europea; la institución colombiana participa como socia.",
+      "fuente_url": "https://erasmus-plus.ec.europa.eu/programme-guide/part-b/key-action-1/mobility-higher-education-students-staff"
+    },
+    {
+      "id": "wellcome-discovery",
+      "patron": "wellcome.*discovery|discovery awards?.*wellcome",
+      "rol": "coaplicante",
+      "estado": null,
+      "aviso": "Investigadores en Colombia participan como coaplicantes, no como aplicantes principales.",
+      "fuente_url": "https://wellcome.org/grant-funding/schemes/discovery-awards"
+    },
+    {
+      "id": "twas-owsd-paises-rezagados",
+      "patron": "^(?=.*\\b(twas|owsd)\\b)(?=.*\\b(lagging|rezagad\\w*|stlcs?|research grants?|early career|phd fellowships?)\\b)",
+      "rol": "no_elegible",
+      "estado": null,
+      "aviso": "Esquema reservado a países rezagados en ciencia y tecnología; Colombia no figura en la lista de TWAS y OWSD.",
+      "fuente_url": "https://twas.org/"
+    },
+    {
+      "id": "idrc-ai4d",
+      "patron": "\\bai4d\\b|\\bai for development\\b|inteligencia artificial para el desarrollo",
+      "rol": "socio",
+      "estado": null,
+      "aviso": "América Latina no es región líder en AI4D; la entidad colombiana participa como socia de un líder de otra región.",
+      "fuente_url": "https://idrc-crdi.ca/en/initiative/artificial-intelligence-development"
+    },
+    {
+      "id": "nsf",
+      "patron": "^(?!.*\\b(swiss|suiza|snsf|natural|nsfc)\\b).*(\\bnsf\\b|national science foundation)",
+      "rol": "socio",
+      "estado": null,
+      "aviso": "La NSF no financia entidades extranjeras por regla general; la participación colombiana es como socio sin financiación de la NSF.",
+      "fuente_url": "https://www.nsf.gov/funding"
+    },
+    {
+      "id": "ukri-ispf",
+      "patron": "\\bispf\\b|international science partnerships fund",
+      "rol": "socio",
+      "estado": null,
+      "aviso": "Lidera una entidad del Reino Unido; el grupo colombiano participa como socio.",
+      "fuente_url": "https://www.ukri.org/what-we-do/international-funding/international-science-partnerships-fund/"
+    },
+    {
+      "id": "royal-society-international-exchanges",
+      "patron": "royal society.*international exchanges?|international exchanges?.*royal society",
+      "rol": "socio",
+      "estado": null,
+      "aviso": "Aplica la persona investigadora del Reino Unido; la contraparte colombiana participa como socia.",
+      "fuente_url": "https://royalsociety.org/grants/international-exchanges/"
+    },
+    {
+      "id": "newton-international-fellowships",
+      "patron": "newton international fellowships?",
+      "rol": "lider",
+      "estado": null,
+      "aviso": "La persona investigadora aplica como líder con un anfitrión (sponsor) en una institución del Reino Unido.",
+      "fuente_url": "https://royalsociety.org/grants/newton-international/"
+    },
+    {
+      "id": "british-academy-international-fellowships",
+      "patron": "british academy.*international fellowships?|international fellowships?.*british academy",
+      "rol": "lider",
+      "estado": null,
+      "aviso": "La persona investigadora aplica como líder con un anfitrión (sponsor) en una institución del Reino Unido.",
+      "fuente_url": "https://www.thebritishacademy.ac.uk/funding/"
+    },
+    {
+      "id": "humboldt-georg-forster",
+      "patron": "georg forster",
+      "rol": null,
+      "estado": "pausada",
+      "aviso": "La Fundación Humboldt pausó las becas Georg Forster; conviene verificar si reabren antes de preparar la postulación.",
+      "fuente_url": "https://www.humboldt-foundation.de/en/apply/sponsorship-programmes/georg-forster-research-fellowship"
+    },
+    {
+      "id": "nih",
+      "patron": "\\bnih\\b|national institutes of health",
+      "rol": null,
+      "estado": null,
+      "aviso": "Los NIH suspendieron los subawards a entidades extranjeras (NOT-OD-25-104); solo procede una adjudicación directa a la entidad colombiana cuando el anuncio la permite.",
+      "fuente_url": "https://grants.nih.gov/grants/guide/notice-files/NOT-OD-25-104.html"
+    }
+  ]
+}

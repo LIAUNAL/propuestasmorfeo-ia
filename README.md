@@ -19,7 +19,7 @@
 
 **Morfeo IA** (`propuestasmorfeo-ia`) es un entorno de trabajo agéntico y determinista diseñado para investigar, redactar, estructurar y auditar propuestas completas de investigación científica y desarrollo tecnológico en Inteligencia Artificial. Produce documentos formales en **español** bajo formato LaTeX nativo (con exportación determinista a Word/DOCX), articulados rigurosamente en 18 secciones metodológicas con coherencia matemática, lógica, presupuestal y de impacto social (TRL 6 o 7).
 
-El sistema coordina un equipo de **14 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
+El sistema coordina un equipo de **15 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
 
 ---
 
@@ -105,7 +105,7 @@ Dentro del directorio inicializado puedes ejecutar los comandos del asistente en
 
 | Comando | Descripción |
 |---|---|
-| `morfeo init <dir> [--title] [--preset] [--tools] [--sgr]` | Inicializa un workspace autocontenido con los 108 activos base del marco. |
+| `morfeo init <dir> [--title] [--preset] [--tools] [--sgr]` | Inicializa un workspace autocontenido con los 113 activos base del marco. |
 | `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF. |
 | `morfeo ui [dir] [--port 8080] [--no-open]` | Despliega el Command Center web interactivo en tiempo real (puerto 8080 por defecto, o el siguiente libre). |
 | `morfeo compile [dir] [--docx] [--run <id>]` | Compila el proyecto LaTeX a PDF (`build.sh`) o exporta a Word (`--docx`). |
@@ -132,6 +132,7 @@ En entornos asistidos (Claude Code, OpenCode, Antigravity, Pi), el framework ofr
 | `/propuesta-exportar` | Empaqueta y exporta la propuesta activa con todos sus artefactos, insumos y PDF listo para compartir con un colaborador. |
 | `/propuesta-limpiar` | Cierra y archiva la corrida activa en `_run.md` y `registry.md`, dejando el entorno listo para una nueva formulación sin borrar datos. |
 | `/propuesta-juez` | Juez final (flujo SGR): estima el puntaje de la evaluación por pares con la rúbrica de la convocatoria, señala inconsistencias y propone acciones para cada agente. Es asesor y se puede correr en cualquier momento. |
+| `/propuesta-convocatorias` | Busca convocatorias de Colombia, América Latina e internacionales, en español e inglés, afines a la idea y al banco LIA; marca el rol que un solicitante colombiano puede tener en cada una y las muestra en la pestaña «Convocatorias». Con `iniciar <id>` baja el TdR a la corrida activa. |
 | `/compilar-pdf` | Compila de forma determinista la propuesta activa a PDF ejecutando `build.sh` en `redaccion/`. |
 | `/compilar-docx` | Exporta la propuesta activa a formato Word DOCX mediante `build.sh --docx` en `redaccion/` vía Pandoc y CSL APA. |
 
@@ -200,7 +201,7 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
 
 ## Ecosistema de Agentes Especializados
 
-El marco cuenta con **14 subagentes especializados** con roles no solapados:
+El marco cuenta con **15 subagentes especializados** con roles no solapados:
 
 | Agente | Modelo sugerido | Responsabilidad |
 |---|---|---|
@@ -218,6 +219,7 @@ El marco cuenta con **14 subagentes especializados** con roles no solapados:
 | `tikz-optimizer` | Haiku | Corrección asistida de especificaciones JSON cuando falla la compilación o la auditoría. |
 | `juez-sgr` | Opus | Juez final del flujo SGR: puntaje estimado con la rúbrica oficial, alertas de inconsistencia y acciones de mejora (asesor, no cambia el veredicto del `revisor`). |
 | `revisor-estilo-sgr` | Sonnet | Solo en el flujo SGR: audita y pule estilo, voz en tercera persona, léxico por sección y redundancia según la MGA del DNP (skill `estilo-sgr`); ocupa el lugar de `grant-flow-auditor` antes de cada `revisor`. |
+| `explorador-convocatorias` | Sonnet | Fuera del pipeline: busca convocatorias afines (banco LIA, fuentes fijas y web), aplica las reglas de elegibilidad para Colombia y escribe `convocatorias/oportunidades.json`. |
 
 ---
 
