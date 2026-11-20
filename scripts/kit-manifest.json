@@ -95,6 +95,7 @@
     "scripts/rubricas_sgr/_guia_comun.json",
     "scripts/rubricas_sgr/conv54.json",
     "scripts/rubricas_sgr/conv56.json",
+    "scripts/anexo2_sgr.py",
     "scripts/marco_cli.py",
     "scripts/pdf_to_md.py",
     "scripts/presupuesto_sgr.py",
