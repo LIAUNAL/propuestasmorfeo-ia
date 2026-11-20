@@ -1452,6 +1452,64 @@
         "fuente": "Patrones SGR cap. 25; Instructivo MGA 2023, p. 108",
         "aplica_a": "tabla"
       }
+    ],
+    "38_licencias_permisos": [
+      {
+        "id": "licencias-apertura",
+        "tipo": "favorecida",
+        "expresion": "La entidad proponente y las demás entidades aliadas se comprometen a que, durante la ejecución del proyecto, se cumpla con…; Por la naturaleza del objetivo general y los objetivos específicos, el proyecto no requiere <licencia>; sin embargo, si durante la ejecución…",
+        "regex": "\\bse\\s+comprometen\\s+a\\s+que\\b|\\bel\\s+proyecto\\s+no\\s+requiere\\b",
+        "motivo": "Aperturas del proyecto de referencia, en tercera persona: compromiso de cumplimiento y descarte justificado de cada licencia.",
+        "fuente": "Patrones SGR cap. 28; proyecto de referencia, cap. 28",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "licencias-genericas",
+        "tipo": "prohibida",
+        "expresion": "los permisos necesarios, las licencias pertinentes, los permisos a que haya lugar (sin nombrarlos)",
+        "regex": "\\b(los|las)\\s+(permisos|licencias|autorizaciones)\\s+(necesari[oa]s|requerid[oa]s|pertinentes|correspondientes|a\\s+que\\s+haya\\s+lugar)\\b",
+        "motivo": "El Anexo 2 pide identificar «para cada permiso, licencia, autorización, aval ético o bioético u otro requisito aplicable, la autoridad o instancia competente, la actividad que determina su exigibilidad, el momento en que debe acreditarse»; la tabla nombra cada uno con su norma.",
+        "fuente": "TdR Conv 54 numeral 21 (Viabilidad de los proyectos de inversión); plantilla Anexo 2 cap. 28",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "licencias-copia-marco-normativo",
+        "tipo": "desaconsejada",
+        "expresion": "copiar la tabla normativa del marco conceptual (cap. 9)",
+        "regex": null,
+        "motivo": "R5: en la referencia la tabla normativa del cap. 9 se repite en el cap. 28; aquí solo van las licencias y permisos que el proyecto evalúa, con su justificación.",
+        "fuente": "Patrones SGR cap. 28; R5",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "licencias-consulta-previa",
+        "tipo": "desaconsejada",
+        "expresion": "omitir la verificación de consulta previa en territorios con comunidades étnicas",
+        "regex": null,
+        "motivo": "La consulta previa se evalúa en la tabla (aplica o no, con su justificación) cuando el proyecto interviene territorios con comunidades étnicas.",
+        "fuente": "Patrones SGR cap. 28; guía SGR §17",
+        "aplica_a": "tabla"
+      }
+    ],
+    "39_anexos": [
+      {
+        "id": "anexos-documento-con-requisito",
+        "tipo": "favorecida",
+        "expresion": "<documento> (requisito <n.n>: <nombre del requisito en el TdR>)",
+        "regex": "\\brequisito\\s+\\d+\\.\\d+\\b",
+        "motivo": "Cada anexo se lista con el requisito habilitante del TdR que soporta, tal como lo genera requisitos_sgr.py.",
+        "fuente": "Patrones SGR cap. 31; TdR Conv 54 numeral 11, Conv 56 numeral 10",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "anexos-con-prosa",
+        "tipo": "desaconsejada",
+        "expresion": "párrafos de presentación o comentario en el capítulo de anexos",
+        "regex": null,
+        "motivo": "«ANEXOS REQUISITOS SECTORIALES QUE LE SEAN APLICABLES.» es una lista, sin prosa.",
+        "fuente": "Patrones SGR cap. 31; plantilla Anexo 2",
+        "aplica_a": "prosa"
+      }
     ]
   },
   "exenciones": [
@@ -1541,6 +1599,11 @@
       "tipo": "talento_y_productos_ctei",
       "fuente": "artefactos/sgr/productos.json (talento[].perfil, productos_ctei[].subtipo y divulgacion.productos[])",
       "motivo": "Perfiles del talento y productos de CTeI y de divulgación: idénticos en §36, §15, el equipo de trabajo y el presupuesto."
+    },
+    {
+      "tipo": "licencias_y_documentos",
+      "fuente": "artefactos/sgr/requisitos.json (licencias.items[].licencia y norma) y artefactos/juez/rubrica.json (requisitos[].nombre y documento)",
+      "motivo": "Nombres de licencias, normas, requisitos habilitantes y documentos: idénticos en §38, §39, las cartas y el SIGP."
     }
   ],
   "redundancia": {
@@ -1779,6 +1842,13 @@
       ]
     },
     {
+      "capitulo": 28,
+      "titulo": "ANÁLISIS DE LICENCIAS Y PERMISOS",
+      "secciones": [
+        "38_licencias_permisos"
+      ]
+    },
+    {
       "capitulo": 29,
       "titulo": "RESUMEN DE FUENTES DE FINANCIACIÓN",
       "secciones": [
@@ -1792,18 +1862,14 @@
       "secciones": [
         "16_bibliografia"
       ]
-    }
-  ],
-  "capitulos_sin_archivo": [
-    {
-      "capitulo": 28,
-      "titulo": "ANÁLISIS DE LICENCIAS Y PERMISOS",
-      "nota": "Tabla de licencias aplicables con justificación; no copiar la tabla normativa del marco conceptual (R5)."
     },
     {
       "capitulo": 31,
       "titulo": "ANEXOS",
-      "nota": "Lista, sin prosa."
+      "secciones": [
+        "39_anexos"
+      ]
     }
-  ]
+  ],
+  "capitulos_sin_archivo": []
 }

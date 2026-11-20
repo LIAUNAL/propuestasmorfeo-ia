@@ -187,7 +187,22 @@ class LexiconSchema(unittest.TestCase):
         self.assertEqual(mapped[25], ["37_indicadores"])
         pending = {item["capitulo"] for item in self.lex["capitulos_sin_archivo"]}
         self.assertFalse({20, 21, 24, 25} & pending)
-        self.assertEqual(pending, {28, 31})
+
+    def test_licence_and_annex_sections_have_their_lexicon(self) -> None:
+        for stem in ("38_licencias_permisos", "39_anexos"):
+            with self.subTest(stem=stem):
+                entries = self.lex["secciones"][stem]
+                self.assertIn("favorecida", {e["tipo"] for e in entries})
+                self.assertTrue(any(e["tipo"] != "favorecida" for e in entries))
+        rules = [estilo.compile_rule(e["regex"]) for e in self.lex["secciones"]["38_licencias_permisos"]
+                 if e["regex"] and e["tipo"] != "favorecida"]
+        self.assertTrue(any(r.search("El proyecto tramitará las licencias pertinentes.") for r in rules))
+
+    def test_chapters_28_and_31_map_to_the_licence_and_annex_sections(self) -> None:
+        mapped = {item["capitulo"]: item["secciones"] for item in self.lex["mapa_capitulos"]}
+        self.assertEqual(mapped[28], ["38_licencias_permisos"])
+        self.assertEqual(mapped[31], ["39_anexos"])
+        self.assertEqual(self.lex["capitulos_sin_archivo"], [])
 
     def test_whitelist_kinds(self) -> None:
         kinds = {item["tipo"] for item in self.lex["repeticion_obligatoria"]}
@@ -332,6 +347,19 @@ class Findings(unittest.TestCase):
         self.assertNotIn("sgr-estilo-inflacion", found)
         self.assertNotIn("sgr-estilo-redundancia-entre-secciones", found)
 
+    def test_licence_names_and_requirement_documents_repeat_verbatim(self) -> None:
+        licence = "Permiso fundamental de recolección de especímenes de la biodiversidad para investigación"
+        sgr = self.root / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "requisitos.json").write_text(json.dumps({
+            "schema": "morfeo.requisitos-sgr/v1", "items": [],
+            "licencias": {"introduccion": "", "items": [{"licencia": licence, "norma": "Decreto 1376 de 2013"}]}},
+            ensure_ascii=False), encoding="utf-8")
+        self.write("38_licencias_permisos", f"El proyecto tramitará el {licence} antes del mes 3.")
+        self.assertNotIn("sgr-estilo-inflacion", self.codes())
+        (sgr / "requisitos.json").unlink()
+        self.assertIn("sgr-estilo-inflacion", self.codes())
+
     def test_copied_prose_between_sections_is_an_info_signal(self) -> None:
         copied = ("la cuenca media registra una cobertura de monitoreo de apenas cuatro estaciones activas "
                   "para una población ribereña dispersa en once veredas del territorio")
@@ -434,7 +462,7 @@ class GuideWritingPatterns(unittest.TestCase):
 
     EXPECTED = {"§2", "§3", "§6", "§7", "§10", "§11", "§13", "§14", "§15", "§17", "§18",
                 "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27", "A28", "A29", "A30",
-                "A31", "A32", "A33", "A34", "A35", "A36", "A37"}
+                "A31", "A32", "A33", "A34", "A35", "A36", "A37", "A38", "A39"}
 
     def setUp(self) -> None:
         self.text = (REPO / GUIDE).read_text(encoding="utf-8")
@@ -495,6 +523,21 @@ class GuideWritingPatterns(unittest.TestCase):
         indicators = " ".join(self.blocks["A37"].split())
         self.assertIn("Indicador | Medida/Meta | Código | Fórmula | Tipo de fuente | Periodicidad", indicators)
         self.assertIn("trimestral", indicators)
+
+    def test_licence_and_annex_blocks_describe_their_data(self) -> None:
+        for key, stem in (("A38", "38_licencias_permisos"), ("A39", "39_anexos")):
+            with self.subTest(block=key):
+                body = " ".join(self.blocks[key].split())
+                self.assertIn(f"{stem}.tex", body)
+                self.assertIn("requisitos_sgr.py render", body)
+                self.assertIn("requisitos.json", body)
+        licences = " ".join(self.blocks["A38"].split())
+        self.assertIn("Licencia o permiso | Norma | ¿Aplica? | Justificación | Responsable | Momento del trámite",
+                      licences)
+        self.assertIn("ANÁLISIS DE LICENCIAS Y PERMISOS", licences)
+        annexes = " ".join(self.blocks["A39"].split())
+        self.assertIn("ANEXOS REQUISITOS SECTORIALES QUE LE SEAN APLICABLES.", annexes)
+        self.assertIn("sin prosa", annexes)
 
     def test_section_3_drops_the_research_question_in_sgr(self) -> None:
         body = self.blocks["§3"]

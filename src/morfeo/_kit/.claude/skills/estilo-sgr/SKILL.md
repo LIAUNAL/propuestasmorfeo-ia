@@ -87,9 +87,11 @@ Fuentes en el repositorio: la evidencia completa en
 | 10.1 Matriz de responsabilidades | `28_matriz_responsabilidades` (generada) | Responsabilidades con códigos de actividad; gobernanza |
 | 27 Idoneidad y trayectoria | `29_idoneidad_trayectoria` | Una subsección por entidad, tercera persona, sin texto institucional en primera persona |
 | 29 Resumen de fuentes de financiación | `30_fuentes_financiacion` (generada) | Las tres líneas literales en letras y números; cifras iguales a la carta unificada y al Anexo 3 |
+| 28 Análisis de licencias y permisos | `38_licencias_permisos` (generada) | Introducción en tercera persona con el compromiso de cumplimiento; cada licencia nombrada con su norma, si aplica, justificación, responsable y momento; sin «los permisos necesarios» ni copiar la tabla normativa del cap. 9 |
+| 31 Anexos | `39_anexos` (generada) | Lista sin prosa de los documentos de los requisitos habilitantes que aplican, con el nombre textual del TdR |
 
-Los capítulos 28 y 31 aún no tienen archivo en Morfeo;
-el léxico los lista en `capitulos_sin_archivo` con su nota de redacción.
+Todos los capítulos del Anexo 2 tienen archivo en Morfeo; `capitulos_sin_archivo`
+queda vacío en el léxico.
 
 ## 4. Ajustes a `estilo-natural-es` y `depuracion-redundancias-es` en SGR
 
@@ -117,8 +119,9 @@ deshacen.
 **Lista blanca de repetición obligatoria.** Título, problema central, objetivo
 general, objetivos específicos, nombres de actividades, nombres y códigos de
 productos, perfiles del talento y productos de CTeI y de divulgación de
-`productos.json`, textos de las demandas, nombres de planes y programas y cifras
-de la línea base. Se copian literal; el revisor de redundancia no los parafrasea ni
+`productos.json`, nombres de licencias y normas de `requisitos.json` con los
+nombres y documentos de los requisitos habilitantes de la rúbrica, textos de las
+demandas, nombres de planes y programas y cifras de la línea base. Se copian literal; el revisor de redundancia no los parafrasea ni
 los sustituye por sinónimos.
 
 ## 5. Redundancia SGR (R1 a R14)

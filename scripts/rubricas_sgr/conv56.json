@@ -75,6 +75,176 @@
       "texto": "El doctor acompañará y asesorará a los jóvenes investigadores e innovadores y a los estudiantes de maestría vinculados, y entregará un (1) producto tipo TOP o tipo A, un producto de divulgación pública de la ciencia y un informe técnico final."
     }
   ],
+  "requisitos": [
+    {
+      "id": "10.1",
+      "nombre": "Inscripción en SIGP",
+      "texto": "Inscribir el proyecto en el Sistema Integrado de Gestión de Proyectos - SIGP, el cual se debe ajustar al objetivo de la convocatoria.",
+      "condicion": null,
+      "documento": "Proyecto inscrito en el SIGP",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.1"
+    },
+    {
+      "id": "10.2",
+      "nombre": "Dirigida a",
+      "texto": "Cumplir con las especificaciones y condiciones del “DIRIGIDA A” establecidas en el numeral 3 - DIRIGIDA A de los presentes términos de referencia.",
+      "condicion": null,
+      "documento": "Documentos de existencia y representación legal de las entidades de la alianza",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.2"
+    },
+    {
+      "id": "10.3",
+      "nombre": "Adecuado Desempeño del proponente",
+      "texto": "Acreditar el adecuado desempeño del proponente en la última medición anual conforme la metodología establecida por el Departamento Nacional de Planeación DNP y de acuerdo con la información publicada por esa entidad en los medios dispuestos para tal fin.",
+      "condicion": null,
+      "documento": "Medición de desempeño publicada por el DNP",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.3"
+    },
+    {
+      "id": "10.4",
+      "nombre": "Carta unificada de Aval, Compromiso Institucional y Modelo de Gobernanza",
+      "texto": "anexar “Carta unificada de aval, Compromiso institucional y Modelo de Gobernanza” debidamente diligenciada y firmada por los representantes legales o apoderados de todas las entidades nacionales que la conformen (Anexo 1).",
+      "condicion": null,
+      "documento": "Anexo 1",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.4"
+    },
+    {
+      "id": "10.5",
+      "nombre": "Documento técnico (Anexo 2)",
+      "texto": "Adjuntar el documento técnico de acuerdo con el contenido indicado en el numeral 12 - CONTENIDO DEL PROYECTO, subnumeral 12.1.(Anexo 2-Documento Técnico), que deberá ser incluido en la plataforma SIGP, sección de “requisitos” espacio Documento técnico.",
+      "condicion": null,
+      "documento": "Anexo 2",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.5"
+    },
+    {
+      "id": "10.6",
+      "nombre": "Alcance",
+      "texto": "Cumplir con lo establecido en el numeral 6 – ALCANCE de los presentes términos de referencia.",
+      "condicion": null,
+      "documento": "Anexo 2",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.6"
+    },
+    {
+      "id": "10.7",
+      "nombre": "Atención demandas territoriales en donde se ejecuta el proyecto",
+      "texto": "Los proyectos deberán atender una o más de las demandas territoriales definidas para la presente convocatoria, relacionadas directamente con las afectaciones, necesidades o brechas de conocimiento, desarrollo tecnológico, innovación o capacidades de CTeI derivadas o agravadas por la emergencia.",
+      "condicion": null,
+      "documento": "Anexo 2 y SIGP",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.7"
+    },
+    {
+      "id": "10.8",
+      "nombre": "Presupuesto (Anexo 3)",
+      "texto": "Adjuntar el presupuesto del proyecto de acuerdo con lo establecido en el numeral 11 - CONTENIDO DEL PROYECTO, subnumeral 12.2 - Del componente presupuestal (Anexo 3 - Presupuesto), el cual debe cumplir con las condiciones establecidas en el numeral 14 - DURACIÓN Y FINANCIACIÓN, y ser incluido en la plataforma SIGP, sección de “requisitos” espacio Presupuesto incluyendo la estimación de los costos.",
+      "condicion": null,
+      "documento": "Anexo 3",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.8"
+    },
+    {
+      "id": "10.9",
+      "nombre": "Proyectos de CTeI gestionados, ejecutados o en ejecución del proponente y de los aliados (Anexo 5)",
+      "texto": "Anexar el formato de “Proyectos de CTeI gestionados o ejecutados por parte del proponente e integrantes de la alianza”, debidamente diligenciado (Anexo 5), atendiendo a lo dispuesto en las condiciones establecidas en el numeral 3 -DIRIGIDA A.",
+      "condicion": null,
+      "documento": "Anexo 5 y sus soportes",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.9"
+    },
+    {
+      "id": "10.10",
+      "nombre": "Aval del Comité de Ética de la Investigación o de Bioética (Si Aplica)",
+      "texto": "Aval del Comité de Ética de la Investigación o de Bioética (Si Aplica) de la institución que presenta el proyecto, donde especifique claramente que el proyecto ha sido revisado y avalado por este Comité.",
+      "condicion": "etica",
+      "documento": "Aval del Comité de Ética o de Bioética y acto administrativo de conformación del comité",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.10"
+    },
+    {
+      "id": "10.11",
+      "nombre": "Carta entidad internacional (Si Aplica)",
+      "texto": "Para el caso de las entidades internacionales que formen parte del proyecto, se deberá anexar carta de intención de participación en el proyecto (formato libre), suscrito por el director del instituto, centro, departamento o grupo de investigación de la institución internacional.",
+      "condicion": "internacional",
+      "documento": "Carta de intención",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.11"
+    },
+    {
+      "id": "10.12",
+      "nombre": "Actor del sector productivo (Si Aplica)",
+      "texto": "En todo caso todas las entidades deberán presentar certificado de existencia y representación legal no mayor a 90 días previo al cierre de la presente convocatoria, el cual deberá ser incluido en la plataforma SIGP, sección de “requisitos” espacio “Documentos Constitución Entidades Sector productivo”.",
+      "condicion": "sector_productivo",
+      "documento": "Certificado de existencia y representación legal",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.12"
+    },
+    {
+      "id": "10.13",
+      "nombre": "Organización de sociedad civil(Si Aplica)",
+      "texto": "Para los actores de la sociedad civil (asociaciones, cooperativas, fundaciones, corporaciones, juntas de acción comunal, ESAL en general), deberán tener domicilio principal en alguno de los municipios de los departamentos con territorios afectados por la emergencia, conforme al ámbito territorial definido en el Decreto 1261 de 2026, modificado por el Decreto 1348 de 2026.",
+      "condicion": "sociedad_civil",
+      "documento": "Certificado de existencia y representación legal o documento idóneo de acreditación",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.13"
+    },
+    {
+      "id": "10.14",
+      "nombre": "Las entidades del Sistema Nacional de Ciencia, Tecnología e Innovación que cuenten con reconocimiento como Actores del SNCTI",
+      "texto": "Las entidades del Sistema Nacional de Ciencia, Tecnología e Innovación que cuenten con reconocimiento como Actores del SNCTI, deberán adjuntar la resolución de reconocimiento expedida por Ministerio de Ciencia, Tecnología e Innovación, con reconocimiento vigente a la fecha de cierre de la presente convocatoria.",
+      "condicion": null,
+      "documento": "Resolución de reconocimiento como actor del SNCTI",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.14"
+    },
+    {
+      "id": "10.15",
+      "nombre": "Proyecto de inversión formulado en MGA WEB Tipología D –PIIP",
+      "texto": "Presentar el proyecto formulado en la MGA WEB Tipología D –PIIP o en el instrumento vigente dispuesto para proyectos de inversión del SGR, con los campos requeridos para la convocatoria.",
+      "condicion": null,
+      "documento": "MGA Web Tipología D – PIIP",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.15"
+    },
+    {
+      "id": "10.16",
+      "nombre": "Plan de sostenibilidad del proyecto de inversión",
+      "texto": "Plan de sostenibilidad del proyecto de inversión que contenga: el horizonte de operación de acuerdo con la naturaleza del proyecto de inversión y que incluya las actividades, el cronograma y fuente de recursos y la asignación de responsabilidades que garantice la operación y mantenimiento durante la vida útil del proyecto.",
+      "condicion": null,
+      "documento": "Plan de sostenibilidad (Anexo 07) o justificación escrita de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.16"
+    },
+    {
+      "id": "10.17",
+      "nombre": "Plano de localización e implantación (Si Aplica)",
+      "texto": "Presentar plano de localización e implantación de la infraestructura conforme a lo consignado en la localización del proyecto en la MGA, en coordenadas MAGNA SIRGAS, con norte geográfico y ubicación espacial del proyecto respecto de la cabecera municipal o centro poblado.",
+      "condicion": "infraestructura",
+      "documento": "Plano de localización e implantación",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.17"
+    },
+    {
+      "id": "10.18",
+      "nombre": "Certificado de participación de las entidades en el proyecto",
+      "texto": "Presentar certificado firmado por el representante legal de cada una de las entidades que participan en el proyecto en la que se incluya la siguiente información: a) Nombre completo del proyecto. b) Conocimiento de su contenido y compromiso con el desarrollo de las actividades descritas a su cargo. c) Para aquellas entidades que participen a través de grupos de investigación, se debe incluir el nombre del grupo o grupos de investigación. d) Justificación sobre la capacidad técnica e idoneidad para participar en el proyecto.",
+      "condicion": null,
+      "documento": "Certificado de participación de cada entidad",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.18"
+    },
+    {
+      "id": "10.19",
+      "nombre": "Certificado de titularidad, administración, custodia y cuidado de bienes y resultados derivados del proyecto",
+      "texto": "Presentar certificado expedido por el representante legal de la entidad que presenta el proyecto en el cual se defina la titularidad, la administración, la custodia y el cuidado de los bienes y resultados derivados del proyecto, en el cual conste que con la expedición de dicho certificado se entiende que la entidad proponente concertó este asunto previamente con los cofinanciadores del proyecto, según sea el caso y con las entidades territoriales donde se ejecutará.",
+      "condicion": null,
+      "documento": "Certificado de titularidad, administración, custodia y cuidado de bienes y resultados",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.19"
+    },
+    {
+      "id": "10.20",
+      "nombre": "Copia del acto administrativo de declaratoria de la situación de desastre o de calamidad pública",
+      "texto": "Copia del acto administrativo de declaratoria de la situación de desastre o de calamidad pública, cuya fecha de expedición no supere los términos establecidos para la declaratoria de retorno a la normalidad establecidos en el parágrafo del artículo 64 de la Ley 1523 de 2012.",
+      "condicion": null,
+      "documento": "Acto administrativo de declaratoria de desastre o de calamidad pública",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.20"
+    },
+    {
+      "id": "10.21",
+      "nombre": "Certificado expedido por el representante legal de la entidad que suscribió el plan de acción específico para la rehabilitación y reconstrucción de las áreas afectadas de que trata el artículo 61 de la Ley 1523 de 2012",
+      "texto": "Certificado expedido por el representante legal de la entidad que suscribió el plan de acción específico para la rehabilitación y reconstrucción de las áreas afectadas de que trata el artículo 61 de la Ley 1523 de 2012, en el que se indique que el proyecto de inversión se encuentra en concordancia con este y que integra las acciones requeridas para asegurar que no se reactive el riesgo de desastre preexistente.",
+      "condicion": null,
+      "documento": "Certificado de concordancia con el plan de acción específico",
+      "numeral_fuente": "TdR Convocatoria 56, numeral 10.21"
+    }
+  ],
   "notas": [
     "Nota: Los puntajes de cada criterio y subcriterio son cerrados y no fraccionables; únicamente podrán asignarse los valores definidos en la respectiva escala, sin puntajes intermedios.",
     "CONCEPTO FINAL: Espacio para que el evaluador sintetice las fortalezas y debilidades de la propuesta y haga las recomendaciones que considere pertinentes (mínimo 300 palabras)",

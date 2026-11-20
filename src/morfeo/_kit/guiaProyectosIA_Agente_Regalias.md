@@ -547,7 +547,8 @@ Cada anexo es un archivo de `redaccion/sections/` que `main.tex` incluye despué
 de §18 y antes de la bibliografía. Los redacta `redactor`, salvo los que se
 generan desde datos: A23 (`cadena_valor.json`), A26 a A28 (`alianza.json` y
 `territorio.json`), A30 (`presupuesto.json`, con §13), A31 a A35
-(`componentes.json`, con §18) y A36 y A37 (`productos.json`, con §15).
+(`componentes.json`, con §18), A36 y A37 (`productos.json`, con §15) y A38 y
+A39 (`requisitos.json`).
 Las tablas usan `xltabular`; la prosa sigue `estilo-natural-es` con los
 ajustes de la skill `estilo-sgr`.
 
@@ -1113,6 +1114,77 @@ escribe los indicadores de gestión.
   fuente | Periodicidad`; `Producto | Código DNP | Indicador de producto |
   Unidad de medida | Meta`.
 
+### SGR A38
+
+`38_licencias_permisos.tex`, «Análisis de licencias y permisos» (Anexo 2 Conv
+54, cap. 28). Fuente: el bloque `licencias` de `artefactos/sgr/requisitos.json`
+(introducción y, por cada licencia o permiso, norma, si aplica, justificación,
+entidad responsable y momento del trámite: previo o durante la ejecución). Lo
+genera `python3 scripts/requisitos_sgr.py render <RUN_ROOT>` con la cabecera
+`% GENERADO`; con `artefactos/estructura_tdr.json` abre el capítulo «ANÁLISIS
+DE LICENCIAS Y PERMISOS». `check` exige norma, responsable y momento a cada
+licencia que aplica y justificación a la que no aplica, y avisa cuando falta el
+bloque. La plantilla pide: «Enuncie las licencias, estudios, permisos y demás
+requerimientos que se consideren necesarios previo o durante la ejecución del
+proyecto» (licencias ambientales, acceso a recursos genéticos, recolección de
+especímenes, colecciones biológicas, consentimiento informado, consulta
+previa).
+
+**Redacción.** (Anexo 2, cap. 28; TdR Conv 54 numeral 21.) `investigador`
+escribe la tabla de licencias; `redactor` escribe la introducción, que revisa
+`revisor-estilo-sgr`.
+
+* Apertura: «La entidad proponente y las demás entidades aliadas se
+  comprometen a que, durante la ejecución del proyecto, se cumpla con…»; «Por
+  la naturaleza del objetivo general y los objetivos específicos, el proyecto
+  no requiere <licencia>; sin embargo, si durante la ejecución…».
+* Favorecer: el nombre oficial de cada licencia o permiso con su norma; la
+  autoridad competente, la actividad que lo hace exigible y el momento del
+  trámite; la consulta previa evaluada cuando el proyecto interviene
+  territorios con comunidades étnicas; tercera persona sobre el proyecto.
+* Evitar: «los permisos necesarios», «las licencias pertinentes» o «a que haya
+  lugar» sin nombrarlos; copiar la tabla normativa del marco conceptual (R5);
+  «no aplica» sin justificación; dar por obtenido un permiso que está en
+  trámite.
+* Tiempo: presente para el compromiso; futuro para los trámites.
+* Extensión: introducción de 80 a 200 palabras.
+* Tabla (generada): `Licencia o permiso | Norma | ¿Aplica? | Justificación |
+  Responsable | Momento del trámite`.
+
+### SGR A39
+
+`39_anexos.tex`, «ANEXOS REQUISITOS SECTORIALES QUE LE SEAN APLICABLES.»
+(Anexo 2 Conv 54, cap. 31; título textual de la plantilla, que se usa cuando
+la estructura del TdR no fija otro: Conv 54 TdR 13.1 «ANEXOS»). Fuente: los
+requisitos habilitantes de la rúbrica (`requisitos`, copiados textuales del TdR:
+Conv 54 numeral 11, Conv 56 numeral 10) y su estado en
+`artefactos/sgr/requisitos.json`. Lo genera
+`python3 scripts/requisitos_sgr.py render <RUN_ROOT>`: una lista, sin prosa,
+de los documentos de los requisitos que aplican (los condicionales marcados
+«no_aplica» con justificación y los que la alianza o el presupuesto descartan
+no entran). El TdR advierte que «se tendrá por no cumplida toda condición que
+no haya sido soportada documentalmente»; `check --final` (Fase 7) exige
+`listo`, con su archivo en `insumos/requisitos/`, a cada requisito que aplica,
+y `check` coteja las cifras declaradas del SIGP, el Anexo 1, el Anexo 3 y la
+MGA Web con `presupuesto.json` y `alianza.json` (criterio 1.4 de la Conv 54,
+«Coherencia de las cifras entre el SIGP, el Anexo 1 … el Anexo 2 … y el Anexo
+3»). Cuando la entidad proponente es la Universidad Nacional de Colombia y la
+convocatoria es la 54 o la 55, también registra los documentos del aval
+institucional que pide la Vicerrectoría de Investigación en Hermes.
+
+**Redacción.** (Anexo 2, cap. 31.) Nadie redacta este capítulo: la lista sale
+de los datos.
+
+* Apertura: sin prosa; cada ítem es «<documento> (requisito <n.n>: <nombre
+  del requisito en el TdR>)».
+* Favorecer: los nombres de los documentos y de los requisitos tal como los
+  escribe el TdR («Anexo 1», «MGA WEB Tipología D – PIIP», «Carta de
+  intención»).
+* Evitar: párrafos de presentación o comentario; listar documentos de
+  requisitos que no aplican; renombrar los anexos oficiales.
+* Tiempo: nominal.
+* Extensión: sin prosa; solo la lista.
+
 ---
 
 ## Juez SGR (asesor, Fase 7 y `/propuesta-juez`)
@@ -1130,6 +1202,12 @@ Cada ronda deja en `artefactos/juez/` los datos extraídos con su fuente
 el consolidado que escribe `scripts/juez_sgr.py calificar`: `evaluacion.json`
 (total, subtotales, elegibilidad, alertas, acciones e historial de rondas) y
 `evaluacion.md`, el formulario legible.
+
+En el flujo SGR el agente copia también en `datos_sgr.json` la salida de
+`python3 scripts/requisitos_sgr.py datos <RUN_ROOT> --json` (claves
+`requisitos`, `cifras_coherentes` y `cifras_diferencias`); `calificar` levanta
+una alerta por cada requisito habilitante aplicable que no esté listo y una
+por cada cifra declarada que no coincide con el presupuesto o la alianza.
 
 Para iterar se aplican las acciones, cada una dirigida a un agente o al
 usuario: desde la pestaña «Juez final» del tablero o con

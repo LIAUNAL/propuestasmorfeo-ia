@@ -56,6 +56,9 @@ SECTION_TITLES = {
     # Talento humano e indicadores del flujo SGR, generados desde productos.json.
     "36_talento_humano": "§36 Vinculación de talento humano",
     "37_indicadores": "§37 Indicadores de gestión y de producto",
+    # Licencias y anexos del flujo SGR (Anexo 2 caps. 28 y 31), generados desde requisitos.json.
+    "38_licencias_permisos": "§38 Análisis de licencias y permisos",
+    "39_anexos": "§39 Anexos (requisitos sectoriales)",
 }
 
 VALID_FLUJOS = ("base", "sgr")

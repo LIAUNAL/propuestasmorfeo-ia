@@ -29,12 +29,14 @@ from test_productos_sgr import _productos  # noqa: E402
 
 CHECK = REPO / "scripts" / "check_run.py"
 NEW_PREFIXES = ("cadena-", "sgr-estilo-", "alianza-", "territorio-", "presupuesto-", "cronograma-", "componentes-",
-                "productos-")
+                "productos-", "requisitos-")
 BUDGET_HEADER = "% GENERADO por scripts/presupuesto_sgr.py"
 COMPONENTS_HEADER = "% GENERADO por scripts/componentes_sgr.py"
 COMPONENT_STEMS = ("31_trl", "32_sostenibilidad", "33_uso_posterior", "34_transferencia", "35_medidas_diferenciales")
 PRODUCTS_HEADER = "% GENERADO por scripts/productos_sgr.py"
 PRODUCT_STEMS = ("36_talento_humano", "37_indicadores")
+REQUIREMENTS_HEADER = "% GENERADO por scripts/requisitos_sgr.py"
+REQUIREMENT_STEMS = ("38_licencias_permisos", "39_anexos")
 
 STUB_CRONOGRAMA = '''
 def findings(run_root):
@@ -184,6 +186,22 @@ class Base(unittest.TestCase):
             self.assertEqual(_findings(run, "base"), before)
             self.assertEqual(_findings_final(run, "base"), before_final)
             (run / "artefactos" / "sgr" / "productos.json").unlink()
+            self.assertEqual(_findings(run, "base"), before)
+            self.assertEqual(_findings_final(run, "base"), before_final)
+
+    def test_base_run_ignores_the_requirements(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            run = _make_run(Path(tmp))
+            sections = run / "redaccion" / "sections"
+            before = _findings(run, "base")
+            before_final = _findings_final(run, "base")
+            _write_sgr(run, "requisitos.json", {"schema": "otro"})
+            for stem in REQUIREMENT_STEMS:
+                (sections / f"{stem}.tex").write_text("\\section{A mano}\nTexto.\n", encoding="utf-8")
+            (run / "artefactos" / "estado_propuesta.md").write_text("| GRequisitos | APROBADA |\n", encoding="utf-8")
+            self.assertEqual(_findings(run, "base"), before)
+            self.assertEqual(_findings_final(run, "base"), before_final)
+            (run / "artefactos" / "sgr" / "requisitos.json").unlink()
             self.assertEqual(_findings(run, "base"), before)
             self.assertEqual(_findings_final(run, "base"), before_final)
 
@@ -600,6 +618,81 @@ class SgrProducts(unittest.TestCase):
     def test_final_sgr_run_requires_the_talent_and_indicator_sections(self) -> None:
         missing = [f["message"] for f in _findings_final(self.run, "sgr") if f["code"] == "sgr-anexo-faltante"]
         for stem in PRODUCT_STEMS:
+            self.assertTrue(any(stem in m for m in missing), stem)
+
+
+class SgrRequirements(unittest.TestCase):
+    """S4/S5: requirement findings, the absence of requisitos.json after GRequisitos and sections 38 and 39."""
+
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.run = _make_run(self.tmp)
+        self.sections = self.run / "redaccion" / "sections"
+        _write_sgr(self.run, "alianza.json", _alliance())
+        juez = self.run / "artefactos" / "juez"
+        juez.mkdir(parents=True)
+        shutil.copy(REPO / "scripts" / "rubricas_sgr" / "conv54.json", juez / "rubrica.json")
+
+    def requirements(self) -> dict:
+        return {"schema": "morfeo.requisitos-sgr/v1", "convocatoria": "conv54",
+                "items": [{"id": "11.5", "estado": "no_aplica", "responsable": None, "archivo": None, "fecha": None,
+                           "nota": None, "justificacion": "No se adjunta."}],
+                "cifras": {"sigp": None, "anexo1": None, "anexo3": None, "mga": None},
+                "licencias": None, "aval_institucional": None}
+
+    def generated(self, stem: str) -> Path:
+        tex = self.sections / f"{stem}.tex"
+        tex.write_text(f"{REQUIREMENTS_HEADER}\n\\section{{Generada}}\n", encoding="utf-8")
+        return tex
+
+    def test_requirement_findings_are_included_with_their_file(self) -> None:
+        _write_sgr(self.run, "requisitos.json", self.requirements())
+        hit = next(f for f in _findings(self.run, "sgr") if f["code"] == "requisitos-no-aplica-invalido")
+        self.assertEqual((hit["severity"], hit["file"], hit["node"]),
+                         ("error", "artefactos/sgr/requisitos.json", "11.5"))
+
+    def test_missing_requirements_warn_only_past_grequisitos(self) -> None:
+        estado = self.run / "artefactos" / "estado_propuesta.md"
+        self.assertNotIn("requisitos-datos-faltantes", _codes(_findings(self.run, "sgr")))
+        estado.write_text("| GRequisitos | PENDIENTE |\n", encoding="utf-8")
+        self.assertNotIn("requisitos-datos-faltantes", _codes(_findings(self.run, "sgr")))
+        estado.write_text("| Compuerta | Estado |\n|---|---|\n| GRequisitos | APROBADA |\n", encoding="utf-8")
+        self.assertIn("requisitos-datos-faltantes", _codes(_findings(self.run, "sgr"), "warning"))
+
+    def test_hand_written_licence_or_annex_section_is_an_error(self) -> None:
+        for stem in REQUIREMENT_STEMS:
+            (self.sections / f"{stem}.tex").write_text("\\section{A mano}\nTexto.\n", encoding="utf-8")
+        hit = [f for f in _findings(self.run, "sgr") if f["code"] == "requisitos-anexo-manual"]
+        self.assertEqual([(f["severity"], f["file"]) for f in hit],
+                         [("error", "redaccion/sections/38_licencias_permisos.tex"),
+                          ("error", "redaccion/sections/39_anexos.tex")])
+
+    def test_section_older_than_its_data_is_an_error(self) -> None:
+        data = _write_sgr(self.run, "requisitos.json", self.requirements())
+        texs = [self.generated(stem) for stem in REQUIREMENT_STEMS]
+        self.assertFalse([c for c in _codes(_findings(self.run, "sgr")) if c.startswith("requisitos-anexo")])
+        stamp = max(t.stat().st_mtime for t in texs)
+        os.utime(data, (stamp + 10, stamp + 10))
+        found = [f for f in _findings(self.run, "sgr") if f["code"] == "requisitos-anexo-desactualizado"]
+        self.assertEqual({f["file"].rsplit("/", 1)[-1] for f in found}, {f"{s}.tex" for s in REQUIREMENT_STEMS})
+        os.utime(data, (stamp - 10, stamp - 10))
+        budget = _write_sgr(self.run, "presupuesto.json", _budget())
+        os.utime(self.run / "artefactos" / "sgr" / "alianza.json", (stamp - 10, stamp - 10))
+        os.utime(budget, (stamp + 10, stamp + 10))
+        found = [f for f in _findings(self.run, "sgr") if f["code"] == "requisitos-anexo-desactualizado"]
+        self.assertEqual([f["file"].rsplit("/", 1)[-1] for f in found], ["39_anexos.tex"])
+
+    def test_a_broken_requirements_module_is_a_warning(self) -> None:
+        _write_sgr(self.run, "requisitos.json", self.requirements())
+        check = _isolated_check(self.tmp, with_stub=False,
+                                extra={"requisitos_sgr.py": "def findings(run_root):\n    raise RuntimeError('x')\n"})
+        self.assertIn("requisitos-no-verificable", _codes(_findings(self.run, "sgr", check), "warning"))
+
+    def test_final_sgr_run_requires_the_licence_and_annex_sections(self) -> None:
+        missing = [f["message"] for f in _findings_final(self.run, "sgr") if f["code"] == "sgr-anexo-faltante"]
+        for stem in REQUIREMENT_STEMS:
             self.assertTrue(any(stem in m for m in missing), stem)
 
 

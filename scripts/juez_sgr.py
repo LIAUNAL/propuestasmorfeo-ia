@@ -61,6 +61,9 @@ AGENTS = ("redactor", "investigador", "presupuestador", "disenador-tikz", "bibli
           "grant-flow-auditor", "usuario")
 SEVERITIES = ("error", "advertencia", "info")
 ALERT_TYPES = ("inconsistencia", "faltante", "riesgo_puntaje", "forma")
+REQUIREMENT_CONDITIONS = ("etica", "internacional", "sector_productivo", "sociedad_civil", "infraestructura",
+                          "inmuebles", "cofinanciacion", "desastre", "otro")
+REQUIREMENT_KEYS = ("id", "nombre", "texto", "documento", "numeral_fuente")
 ROUND_RE = re.compile(r"^evaluacion_ronda_(\d+)\.json$")
 TEXT_SUFFIXES = {".txt", ".md", ".tex", ".csv", ".json", ".html", ".htm", ".xml"}
 MONEY_TOLERANCE = 0.5  # pesos: any whole-peso difference counts
@@ -189,7 +192,24 @@ def validate_rubric(rubric) -> list[str]:
     for key in ("minimos_talento", "minimo_productos"):
         if key in rubric and not _valid_minimums(rubric[key]):
             errors.append(f"{key} debe ser una lista de {{categoria, cantidad entera, texto}} (texto literal del TdR).")
+    if "requisitos" in rubric and not _valid_requirements(rubric["requisitos"]):
+        errors.append("requisitos debe ser una lista de {id único, nombre, texto, condicion (null o una condición "
+                      "conocida), documento, numeral_fuente} (textos literales del TdR).")
+    for _, sub in iter_subcriteria(rubric):
+        for part in sub.get("componentes") or []:
+            if "verificacion" in part and not (isinstance(part["verificacion"], str) and part["verificacion"]):
+                errors.append(f"{sub.get('id')}: componentes.{part.get('id')}.verificacion debe ser texto.")
     return errors
+
+
+def _valid_requirements(value) -> bool:
+    """Optional enabling requirements of the call (read by scripts/requisitos_sgr.py)."""
+    if not isinstance(value, list):
+        return False
+    ids = [r.get("id") for r in value if isinstance(r, dict)]
+    return len(ids) == len(value) and len(set(ids)) == len(ids) and all(
+        all(isinstance(r.get(key), str) and r[key].strip() for key in REQUIREMENT_KEYS)
+        and (r.get("condicion") is None or r.get("condicion") in REQUIREMENT_CONDITIONS) for r in value)
 
 
 def _valid_minimums(value) -> bool:
@@ -760,6 +780,23 @@ def cross_checks(rubric: dict, datos: dict, scores: dict[str, dict]) -> list[dic
                 add("productos-inconsistentes", "advertencia", "inconsistencia",
                     f"El componente A de {sub['id']} vale {parts['A']}, pero productos_adicionales "
                     f"({n_total}, {n_top} TOP o A) da {expected}.", [sub["id"]])
+
+    requirements = datos.get("requisitos") if isinstance(datos.get("requisitos"), dict) else {}
+    for rid in requirements.get("pendientes") or []:
+        add("requisito-pendiente", "advertencia", "faltante",
+            f"El requisito habilitante {rid} aplica y no está listo (requisitos_sgr.py): «se tendrá por no cumplida "
+            "toda condición que no haya sido soportada documentalmente».", [])
+    differences = [d for d in datos.get("cifras_diferencias") or [] if isinstance(d, dict)]
+    for diff in differences:
+        declared, expected = _num(diff.get("declarado")), _num(diff.get("esperado"))
+        add("cifras-distintas", "error", "inconsistencia",
+            f"La cifra {diff.get('campo')} declarada en {diff.get('documento')} "
+            f"({_money(declared) if declared is not None else diff.get('declarado')}) no coincide con el presupuesto "
+            f"o la alianza ({_money(expected) if expected is not None else diff.get('esperado')}).", budget_ids)
+    if not differences and datos.get("cifras_coherentes") is False:
+        add("cifras-distintas", "error", "inconsistencia",
+            "Las cifras declaradas en el SIGP, el Anexo 1, el Anexo 3 o la MGA Web no coinciden con el presupuesto o "
+            "la alianza (requisitos_sgr.py check).", budget_ids)
     return alerts
 
 

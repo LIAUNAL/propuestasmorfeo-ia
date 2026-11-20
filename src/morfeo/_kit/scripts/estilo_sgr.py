@@ -11,7 +11,7 @@ same folder.
 Usage:
   python3 scripts/estilo_sgr.py RUN_ROOT [--section KEY] [--json]
 
-KEY is a Morfeo section stem (02_justificacion, ..., 37_indicadores). Exit 0
+KEY is a Morfeo section stem (02_justificacion, ..., 39_anexos). Exit 0
 whatever the findings; exit 2 for bad input (missing run folder, unknown
 section, unreadable lexicon). --json prints {"seccion": KEY|null,
 "findings": [...]}, each finding being
@@ -37,8 +37,10 @@ general and specific objectives, product and activity names, the demand texts
 of artefactos/sgr/territorio.json, the entity and research group names of
 artefactos/sgr/alianza.json, the TRL milestones, transfer results and ASC
 products of artefactos/sgr/componentes.json, which the rendered sections and
-the schedule repeat, and the talent profiles, CTeI products and dissemination
-products of artefactos/sgr/productos.json).
+the schedule repeat, the talent profiles, CTeI products and dissemination
+products of artefactos/sgr/productos.json, and the licence names and norms of
+artefactos/sgr/requisitos.json with the requirement names and documents of the
+run's rubric, which sections 38 and 39 repeat).
 """
 
 from __future__ import annotations
@@ -60,6 +62,8 @@ ALLIANCE_FILE = Path("artefactos") / "sgr" / "alianza.json"
 TERRITORY_FILE = Path("artefactos") / "sgr" / "territorio.json"
 COMPONENTS_FILE = Path("artefactos") / "sgr" / "componentes.json"
 PRODUCTS_FILE = Path("artefactos") / "sgr" / "productos.json"
+REQUIREMENTS_FILE = Path("artefactos") / "sgr" / "requisitos.json"
+RUBRIC_FILE = Path("artefactos") / "juez" / "rubrica.json"
 ACTIVITY_SECTIONS = ("10_metodologia", "14_cronograma_actividades", "23_cadena_valor")
 SKIPPED_SECTIONS = frozenset({"16_bibliografia"})
 SEVERITY = {"prohibida": "advertencia", "desaconsejada": "info"}
@@ -249,7 +253,8 @@ def _phrase_pattern(text: str) -> re.Pattern | None:
 def whitelist_patterns(run_root: Path) -> list[re.Pattern]:
     """Texts that must repeat verbatim: title, central problem, objectives, products, activities,
     demand texts, entity and research group names, TRL milestones, transfer results, ASC products, talent
-    profiles, CTeI products and dissemination products."""
+    profiles, CTeI products, dissemination products, licence names and norms, and requirement names and
+    documents."""
     cr = _check_run()
     texts: list[str] = [cr.project_title(run_root / "redaccion")]
     spec = cr._read_json_file(run_root / cr.PROBLEM_SPEC) or {}
@@ -263,6 +268,7 @@ def whitelist_patterns(run_root: Path) -> list[re.Pattern]:
     texts += _alliance_territory_texts(run_root)
     texts += _component_texts(run_root)
     texts += _product_texts(run_root)
+    texts += _requirement_texts(run_root)
     patterns = {}
     for text in texts:
         pattern = _phrase_pattern(str(text))
@@ -312,6 +318,21 @@ def _product_texts(run_root: Path) -> list[str]:
         texts += [str(item.get(key) or "") for item in data.get(items) or [] if isinstance(item, dict)]
     block = data.get("divulgacion") if isinstance(data.get("divulgacion"), dict) else {}
     texts += [str(item) for item in block.get("productos") or [] if isinstance(item, str)]
+    return texts
+
+
+def _requirement_texts(run_root: Path) -> list[str]:
+    """Licence names and norms of requisitos.json and requirement names and documents of the run's rubric."""
+    cr = _check_run()
+    data = cr._read_json_file(run_root / REQUIREMENTS_FILE)
+    block = data.get("licencias") if isinstance(data, dict) else None
+    items = block.get("items") if isinstance(block, dict) else None
+    texts = [str(item.get(key) or "") for item in items or [] if isinstance(item, dict)
+             for key in ("licencia", "norma")]
+    rubric = cr._read_json_file(run_root / RUBRIC_FILE)
+    requirements = rubric.get("requisitos") if isinstance(rubric, dict) else None
+    texts += [str(req.get(key) or "") for req in requirements or [] if isinstance(req, dict)
+              for key in ("nombre", "documento")]
     return texts
 
 

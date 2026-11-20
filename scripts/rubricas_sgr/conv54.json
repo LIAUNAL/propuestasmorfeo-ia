@@ -88,6 +88,232 @@
       "texto": "El doctor acompañará y asesorará a los jóvenes investigadores e innovadores y a los estudiantes de maestría vinculados, y entregará dos (2) productos tipo TOP o tipo A, un producto de divulgación pública de la ciencia y un informe técnico final."
     }
   ],
+  "requisitos": [
+    {
+      "id": "11.1",
+      "nombre": "Inscripción y radicación en SIGP",
+      "texto": "Inscribir el proyecto en el Sistema Integrado de Gestión de Proyectos - SIGP, el cual se debe ajustar al objetivo de la convocatoria.",
+      "condicion": null,
+      "documento": "Proyecto inscrito y radicado en el SIGP",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.1"
+    },
+    {
+      "id": "11.2",
+      "nombre": "Dirigida a",
+      "texto": "Cumplir con las especificaciones y condiciones del “DIRIGIDA A” establecidas en el numeral 3 - DIRIGIDA A de los presentes términos de referencia.",
+      "condicion": null,
+      "documento": "Documentos de existencia y representación legal de las entidades de la alianza",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.2"
+    },
+    {
+      "id": "11.3",
+      "nombre": "Adecuado desempeño del proponente",
+      "texto": "Acreditar el adecuado desempeño del proponente en la última medición anual conforme la metodología establecida por el Departamento Nacional de Planeación DNP y de acuerdo con la información publicada por esa entidad en los medios dispuestos para tal fin.",
+      "condicion": null,
+      "documento": "Medición de desempeño publicada por el DNP",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.3"
+    },
+    {
+      "id": "11.4",
+      "nombre": "Carta unificada de aval, compromiso institucional y conformación de la alianza (Anexo 1. Carta unificada de aval, compromiso institucional, participación y modelo de gobernanza)",
+      "texto": "anexar “Carta unificada de aval, Compromiso institucional y Modelo de Gobernanza” debidamente diligenciada y firmada por los representantes legales o apoderados de todas las entidades nacionales que la conformen (Anexo 1. Carta unificada de aval, compromiso institucional, participación y modelo de gobernanza).",
+      "condicion": null,
+      "documento": "Anexo 1",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.4"
+    },
+    {
+      "id": "11.5",
+      "nombre": "Documento técnico",
+      "texto": "Adjuntar el documento técnico completo conforme con el numeral 13 - CONTENIDO DEL PROYECTO y el Anexo 2. Documento técnico , el cual deberá ser incluido en la plataforma SIGP, sección de “requisitos”, espacio Documento técnico.",
+      "condicion": null,
+      "documento": "Anexo 2",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.5"
+    },
+    {
+      "id": "11.6",
+      "nombre": "Alcance del proyecto",
+      "texto": "El proyecto deberá cumplir las condiciones establecidas en el numeral 5, identificando el desafío, la línea temática principal, y hasta dos (2) líneas temáticas complementarias, así como las condiciones de alcance definidas en el numeral 6.",
+      "condicion": null,
+      "documento": "Anexo 2",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.6"
+    },
+    {
+      "id": "11.7",
+      "nombre": "Atención de demandas territoriales",
+      "texto": "Cada departamento de intervención directa utilizado para acreditar el alcance territorial deberá relacionarse con al menos una demanda territorial del bienio 2025-2026 y demostrar su relación con el problema u oportunidad, actividad, producto, indicador, meta, responsable y costo.",
+      "condicion": null,
+      "documento": "Anexo 4. Demandas territoriales del bienio 2025-2026",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.7"
+    },
+    {
+      "id": "11.8",
+      "nombre": "Presupuesto",
+      "texto": "Adjuntar el presupuesto completo y consistente con las actividades, productos, responsables, territorios, cronograma y fuentes de financiación, de acuerdo con lo establecido en el numeral 13 - CONTENIDO DEL PROYECTO, el numeral 15 - DURACIÓN Y FINANCIACIÓN y el Anexo 3. Presupuesto.",
+      "condicion": null,
+      "documento": "Anexo 3",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.8"
+    },
+    {
+      "id": "11.9",
+      "nombre": "Proyectos de CTeI gestionados, ejecutados o en ejecución",
+      "texto": "La información sobre las capacidades de los integrantes de la alianza deberá presentarse en el Anexo 5. Formato de Proyectos de CTeI gestionados o ejecutados por el proponente e integrantes de la alianza y guardar correspondencia con las responsabilidades que asumirán en el proyecto.",
+      "condicion": null,
+      "documento": "Anexo 5",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.9"
+    },
+    {
+      "id": "11.10",
+      "nombre": "Aval del Comité de Ética de la Investigación o de Bioética (cuando aplique)",
+      "texto": "Cuando por la naturaleza del proyecto se requiera aval ético o bioético deberá presentarse el aval correspondiente e identificarse el comité que lo expide.",
+      "condicion": "etica",
+      "documento": "Aval del Comité de Ética o de Bioética y acto de conformación del comité",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.10"
+    },
+    {
+      "id": "11.11",
+      "nombre": "Participación de entidades internacionales (cuando aplique)",
+      "texto": "Para el caso de las entidades internacionales que formen parte del proyecto, se deberá anexar carta de intención de participación en el proyecto (formato libre), suscrito por el director del instituto, centro, departamento o grupo de investigación de la institución internacional.",
+      "condicion": "internacional",
+      "documento": "Carta de intención",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.11"
+    },
+    {
+      "id": "11.12",
+      "nombre": "Actor usuario, participante o adoptante del sector productivo (cuando aplique)",
+      "texto": "En todo caso todas las entidades deberán presentar certificado de existencia y representación legal no mayor a 90 días previo al cierre de la presente convocatoria, el cual deberá ser incluido en la plataforma SIGP, sección de “requisitos” espacio “Documentos Constitución Entidades Sector productivo”.",
+      "condicion": "sector_productivo",
+      "documento": "Certificado de existencia y representación legal",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.12"
+    },
+    {
+      "id": "11.13",
+      "nombre": "Actor usuario, participante o adoptante de organizaciones de la sociedad civil, gremios, asociaciones, ONG y organizaciones de base (cuando aplique)",
+      "texto": "Para los actores de la sociedad civil (asociaciones, cooperativas, fundaciones, corporaciones, juntas de acción comunal, ESAL en general), debe tener domicilio principal en alguno de los departamentos donde se desarrollará el proyecto la que hace parte de la alianza mínima, las adicionales se aceptará que su experiencia sea del área de influencia del departamento donde se desarrollará el proyecto.",
+      "condicion": "sociedad_civil",
+      "documento": "Certificado de existencia y representación legal o documento idóneo de acreditación",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.13"
+    },
+    {
+      "id": "11.14",
+      "nombre": "Proyecto de inversión formulado en MGA WEB Tipología D – PIIP",
+      "texto": "Presentar la MGA WEB preliminar del proyecto con todos los campos diligenciados en la Tipología D –PIIP Convocatorias CTeI del SGR en la MGA (Anexo 15. Instructivo para generar MGA-WEB en borrador).",
+      "condicion": null,
+      "documento": "MGA Web Tipología D – PIIP",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.14"
+    },
+    {
+      "id": "11.15",
+      "nombre": "Certificado de no financiación con otras fuentes de recursos",
+      "texto": "Presentar certificado suscrito por el representante legal de la entidad territorial del lugar de ejecución del proyecto, en el cual se indique que las actividades, productos y costos que pretenden financiarse con recursos del SGR no están siendo, ni han sido financiados con otras fuentes de recursos para el mismo alcance.",
+      "condicion": null,
+      "documento": "Certificado de no financiación",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.15"
+    },
+    {
+      "id": "11.16",
+      "nombre": "Certificación de precios unitarios",
+      "texto": "Presentar certificado suscrito por el representante legal de la entidad que presenta el proyecto de inversión en el que conste que los precios unitarios del presupuesto corresponden al promedio de la región donde se ejecutará el proyecto y que son los utilizados para el tipo de actividades contempladas en el proyecto.",
+      "condicion": null,
+      "documento": "Certificado de precios unitarios",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.16"
+    },
+    {
+      "id": "11.17",
+      "nombre": "Riesgo no mitigable y uso del suelo",
+      "texto": "Presentar certificado suscrito por el funcionario competente de la entidad territorial en donde se ejecutará el proyecto, en el que conste que el proyecto de inversión no está localizado en zona que presente alto riesgo no mitigable y que está acorde con el uso y tratamientos del suelo de conformidad con el respectivo instrumento de ordenamiento territorial: Plan de Ordenamiento Territorial (POT), Plan Básico de Ordenamiento Territorial (PBOT), o Esquema de Ordenamiento Territorial (EOT), según lo señalado en la normativa vigente.",
+      "condicion": null,
+      "documento": "Certificado de riesgo no mitigable y uso del suelo, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.17"
+    },
+    {
+      "id": "11.18",
+      "nombre": "Titularidad, posesión u ocupación de inmuebles",
+      "texto": "Presentar a) Certificado Tradición y Libertad y/o consulta ante la Ventanilla Única de Registro - VUR: expedido con una antelación no superior a tres (3) meses, en el que conste que el inmueble es de propiedad de la entidad territorial o de la entidad pública y se encuentra libre de gravámenes o limitaciones a la propiedad que impidan ejercer el derecho de disposición.",
+      "condicion": null,
+      "documento": "Certificado de Tradición y Libertad o consulta VUR, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.18"
+    },
+    {
+      "id": "11.19",
+      "nombre": "Inmuebles ubicados en resguardos indígenas o territorios colectivos",
+      "texto": "a) Cuando se trate de inmuebles localizados en resguardos indígenas o asociaciones de cabildos o autoridades indígenas tradicionales: Presentar el acto colectivo del resguardo suscrito por la autoridad tradicional o gobernador, donde señale que el predio se encuentra en su jurisdicción (si aplica).",
+      "condicion": "inmuebles",
+      "documento": "Acto colectivo del resguardo o documento de titulación colectiva, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.19"
+    },
+    {
+      "id": "11.20",
+      "nombre": "Plan de sostenibilidad del proyecto de inversión",
+      "texto": "Presentar el plan de sostenibilidad de acuerdo con el horizonte de operación y con la naturaleza del proyecto de inversión, que incluya las actividades técnicas, financieras y sociales, el cronograma y la fuente de recursos y la asignación de responsabilidades que garanticen la operación y el mantenimiento durante la vida útil del proyecto.",
+      "condicion": null,
+      "documento": "Plan de sostenibilidad (Anexo 07 del Acuerdo 012 del SGR) o justificación escrita de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.20"
+    },
+    {
+      "id": "11.21",
+      "nombre": "Análisis de riesgo de desastres",
+      "texto": "Presentar el análisis de riesgos de desastres, de conformidad con lo establecido en el artículo 38 de la Ley 1523 de 2012, en su defecto, se deberá adjuntar una matriz de evaluación de riesgo de desastres.",
+      "condicion": null,
+      "documento": "Análisis de riesgos de desastres o matriz de evaluación de riesgo de desastres",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.21"
+    },
+    {
+      "id": "11.22",
+      "nombre": "Plano de intervención física en el territorio",
+      "texto": "Presentar el plano de localización e implantación de la infraestructura conforme a lo consignado en la localización del proyecto en la MGA y a la topografía realizada, en coordenadas MAGNA SIRGAS, con norte geográfico y ubicación espacial del proyecto respecto de la cabecera municipal o centro poblado.",
+      "condicion": null,
+      "documento": "Plano de localización e implantación, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.22"
+    },
+    {
+      "id": "11.23",
+      "nombre": "Cofinanciación con recursos diferentes al SGR",
+      "texto": "Presentar cartas de intención, certificación o acto administrativo que soporte el monto de la cofinanciación, en efectivo o en especie, suscritos por parte de quien los aporte.",
+      "condicion": null,
+      "documento": "Cartas de intención, certificación o acto administrativo de la cofinanciación",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.23"
+    },
+    {
+      "id": "11.24",
+      "nombre": "Ejecución de obra por etapas",
+      "texto": "Presentar certificación suscrita por el Representante Legal de la entidad que lo presenta en la que conste el código de identificación del proyecto, el nombre del proyecto y se indique que se garantiza la culminación de las etapas subsiguientes de la obra con recursos del SGR u otras fuentes de financiación.",
+      "condicion": null,
+      "documento": "Certificación de ejecución de obra por etapas, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.24"
+    },
+    {
+      "id": "11.25",
+      "nombre": "Funcionamiento y operación para la prestación de servicios públicos",
+      "texto": "Presentar para los proyectos de inversión que contemplen componentes de infraestructura certificación suscrita por el profesional competente de la entidad prestadora de servicios públicos domiciliarios, conforme lo establecido en el artículo 15 de la Ley 142 de 1994, en el cual se indique: la disponibilidad del servicio, el o los puntos de conexión más cercanos a la localización, el nombre del proyecto y la capacidad del servicio público para atender la demanda de este.",
+      "condicion": null,
+      "documento": "Certificación de la entidad prestadora de servicios públicos, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.25"
+    },
+    {
+      "id": "11.26",
+      "nombre": "Participación de las entidades en el proyecto",
+      "texto": "Presentar certificado firmado por el representante legal de cada una de las entidades que participan en el proyecto en la que se incluya la siguiente información: a) Nombre completo del proyecto. b) Conocimiento de su contenido y compromiso con el desarrollo de las actividades descritas a su cargo. c) Para aquellas entidades que participen a través de grupos de investigación, se debe incluir el nombre del grupo o grupos de investigación. d) Justificación sobre la capacidad técnica e idoneidad para participar en proyecto.",
+      "condicion": null,
+      "documento": "Certificado de participación de cada entidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.26"
+    },
+    {
+      "id": "11.27",
+      "nombre": "Titularidad, administración, custodia y cuidado de bienes y resultados",
+      "texto": "Presentar certificado expedido por el representante legal de la entidad que presenta el proyecto en el cual se defina la titularidad, la administración, la custodia y el cuidado de los bienes y resultados derivados del proyecto, en el cual conste que con la expedición de dicho certificado se entiende que la entidad proponente concertó este asunto previamente con los cofinanciadores del proyecto, según sea el caso y con las entidades territoriales donde se ejecutará.",
+      "condicion": null,
+      "documento": "Certificado de titularidad, administración, custodia y cuidado de bienes y resultados",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.27"
+    },
+    {
+      "id": "11.28",
+      "nombre": "Modelo de gobernanza de la alianza",
+      "texto": "Presentar documento de gobernanza acorde con lo previsto en el numeral 4 del artículo 1.2.3.1.1. del Decreto 1821 de 2020 o la norma que lo modifique, sustituya o adicione.",
+      "condicion": null,
+      "documento": "Documento de gobernanza (numeral 10 del Anexo 1)",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.28"
+    }
+  ],
   "notas": [
     "El TdR de la Convocatoria 54 no fija la extensión de la justificación ni del concepto final; Morfeo usa los valores por defecto del formato M801PR02 (justificación de 1000 a 4000 caracteres, concepto de al menos 300 palabras con «Recomienda»).",
     "Para integrar el banco especial de proyectos elegibles, la propuesta deberá obtener un puntaje final igual o superior a setenta y cinco (75) puntos sobre cien (100) y mínimo veinticuatro (24) puntos de los cuarenta (40) correspondientes al criterio 1. El cumplimiento del puntaje total no compensará el incumplimiento de este mínimo técnico.",
@@ -266,7 +492,8 @@
               "id": "cifras",
               "nombre": "Coherencia de cifras entre documentos",
               "max": 2,
-              "descriptor": "Coherencia de las cifras entre el SIGP, el Anexo 1. Carta unificada de aval, compromiso institucional, participación y modelo de gobernanza, el Anexo 2. Documento técnico y el Anexo 3. Presupuesto, incluidos los aportes de contrapartida cuantificados por cada integrante de la alianza. (hasta 2 puntos)"
+              "descriptor": "Coherencia de las cifras entre el SIGP, el Anexo 1. Carta unificada de aval, compromiso institucional, participación y modelo de gobernanza, el Anexo 2. Documento técnico y el Anexo 3. Presupuesto, incluidos los aportes de contrapartida cuantificados por cada integrante de la alianza. (hasta 2 puntos)",
+              "verificacion": "scripts/requisitos_sgr.py check (cifras: SIGP, Anexo 1, Anexo 3 y MGA Web frente a presupuesto.json y alianza.json)"
             }
           ],
           "notas": [],

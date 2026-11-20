@@ -88,6 +88,14 @@ objective trees when their files exist:
     productos-anexo-desactualizado (error: the section is older than the json
     it is rendered from). A hand-written §15 of an older SGR run without
     productos.json is left alone.
+  requirements, licences and annexes (SGR flow only; scripts/requisitos_sgr.py):
+    every `requisitos-*` finding of artefactos/sgr/requisitos.json when it
+    exists; requisitos-datos-faltantes (warning: GRequisitos is approved in
+    estado_propuesta.md and the file is missing); requisitos-anexo-manual
+    (error: 38_licencias_permisos or 39_anexos lacks the GENERADO header) and
+    requisitos-anexo-desactualizado (error: the section is older than the json
+    it is rendered from). Applicable requirements that are not ready are
+    errors only in `requisitos_sgr.py check --final` (Fase 7).
   tree figures (both flows): figura-desincronizada (error: diag_<tree>.tex is
     not the render of its spec), figura-spec-invalida, figura-sin-verificar.
   TDR chapters (artefactos/estructura_tdr.json, any flow):
@@ -136,6 +144,7 @@ SGR_SECTIONS = (
     "30_fuentes_financiacion",
     "31_trl", "32_sostenibilidad", "33_uso_posterior", "34_transferencia", "35_medidas_diferenciales",
     "36_talento_humano", "37_indicadores",
+    "38_licencias_permisos", "39_anexos",
 )
 FLUJOS = ("base", "sgr")
 PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
@@ -1266,6 +1275,47 @@ def check_sgr_products(report: Report, run_root: Path, sec_dir: Path, flujo: str
                        "python3 scripts/productos_sgr.py render <RUN_ROOT>.", tex)
 
 
+REQUIREMENTS_FILE = Path("artefactos") / "sgr" / "requisitos.json"
+REQUIREMENTS_HEADER = "% GENERADO por scripts/requisitos_sgr.py"
+# Sections rendered by scripts/requisitos_sgr.py and the json files they come from.
+REQUIREMENTS_SECTIONS = {
+    "38_licencias_permisos": (REQUIREMENTS_FILE, ALLIANCE_FILE),
+    "39_anexos": (REQUIREMENTS_FILE, ALLIANCE_FILE, Path("artefactos") / "sgr" / "presupuesto.json"),
+}
+GREQUISITOS_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.])GRequisitos(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def check_sgr_requirements(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """Enabling requirements, licences and annexes as data (scripts/requisitos_sgr.py): findings, absence
+    after GRequisitos and the rendered sections 38 and 39."""
+    if flujo != "sgr":
+        return
+    data = run_root / REQUIREMENTS_FILE
+    if data.is_file():
+        for f in _module_findings(report, "requisitos_sgr", "requisitos-no-verificable", run_root, data):
+            report.add(f["severity"], f["code"], f["message"], data, node=f.get("node"))
+    else:
+        estado = run_root / "artefactos" / "estado_propuesta.md"
+        if estado.is_file() and GREQUISITOS_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+            report.add("warning", "requisitos-datos-faltantes",
+                       "En el flujo SGR, después de GRequisitos los requisitos habilitantes, las licencias y los "
+                       "anexos viven en artefactos/sgr/requisitos.json (unidad fase6_9_sgr «Requisitos y anexos»).")
+    for stem, sources in REQUIREMENTS_SECTIONS.items():
+        tex = sec_dir / f"{stem}.tex"
+        if not tex.is_file():
+            continue
+        first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        stamps = [(run_root / s).stat().st_mtime for s in sources if (run_root / s).is_file()]
+        if not first or first[0].strip() != REQUIREMENTS_HEADER:
+            report.add("error", "requisitos-anexo-manual",
+                       f"En el flujo SGR {stem}.tex no se escribe a mano: lo genera "
+                       "python3 scripts/requisitos_sgr.py render <RUN_ROOT> desde requisitos.json.", tex)
+        elif stamps and tex.stat().st_mtime < max(stamps):
+            report.add("error", "requisitos-anexo-desactualizado",
+                       f"{stem}.tex es anterior a los datos de los que sale: volvé a correr "
+                       "python3 scripts/requisitos_sgr.py render <RUN_ROOT>.", tex)
+
+
 def check_sgr_style(report: Report, run_root: Path, flujo: str) -> None:
     """SGR style findings (scripts/estilo_sgr.py), as warnings: advice for the style reviewer."""
     if flujo != "sgr":
@@ -1336,6 +1386,7 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_sgr_budget_schedule(report, run_root, sec_dir, report.flujo)
     check_sgr_components(report, run_root, sec_dir, report.flujo)
     check_sgr_products(report, run_root, sec_dir, report.flujo)
+    check_sgr_requirements(report, run_root, sec_dir, report.flujo)
     check_sgr_style(report, run_root, report.flujo)
     return report
 

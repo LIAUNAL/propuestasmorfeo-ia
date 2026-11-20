@@ -189,6 +189,23 @@ class RubricFilesTest(unittest.TestCase):
                     self.assertEqual(len(errors), 1, bad)
                     self.assertIn(key, errors[0])
 
+    def test_requirements_are_optional_but_must_be_well_formed(self) -> None:
+        rubric = _rubric("conv54")
+        bare = copy.deepcopy(rubric)
+        bare.pop("requisitos")
+        self.assertEqual(self.juez.validate_rubric(bare), [])
+        good = rubric["requisitos"][0]
+        for bad in ({"id": "11.1"}, [dict(good, condicion="lunar")], [dict(good, texto="")], [good, dict(good)]):
+            with self.subTest(bad=str(bad)[:40]):
+                broken = copy.deepcopy(rubric)
+                broken["requisitos"] = bad
+                errors = self.juez.validate_rubric(broken)
+                self.assertEqual(len(errors), 1, errors)
+                self.assertIn("requisitos", errors[0])
+        broken = copy.deepcopy(rubric)
+        _sub(broken, "1.4")["componentes"][2]["verificacion"] = 5
+        self.assertEqual(len(self.juez.validate_rubric(broken)), 1)
+
     def test_modes_follow_the_tdr(self) -> None:
         conv54, conv56 = _rubric("conv54"), _rubric("conv56")
         modes54 = {s["id"]: s["modo"] for c in conv54["criterios"] for s in c["subcriterios"]}
@@ -425,6 +442,34 @@ class CalificarTest(unittest.TestCase):
         _cli("calificar", clean)
         self.assertFalse({"tope-solicitud", "totales-distintos", "contrapartida-no-cuadra",
                           "transferencia-baja"} & _alert_codes(_evaluation(clean)))
+
+    def test_pending_requirements_and_figure_mismatches_raise_alerts(self) -> None:
+        rubric = _rubric("conv54")
+        datos = _datos(requisitos={"aplicables": 26, "listos": 24, "pendientes": ["11.4", "11.14"],
+                                   "no_aplica": ["11.10"]},
+                       cifras_coherentes=False,
+                       cifras_diferencias=[{"documento": "sigp", "campo": "total_sgr", "declarado": 1,
+                                            "esperado": 2}])
+        run = _make_run()
+        _prepare_for_scoring(run, "conv54", [_round(rubric)], datos)
+        self.assertEqual(_cli("calificar", run).returncode, 0)
+        evaluation = _evaluation(run)
+        pending = [a for a in evaluation["verificaciones"] if a["codigo"] == "requisito-pendiente"]
+        self.assertEqual([a["severidad"] for a in pending], ["advertencia", "advertencia"])
+        self.assertTrue("11.4" in pending[0]["mensaje"] and "11.14" in pending[1]["mensaje"])
+        figures = [a for a in evaluation["verificaciones"] if a["codigo"] == "cifras-distintas"]
+        self.assertEqual(len(figures), 1)
+        self.assertEqual((figures[0]["severidad"], figures[0]["criterios"]), ("error", ["1.4"]))
+        self.assertTrue(evaluation["elegible"], "advisory alerts do not change eligibility")
+        mismatch_only = _make_run()
+        _prepare_for_scoring(mismatch_only, "conv54", [_round(rubric)], _datos(cifras_coherentes=False))
+        _cli("calificar", mismatch_only)
+        self.assertEqual(sum(a["codigo"] == "cifras-distintas" for a in _evaluation(mismatch_only)["verificaciones"]),
+                         1)
+        clean = _make_run()
+        _prepare_for_scoring(clean, "conv54", [_round(rubric)], _datos())
+        _cli("calificar", clean)
+        self.assertFalse({"requisito-pendiente", "cifras-distintas"} & _alert_codes(_evaluation(clean)))
 
     def test_conv56_trl_level_must_match_the_declared_exit(self) -> None:
         run = _make_run()

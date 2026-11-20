@@ -12,8 +12,9 @@
 % si existen), las secciones SGR de alianza y territorio (26_ a 29_, solo si
 % existen), el resumen de fuentes de financiación SGR (30_, solo si existe), el
 % TRL y los componentes transversales SGR (31_ a 35_, solo si existen), el
-% talento humano y los indicadores SGR (36_ y 37_, solo si existen) y la
-% bibliografía (archivo 16_) al final.
+% talento humano y los indicadores SGR (36_ y 37_, solo si existen), las
+% licencias y los anexos SGR (38_ y 39_, solo si existen) y la bibliografía
+% (archivo 16_) al final.
 %
 % Logos (guía, regla única): UNAL arriba a la derecha, GCPDS abajo a la
 % izquierda, LabIA abajo a la derecha. El logo de la UTP es opcional: solo
@@ -193,6 +194,11 @@
 %     flujo SGR también regenera 15_) ------------------------------------------
 \SeccionSiExiste{36_talento_humano}
 \SeccionSiExiste{37_indicadores}
+
+% --- Licencias y anexos: solo el flujo SGR los produce (38_ y 39_ los genera
+%     scripts/requisitos_sgr.py, Anexo 2 caps. 28 y 31) ---------------------
+\SeccionSiExiste{38_licencias_permisos}
+\SeccionSiExiste{39_anexos}
 
 % --- Bibliografía (archivo 16_, con \clearpage y \bibsection vacío) al final --
 \SeccionSiExiste{16_bibliografia}
