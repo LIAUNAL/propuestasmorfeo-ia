@@ -27,6 +27,7 @@ from ..core.value_chain import approve as approve_value_chain, build_adjust_prom
 from ..core.alliance import approve as approve_alliance, build_adjust_prompt as build_alliance_prompt, load_alliance
 from ..core.budget import approve as approve_budget, build_adjust_prompt as build_budget_prompt, load_budget
 from ..core.components import approve as approve_components, build_adjust_prompt as build_components_prompt, load_components
+from ..core.products import approve as approve_products, build_adjust_prompt as build_products_prompt, load_products
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -171,6 +172,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_budget()
         elif path == "/api/components":
             self.serve_components()
+        elif path == "/api/products":
+            self.serve_products()
         elif path == "/api/style-sgr":
             self.serve_style_sgr()
         else:
@@ -214,6 +217,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_components_approve()
         elif path == "/api/components/adjust":
             self.handle_components_adjust()
+        elif path == "/api/products/approve":
+            self.handle_products_approve()
+        elif path == "/api/products/adjust":
+            self.handle_products_adjust()
         else:
             self.send_error(404, "Not Found")
 
@@ -840,6 +847,42 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             return
         try:
             prompt = build_components_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    # Productos, talento e indicadores (solo flujo SGR), con las convenciones de los componentes.
+    def serve_products(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_products(run_dir)})
+
+    def handle_products_approve(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = approve_products(run_dir, str(payload.get("hash") or "") or None)
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_products_adjust(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            prompt = build_products_prompt(run_dir, payload.get("nota"))
         except ValueError as err:
             self._send_json(400, {"ok": False, "error": str(err)})
             return

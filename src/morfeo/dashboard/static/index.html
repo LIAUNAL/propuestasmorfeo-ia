@@ -575,6 +575,18 @@
     .cp-ods-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; margin-bottom: 0.6rem; }
     .cp-ods { padding: 0.5rem 0.6rem; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); border-top: 3px solid var(--accent); font-size: 0.78rem; overflow-wrap: anywhere; }
     .cp-ods__name { font-weight: 600; color: var(--text); }
+    /* Productos e indicadores SGR: franja de mínimos de talento y lista de la
+       estrategia de divulgación. */
+    .pr-min-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.5rem; margin: 0.4rem 0 0.7rem; }
+    .pr-min { padding: 0.45rem 0.6rem; border-radius: var(--radius); border: 1px solid var(--border-subtle); border-left: 4px solid var(--ok); background: var(--surface-2); font-size: 0.78rem; overflow-wrap: anywhere; }
+    .pr-min.is-missing { border-left-color: var(--bad); }
+    .pr-min__head { font-weight: 600; color: var(--text); }
+    .pr-min__count { color: var(--text-muted); margin-top: 0.15rem; }
+    .pr-checklist { list-style: none; margin: 0.4rem 0 0.6rem; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+    .pr-check { padding: 0.4rem 0.55rem; border-radius: var(--radius); border: 1px solid var(--border-subtle); border-left: 4px solid var(--ok); background: var(--surface-2); font-size: 0.78rem; overflow-wrap: anywhere; }
+    .pr-check.is-missing { border-left-color: var(--bad); }
+    .pr-check__head { font-weight: 600; color: var(--text); }
+    .pr-check__detail { color: var(--text-muted); margin-top: 0.15rem; }
     /* Juez final: puntaje estimado, criterios, alertas, acciones e historial. */
     .judge-intro { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
     .judge-feedback { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -2967,6 +2979,40 @@
       </div>
     </div>
 
+    <!-- TAB: PRODUCTOS E INDICADORES (solo flujo SGR; el botón se agrega con el flujo) -->
+    <div id="pane-productos" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Productos, talento humano e indicadores: catálogo DNP, productos de CTeI, divulgación y mínimos de la convocatoria</div>
+          <span class="panel__meta" id="prRunMeta">—</span>
+        </div>
+        <p class="judge-intro">El talento humano a vincular frente a los mínimos de la convocatoria; los productos por objetivo con su código del catálogo DNP, indicador, unidad y meta tomados de la cadena de valor; los productos de CTeI con los adicionales al mínimo y la vista previa del criterio 2.5; la estrategia de divulgación pública de la ciencia; y los indicadores de gestión y de producto.</p>
+      </div>
+      <div class="tree-layout">
+        <div class="panel tree-stage">
+          <div id="prContent"></div>
+        </div>
+        <aside class="panel tree-review" id="prReviewPanel">
+          <div class="panel__header">
+            <div class="panel__title">Revisión con el agente</div>
+            <span class="badge" id="prStatusBadge">—</span>
+          </div>
+          <div class="tree-review__body">
+            <p class="vc-review-note" id="prHashNote"></p>
+            <label class="tree-label" for="prNoteInput">Ajuste solicitado</label>
+            <textarea id="prNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: comprometer un artículo TOP adicional o costear la estrategia de divulgación"></textarea>
+            <p class="tree-gate-note" id="prGateNote"></p>
+            <div class="tree-actions">
+              <button class="btn btn--sm btn--primary" id="prSendBtn" onclick="sendProductsAdjust()">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="prApproveBtn" onclick="approveProducts()">✅ Aprobar productos e indicadores</button>
+              <button class="btn btn--sm" id="prRetryBtn" onclick="retryProductsPrompt()" style="display: none;">↻ Reintentar envío</button>
+            </div>
+            <p class="tree-message" id="prMessage" role="status"></p>
+          </div>
+        </aside>
+      </div>
+    </div>
+
     <!-- TAB: MGA RESUMIDO -->
     <div id="pane-mga" class="tab-pane">
       <div class="panel">
@@ -3888,6 +3934,7 @@
       fase4: { label: 'Indicaciones para los objetivos', placeholder: 'Ajustes al objetivo general o a los específicos (siempre desde el árbol de objetivos aprobado), verbos o alcances que quieras privilegiar…', panel: { tab: 'trees', label: 'Ver el árbol de objetivos' } },
       fase4_sgr: { label: 'Indicaciones para la cadena de valor', placeholder: 'Productos del catálogo DNP que esperas por objetivo, indicadores y metas, actividades críticas, duración en meses…', panel: { tab: 'cadena', label: 'Ver la cadena de valor' } },
       fase5: { label: 'Indicaciones para el marco conceptual y el equipo', placeholder: 'Conceptos que deben aparecer en el marco conceptual; integrantes del equipo con su rol, perfil, dedicación e institución…', panel: { tab: 'sections', label: 'Ver §8 y §9 en Secciones' } },
+      fase5_sgr: { label: 'Indicaciones para productos, talento e indicadores', placeholder: 'Productos de CTeI que se comprometen por encima del mínimo (artículos TOP o A, software, apropiación social), públicos, medios, responsable y costo de la divulgación; jóvenes investigadores, maestrías, posdoctorado y su entidad; indicadores de supervisión e informes…', panel: { tab: 'productos', label: 'Ver productos e indicadores' } },
       fase5_5: { label: 'Indicaciones para la metodología', placeholder: 'Fases de trabajo, métodos y algoritmos por objetivo específico, datos y equipos disponibles, validación y trayectoria de TRL…', panel: { tab: 'sections', label: 'Ver §10 en Secciones' } },
       fase5_5_sgr: { label: 'Indicaciones para el TRL y los componentes transversales', placeholder: 'TRL de entrada con su evidencia y TRL de salida, tipología, hitos de maduración y escenario de verificación; resultados a transferir y sus usuarios; actores y productos de la apropiación social; ODS, actores que sostienen el proyecto, bienes y quién los opera; barreras de poblaciones diferenciales…', panel: { tab: 'componentes', label: 'Ver TRL y componentes' } },
       fase6: { label: 'Indicaciones para resultados y ética', placeholder: 'Resultados esperados por objetivo, indicadores, consideraciones éticas (datos personales, consentimiento, comité de ética)…', panel: { tab: 'sections', label: 'Ver §11 y §12 en Secciones' } },
@@ -6844,6 +6891,421 @@
       if (CP_STATE.pendingPrompt) await deliverComponentsPrompt(CP_STATE.pendingPrompt);
     }
 
+    // ── Productos, talento humano e indicadores SGR ─────────────────────────
+    // Lee /api/products (artefactos/sgr/productos.json, los hallazgos de
+    // scripts/productos_sgr.py, los productos de la cadena de valor con su
+    // indicador, los mínimos de talento de la rúbrica y los nombres de las
+    // entidades). Solo existe en el flujo SGR: el botón se agrega después de
+    // «TRL y componentes» y, en el flujo base, la ruta directa avisa.
+    const PR_STATE = { data: null, sig: null, timer: null, pendingPrompt: null };
+    const PR_CATEGORIAS = {
+      joven_investigador: 'Jóvenes investigadores e innovadores',
+      maestria: 'Estudiantes de maestría',
+      doctorado: 'Estudiantes de doctorado',
+      posdoctorado: 'Estancia posdoctoral',
+      profesional: 'Profesionales',
+      tecnico: 'Técnicos',
+      otro: 'Otro',
+    };
+    const PR_TIPOS = {
+      nuevo_conocimiento: 'Nuevo conocimiento',
+      desarrollo_tecnologico: 'Desarrollo tecnológico',
+      apropiacion_social: 'Apropiación social',
+      formacion: 'Formación',
+    };
+    const PR_DIVULGACION = [
+      ['publicos', 'Públicos'],
+      ['medios', 'Medios'],
+      ['productos', 'Productos'],
+      ['responsable', 'Responsable'],
+      ['cronograma', 'Cronograma'],
+      ['costeada', 'Costeada'],
+    ];
+
+    function prMessage(text, tone) {
+      const el = document.getElementById('prMessage');
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = `tree-message${tone ? ' is-' + tone : ''}`;
+    }
+
+    function prLabel(map, key) {
+      if (key === null || key === undefined || key === '') return '—';
+      const k = String(key);
+      return escapeHtml(Object.prototype.hasOwnProperty.call(map, k) ? map[k] : k);
+    }
+
+    function prEntity(id) {
+      if (id === null || id === undefined || id === '') return '—';
+      const name = cpObj(PR_STATE.data && PR_STATE.data.entidades)[String(id)];
+      return name ? `${escapeHtml(String(name))} <span class="vc-code">${escapeHtml(String(id))}</span>` : escapeHtml(String(id));
+    }
+
+    // Vista previa del criterio 2.5 (Conv 54): componente A por los productos
+    // adicionales al mínimo (3 o más con 2 TOP/A → 3; 2 con 1 TOP/A → 2; 1 → 1)
+    // y la divulgación (completa y costeada → 2; incompleta → 1; sin ella → 0).
+    function prPreview25(productos) {
+      const p = cpObj(productos);
+      const adicionales = vcList(p.productos_ctei).filter(x => x.adicional === true);
+      const qty = x => { const n = vcNumber(x.cantidad); return n !== null && n > 0 ? n : 0; };
+      const total = adicionales.reduce((n, x) => n + qty(x), 0);
+      const topA = adicionales.filter(x => x.categoria === 'TOP' || x.categoria === 'A').reduce((n, x) => n + qty(x), 0);
+      const a = total >= 3 && topA >= 2 ? 3 : total >= 2 && topA >= 1 ? 2 : total >= 1 ? 1 : 0;
+      const checks = prDivulgacionChecks(p.divulgacion);
+      const div = checks === null ? 0 : checks.every(([, , ok]) => ok) ? 2 : 1;
+      return { total, topA, a, div, checks };
+    }
+
+    // [clave, etiqueta, cumple, detalle] de la estrategia, o null si no existe.
+    function prDivulgacionChecks(divulgacion) {
+      if (!divulgacion || typeof divulgacion !== 'object' || Array.isArray(divulgacion)) return null;
+      const d = divulgacion;
+      return PR_DIVULGACION.map(([key, label]) => {
+        if (key === 'responsable') {
+          const ok = d.responsable !== null && d.responsable !== undefined && d.responsable !== '';
+          return [key, label, ok, ok ? prEntity(d.responsable) : 'Sin responsable'];
+        }
+        if (key === 'costeada') {
+          const ok = d.costeada === true;
+          return [key, label, ok, ok ? 'La estrategia tiene costo en el presupuesto' : 'La estrategia no está costeada'];
+        }
+        if (key === 'cronograma') {
+          const rows = vcList(d.cronograma);
+          return [key, label, rows.length > 0, rows.length
+            ? rows.map(r => `Mes ${vcText(r.mes)}: ${vcText(r.accion)}`).join(' · ') : 'Sin acciones con mes'];
+        }
+        const items = alStrings(d[key]);
+        return [key, label, items.length > 0, items.length ? escapeHtml(items.join(', ')) : 'Sin definir'];
+      });
+    }
+
+    function syncProductsTab() {
+      const nav = document.querySelector('.tabs-nav');
+      if (!nav) return;
+      let btn = document.getElementById('productsTabBtn');
+      if (!isSgrFlujo()) {
+        if (btn) btn.remove();
+        return;
+      }
+      if (btn) return;
+      btn = document.createElement('button');
+      btn.id = 'productsTabBtn';
+      btn.className = `tab-nav__btn${activeTab === 'productos' ? ' active' : ''}`;
+      btn.setAttribute('onclick', "navigateTab('productos')");
+      btn.textContent = 'Productos e indicadores';
+      const anchor = document.getElementById('componentsTabBtn') || document.getElementById('budgetTabBtn')
+        || document.getElementById('allianceTabBtn') || document.getElementById('valueChainTabBtn')
+        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+      if (anchor) anchor.after(btn);
+      else nav.appendChild(btn);
+    }
+
+    async function loadProducts() {
+      let data = null;
+      try {
+        const res = await fetch('/api/products', { cache: 'no-store' });
+        data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      } catch (err) {
+        PR_STATE.data = null;
+        PR_STATE.sig = null;
+        const el = document.getElementById('prContent');
+        if (el) el.innerHTML = `<div class="tree-empty"><p>No se pudieron leer los productos y los indicadores de la corrida activa.</p><small>${escapeHtml(err.message || String(err))}</small></div>`;
+        return;
+      }
+      PR_STATE.data = data;
+      const sig = JSON.stringify(data);
+      if (sig !== PR_STATE.sig) {
+        PR_STATE.sig = sig;
+        renderProducts();
+      }
+    }
+
+    function startProductsPolling() {
+      loadProducts();
+      if (PR_STATE.timer) return;
+      PR_STATE.timer = setInterval(() => {
+        if (activeTab === 'productos' && !document.hidden) loadProducts();
+      }, 5000);
+    }
+
+    function stopProductsPolling() {
+      if (PR_STATE.timer) clearInterval(PR_STATE.timer);
+      PR_STATE.timer = null;
+    }
+
+    // Franja de mínimos de talento de la rúbrica: requerido, comprometido y si cumple.
+    function prMinimosHtml(minimos) {
+      const list = vcList(minimos);
+      if (!list.length) {
+        return '<p class="judge-empty">La rúbrica de la corrida no declara mínimos de talento: se leen de <code>artefactos/juez/rubrica.json</code> (clave <code>minimos_talento</code>).</p>';
+      }
+      return `<div class="pr-min-strip">${list.map(m => {
+        const req = vcNumber(m.requerido), com = vcNumber(m.comprometido);
+        const ok = m.cumple === true;
+        const falta = req !== null ? Math.max(0, req - (com || 0)) : null;
+        const badge = ok ? '<span class="badge badge--ok">Cumple</span>'
+          : `<span class="badge badge--bad">Falta${falta ? ' ' + escapeHtml(String(falta)) : ''}</span>`;
+        return `<div class="pr-min ${ok ? 'is-ok' : 'is-missing'}" data-categoria="${escapeHtml(String(m.categoria || ''))}">
+          <div class="pr-min__head">${prLabel(PR_CATEGORIAS, m.categoria)} ${badge}</div>
+          <div class="pr-min__count">Requerido ${vcText(req)} · comprometido ${vcText(com)}</div>
+          ${m.texto ? `<div class="pr-min__count">${escapeHtml(String(m.texto))}</div>` : ''}
+        </div>`;
+      }).join('')}</div>`;
+    }
+
+    function prTalentHtml(p, minimos) {
+      return `<h5 class="al-heading">Mínimos de la convocatoria</h5>
+        ${prMinimosHtml(minimos)}
+        <h5 class="al-heading">Talento a vincular</h5>
+        ${cpTable(p.talento, [
+          ['Categoría', r => prLabel(PR_CATEGORIAS, r.categoria)],
+          ['Cantidad', r => vcText(r.cantidad)],
+          ['Entidad que vincula', r => prEntity(r.entidad)],
+          ['Perfil', r => vcText(r.perfil)],
+          ['Formación y experiencia', r => vcText(r.formacion)],
+          ['Actividades', r => alCodes(r.actividades)],
+          ['Duración (meses)', r => vcText(r.duracion_meses)],
+          ['Valor mensual', r => vcMoney(r.valor_mensual)],
+          ['Producto final', r => vcText(r.producto_final)],
+        ], 'Sin talento humano registrado.')}`;
+    }
+
+    function prDnp(code) {
+      return code === null || code === undefined || code === ''
+        ? '<span class="badge badge--warn">Sin código DNP</span>' : `<code>${escapeHtml(String(code))}</code>`;
+    }
+
+    // Productos de la cadena de valor agrupados por objetivo específico.
+    function prChainHtml(cadena) {
+      const list = vcList(cadena);
+      if (!list.length) return '<p class="judge-empty">La cadena de valor todavía no tiene productos: se definen en la pestaña «Cadena de valor».</p>';
+      const groups = [];
+      list.forEach(p => {
+        const key = String(p.oe ?? '');
+        let g = groups.find(x => x.key === key);
+        if (!g) { g = { key, texto: p.oe_texto, rows: [] }; groups.push(g); }
+        g.rows.push(p);
+      });
+      return groups.map(g => `<div class="cp-card" data-oe="${escapeHtml(g.key)}">
+          <strong>${vcText(g.key)}</strong> · ${vcText(g.texto)}
+          ${cpTable(g.rows, [
+            ['Código DNP', r => prDnp(r.codigo_dnp)],
+            ['Producto', r => `<code>${vcText(r.codigo)}</code> ${vcText(r.nombre)}`],
+            ['Medido a través de', r => vcText(r.medido_a_traves_de)],
+            ['Indicador de producto', r => vcText(r.indicador)],
+            ['Unidad de medida', r => vcText(r.unidad)],
+            ['Meta', r => vcText(r.meta)],
+          ], '')}
+        </div>`).join('');
+    }
+
+    function prChainName(code) {
+      if (code === null || code === undefined || code === '') return '—';
+      const prod = vcList(PR_STATE.data && PR_STATE.data.cadena_productos).find(p => String(p.codigo) === String(code));
+      return `<code>${escapeHtml(String(code))}</code>${prod && prod.nombre ? ' ' + escapeHtml(String(prod.nombre)) : ''}`;
+    }
+
+    function prCteiHtml(p, preview, minimo) {
+      const minHtml = minimo === null || minimo === undefined ? ''
+        : `<p class="pg-card__detail">Mínimo de la convocatoria: ${escapeHtml(typeof minimo === 'object' ? String(minimo.texto || minimo.descripcion || JSON.stringify(minimo)) : String(minimo))}</p>`;
+      const div = preview.div;
+      return `${minHtml}
+        <div class="vc-summary">
+          <span><strong>${escapeHtml(String(preview.total))}</strong> adicionales al mínimo</span>
+          <span><strong>${escapeHtml(String(preview.topA))}</strong> TOP o A</span>
+        </div>
+        ${cpTable(p.productos_ctei, [
+          ['Tipo', r => prLabel(PR_TIPOS, r.tipo)],
+          ['Subtipo', r => vcText(r.subtipo)],
+          ['Categoría', r => r.categoria === null || r.categoria === undefined || r.categoria === ''
+            ? '—' : `<span class="badge badge--${r.categoria === 'TOP' || r.categoria === 'A' ? 'ok' : 'info'}">${escapeHtml(String(r.categoria))}</span>`],
+          ['Cantidad', r => vcText(r.cantidad)],
+          ['Compromiso', r => r.adicional === true ? '<span class="badge badge--ok">Adicional</span>' : '<span class="badge">Mínimo</span>'],
+          ['Producto de la cadena', r => prChainName(r.producto_cadena)],
+          ['Descripción', r => vcText(r.descripcion)],
+        ], 'Sin productos de CTeI registrados.')}
+        <h5 class="al-heading">Vista previa del criterio 2.5</h5>
+        <div class="pg-cards" id="prPreview" data-puntaje-a="${escapeHtml(String(preview.a))}" data-puntaje-div="${escapeHtml(String(div))}" data-total="${escapeHtml(String(preview.a + div))}">
+          <div class="pg-card is-${preview.a >= 3 ? 'ok' : 'warn'}">
+            <div class="pg-card__label">Productos adicionales (componente A)</div>
+            <div class="pg-card__value">${escapeHtml(String(preview.a))} / 3</div>
+            <div class="pg-card__detail">3 o más con 2 TOP o A → 3; 2 con 1 TOP o A → 2; 1 → 1</div>
+          </div>
+          <div class="pg-card is-${div >= 2 ? 'ok' : 'warn'}">
+            <div class="pg-card__label">Estrategia de divulgación</div>
+            <div class="pg-card__value">${escapeHtml(String(div))} / 2</div>
+            <div class="pg-card__detail">Completa y costeada → 2; incompleta → 1</div>
+          </div>
+          <div class="pg-card is-${preview.a + div >= 5 ? 'ok' : 'warn'}">
+            <div class="pg-card__label">Total estimado</div>
+            <div class="pg-card__value">${escapeHtml(String(preview.a + div))} / 5</div>
+            <div class="pg-card__detail">Vista previa; el puntaje lo estima el juez con la rúbrica</div>
+          </div>
+        </div>`;
+    }
+
+    function prDivulgacionHtml(divulgacion, checks) {
+      if (checks === null) return '<p class="judge-empty">Sin estrategia de divulgación pública de la ciencia: la escribe el investigador en <code>productos.json</code>.</p>';
+      return `${cpIntro(divulgacion)}
+        <ul class="pr-checklist">${checks.map(([key, label, ok, detail]) => `<li class="pr-check ${ok ? 'is-ok' : 'is-missing'}" data-item="${key}">
+            <div class="pr-check__head">${escapeHtml(label)} ${ok ? '<span class="badge badge--ok">Definido</span>' : '<span class="badge badge--bad">Falta</span>'}</div>
+            <div class="pr-check__detail">${detail}</div>
+          </li>`).join('')}</ul>`;
+    }
+
+    function prIndicatorsHtml(p, cadena) {
+      return `<h5 class="al-heading">Indicadores de gestión</h5>
+        <div id="prGestion">${cpTable(p.indicadores_gestion, [
+          ['Indicador', r => vcText(r.indicador)],
+          ['Código', r => r.codigo ? `<code>${escapeHtml(String(r.codigo))}</code>` : '—'],
+          ['Meta', r => vcText(r.meta)],
+          ['Unidad', r => vcText(r.unidad)],
+          ['Fórmula', r => vcText(r.formula)],
+          ['Tipo de fuente', r => vcText(r.tipo_fuente)],
+          ['Periodicidad', r => vcText(r.periodicidad)],
+        ], 'Sin indicadores de gestión: se esperan al menos la supervisión y los informes técnico-financieros.')}</div>
+        <h5 class="al-heading">Indicadores de producto (cadena de valor)</h5>
+        <div id="prIndicadoresProducto">${cpTable(cadena, [
+          ['Código DNP', r => prDnp(r.codigo_dnp)],
+          ['Producto', r => `<code>${vcText(r.codigo)}</code> ${vcText(r.nombre)}`],
+          ['Indicador', r => vcText(r.indicador)],
+          ['Unidad', r => vcText(r.unidad)],
+          ['Meta', r => vcText(r.meta)],
+        ], 'La cadena de valor todavía no tiene productos con indicador.')}</div>`;
+    }
+
+    function prFindingsHtml(hallazgos) {
+      const list = vcList(hallazgos);
+      if (!list.length) return '<p class="judge-empty">La revisión de los productos y los indicadores no reporta hallazgos.</p>';
+      return VC_SEVERITIES.map(([sev, label, tone, one]) => {
+        const items = list.filter(f => vcSeverity(f) === sev);
+        if (!items.length) return '';
+        return `<div class="judge-alerts__group" data-severidad="${sev}">
+          <h4><span class="badge badge--${tone}">${label}</span> ${escapeHtml(String(items.length))}</h4>
+          <ul>${items.map(f => `<li><span class="badge badge--${tone}">${one}</span><span>${escapeHtml(f.message || f.code || '')}</span><span class="tree-findings__node">${f.node ? `${escapeHtml(String(f.node))} · ` : ''}${escapeHtml(f.code || '')}</span></li>`).join('')}</ul>
+        </div>`;
+      }).join('');
+    }
+
+    function renderProductsReview(d) {
+      const sgr = !!d && d.flujo === 'sgr';
+      const panel = document.getElementById('prReviewPanel');
+      if (panel) panel.hidden = !sgr;
+      const [label, tone] = pgStatus(d);
+      const badge = document.getElementById('prStatusBadge');
+      if (badge) {
+        badge.textContent = label;
+        badge.className = `badge${tone ? ' badge--' + tone : ''}`;
+      }
+      const errors = sgr ? vcList(d.hallazgos).filter(f => vcSeverity(f) === 'error').length : 0;
+      const complete = sgr && !!d.disponible && !!d.productos;
+      const approve = document.getElementById('prApproveBtn');
+      if (approve) approve.disabled = !complete || !!d.aprobado || errors > 0;
+      const send = document.getElementById('prSendBtn');
+      if (send) send.disabled = !sgr;
+      const gate = document.getElementById('prGateNote');
+      if (gate) gate.textContent = errors ? `Corrige los ${String(errors)} hallazgos de error antes de aprobar.` : '';
+      const note = document.getElementById('prHashNote');
+      if (note) {
+        const rev = d && d.revision && typeof d.revision === 'object' ? d.revision : null;
+        note.textContent = !sgr || !d.disponible ? ''
+          : d.aprobado ? `Aprobado el ${rev && rev.fecha ? String(rev.fecha).replace('T', ' ') : '—'} (versión ${String(d.hash)}). Si los productos o los indicadores cambian, la aprobación caduca.`
+          : label === 'Desactualizado' ? 'Los productos o los indicadores cambiaron después de aprobarlos: revisa la versión nueva y vuelve a aprobarla.'
+          : `Versión ${String(d.hash)}. La aprobación (compuerta GProductos) queda atada a esta versión de productos.json.`;
+      }
+    }
+
+    function renderProducts() {
+      const d = PR_STATE.data;
+      const el = document.getElementById('prContent');
+      if (!d || !el) return;
+      document.getElementById('prRunMeta').textContent = `Corrida ${d.run || '—'}`;
+      renderProductsReview(d);
+      const errores = Array.isArray(d.errores) ? d.errores.filter(Boolean).map(String) : [];
+      const errHtml = errores.length ? `<div class="judge-validation"><strong>⚠️ No se pudo leer todo lo de los productos y los indicadores</strong>
+        <ul>${errores.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div>` : '';
+      if (d.flujo !== 'sgr') {
+        el.innerHTML = `<div class="tree-empty">
+          <p>Los productos, el talento humano y los indicadores estructurados se usan solo en el flujo SGR.</p>
+          <small>Este proyecto sigue el flujo base de propuestas de investigación: los productos esperados se revisan en «Secciones».</small>
+        </div>`;
+        return;
+      }
+      const findingsBlock = `<div class="tree-findings" id="prFindings" aria-live="polite"><h4>Hallazgos de los productos y los indicadores</h4>${prFindingsHtml(d.hallazgos)}</div>`;
+      if (!d.disponible) {
+        el.innerHTML = `${errHtml}<div class="tree-empty">
+          <p>Todavía no hay productos, talento ni indicadores para esta corrida.</p>
+          <p>Los escribe la unidad <code>fase5_sgr</code> «Productos, talento e indicadores», después del marco conceptual y el equipo: el investigador registra los productos de CTeI, la estrategia de divulgación y los indicadores de gestión, y el redactor los perfiles del talento humano en <code>artefactos/sgr/productos.json</code>; se revisan con <code>python3 scripts/productos_sgr.py check</code>.</p>
+        </div>${vcList(d.hallazgos).length ? findingsBlock : ''}`;
+        return;
+      }
+      const p = cpObj(d.productos);
+      const preview = prPreview25(p);
+      el.innerHTML = `${errHtml}
+        <h4 class="al-heading">Talento humano</h4>
+        <div id="prTalento">${prTalentHtml(p, d.minimos_talento)}</div>
+        <h4 class="al-heading">Productos por objetivo (catálogo DNP)</h4>
+        <div id="prCadena">${prChainHtml(d.cadena_productos)}</div>
+        <h4 class="al-heading">Productos de CTeI</h4>
+        <div id="prCtei">${prCteiHtml(p, preview, d.minimo_productos)}</div>
+        <h4 class="al-heading">Divulgación pública de la ciencia</h4>
+        <div id="prDivulgacion">${prDivulgacionHtml(p.divulgacion, preview.checks)}</div>
+        <h4 class="al-heading">Indicadores</h4>
+        <div id="prIndicadores">${prIndicatorsHtml(p, d.cadena_productos)}</div>
+        ${findingsBlock}`;
+    }
+
+    async function approveProducts() {
+      const d = PR_STATE.data;
+      if (!d || !d.hash) return;
+      let result;
+      try {
+        result = await postJudge('/api/products/approve', { hash: d.hash });
+      } catch (err) {
+        prMessage(`No se pudo aprobar: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { prMessage(result.error || 'No se pudieron aprobar los productos y los indicadores.', 'error'); return; }
+      prMessage('Productos e indicadores aprobados. Si productos.json cambia, la aprobación caduca.', 'ok');
+      await loadProducts();
+    }
+
+    async function sendProductsAdjust() {
+      const input = document.getElementById('prNoteInput');
+      const nota = input ? input.value.trim() : '';
+      if (!nota) { prMessage('Escribe qué cambiar en los productos, el talento o los indicadores antes de enviarlo al agente.', 'error'); return; }
+      let result;
+      try {
+        result = await postJudge('/api/products/adjust', { nota });
+      } catch (err) {
+        prMessage(`No se pudo preparar el ajuste: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { prMessage(result.error || 'No se pudo preparar el ajuste.', 'error'); return; }
+      if (await deliverProductsPrompt(result.prompt) && input) input.value = '';
+    }
+
+    async function deliverProductsPrompt(prompt) {
+      const retry = document.getElementById('prRetryBtn');
+      PR_STATE.pendingPrompt = prompt;
+      prMessage('Ajuste: enviando al agente…');
+      const delivered = await sendTerminalPrompt(prompt);
+      if (delivered === false) {
+        if (retry) retry.style.display = '';
+        prMessage(`El ajuste no llegó al agente: la terminal no conectó en ${Math.round(TERMINAL_READY_TIMEOUT_MS / 1000)} s. Abre el asistente y pulsa «Reintentar envío».`, 'error');
+        return false;
+      }
+      PR_STATE.pendingPrompt = null;
+      if (retry) retry.style.display = 'none';
+      prMessage('El ajuste se envió al agente. Cuando corra productos_sgr.py check, la versión nueva aparece aquí.', 'ok');
+      return true;
+    }
+
+    async function retryProductsPrompt() {
+      if (PR_STATE.pendingPrompt) await deliverProductsPrompt(PR_STATE.pendingPrompt);
+    }
+
     // ── Estilo SGR en Secciones ─────────────────────────────────────────────
     // Columna solo del flujo SGR con los hallazgos de scripts/estilo_sgr.py por
     // sección (/api/style-sgr); en el flujo base la tabla queda como antes.
@@ -7015,6 +7477,9 @@
 
       if (tabId === 'componentes') startComponentsPolling();
       else stopComponentsPolling();
+
+      if (tabId === 'productos') startProductsPolling();
+      else stopProductsPolling();
 
       if (tabId === 'sections' && isSgrFlujo()) loadStyleSgr();
 
@@ -7474,6 +7939,7 @@
         syncAllianceTab();
         syncBudgetTab();
         syncComponentsTab();
+        syncProductsTab();
         if (data.active_run) {
           const footerRun = document.getElementById('terminalFooterRun');
           if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;
@@ -11567,7 +12033,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');

@@ -132,7 +132,7 @@ test('SGR: la pestaña «TRL y componentes» aparece justo después de «Presupu
   const i = labels.indexOf('TRL y componentes');
   assert.ok(i > 0, 'la pestaña existe en SGR');
   assert.equal(labels[i - 1], 'Presupuesto y cronograma');
-  assert.equal(labels[i + 1], 'MGA resumido');
+  assert.equal(labels[i + 1], 'Productos e indicadores');
   viewer.viewer('navigateTab', 'componentes');
   await flush();
   const active = viewer.document.querySelectorAll('.tab-nav__btn.active');
