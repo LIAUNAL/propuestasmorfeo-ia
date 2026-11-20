@@ -19,8 +19,10 @@
       "grant-flow-auditor.md",
       "insumos-observador.md",
       "investigador.md",
+      "juez-sgr.md",
       "presupuestador.md",
       "redactor.md",
+      "revisor-estilo-sgr.md",
       "revisor-figuras.md",
       "revisor-redundancia.md",
       "revisor.md",
@@ -34,6 +36,7 @@
       "propuesta-continuar.md",
       "propuesta-exportar.md",
       "propuesta-limpiar.md",
+      "propuesta-juez.md",
       "compilar-pdf.md",
       "compilar-docx.md",
       "_propuesta-steps.md"
@@ -41,7 +44,8 @@
     "skill_files": [
       "constelacion-sota/SKILL.md",
       "depuracion-redundancias-es/SKILL.md",
-      "estilo-natural-es/SKILL.md"
+      "estilo-natural-es/SKILL.md",
+      "estilo-sgr/SKILL.md"
     ],
     "source_mcp_config": ".mcp.json",
     "output_mcp_config": ".pi/mcp.json"
@@ -153,6 +157,7 @@
         "propuesta-analizar.md",
         "propuesta-continuar.md",
         "propuesta-limpiar.md",
+        "propuesta-juez.md",
         "_propuesta-steps.md"
       ],
       "find": "`Task`",

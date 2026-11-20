@@ -1,0 +1,1149 @@
+{
+  "schema": "morfeo.rubrica-sgr/v1",
+  "id": "conv54",
+  "convocatoria": "CONVOCATORIA 54 CONVOCATORIA ESPECIAL PARA LA FINANCIACIÓN DE PROYECTOS PARA EL FORTALECIMIENTO DE LAS CAPACIDADES CIENTÍFICO - TECNOLÓGICAS",
+  "fuente": "Términos de referencia de la Convocatoria 54 (M802PR06PL01, versión 01): numeral 16 «Criterios de evaluación», Tabla 10; numerales 15.2 (financiación), 17 (procedimiento de evaluación) y 18 (listado de elegibles, desempate).",
+  "deteccion": [
+    "CONVOCATORIA\\s+54\\b",
+    "\\$?\\s*17\\.177\\.626\\.246"
+  ],
+  "total": 100,
+  "elegibilidad": {
+    "umbral_total": 75,
+    "minimos": [
+      {
+        "criterio": "1",
+        "minimo": 24
+      }
+    ]
+  },
+  "justificacion": {
+    "min_chars": 1000,
+    "max_chars": 4000,
+    "excepciones": {}
+  },
+  "concepto": {
+    "min_palabras": 300
+  },
+  "tope_solicitud_sgr": 17177626246,
+  "desempate": [
+    "1",
+    "2",
+    "4",
+    "3",
+    "1.1",
+    "1.2",
+    "1.3",
+    "1.4",
+    "1.5",
+    "2.1",
+    "2.2",
+    "2.3",
+    "2.4",
+    "2.5",
+    "4.1",
+    "4.2",
+    "4.3",
+    "4.4",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.4"
+  ],
+  "tercer_evaluador": {
+    "diferencia": 30,
+    "promedio_min": 75
+  },
+  "minimos_talento": [
+    {
+      "categoria": "posdoctorado",
+      "cantidad": 1,
+      "texto": "Un (1) doctor para la realización de una estancia posdoctoral."
+    },
+    {
+      "categoria": "maestria",
+      "cantidad": 2,
+      "texto": "Dos (2) estudiantes de maestría en modalidad de investigación."
+    },
+    {
+      "categoria": "joven_investigador",
+      "cantidad": 6,
+      "texto": "Seis (6) jóvenes investigadores e innovadores (pueden ser estudiantes de pregrado o profesionales recién graduados)."
+    }
+  ],
+  "minimo_productos": [
+    {
+      "categoria": "joven_investigador",
+      "cantidad": 1,
+      "texto": "Cada joven entregará como producto final un artículo en autoría o coautoría, en formato publicable en revista A1, A2, B o C de Publindex o su homologación, y un (1) producto de divulgación pública de la ciencia."
+    },
+    {
+      "categoria": "maestria",
+      "cantidad": 1,
+      "texto": "Cada estudiante presentará un producto tipo TOP o tipo A (sometido a evaluación o publicado) de generación de nuevo conocimiento o desarrollo tecnológico e innovación, y un producto de divulgación pública de la ciencia."
+    },
+    {
+      "categoria": "posdoctorado",
+      "cantidad": 2,
+      "texto": "El doctor acompañará y asesorará a los jóvenes investigadores e innovadores y a los estudiantes de maestría vinculados, y entregará dos (2) productos tipo TOP o tipo A, un producto de divulgación pública de la ciencia y un informe técnico final."
+    }
+  ],
+  "requisitos": [
+    {
+      "id": "11.1",
+      "nombre": "Inscripción y radicación en SIGP",
+      "texto": "Inscribir el proyecto en el Sistema Integrado de Gestión de Proyectos - SIGP, el cual se debe ajustar al objetivo de la convocatoria.",
+      "condicion": null,
+      "documento": "Proyecto inscrito y radicado en el SIGP",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.1"
+    },
+    {
+      "id": "11.2",
+      "nombre": "Dirigida a",
+      "texto": "Cumplir con las especificaciones y condiciones del “DIRIGIDA A” establecidas en el numeral 3 - DIRIGIDA A de los presentes términos de referencia.",
+      "condicion": null,
+      "documento": "Documentos de existencia y representación legal de las entidades de la alianza",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.2"
+    },
+    {
+      "id": "11.3",
+      "nombre": "Adecuado desempeño del proponente",
+      "texto": "Acreditar el adecuado desempeño del proponente en la última medición anual conforme la metodología establecida por el Departamento Nacional de Planeación DNP y de acuerdo con la información publicada por esa entidad en los medios dispuestos para tal fin.",
+      "condicion": null,
+      "documento": "Medición de desempeño publicada por el DNP",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.3"
+    },
+    {
+      "id": "11.4",
+      "nombre": "Carta unificada de aval, compromiso institucional y conformación de la alianza (Anexo 1. Carta unificada de aval, compromiso institucional, participación y modelo de gobernanza)",
+      "texto": "anexar “Carta unificada de aval, Compromiso institucional y Modelo de Gobernanza” debidamente diligenciada y firmada por los representantes legales o apoderados de todas las entidades nacionales que la conformen (Anexo 1. Carta unificada de aval, compromiso institucional, participación y modelo de gobernanza).",
+      "condicion": null,
+      "documento": "Anexo 1",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.4"
+    },
+    {
+      "id": "11.5",
+      "nombre": "Documento técnico",
+      "texto": "Adjuntar el documento técnico completo conforme con el numeral 13 - CONTENIDO DEL PROYECTO y el Anexo 2. Documento técnico , el cual deberá ser incluido en la plataforma SIGP, sección de “requisitos”, espacio Documento técnico.",
+      "condicion": null,
+      "documento": "Anexo 2",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.5"
+    },
+    {
+      "id": "11.6",
+      "nombre": "Alcance del proyecto",
+      "texto": "El proyecto deberá cumplir las condiciones establecidas en el numeral 5, identificando el desafío, la línea temática principal, y hasta dos (2) líneas temáticas complementarias, así como las condiciones de alcance definidas en el numeral 6.",
+      "condicion": null,
+      "documento": "Anexo 2",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.6"
+    },
+    {
+      "id": "11.7",
+      "nombre": "Atención de demandas territoriales",
+      "texto": "Cada departamento de intervención directa utilizado para acreditar el alcance territorial deberá relacionarse con al menos una demanda territorial del bienio 2025-2026 y demostrar su relación con el problema u oportunidad, actividad, producto, indicador, meta, responsable y costo.",
+      "condicion": null,
+      "documento": "Anexo 4. Demandas territoriales del bienio 2025-2026",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.7"
+    },
+    {
+      "id": "11.8",
+      "nombre": "Presupuesto",
+      "texto": "Adjuntar el presupuesto completo y consistente con las actividades, productos, responsables, territorios, cronograma y fuentes de financiación, de acuerdo con lo establecido en el numeral 13 - CONTENIDO DEL PROYECTO, el numeral 15 - DURACIÓN Y FINANCIACIÓN y el Anexo 3. Presupuesto.",
+      "condicion": null,
+      "documento": "Anexo 3",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.8"
+    },
+    {
+      "id": "11.9",
+      "nombre": "Proyectos de CTeI gestionados, ejecutados o en ejecución",
+      "texto": "La información sobre las capacidades de los integrantes de la alianza deberá presentarse en el Anexo 5. Formato de Proyectos de CTeI gestionados o ejecutados por el proponente e integrantes de la alianza y guardar correspondencia con las responsabilidades que asumirán en el proyecto.",
+      "condicion": null,
+      "documento": "Anexo 5",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.9"
+    },
+    {
+      "id": "11.10",
+      "nombre": "Aval del Comité de Ética de la Investigación o de Bioética (cuando aplique)",
+      "texto": "Cuando por la naturaleza del proyecto se requiera aval ético o bioético deberá presentarse el aval correspondiente e identificarse el comité que lo expide.",
+      "condicion": "etica",
+      "documento": "Aval del Comité de Ética o de Bioética y acto de conformación del comité",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.10"
+    },
+    {
+      "id": "11.11",
+      "nombre": "Participación de entidades internacionales (cuando aplique)",
+      "texto": "Para el caso de las entidades internacionales que formen parte del proyecto, se deberá anexar carta de intención de participación en el proyecto (formato libre), suscrito por el director del instituto, centro, departamento o grupo de investigación de la institución internacional.",
+      "condicion": "internacional",
+      "documento": "Carta de intención",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.11"
+    },
+    {
+      "id": "11.12",
+      "nombre": "Actor usuario, participante o adoptante del sector productivo (cuando aplique)",
+      "texto": "En todo caso todas las entidades deberán presentar certificado de existencia y representación legal no mayor a 90 días previo al cierre de la presente convocatoria, el cual deberá ser incluido en la plataforma SIGP, sección de “requisitos” espacio “Documentos Constitución Entidades Sector productivo”.",
+      "condicion": "sector_productivo",
+      "documento": "Certificado de existencia y representación legal",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.12"
+    },
+    {
+      "id": "11.13",
+      "nombre": "Actor usuario, participante o adoptante de organizaciones de la sociedad civil, gremios, asociaciones, ONG y organizaciones de base (cuando aplique)",
+      "texto": "Para los actores de la sociedad civil (asociaciones, cooperativas, fundaciones, corporaciones, juntas de acción comunal, ESAL en general), debe tener domicilio principal en alguno de los departamentos donde se desarrollará el proyecto la que hace parte de la alianza mínima, las adicionales se aceptará que su experiencia sea del área de influencia del departamento donde se desarrollará el proyecto.",
+      "condicion": "sociedad_civil",
+      "documento": "Certificado de existencia y representación legal o documento idóneo de acreditación",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.13"
+    },
+    {
+      "id": "11.14",
+      "nombre": "Proyecto de inversión formulado en MGA WEB Tipología D – PIIP",
+      "texto": "Presentar la MGA WEB preliminar del proyecto con todos los campos diligenciados en la Tipología D –PIIP Convocatorias CTeI del SGR en la MGA (Anexo 15. Instructivo para generar MGA-WEB en borrador).",
+      "condicion": null,
+      "documento": "MGA Web Tipología D – PIIP",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.14"
+    },
+    {
+      "id": "11.15",
+      "nombre": "Certificado de no financiación con otras fuentes de recursos",
+      "texto": "Presentar certificado suscrito por el representante legal de la entidad territorial del lugar de ejecución del proyecto, en el cual se indique que las actividades, productos y costos que pretenden financiarse con recursos del SGR no están siendo, ni han sido financiados con otras fuentes de recursos para el mismo alcance.",
+      "condicion": null,
+      "documento": "Certificado de no financiación",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.15"
+    },
+    {
+      "id": "11.16",
+      "nombre": "Certificación de precios unitarios",
+      "texto": "Presentar certificado suscrito por el representante legal de la entidad que presenta el proyecto de inversión en el que conste que los precios unitarios del presupuesto corresponden al promedio de la región donde se ejecutará el proyecto y que son los utilizados para el tipo de actividades contempladas en el proyecto.",
+      "condicion": null,
+      "documento": "Certificado de precios unitarios",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.16"
+    },
+    {
+      "id": "11.17",
+      "nombre": "Riesgo no mitigable y uso del suelo",
+      "texto": "Presentar certificado suscrito por el funcionario competente de la entidad territorial en donde se ejecutará el proyecto, en el que conste que el proyecto de inversión no está localizado en zona que presente alto riesgo no mitigable y que está acorde con el uso y tratamientos del suelo de conformidad con el respectivo instrumento de ordenamiento territorial: Plan de Ordenamiento Territorial (POT), Plan Básico de Ordenamiento Territorial (PBOT), o Esquema de Ordenamiento Territorial (EOT), según lo señalado en la normativa vigente.",
+      "condicion": null,
+      "documento": "Certificado de riesgo no mitigable y uso del suelo, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.17"
+    },
+    {
+      "id": "11.18",
+      "nombre": "Titularidad, posesión u ocupación de inmuebles",
+      "texto": "Presentar a) Certificado Tradición y Libertad y/o consulta ante la Ventanilla Única de Registro - VUR: expedido con una antelación no superior a tres (3) meses, en el que conste que el inmueble es de propiedad de la entidad territorial o de la entidad pública y se encuentra libre de gravámenes o limitaciones a la propiedad que impidan ejercer el derecho de disposición.",
+      "condicion": null,
+      "documento": "Certificado de Tradición y Libertad o consulta VUR, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.18"
+    },
+    {
+      "id": "11.19",
+      "nombre": "Inmuebles ubicados en resguardos indígenas o territorios colectivos",
+      "texto": "a) Cuando se trate de inmuebles localizados en resguardos indígenas o asociaciones de cabildos o autoridades indígenas tradicionales: Presentar el acto colectivo del resguardo suscrito por la autoridad tradicional o gobernador, donde señale que el predio se encuentra en su jurisdicción (si aplica).",
+      "condicion": "inmuebles",
+      "documento": "Acto colectivo del resguardo o documento de titulación colectiva, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.19"
+    },
+    {
+      "id": "11.20",
+      "nombre": "Plan de sostenibilidad del proyecto de inversión",
+      "texto": "Presentar el plan de sostenibilidad de acuerdo con el horizonte de operación y con la naturaleza del proyecto de inversión, que incluya las actividades técnicas, financieras y sociales, el cronograma y la fuente de recursos y la asignación de responsabilidades que garanticen la operación y el mantenimiento durante la vida útil del proyecto.",
+      "condicion": null,
+      "documento": "Plan de sostenibilidad (Anexo 07 del Acuerdo 012 del SGR) o justificación escrita de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.20"
+    },
+    {
+      "id": "11.21",
+      "nombre": "Análisis de riesgo de desastres",
+      "texto": "Presentar el análisis de riesgos de desastres, de conformidad con lo establecido en el artículo 38 de la Ley 1523 de 2012, en su defecto, se deberá adjuntar una matriz de evaluación de riesgo de desastres.",
+      "condicion": null,
+      "documento": "Análisis de riesgos de desastres o matriz de evaluación de riesgo de desastres",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.21"
+    },
+    {
+      "id": "11.22",
+      "nombre": "Plano de intervención física en el territorio",
+      "texto": "Presentar el plano de localización e implantación de la infraestructura conforme a lo consignado en la localización del proyecto en la MGA y a la topografía realizada, en coordenadas MAGNA SIRGAS, con norte geográfico y ubicación espacial del proyecto respecto de la cabecera municipal o centro poblado.",
+      "condicion": null,
+      "documento": "Plano de localización e implantación, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.22"
+    },
+    {
+      "id": "11.23",
+      "nombre": "Cofinanciación con recursos diferentes al SGR",
+      "texto": "Presentar cartas de intención, certificación o acto administrativo que soporte el monto de la cofinanciación, en efectivo o en especie, suscritos por parte de quien los aporte.",
+      "condicion": null,
+      "documento": "Cartas de intención, certificación o acto administrativo de la cofinanciación",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.23"
+    },
+    {
+      "id": "11.24",
+      "nombre": "Ejecución de obra por etapas",
+      "texto": "Presentar certificación suscrita por el Representante Legal de la entidad que lo presenta en la que conste el código de identificación del proyecto, el nombre del proyecto y se indique que se garantiza la culminación de las etapas subsiguientes de la obra con recursos del SGR u otras fuentes de financiación.",
+      "condicion": null,
+      "documento": "Certificación de ejecución de obra por etapas, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.24"
+    },
+    {
+      "id": "11.25",
+      "nombre": "Funcionamiento y operación para la prestación de servicios públicos",
+      "texto": "Presentar para los proyectos de inversión que contemplen componentes de infraestructura certificación suscrita por el profesional competente de la entidad prestadora de servicios públicos domiciliarios, conforme lo establecido en el artículo 15 de la Ley 142 de 1994, en el cual se indique: la disponibilidad del servicio, el o los puntos de conexión más cercanos a la localización, el nombre del proyecto y la capacidad del servicio público para atender la demanda de este.",
+      "condicion": null,
+      "documento": "Certificación de la entidad prestadora de servicios públicos, o certificado de no aplicabilidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.25"
+    },
+    {
+      "id": "11.26",
+      "nombre": "Participación de las entidades en el proyecto",
+      "texto": "Presentar certificado firmado por el representante legal de cada una de las entidades que participan en el proyecto en la que se incluya la siguiente información: a) Nombre completo del proyecto. b) Conocimiento de su contenido y compromiso con el desarrollo de las actividades descritas a su cargo. c) Para aquellas entidades que participen a través de grupos de investigación, se debe incluir el nombre del grupo o grupos de investigación. d) Justificación sobre la capacidad técnica e idoneidad para participar en proyecto.",
+      "condicion": null,
+      "documento": "Certificado de participación de cada entidad",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.26"
+    },
+    {
+      "id": "11.27",
+      "nombre": "Titularidad, administración, custodia y cuidado de bienes y resultados",
+      "texto": "Presentar certificado expedido por el representante legal de la entidad que presenta el proyecto en el cual se defina la titularidad, la administración, la custodia y el cuidado de los bienes y resultados derivados del proyecto, en el cual conste que con la expedición de dicho certificado se entiende que la entidad proponente concertó este asunto previamente con los cofinanciadores del proyecto, según sea el caso y con las entidades territoriales donde se ejecutará.",
+      "condicion": null,
+      "documento": "Certificado de titularidad, administración, custodia y cuidado de bienes y resultados",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.27"
+    },
+    {
+      "id": "11.28",
+      "nombre": "Modelo de gobernanza de la alianza",
+      "texto": "Presentar documento de gobernanza acorde con lo previsto en el numeral 4 del artículo 1.2.3.1.1. del Decreto 1821 de 2020 o la norma que lo modifique, sustituya o adicione.",
+      "condicion": null,
+      "documento": "Documento de gobernanza (numeral 10 del Anexo 1)",
+      "numeral_fuente": "TdR Convocatoria 54, numeral 11.28"
+    }
+  ],
+  "notas": [
+    "El TdR de la Convocatoria 54 no fija la extensión de la justificación ni del concepto final; Morfeo usa los valores por defecto del formato M801PR02 (justificación de 1000 a 4000 caracteres, concepto de al menos 300 palabras con «Recomienda»).",
+    "Para integrar el banco especial de proyectos elegibles, la propuesta deberá obtener un puntaje final igual o superior a setenta y cinco (75) puntos sobre cien (100) y mínimo veinticuatro (24) puntos de los cuarenta (40) correspondientes al criterio 1. El cumplimiento del puntaje total no compensará el incumplimiento de este mínimo técnico.",
+    "El valor máximo por proyecto con cargo al SGR es de DIECISIETE MIL CIENTO SETENTA Y SIETE MILLONES SEISCIENTOS VEINTISÉIS MIL DOSCIENTOS CUARENTA Y SEIS PESOS M/CTE ($17.177.626.246).",
+    "Los resultados se expresarán con dos (2) decimales."
+  ],
+  "criterios": [
+    {
+      "id": "1",
+      "nombre": "CALIDAD TÉCNICO-CIENTÍFICA Y PRESUPUESTAL DEL PROYECTO",
+      "max": 40,
+      "subcriterios": [
+        {
+          "id": "1.1",
+          "nombre": "Coherencia técnica y científica del proyecto",
+          "descripcion": "Se evalúa la alineación entre el problema identificado, los antecedentes, los objetivos, la cadena de valor (objetivos – productos – actividades), la justificación, la alternativa seleccionada, la metodología científica, el cronograma y los cuatro componentes obligatorios previstos en el numeral 6.1 y desarrollados en el numeral 13 - CONTENIDO DEL PROYECTO, así como su relevancia para el contexto territorial en el que se ejecutará el proyecto",
+          "max": 10,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 10,
+              "descriptor": "Existe alineación total y demostrada entre el problema, la cadena de valor, la metodología y el cronograma; los cuatro componentes obligatorios están desarrollados con suficiencia técnica y se sustentan en evidencia verificable."
+            },
+            {
+              "puntos": 8,
+              "descriptor": "Existe alineación clara entre los elementos del proyecto y los cuatro componentes obligatorios están desarrollados; se identifican aspectos menores por precisar que no afectan la consistencia del conjunto."
+            },
+            {
+              "puntos": 6,
+              "descriptor": "La alineación es adecuada, pero presenta debilidades parciales en la cadena de valor, en la metodología o en el desarrollo de alguno de los componentes obligatorios."
+            },
+            {
+              "puntos": 4,
+              "descriptor": "La alineación es general; la cadena de valor o la metodología presentan vacíos que comprometen la trazabilidad entre objetivos, productos y actividades."
+            },
+            {
+              "puntos": 2,
+              "descriptor": "El planteamiento es incipiente: los componentes obligatorios se enuncian sin desarrollo técnico suficiente o la cadena de valor no es trazable."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No se evidencia coherencia entre el problema, los objetivos y la cadena de valor, o no se desarrollan los componentes obligatorios."
+            }
+          ],
+          "notas": [
+            "Nota: a la luz de este subcriterio se valorará si el proyecto requiere o no aval de un Comité de Ética de la Investigación o de Bioética debidamente constituido."
+          ],
+          "familia": "coherencia",
+          "evidencia": [
+            "03_descripcion_problema",
+            "02_justificacion",
+            "06_objetivo_general",
+            "07_objetivos_especificos",
+            "10_metodologia",
+            "14_cronograma_actividades",
+            "22_alternativas",
+            "23_cadena_valor",
+            "37_indicadores"
+          ],
+          "agentes": [
+            "investigador",
+            "redactor",
+            "disenador-tikz"
+          ]
+        },
+        {
+          "id": "1.2",
+          "nombre": "Solidez metodológica y novedad de la solución propuesta",
+          "descripcion": "Se evalúa el rigor del diseño metodológico y el grado de novedad y valor agregado de la solución frente al estado del arte y a las alternativas disponibles en el territorio, conforme con las siguientes condiciones, acumulables entre sí hasta un máximo de diez (10) puntos",
+          "max": 10,
+          "modo": "acumulable",
+          "componentes": [
+            {
+              "id": "rigor",
+              "nombre": "Rigor metodológico",
+              "max": 3,
+              "descriptor": "Rigor metodológico: el diseño metodológico es pertinente y está técnicamente sustentado; define métodos, técnicas, fuentes, instrumentos y criterios de validación de los resultados. (hasta 3 puntos)"
+            },
+            {
+              "id": "novedad",
+              "nombre": "Novedad y valor agregado",
+              "max": 3,
+              "descriptor": "Novedad y valor agregado: la solución se fundamenta en conocimiento científico y tecnológico, presenta atributos diferenciadores frente a las alternativas ya disponibles en el territorio y sustenta el estado del arte con referencias verificables. (hasta 3 puntos)"
+            },
+            {
+              "id": "replicabilidad",
+              "nombre": "Replicabilidad",
+              "max": 3,
+              "descriptor": "Replicabilidad: los resultados pueden ser transferidos, escalados o replicados en otros contextos de la región y el proyecto contribuye al desarrollo de capacidades locales en CTeI. (hasta 3 puntos)"
+            },
+            {
+              "id": "equipo",
+              "nombre": "Idoneidad del equipo de trabajo",
+              "max": 1,
+              "descriptor": "Idoneidad del equipo de trabajo: el equipo propuesto acredita las capacidades, la experiencia y la dedicación necesarias para ejecutar la metodología planteada, y sus perfiles corresponden a las actividades asignadas. (hasta 1 punto)"
+            }
+          ],
+          "notas": [],
+          "familia": "metodologia_novedad",
+          "evidencia": [
+            "10_metodologia",
+            "04_estado_arte",
+            "09_equipo_trabajo",
+            "11_resultados_esperados",
+            "36_talento_humano"
+          ],
+          "agentes": [
+            "investigador",
+            "bibliografo-propuesta",
+            "redactor"
+          ]
+        },
+        {
+          "id": "1.3",
+          "nombre": "Viabilidad para alcanzar el TRL comprometido según la tipología declarada",
+          "descripcion": "Se evalúa la sustentación científica y técnica de la transición entre niveles de madurez tecnológica, conforme con las siguientes condiciones, acumulables entre sí hasta un máximo de diez (10) puntos",
+          "max": 10,
+          "modo": "acumulable",
+          "componentes": [
+            {
+              "id": "partida",
+              "nombre": "Sustentación del punto de partida",
+              "max": 3,
+              "descriptor": "Sustentación del punto de partida: el proyecto establece el TRL de entrada y lo soporta con la evidencia que la Tabla 4 exige para su tipología. En la tipología A, el planteamiento científico y la línea base, acompañados de los resultados previos de laboratorio cuando el proyecto los contemple; en la tipología B, el informe de pruebas o de validación previa que acredite la entrada mínima en TRL 4. (hasta 3 puntos)"
+            },
+            {
+              "id": "ruta",
+              "nombre": "Ruta de maduración",
+              "max": 4,
+              "descriptor": "Ruta de maduración: la propuesta describe las actividades, los hitos y los recursos que permiten avanzar desde el TRL de entrada hasta el TRL de salida comprometido, y justifica técnica y científicamente esa transición y su coherencia con la metodología, el cronograma y los resultados propuestos. (hasta 4 puntos)"
+            },
+            {
+              "id": "verificacion",
+              "nombre": "Plan de verificación del TRL de salida",
+              "max": 3,
+              "descriptor": "Plan de verificación del TRL de salida: se definen el escenario, los responsables, los criterios de aceptación y las evidencias con las que se acreditará el TRL alcanzado al finalizar el proyecto, conforme con la columna «Evidencia al finalizar» de la Tabla 4 para la tipología declarada. En la tipología A, la verificación se realiza en laboratorio o en entorno relevante; en la tipología B, en entorno operativo real y con la participación del actor usuario que adoptará la solución. (hasta 3 puntos)"
+            }
+          ],
+          "notas": [
+            "Ambas tipologías compiten en igualdad de condiciones. La valoración de este subcriterio se realiza exclusivamente frente a la tipología declarada por el proponente y a la evidencia que la Tabla 4 exige para ella. No se otorgará mayor puntaje por declarar una tipología sobre otra ni por comprometer un TRL de salida más alto.",
+            "El proponente deberá indicar explícitamente el TRL de entrada y el TRL de salida comprometido. Cuando el TRL declarado no corresponda al alcance de la tipología elegida conforme con la Tabla 4, o cuando no se presente la evidencia al postular exigida para esa tipología, el puntaje de este subcriterio será de cero (0) puntos."
+          ],
+          "familia": "trl",
+          "evidencia": [
+            "31_trl",
+            "02_justificacion",
+            "10_metodologia",
+            "11_resultados_esperados",
+            "14_cronograma_actividades"
+          ],
+          "agentes": [
+            "investigador",
+            "redactor"
+          ]
+        },
+        {
+          "id": "1.4",
+          "nombre": "Coherencia presupuestal del proyecto",
+          "descripcion": "Se evalúa que el presupuesto esté debidamente soportado y justificado para el desarrollo del proyecto (talento humano, equipos, insumos, infraestructura, servicios técnicos y tecnología), conforme con las siguientes condiciones, acumulables entre sí hasta un máximo de seis (6) puntos",
+          "max": 6,
+          "modo": "acumulable",
+          "componentes": [
+            {
+              "id": "correspondencia",
+              "nombre": "Correspondencia con actividades y cronograma",
+              "max": 2,
+              "descriptor": "Correspondencia entre el presupuesto y las actividades, productos, responsables, territorios y cronograma del proyecto. (hasta 2 puntos)"
+            },
+            {
+              "id": "razonabilidad",
+              "nombre": "Razonabilidad y soportes de estimación",
+              "max": 2,
+              "descriptor": "Razonabilidad de los costos y suficiencia de los soportes de estimación exigidos en el Anexo 3. Presupuesto. (hasta 2 puntos)"
+            },
+            {
+              "id": "cifras",
+              "nombre": "Coherencia de cifras entre documentos",
+              "max": 2,
+              "descriptor": "Coherencia de las cifras entre el SIGP, el Anexo 1. Carta unificada de aval, compromiso institucional, participación y modelo de gobernanza, el Anexo 2. Documento técnico y el Anexo 3. Presupuesto, incluidos los aportes de contrapartida cuantificados por cada integrante de la alianza. (hasta 2 puntos)",
+              "verificacion": "scripts/requisitos_sgr.py check (cifras: SIGP, Anexo 1, Anexo 3 y MGA Web frente a presupuesto.json y alianza.json)"
+            }
+          ],
+          "notas": [],
+          "familia": "presupuesto",
+          "evidencia": [
+            "13_presupuesto",
+            "30_fuentes_financiacion",
+            "14_cronograma_actividades",
+            "23_cadena_valor",
+            "09_equipo_trabajo"
+          ],
+          "agentes": [
+            "presupuestador",
+            "usuario"
+          ]
+        },
+        {
+          "id": "1.5",
+          "nombre": "Análisis de riesgos del proyecto",
+          "descripcion": "Se evalúa la identificación de los riesgos técnicos, ambientales, sociales, financieros y de ejecución, y la pertinencia de las estrategias previstas para mitigarlos, controlarlos, evitarlos o transferirlos",
+          "max": 4,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 4,
+              "descriptor": "Los riesgos están identificados y valorados por probabilidad e impacto; las medidas de manejo son concretas, están asignadas a un responsable y se reflejan en el cronograma y en el presupuesto."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "Los riesgos están identificados y valorados; las medidas de manejo son pertinentes, pero no se reflejan de manera completa en el cronograma o en el presupuesto."
+            },
+            {
+              "puntos": 2,
+              "descriptor": "Los riesgos están identificados de manera general y las medidas de manejo son genéricas."
+            },
+            {
+              "puntos": 1,
+              "descriptor": "El análisis se limita a enunciar riesgos, sin valoración ni medidas de manejo."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No presenta análisis de riesgos."
+            }
+          ],
+          "notas": [],
+          "familia": "riesgos",
+          "evidencia": [
+            "24_riesgos",
+            "13_presupuesto",
+            "14_cronograma_actividades"
+          ],
+          "agentes": [
+            "redactor",
+            "presupuestador"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "nombre": "CONTRIBUCIÓN AL DESARROLLO TERRITORIAL Y REGIONAL",
+      "max": 30,
+      "subcriterios": [
+        {
+          "id": "2.1",
+          "nombre": "Pertinencia e impacto de los resultados frente a las demandas territoriales atendidas (artículo 29 de la Ley 2056 de 2020)",
+          "descripcion": "Se evalúa en qué medida los resultados del proyecto responden a las demandas territoriales atendidas y la magnitud de la contribución esperada en los departamentos de ejecución.",
+          "max": 7,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 7,
+              "descriptor": "El proyecto demuestra que sus resultados resuelven el problema u oportunidad planteado en las demandas territoriales atendidas y sustenta una contribución efectiva y verificable en cada departamento de ejecución."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "El proyecto guarda relación con las demandas territoriales atendidas, pero la contribución esperada se sustenta de manera parcial o general."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "El proyecto no demuestra relación entre sus resultados y las demandas territoriales atendidas."
+            }
+          ],
+          "notas": [],
+          "familia": "demandas_territoriales",
+          "evidencia": [
+            "27_demandas_territoriales",
+            "26_identificacion",
+            "02_justificacion",
+            "03_descripcion_problema",
+            "19_alineacion_planes",
+            "11_resultados_esperados"
+          ],
+          "agentes": [
+            "investigador",
+            "redactor",
+            "usuario"
+          ]
+        },
+        {
+          "id": "2.2",
+          "nombre": "Alcance regional",
+          "descripcion": "",
+          "max": 6,
+          "modo": "conteo",
+          "niveles": [
+            {
+              "puntos": 6,
+              "descriptor": "Tres (3) o más departamentos de ejecución."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "Dos (2) departamentos."
+            }
+          ],
+          "regla_conteo": {
+            "tipo": "departamentos",
+            "dato": "departamentos_ejecucion",
+            "tramos": [
+              {
+                "op": ">=",
+                "valor": 3,
+                "puntos": 6
+              },
+              {
+                "op": ">=",
+                "valor": 2,
+                "puntos": 3
+              }
+            ]
+          },
+          "notas": [],
+          "familia": "alcance_regional",
+          "evidencia": [
+            "26_identificacion",
+            "27_demandas_territoriales",
+            "21_poblacion",
+            "19_alineacion_planes"
+          ],
+          "agentes": [
+            "usuario"
+          ]
+        },
+        {
+          "id": "2.3",
+          "nombre": "Transferencia, adopción y valorización tecnológica del conocimiento",
+          "descripcion": "Grado en que el proyecto plantea una ruta clara, pertinente y viable para avanzar desde los resultados esperados hacia su uso, aplicación, adopción, aprovechamiento o transferencia, articulando de manera coherente los resultados con potencial de transferencia, los usuarios o receptores potenciales, las oportunidades de aplicación, los mecanismos previstos, las validaciones requeridas, las barreras o retos identificados y las acciones para dar continuidad al proceso, de acuerdo con la naturaleza y grado de madurez del proyecto.",
+          "max": 6,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 6,
+              "descriptor": "Ruta integral, clara, coherente y viable; articula resultados, usuarios, mecanismos, validaciones, barreras y continuidad."
+            },
+            {
+              "puntos": 5,
+              "descriptor": "Ruta técnicamente coherente y articulada; presenta aspectos menores por precisar."
+            },
+            {
+              "puntos": 4,
+              "descriptor": "Ruta pertinente, con debilidades parciales en su articulación o desarrollo técnico."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "Ruta general, con articulación parcial entre resultados, usuarios y mecanismos."
+            },
+            {
+              "puntos": 2,
+              "descriptor": "Planteamiento incipiente, poco articulado y con acciones generales."
+            },
+            {
+              "puntos": 1,
+              "descriptor": "Referencias generales a transferencia, sin una ruta técnica suficientemente estructurada."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "No presenta una ruta identificable de transferencia, adopción o valorización."
+            }
+          ],
+          "notas": [],
+          "familia": "transferencia",
+          "evidencia": [
+            "34_transferencia",
+            "11_resultados_esperados",
+            "15_productos_esperados",
+            "10_metodologia",
+            "13_presupuesto"
+          ],
+          "agentes": [
+            "redactor",
+            "investigador",
+            "presupuestador"
+          ]
+        },
+        {
+          "id": "2.4",
+          "nombre": "Apropiación Social del Conocimiento (ASC)",
+          "descripcion": "Se evaluará la pertinencia, coherencia y nivel de desarrollo de la Estrategia de ASC en relación con la línea temática, la problemática, los objetivos, los actores y los resultados esperados del proyecto, de acuerdo con los siguientes subcriterios",
+          "max": 6,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 6,
+              "descriptor": "La propuesta presenta una Estrategia de ASC claramente estructurada y articulada con el proyecto. Identifica los actores, sus roles y mecanismos concretos de participación, intercambio de saberes y construcción colaborativa. Evidencia su participación e incidencia a lo largo del ciclo del proyecto e incluye, como mínimo, un producto de ASC, claramente formulados, verificables y articulados con los resultados esperados."
+            },
+            {
+              "puntos": 5,
+              "descriptor": "La propuesta presenta una Estrategia de ASC coherente con el proyecto, identifica los actores y establece mecanismos de participación, intercambio de saberes y colaboración. Define los roles de los actores e incluye, como mínimo, un producto de ASC relacionados con el proyecto."
+            },
+            {
+              "puntos": 4,
+              "descriptor": "La propuesta presenta una Estrategia de ASC pertinente y relacionada con el proyecto, con mecanismos de participación e intercambio de saberes identificados. La participación y los roles de los actores están definidos de manera general e incluye productos de ASC relacionados con el proyecto."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "La propuesta incorpora elementos de ASC, pero presenta una articulación limitada entre los actores, sus roles, los mecanismos de participación y los resultados del proyecto. Los productos de ASC están definidos parcialmente."
+            },
+            {
+              "puntos": 1,
+              "descriptor": "La propuesta presenta una incorporación limitada de la ASC, sin una estrategia claramente estructurada ni mecanismos suficientes de participación e intercambio de saberes. Los roles de los actores y los productos de ASC no están claramente definidos o presentan una relación limitada con el proyecto."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "La propuesta no presenta una Estrategia de ASC ni elementos que permitan evidenciar la participación, interacción o construcción colaborativa con los actores."
+            }
+          ],
+          "notas": [],
+          "familia": "asc",
+          "evidencia": [
+            "18_apropiacion_social",
+            "17_articulacion_comunidades",
+            "15_productos_esperados"
+          ],
+          "agentes": [
+            "redactor",
+            "presupuestador"
+          ]
+        },
+        {
+          "id": "2.5",
+          "nombre": "Productos de nuevo conocimiento y estrategia de divulgación pública de la ciencia",
+          "descripcion": "Se valoran dos aspectos, acumulables entre sí hasta un máximo de cinco (5) puntos",
+          "max": 5,
+          "modo": "acumulable",
+          "componentes": [
+            {
+              "id": "A",
+              "nombre": "Productos de CTeI adicionales",
+              "max": 3,
+              "descriptor": "A. Productos de CTeI comprometidos por encima del mínimo exigido en el numeral 10 (hasta 3 puntos; las siguientes opciones no son acumulables entre sí): Tres (3) o más productos adicionales, dos (2) de ellos tipo TOP o A. (3 puntos) | Dos (2) productos adicionales, uno (1) de ellos tipo TOP o A. (2 puntos) | Un (1) producto adicional de cualquier tipo. (1 punto)",
+              "opciones": [
+                {
+                  "puntos": 3,
+                  "descriptor": "Tres (3) o más productos adicionales, dos (2) de ellos tipo TOP o A."
+                },
+                {
+                  "puntos": 2,
+                  "descriptor": "Dos (2) productos adicionales, uno (1) de ellos tipo TOP o A."
+                },
+                {
+                  "puntos": 1,
+                  "descriptor": "Un (1) producto adicional de cualquier tipo."
+                }
+              ]
+            },
+            {
+              "id": "B",
+              "nombre": "Estrategia de divulgación pública de la ciencia",
+              "max": 2,
+              "descriptor": "B. Estrategia de divulgación pública de la ciencia (hasta 2 puntos; las siguientes opciones no son acumulables entre sí): Con públicos, medios, productos, responsable y cronograma definidos y costeados. (2 puntos) | Presentada de forma incompleta. (1 punto)",
+              "opciones": [
+                {
+                  "puntos": 2,
+                  "descriptor": "Con públicos, medios, productos, responsable y cronograma definidos y costeados."
+                },
+                {
+                  "puntos": 1,
+                  "descriptor": "Presentada de forma incompleta."
+                }
+              ]
+            }
+          ],
+          "notas": [
+            "Nota: Los productos exigidos en el numeral 10 no otorgan puntaje. Los productos de generación de nuevo conocimiento y los de desarrollo tecnológico e innovación se valoran por igual, según el modelo de medición vigente de MINCIENCIAS. Los productos de apropiación social del conocimiento se evalúan en el subcriterio 2.4."
+          ],
+          "familia": "productos_divulgacion",
+          "evidencia": [
+            "15_productos_esperados",
+            "36_talento_humano",
+            "18_apropiacion_social",
+            "13_presupuesto",
+            "14_cronograma_actividades"
+          ],
+          "agentes": [
+            "redactor",
+            "presupuestador",
+            "usuario"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "nombre": "CAPACIDAD TÉCNICA, IDONEIDAD, TRAYECTORIA Y ARRAIGO TERRITORIAL DE LA ENTIDAD PROPONENTE Y DE LOS ALIADOS",
+      "max": 15,
+      "subcriterios": [
+        {
+          "id": "3.1",
+          "nombre": "Trayectoria adicional al mínimo",
+          "descripcion": "En el caso de proyectos de CTeI financiados con recursos del SGR, o que hayan conformado listados de elegibles dentro de convocatorias del SGR dentro de los dos (2) últimos bienios relacionados con las líneas temáticas de la presente convocatoria, se asignará un punto adicional por cada proyecto, hasta completar los 6 puntos.",
+          "max": 6,
+          "modo": "conteo",
+          "niveles": [
+            {
+              "puntos": 6,
+              "descriptor": "Cuatro (4) o más proyectos de CTeI adicionales, de ellos uno (1) financiado con recursos del Sistema General de Regalías para la CTeI en el rol de ejecutor o aliado del SGR, o que hayan conformado listados de elegibles dentro de convocatorias del SGR dentro de los dos (2) últimos bienios relacionados con las líneas temáticas de la presente convocatoria."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "Tres (3) proyectos de CTeI adicionales."
+            },
+            {
+              "puntos": 1,
+              "descriptor": "Dos (2) proyectos de CTeI adicionales."
+            }
+          ],
+          "regla_conteo": {
+            "tipo": "trayectoria",
+            "dato": "trayectoria",
+            "escala": [
+              {
+                "op": ">=",
+                "valor": 4,
+                "puntos": 6
+              },
+              {
+                "op": ">=",
+                "valor": 3,
+                "puntos": 3
+              },
+              {
+                "op": ">=",
+                "valor": 2,
+                "puntos": 1
+              }
+            ],
+            "puntos_tope_requiere_sgr": 6,
+            "puntos_sin_sgr": 3,
+            "punto_por_proyecto_sgr": 1,
+            "min_adicionales_para_punto_sgr": 2,
+            "tope": 6
+          },
+          "notas": [
+            "(i) Se consideran proyectos adicionales los proyectos de CTeI acreditados que la entidad que los presenta no haya utilizado para cumplir el requisito del numeral 11.9 o el criterio de idoneidad de la nota 2 del numeral 11.2. Las entidades que no estén sujetas a dicho requisito contabilizarán todos sus proyectos acreditados.",
+            "(ii) Cada proyecto se contabiliza una sola vez, identificado por su nombre, código o expediente, aunque sea acreditado por más de un integrante de la alianza.",
+            "(iii) El puntaje de este subcriterio será el de la escala según el número de proyectos adicionales, más un (1) punto por cada proyecto financiado con recursos del SGR o que haya conformado listado de elegibles en los dos (2) últimos bienios, sin superar en ningún caso los seis (6) puntos.",
+            "(iv) Para obtener los seis (6) puntos de la viñeta de cuatro (4) o más proyectos se requiere que al menos uno (1) sea financiado con recursos del SGR o haya conformado listado de elegibles. Si se acreditan cuatro (4) o más proyectos adicionales y ninguno cumple esa condición, se asignan los puntos de la escala de tres (3) proyectos. El punto adicional por proyecto SGR o de listado de elegibles se suma únicamente cuando se acrediten al menos dos (2) proyectos adicionales.",
+            "(v) Los proyectos podrán ser acreditados por la entidad proponente o por cualquiera de los integrantes de la alianza."
+          ],
+          "familia": "trayectoria",
+          "evidencia": [
+            "29_idoneidad_trayectoria",
+            "09_equipo_trabajo",
+            "20_participantes"
+          ],
+          "agentes": [
+            "usuario"
+          ]
+        },
+        {
+          "id": "3.2",
+          "nombre": "Conformación y complementariedad de la alianza",
+          "descripcion": "Se evalúa la conformación de alianzas entre entidades del SNCTI y de estas con otras entidades, para la contribución al logro de los objetivos y al alcance de los resultados y productos esperados del proyecto, conforme con las siguientes categorías",
+          "max": 5,
+          "modo": "conteo",
+          "niveles": [
+            {
+              "puntos": 5,
+              "descriptor": "Alianza avanzada (10 o más aliados): corresponde a una alianza que, además de cumplir con la composición de la alianza media, incorpora dos (2) o más entidades adicionales en cualquiera de las tipologías definidas en el numeral 3.2 o aliados internacionales."
+            },
+            {
+              "puntos": 4,
+              "descriptor": "Alianza media (8 o más aliados): corresponde a una alianza que, además de cumplir con la composición de la alianza básica, incorpora una (1) entidad adicional reconocida como actor del SNCTI o un (1) aliado internacional, y un (1) aliado adicional como actor usuario, participante o adoptante, de manera que la alianza cuente como mínimo con dos (2) entidades territoriales y dos (2) actores usuarios, participantes o adoptantes."
+            },
+            {
+              "puntos": 3,
+              "descriptor": "Alianza básica (6 o más aliados): corresponde a la composición mínima exigida en el numeral 3.2 —una (1) Institución de Educación Superior (IES), una (1) entidad adicional del SNCTI, una (1) entidad territorial y un (1) actor usuario, participante o adoptante—, más dos (2) aliados adicionales de cualquiera de las tipologías definidas en el numeral 3 - DIRIGIDA A, de los cuales al menos uno (1) deberá ser entidad territorial o actor usuario, participante o adoptante de los resultados, con representación legal."
+            }
+          ],
+          "regla_conteo": {
+            "tipo": "alianza",
+            "dato": "aliados",
+            "categorias": [
+              {
+                "id": "avanzada",
+                "min_integrantes": 10,
+                "puntos": 5
+              },
+              {
+                "id": "media",
+                "min_integrantes": 8,
+                "puntos": 4
+              },
+              {
+                "id": "basica",
+                "min_integrantes": 6,
+                "puntos": 3
+              }
+            ],
+            "incluye_proponente": true
+          },
+          "notas": [
+            "El puntaje se asigna por la categoría más alta cuya composición se cumpla de manera íntegra, y no por el número total de aliados. En consecuencia, una alianza de cinco (5) integrantes obtendrá cero (0) puntos; una alianza de siete (7) integrantes que cumpla la composición de la alianza básica pero no la de la alianza media obtendrá tres (3) puntos; y una alianza de nueve (9) integrantes que cumpla la composición de la alianza media pero no la de la alianza avanzada obtendrá cuatro (4) puntos. Los puntajes de las categorías no son acumulables entre sí.",
+            "La composición mínima de cuatro (4) entidades prevista en el numeral 3.2 es un requisito de participación y, por sí sola, no otorga puntaje en este subcriterio.",
+            "Para el presente subcriterio, cada entidad solo podrá ostentar una de las categorías establecidas para la asignación del puntaje. Las entidades que participen como actor del sector productivo y que cuenten, a su vez, con reconocimiento vigente como actores del SNCTI por parte de MINCIENCIAS no podrán participar con doble categoría dentro de la alianza; en consecuencia, solo podrán ser registradas bajo una única categoría de actor.",
+            "Para efectos de este subcriterio se entenderá como entidad territorial a las gobernaciones, las alcaldías municipales y los esquemas asociativos territoriales.",
+            "El número de aliados de las categorías de este subcriterio incluye a la entidad proponente.",
+            "Para efectos de este subcriterio, los aliados internacionales se contabilizarán como integrantes de la alianza aunque no cuenten con NIT, siempre que acrediten su participación mediante la «Carta de Intención de participación en el proyecto» prevista en el numeral 11.11 y cuantifiquen su aporte. El conteo de las entidades nacionales se realizará por NIT, conforme con la regla prevista en el numeral 3.2 de estos términos de referencia.",
+            "La participación de aliados internacionales computada en este subcriterio no excluye la asignación del puntaje previsto en el subcriterio 3.4, por tratarse de aspectos distintos: la composición de la alianza y el aporte cuantificado del aliado internacional.",
+            "Adicionalmente a la conformación de la alianza, se evaluará el rol de los integrantes en el desarrollo del proyecto con base en el modelo de gobernanza presentado en el Anexo 1. Carta unificada de aval, compromiso institucional, participación y modelo de gobernanza"
+          ],
+          "familia": "alianza",
+          "evidencia": [
+            "28_matriz_responsabilidades",
+            "26_identificacion",
+            "29_idoneidad_trayectoria",
+            "20_participantes",
+            "09_equipo_trabajo"
+          ],
+          "agentes": [
+            "usuario"
+          ]
+        },
+        {
+          "id": "3.3",
+          "nombre": "Arraigo territorial y diversidad del proponente",
+          "descripcion": "Se asignará puntaje conforme con las siguientes condiciones, acumulables entre sí hasta un máximo de tres (3) puntos",
+          "max": 3,
+          "modo": "conteo",
+          "niveles": [
+            {
+              "puntos": 2,
+              "descriptor": "El proponente tiene domicilio en la región de impacto del proyecto."
+            },
+            {
+              "puntos": 1,
+              "descriptor": "El proponente es entidad territorial, organización comunitaria o étnica, o MIPYME."
+            }
+          ],
+          "regla_conteo": {
+            "tipo": "arraigo",
+            "dato": "proponente",
+            "puntos_domicilio": 2,
+            "puntos_tipo_diverso": 1,
+            "tope": 3
+          },
+          "notas": [],
+          "familia": "alianza",
+          "evidencia": [
+            "26_identificacion",
+            "29_idoneidad_trayectoria",
+            "20_participantes"
+          ],
+          "agentes": [
+            "usuario"
+          ]
+        },
+        {
+          "id": "3.4",
+          "nombre": "Participación de aliado internacional con aporte cuantificado",
+          "descripcion": "Se asignará un (1) punto cuando el proyecto vincule al menos un (1) aliado internacional que acredite su participación mediante la carta de intención prevista en estos términos de referencia y cuantifique su aporte, en especie o en efectivo, expresado en pesos colombianos y liquidado a la TRM de la fecha de expedición de la carta de intención.",
+          "max": 1,
+          "modo": "conteo",
+          "niveles": [
+            {
+              "puntos": 1,
+              "descriptor": "Se asignará un (1) punto cuando el proyecto vincule al menos un (1) aliado internacional que acredite su participación mediante la carta de intención prevista en estos términos de referencia y cuantifique su aporte, en especie o en efectivo, expresado en pesos colombianos y liquidado a la TRM de la fecha de expedición de la carta de intención."
+            }
+          ],
+          "regla_conteo": {
+            "tipo": "aliado_internacional",
+            "dato": "aliado_internacional_con_aporte",
+            "puntos": 1
+          },
+          "notas": [],
+          "familia": "alianza",
+          "evidencia": [
+            "28_matriz_responsabilidades",
+            "29_idoneidad_trayectoria",
+            "20_participantes",
+            "13_presupuesto"
+          ],
+          "agentes": [
+            "usuario"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "nombre": "SOSTENIBILIDAD, GOBERNANZA, ENFOQUE DIFERENCIAL E INTERSECCIONAL",
+      "max": 15,
+      "subcriterios": [
+        {
+          "id": "4.1",
+          "nombre": "Modelo de gobernanza",
+          "descripcion": "Se evalúa la claridad y suficiencia del modelo presentado en el Anexo 1. Carta unificada de aval, compromiso institucional, participación y modelo de gobernanza para regular la toma de decisiones, los roles, la propiedad intelectual y el seguimiento y control del proyecto entre los integrantes de la alianza",
+          "max": 5,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 5,
+              "descriptor": "El modelo define con precisión los acuerdos, los roles y responsabilidades de cada integrante, el mecanismo de toma de decisiones, el tratamiento de la propiedad intelectual y los mecanismos de seguimiento y control, y resulta coherente con las actividades asignadas en el proyecto."
+            },
+            {
+              "puntos": 2,
+              "descriptor": "El modelo define los acuerdos y los roles, pero alguno de sus elementos se enuncia de manera general o no guarda correspondencia con las actividades asignadas."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "El modelo no permite establecer cómo se tomarán las decisiones ni cómo se distribuyen las responsabilidades entre los integrantes de la alianza."
+            }
+          ],
+          "notas": [],
+          "familia": "gobernanza",
+          "evidencia": [
+            "28_matriz_responsabilidades",
+            "20_participantes",
+            "09_equipo_trabajo",
+            "12_consideraciones_eticas"
+          ],
+          "agentes": [
+            "usuario",
+            "redactor"
+          ]
+        },
+        {
+          "id": "4.2",
+          "nombre": "Sostenibilidad y uso de resultados",
+          "descripcion": "Se evalúa la viabilidad de que los bienes, servicios o resultados del proyecto continúen operando y sean utilizados una vez finalizada su ejecución",
+          "max": 5,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 5,
+              "descriptor": "El proyecto identifica el responsable de la operación posterior y la fuente de recursos que la financiará, y acredita el compromiso de adopción del actor usuario sobre resultados concretos del proyecto."
+            },
+            {
+              "puntos": 2,
+              "descriptor": "El proyecto identifica el responsable de la operación posterior, pero la fuente de recursos o el compromiso de adopción se sustentan de manera general."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "El proyecto no establece quién asumirá la operación posterior ni acredita el uso de los resultados."
+            }
+          ],
+          "notas": [],
+          "familia": "sostenibilidad",
+          "evidencia": [
+            "32_sostenibilidad",
+            "33_uso_posterior",
+            "11_resultados_esperados",
+            "17_articulacion_comunidades",
+            "20_participantes"
+          ],
+          "agentes": [
+            "redactor",
+            "usuario"
+          ]
+        },
+        {
+          "id": "4.3",
+          "nombre": "Cofinanciación en efectivo o en especie, registrada en el Anexo 3. Presupuesto y soportada",
+          "descripcion": "",
+          "max": 3,
+          "modo": "conteo",
+          "niveles": [
+            {
+              "puntos": 3,
+              "descriptor": "Superior al diez por ciento (10 %) del valor solicitado al SGR."
+            },
+            {
+              "puntos": 1,
+              "descriptor": "Entre el cinco (5 %) y el diez (10 %) por ciento."
+            }
+          ],
+          "regla_conteo": {
+            "tipo": "cofinanciacion",
+            "dato": "aliados",
+            "tramos": [
+              {
+                "op": ">",
+                "valor": 10,
+                "puntos": 3
+              },
+              {
+                "op": ">=",
+                "valor": 5,
+                "puntos": 1
+              }
+            ]
+          },
+          "notas": [],
+          "familia": "cofinanciacion",
+          "evidencia": [
+            "13_presupuesto",
+            "30_fuentes_financiacion",
+            "28_matriz_responsabilidades"
+          ],
+          "agentes": [
+            "presupuestador",
+            "usuario"
+          ]
+        },
+        {
+          "id": "4.4",
+          "nombre": "Medidas diferenciales",
+          "descripcion": "El proyecto desarrolla el componente Medidas diferenciales en el Anexo 2. Documento técnico, identificando documentalmente barreras y las medidas para mitigarlos incluyendo actividades, indicadores, metas y evidencias. Si el proyecto no identifica barreras, se evalúa la justificación de esa conclusión en dicho componente.",
+          "max": 2,
+          "modo": "niveles",
+          "niveles": [
+            {
+              "puntos": 2,
+              "descriptor": "El proyecto desarrolla el componente Medidas diferenciales en el Anexo 2. Documento técnico, identificando documentalmente barreras y las medidas para mitigarlos incluyendo actividades, indicadores, metas y evidencias. Si el proyecto no identifica barreras, se evalúa la justificación de esa conclusión en dicho componente."
+            },
+            {
+              "puntos": 1,
+              "descriptor": "[Nivel intermedio no descrito en el TdR] El componente se desarrolla de forma parcial."
+            },
+            {
+              "puntos": 0,
+              "descriptor": "[Nivel no descrito en el TdR] El componente no se desarrolla."
+            }
+          ],
+          "notas": [
+            "Morfeo: el TdR fija solo el puntaje máximo (2) de este subcriterio; los niveles 1 y 0 son una interpretación del juez, no texto oficial."
+          ],
+          "familia": "enfoque_diferencial",
+          "evidencia": [
+            "35_medidas_diferenciales",
+            "21_poblacion",
+            "17_articulacion_comunidades",
+            "10_metodologia"
+          ],
+          "agentes": [
+            "redactor",
+            "investigador"
+          ]
+        }
+      ]
+    }
+  ]
+}

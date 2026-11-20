@@ -72,23 +72,34 @@ más de 6 h, se muestra como obsoleto y no bloquea el botón «Ejecutar».
 |-------------|------|------|----------------|
 | `fase1a` | Early scoping (bibliógrafo MODE=scope, codebase-memory scoping, investigador early) | G1a | `fase1a_sgr` (flujo SGR) o `fase1b` (flujo base) |
 | `fase1a_sgr` | Solo flujo SGR: causas directas en lenguaje MGA (`artefactos/arboles/causas_directas.md`), modo plantilla de IA aplicada (levantamiento de datos, plataforma y modelos, apropiación) o exploratorio; el flujo base la salta | G causas | `fase1b` |
-| `fase1b` | Árbol de problemas (spec + `figura.py`) y árbol de objetivos (`arbol_objetivos.json`) con las reglas MGA, en ambos flujos + revisor | G1b | `fase1c` |
+| `fase1b` | Árbol de problemas (spec + `figura.py`) y árbol de objetivos (`arbol_objetivos.json`) con las reglas MGA, en ambos flujos + revisor | G1b | `fase1b_sgr` (flujo SGR) o `fase1c` (flujo base) |
+| `fase1b_sgr` | Solo flujo SGR: alianza y territorio como datos (`artefactos/sgr/alianza.json`, `artefactos/sgr/territorio.json`): insumos-observador extrae las demandas territoriales textuales del TdR y los datos de la alianza, investigador liga cada demanda a causas y objetivos, `alianza_territorio_sgr.py check` limpio + revisor; el usuario la aprueba en la pestaña Alianza y territorio; el flujo base la salta | G territorio | `fase1c` |
 | `fase1c` | SOTA corpus expansion + WRITE-REFS + vault codebase-memory once | G1c | `fase1` |
 | `fase1` | MGA resumido (`artefactos/mga_resumido.md`) + §3 problema derivada de él + grant-flow-auditor + revisor | G1 | `fase2` |
 | `fase2` | §4 SOTA + §5 hipótesis + grant-flow-auditor + spec del mapa SOTA (`figura.py`) + revisor | G2 | `fase3` |
 | `fase3` | §2 justificación + grant-flow-auditor + revisor | G3 | `fase4` |
-| `fase4` | §6–§7 objetivos + grant-flow-auditor + revisor | G4 | `fase5` |
-| `fase5` | §8 marco + §9 equipo + grant-flow-auditor + revisor | G5 | `fase5_5` |
-| `fase5_5` | §10 metodología + grant-flow-auditor + spec del diagrama (`figura.py`) + revisor | G5.5 | `fase6` |
+| `fase4` | §6–§7 objetivos + grant-flow-auditor + revisor | G4 | `fase4_sgr` (flujo SGR) o `fase5` (flujo base) |
+| `fase4_sgr` | Solo flujo SGR: cadena de valor como datos (`artefactos/sgr/cadena_valor.json`): `cadena_valor_sgr.py init` desde el árbol de objetivos, investigador completa productos DNP y actividades, `check` limpio + revisor; el usuario la aprueba en la pestaña Cadena de valor; el flujo base la salta | G cadena | `fase5` |
+| `fase5` | §8 marco + §9 equipo + grant-flow-auditor + revisor | G5 | `fase5_sgr` (flujo SGR) o `fase5_5` (flujo base) |
+| `fase5_sgr` | Solo flujo SGR: productos, talento e indicadores como datos (`artefactos/sgr/productos.json`): investigador escribe los productos CTeI (mínimo de la convocatoria y adicionales con su categoría, ligados a los productos de la cadena de valor), la estrategia de divulgación (públicos, medios, productos, responsable, cronograma, costeada) y los indicadores de gestión (supervisión e informes técnico-financieros con periodicidad), redactor los perfiles del talento humano con los mínimos de la convocatoria, revisor-estilo-sgr sobre la introducción de la divulgación, `productos_sgr.py check` limpio, `productos_sgr.py render` (§36 y §37 nunca a mano) + revisor; el usuario lo aprueba en la pestaña Productos e indicadores; el flujo base la salta | G productos | `fase5_5` |
+| `fase5_5` | §10 metodología + grant-flow-auditor + spec del diagrama (`figura.py`) + revisor | G5.5 | `fase5_5_sgr` (flujo SGR) o `fase6` (flujo base) |
+| `fase5_5_sgr` | Solo flujo SGR: TRL y componentes transversales como datos (`artefactos/sgr/componentes.json`): investigador escribe la ruta y la verificación del TRL, la transferencia y el uso posterior, redactor las introducciones, la apropiación social con sus siete elementos, la sostenibilidad y las medidas diferenciales, revisor-estilo-sgr sobre las introducciones, `componentes_sgr.py check` limpio, `componentes_sgr.py render` (§31 a §35 nunca a mano) + revisor; el usuario lo aprueba en la pestaña TRL y componentes; el flujo base la salta | G componentes | `fase6` |
 | `fase6` | §11 resultados + §12 ética + grant-flow-auditor (no own gate) | — | `fase6_3` (flujo SGR) o `fase6_4` (flujo base) |
 | `fase6_3` | Solo flujo SGR: anexos 20, 21, 22 y 24 + grant-flow-auditor + revisor; el flujo base la salta | G6.3 | `fase6_4` |
-| `fase6_4` | §13 presupuesto + revisor | G budget | `fase6_45` |
-| `fase6_45` | §14 cronograma + §15 productos (xltabular) + §16 bib + grant-flow-auditor (no own gate) | — | `fase6_46` |
-| `fase6_46` | §17 articulación con comunidades + §18 apropiación social + grant-flow-auditor + revisor | G comunidades | `fase6_47` (flujo SGR) o `fase6_5` (flujo base) |
-| `fase6_47` | Solo flujo SGR: anexos MGA 19, 23 y 25 (`guiaProyectosIA_Agente_Regalias.md`) + revisor-redundancia + revisor; el flujo base la salta | G anexos | `fase6_5` |
-| `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave; sin sección cuerpo de título) + grant-flow-auditor + revisor | G front | `fase7` |
-| `fase7` | Final audit + revisor-redundancia + assemble `main.tex` (\setcounter{section}{1}, xltabular, bibliografía limpia) | G final | `done` |
+| `fase6_4` | §13 presupuesto + revisor; flujo SGR: presupuestador escribe `artefactos/sgr/presupuesto.json`, `presupuesto_sgr.py check` limpio, `sync-cadena`, `cadena_valor_sgr.py check`, `presupuesto_sgr.py render` (§13 nunca a mano), ítems de transferencia, apropiación social y seguimiento con su `componente` y `componentes_sgr.py check` limpio, ítems de talento iguales al bloque de talento de `productos.json` y `productos_sgr.py check` limpio, `componentes_sgr.py render` y `productos_sgr.py render` tras `sync-cadena` si su archivo existe + revisor; el usuario lo aprueba en la pestaña Presupuesto y cronograma | G budget | `fase6_45` |
+| `fase6_45` | §14 cronograma + §15 productos (xltabular) + §16 bib + grant-flow-auditor (no own gate); flujo SGR: investigador escribe `artefactos/sgr/hitos.json` (con los hitos de la ruta del TRL) y las etapas, `cronograma_sgr.py check` limpio y `cronograma_sgr.py render` (§14 nunca a mano); §15 lo genera `productos_sgr.py render` (nunca a mano) | — | `fase6_46` |
+| `fase6_46` | §17 articulación con comunidades + §18 apropiación social + grant-flow-auditor + revisor; flujo SGR: redactor escribe solo §17 y §18 se renderiza con `componentes_sgr.py render` desde el bloque de apropiación social (nunca a mano) | G comunidades | `fase6_47` (flujo SGR) o `fase6_5` (flujo base) |
+| `fase6_47` | Solo flujo SGR: anexos MGA 19, 23 y 25 (`guiaProyectosIA_Agente_Regalias.md`; 20, 21, 22 y 24 ya van en `fase6_3`), 26 a 28 renderizados con `alianza_territorio_sgr.py render`, 29 idoneidad y trayectoria y 30 fuentes de financiación renderizado con `presupuesto_sgr.py render` + revisor-redundancia + revisor; el flujo base la salta | G anexos | `fase6_5` |
+| `fase6_5` | Front-matter (Resumen, Resumen ejecutivo, Palabras clave; sin sección cuerpo de título) + grant-flow-auditor + revisor | G front | `fase6_9_sgr` (flujo SGR) o `fase7` (flujo base) |
+| `fase6_9_sgr` | Solo flujo SGR: requisitos habilitantes, licencias y anexos como datos (`artefactos/sgr/requisitos.json`): `requisitos_sgr.py init` (idempotente, nunca sobrescribe) desde los requisitos de la rúbrica de la convocatoria, investigador escribe el bloque de licencias y permisos, redactor su introducción, revisor-estilo-sgr sobre la introducción, el usuario marca cada requisito (estado, responsable, archivo) y declara las cifras de los anexos (SIGP, Anexo 1, Anexo 3, MGA Web) en la pestaña Requisitos y anexos, `requisitos_sgr.py check` limpio, `requisitos_sgr.py render` (§38 y §39 nunca a mano) + revisor; el usuario lo aprueba en la pestaña Requisitos y anexos; el flujo base la salta | G requisitos | `fase7` |
+| `fase7` | Final audit + revisor-redundancia + assemble `main.tex` (\setcounter{section}{1}, xltabular, bibliografía limpia); flujo SGR: `requisitos_sgr.py check --final` limpio (un requisito aplicable que no esté `listo` es error), `check_run.py --final` exige §38 y §39, y juez-sgr asesor tras el ensamble (ver «Juez final») | G final | `done` |
 | `done` | Pipeline complete | — | print `cd proposal && ./build.sh` |
+
+**Flujo SGR: revisor de estilo en lugar del auditor.** Con `"flujo": "sgr"`,
+cada fila que nombra `grant-flow-auditor` despacha `revisor-estilo-sgr` en su
+lugar (mismo momento: antes del `revisor`). El flujo base sigue con
+`grant-flow-auditor`. El inventario de `pipeline_units.py` aplica el mismo
+reemplazo (`AGENT_REPLACEMENTS_FLUJO`) solo al flujo SGR.
 
 **Pre-intake units** (only in analizar / start of auto, not as `next_step` after
 intake):
@@ -97,6 +108,18 @@ intake):
 |--------------|---------|-------------------|
 | `fase0` | run-id, collision, insumos-observador, INTAKE, TDR/draft routing | (internal) |
 | `g0_5` | Optional guide adjusted to TDR | `next_step: fase1a`, `intake_complete: true` |
+
+## Juez final (asesor)
+
+En el flujo SGR, la Fase 7 termina con un paso del agente `juez-sgr`, después
+del ensamble, la compilación y la pasada de pixelshot. Estima el puntaje con la
+rúbrica de la convocatoria (`scripts/juez_sgr.py preparar` y `calificar`) y deja
+la ronda en `artefactos/juez/`. El resultado se presenta en la compuerta G7 con
+el total y las acciones prioritarias, pero nunca cambia el veredicto PASS/FAIL
+del `revisor` ni bloquea el cierre; si falla, se registra la razón y la unidad
+se cierra igual. No es una unidad propia ni un `next_step`: `/propuesta-juez`
+lo corre en cualquier momento. La auditoría final del `revisor` lee las
+alertas `error` abiertas de `artefactos/juez/evaluacion.json` cuando existe.
 
 ## Stepped vs auto
 

@@ -207,6 +207,34 @@ you) before reporting a FAIL for a missing artifact.
      the Fase 6.4 gate.
    If the budget section does not exist yet (budget phase not run), skip this
    item entirely.
+9. **Juez SGR alerts — only in the Fase 7 final audit of an SGR run:** if
+   `artefactos/juez/evaluacion.json` exists (written by
+   `scripts/juez_sgr.py calificar` after a `juez-sgr` round), read its
+   `alertas` and its `verificaciones` and verify each one with severidad
+   `error` against the current sections. List every error that still holds
+   under CORRECCIONES with its alert id, file and the fix, and add one
+   `[JUEZ-SGR]` line per alert to HALLAZGOS. The judge is advisory: its score
+   never decides your verdict, but an error you confirm in the document is a
+   finding of your own checklist and is judged by it. Mark an alert the
+   current text already resolved as `resolved` and leave it out of
+   CORRECCIONES. Skip this item in the base flow, at any
+   other gate, or when the file does not exist.
+10. **Requisitos y anexos — only at GRequisitos and in the Fase 7 final audit of an SGR run:**
+   your dispatch prompt carries the output of `scripts/requisitos_sgr.py check`
+   (with `--final` in Fase 7); do not recompute it. At GRequisitos, check in
+   `38_licencias_permisos.tex` that every licence or permit that applies has
+   its rule, responsible entity and moment of the procedure, that every one
+   that does not apply has its justification, that prior consultation is
+   addressed when the territory has ethnic communities, that the table does
+   not repeat the normative table of the conceptual framework, and that the
+   introduction is in third person; check that `39_anexos.tex` lists only
+   the documents of the requirements that apply, without prose; neither
+   section may contradict §10 or §12. In Fase 7, every `error` of
+   `check --final` (an applicable requirement not `listo`, a declared figure
+   that does not match the budget or the alliance) goes under CORRECCIONES
+   with the requirement id or the document and figure, and the fix happens in
+   the dashboard tab «Requisitos y anexos», not in the prose. Skip this item
+   in the base flow or at any other gate.
 
 ## Output format
 
@@ -223,6 +251,9 @@ HALLAZGOS:
   EVIDENCIA DE GRAFO block was injected into your prompt. This line NEVER by
   itself flips VEREDICTO — it is advisory only, the manual checklist above
   remains authoritative. Omit entirely if no graph evidence was provided. -->
+- [JUEZ-SGR] <alert id>: <confirmed | resolved> <detail> <!-- OPTIONAL;
+  only in the Fase 7 final audit of an SGR run with
+  artefactos/juez/evaluacion.json (item 9). -->
 
 CORRECCIONES (si FAIL):
 1. <archivo>: <qué cambiar exactamente>

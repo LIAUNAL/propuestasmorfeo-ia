@@ -42,6 +42,12 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "reviewer": "Revisor",
         "criteria": "Árbol de problemas y árbol de objetivos con las reglas MGA, sin hallazgos de error en check_run.",
     },
+    "GTerritorio": {
+        "name": "Alianza y territorio (flujo SGR)",
+        "phase": "Fase 1b SGR",
+        "reviewer": "Revisor & Usuario",
+        "criteria": "Entidades de la alianza con tipo, rol, departamento y aportes, y demandas territoriales copiadas textuales del TdR con su fuente y ligadas a causas y objetivos específicos, sin hallazgos de error en alianza_territorio_sgr.py check; el usuario las aprueba en la pestaña Alianza y territorio.",
+    },
     "G1c": {
         "name": "Corpus SOTA y Semilla Bibliográfica",
         "phase": "Fase 1c",
@@ -72,11 +78,23 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "reviewer": "Revisor",
         "criteria": "Correspondencia biyectiva 1:1 entre subproblemas y objetivos.",
     },
+    "G4.cv": {
+        "name": "Cadena de valor (flujo SGR)",
+        "phase": "Fase 4 SGR",
+        "reviewer": "Revisor & Usuario",
+        "criteria": "Productos del catálogo DNP con indicador y meta, dos o más actividades técnicas por producto con código, ruta crítica y meses, sin hallazgos de error en cadena_valor_sgr.py check; el usuario la aprueba en la pestaña Cadena de valor.",
+    },
     "G5": {
         "name": "Marco Conceptual y Equipo",
         "phase": "Fase 5",
         "reviewer": "Revisor",
         "criteria": "Teoría fundamental y roles de equipo derivados de objetivos.",
+    },
+    "GProductos": {
+        "name": "Productos, talento e indicadores (flujo SGR)",
+        "phase": "Fase 5 SGR",
+        "reviewer": "Revisor & Usuario",
+        "criteria": "Productos CTeI con el mínimo de la convocatoria cumplido y los adicionales marcados con su categoría y ligados a los productos de la cadena de valor, estrategia de divulgación con públicos, medios, productos, responsable, cronograma y costo, talento humano con los mínimos de la convocatoria e indicadores de gestión con supervisión e informes técnico-financieros y su periodicidad, sin hallazgos de error en productos_sgr.py check; el usuario los aprueba en la pestaña Productos e indicadores.",
     },
     "G5.5": {
         "name": "Metodología y Diagrama TikZ",
@@ -89,6 +107,12 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "phase": "Fase 6.3",
         "reviewer": "Revisor",
         "criteria": "Participantes, población, alternativas y riesgos según la MGA, listos para que §13 costee su manejo y su mitigación.",
+    },
+    "GComponentes": {
+        "name": "TRL y componentes transversales (flujo SGR)",
+        "phase": "Fase 5.5 SGR",
+        "reviewer": "Revisor & Usuario",
+        "criteria": "Ruta del TRL con tipología, nivel de entrada respaldado por evidencia, hitos de maduración ligados a actividades de la cadena de valor y plan de verificación del nivel de salida; transferencia, apropiación social con sus siete elementos, sostenibilidad, uso posterior y medidas diferenciales, sin hallazgos de error en componentes_sgr.py check; el usuario los aprueba en la pestaña TRL y componentes.",
     },
     "G6.4": {
         "name": "Presupuesto Financiero",
@@ -112,13 +136,19 @@ GATE_INFO: dict[str, dict[str, str]] = {
         "name": "Anexos MGA (flujo SGR)",
         "phase": "Fase 6.47",
         "reviewer": "Revisor",
-        "criteria": "Alineación con planes, cadena de valor con su evaluación y marco lógico según la MGA.",
+        "criteria": "Alineación con planes, cadena de valor con su evaluación y marco lógico según la MGA; identificación, demandas territoriales, matriz de responsabilidades, idoneidad de las entidades y fuentes de financiación coherentes con la alianza y el presupuesto.",
     },
     "G6.5": {
         "name": "Front-Matter y Síntesis",
         "phase": "Fase 6.5",
         "reviewer": "Revisor",
         "criteria": "Resumen ejecutivo, palabras clave y unicidad del título.",
+    },
+    "GRequisitos": {
+        "name": "Requisitos y anexos (flujo SGR)",
+        "phase": "Fase 6.9 SGR",
+        "reviewer": "Revisor & Usuario",
+        "criteria": "Requisitos habilitantes de la convocatoria con su estado, entidad responsable y documento adjunto, o la justificación de un no_aplica en un requisito condicionado; cifras declaradas del SIGP, el Anexo 1, el Anexo 3 y la MGA Web coherentes con el presupuesto y la alianza; licencias y permisos con norma, responsable y momento del trámite, o la justificación de que no aplican, sin hallazgos de error en requisitos_sgr.py check; el usuario los aprueba en la pestaña Requisitos y anexos.",
     },
     "G7": {
         "name": "Auditoría Final y Ensamble",
@@ -135,7 +165,12 @@ GATE_ALIASES: dict[str, str] = {
     "G comunidades": "G6.46",
     "G anexos": "G6.47",
     "G causas": "GCausas",
+    "G territorio": "GTerritorio",
+    "G cadena": "G4.cv",
+    "G productos": "GProductos",
+    "G componentes": "GComponentes",
     "G front": "G6.5",
+    "G requisitos": "GRequisitos",
     "G final": "G7",
 }
 
@@ -175,8 +210,18 @@ def normalise_gate(raw: Any) -> str | None:
 # RUN_ROOT; un `*` final acepta cualquier archivo de esa carpeta. Con las
 # secciones, son lo que el tablero comprueba para dar la unidad por cumplida.
 # `skills`: skills del marco que la unidad levanta.
-# `flujo`: solo en las unidades exclusivas de un flujo (hoy, las causas directas y
+# `flujo`: solo en las unidades exclusivas de un flujo (hoy, las causas directas,
+# la alianza, la cadena de valor, los productos, los componentes, los requisitos y
 # los anexos MGA del flujo SGR). Las demás corren en todos los flujos; ver `units_for_flujo`.
+# `agents_flujo`: agentes que una unidad común suma solo en un flujo (hoy, el
+# juez SGR asesor al final de la Fase 7). `units_for_flujo` los agrega a
+# `agents` del flujo que corresponde y quita la clave de la copia.
+# `artifacts_flujo`: archivos que una unidad común deja solo en un flujo (hoy, los
+# datos del presupuesto y de los hitos del flujo SGR). `units_for_flujo` los suma
+# a `artifacts` del flujo que corresponde y quita la clave de la copia.
+# `AGENT_REPLACEMENTS_FLUJO` (abajo): agentes que un flujo despacha en lugar de
+# otro en todas sus unidades. En el flujo SGR el revisor de estilo SGR corre
+# donde el flujo base corre `grant-flow-auditor`; el inventario no cambia.
 
 PIPELINE_UNITS: list[dict[str, Any]] = [
     {
@@ -238,6 +283,19 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "artifacts": ["artefactos/arboles/arbol_problemas.md", "artefactos/arboles/arbol_objetivos.json"],
         "agents": ["investigador", "disenador-tikz", "revisor-figuras", "revisor"],
         "skills": [],
+        "next": "fase1b_sgr",
+    },
+    {
+        "id": "fase1b_sgr",
+        "kind": "step",
+        "flujo": "sgr",
+        "name": "Alianza y territorio",
+        "desc": "Solo flujo SGR: estructura la alianza (entidades, tipo, rol, departamento, aportes, grupos y trayectoria) y las demandas territoriales copiadas textuales del TdR, ligadas a las causas y objetivos del árbol; las valida `scripts/alianza_territorio_sgr.py check` y el usuario las aprueba en la pestaña Alianza y territorio.",
+        "gate": "GTerritorio",
+        "sections": [],
+        "artifacts": ["artefactos/sgr/alianza.json", "artefactos/sgr/territorio.json"],
+        "agents": ["insumos-observador", "investigador", "revisor"],
+        "skills": [],
         "next": "fase1c",
     },
     {
@@ -298,6 +356,19 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "artifacts": [],
         "agents": ["investigador", "grant-flow-auditor", "revisor"],
         "skills": ["estilo-natural-es"],
+        "next": "fase4_sgr",
+    },
+    {
+        "id": "fase4_sgr",
+        "kind": "step",
+        "flujo": "sgr",
+        "name": "Cadena de valor",
+        "desc": "Solo flujo SGR: siembra la cadena de valor desde el árbol de objetivos aprobado (`scripts/cadena_valor_sgr.py init`), con productos del catálogo DNP, indicador y meta por objetivo específico y actividades técnicas con código, ruta crítica y meses; la valida con `check` y el usuario la aprueba en la pestaña Cadena de valor.",
+        "gate": "G4.cv",
+        "sections": [],
+        "artifacts": ["artefactos/sgr/cadena_valor.json"],
+        "agents": ["investigador", "revisor"],
+        "skills": [],
         "next": "fase5",
     },
     {
@@ -310,6 +381,19 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "artifacts": [],
         "agents": ["investigador", "redactor", "grant-flow-auditor", "revisor"],
         "skills": ["estilo-natural-es"],
+        "next": "fase5_sgr",
+    },
+    {
+        "id": "fase5_sgr",
+        "kind": "step",
+        "flujo": "sgr",
+        "name": "Productos, talento e indicadores",
+        "desc": "Solo flujo SGR: productos CTeI por encima del mínimo de la convocatoria, estrategia de divulgación pública de la ciencia, talento humano a vincular con los mínimos de la convocatoria e indicadores de gestión como datos en `artefactos/sgr/productos.json`, ligados a los productos de la cadena de valor; los valida `scripts/productos_sgr.py check`, `render` genera §36 y §37 (y §15 en la Fase 6.45) y el usuario los aprueba en la pestaña Productos e indicadores.",
+        "gate": "GProductos",
+        "sections": ["36", "37"],
+        "artifacts": ["artefactos/sgr/productos.json"],
+        "agents": ["investigador", "redactor", "revisor-estilo-sgr", "revisor"],
+        "skills": [],
         "next": "fase5_5",
     },
     {
@@ -322,6 +406,19 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "artifacts": [],
         "agents": ["redactor", "grant-flow-auditor", "disenador-tikz", "revisor-figuras", "revisor"],
         "skills": ["estilo-natural-es"],
+        "next": "fase5_5_sgr",
+    },
+    {
+        "id": "fase5_5_sgr",
+        "kind": "step",
+        "flujo": "sgr",
+        "name": "TRL y componentes transversales",
+        "desc": "Solo flujo SGR: ruta y verificación del TRL, transferencia, apropiación social del conocimiento con sus siete elementos, sostenibilidad, uso posterior y medidas diferenciales como datos en `artefactos/sgr/componentes.json`, ligados a las actividades de la cadena de valor; los valida `scripts/componentes_sgr.py check`, `render` genera §31 a §35 y el usuario los aprueba en la pestaña TRL y componentes.",
+        "gate": "GComponentes",
+        "sections": ["31", "32", "33", "34", "35"],
+        "artifacts": ["artefactos/sgr/componentes.json"],
+        "agents": ["investigador", "redactor", "revisor-estilo-sgr", "revisor"],
+        "skills": [],
         "next": "fase6",
     },
     {
@@ -357,6 +454,7 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "gate": "G6.4",
         "sections": ["13"],
         "artifacts": [],
+        "artifacts_flujo": {"sgr": ["artefactos/sgr/presupuesto.json"]},
         "agents": ["presupuestador", "revisor"],
         "skills": ["estilo-natural-es"],
         "next": "fase6_45",
@@ -369,6 +467,7 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "gate": None,
         "sections": ["14", "15", "16"],
         "artifacts": [],
+        "artifacts_flujo": {"sgr": ["artefactos/sgr/hitos.json"]},
         "agents": ["redactor", "bibliografo-propuesta", "grant-flow-auditor"],
         "skills": ["estilo-natural-es"],
         "next": "fase6_46",
@@ -390,9 +489,9 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "kind": "step",
         "flujo": "sgr",
         "name": "Anexos MGA",
-        "desc": "Solo flujo SGR: alineación con los planes de desarrollo, cadena de valor con su evaluación y matriz de marco lógico.",
+        "desc": "Solo flujo SGR: alineación con los planes de desarrollo, cadena de valor con su evaluación y matriz de marco lógico, más identificación, demandas territoriales y matriz de responsabilidades (renderizadas desde los datos de la alianza), idoneidad y trayectoria de las entidades y resumen de fuentes de financiación (renderizado desde el presupuesto).",
         "gate": "G6.47",
-        "sections": ["19", "23", "25"],
+        "sections": ["19", "23", "25", "26", "27", "28", "29", "30"],
         "artifacts": [],
         "agents": ["redactor", "presupuestador", "revisor-redundancia", "revisor"],
         "skills": ["estilo-natural-es"],
@@ -408,6 +507,19 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "artifacts": [],
         "agents": ["redactor", "grant-flow-auditor", "revisor"],
         "skills": ["estilo-natural-es"],
+        "next": "fase6_9_sgr",
+    },
+    {
+        "id": "fase6_9_sgr",
+        "kind": "step",
+        "flujo": "sgr",
+        "name": "Requisitos y anexos",
+        "desc": "Solo flujo SGR: lista de los requisitos habilitantes de la convocatoria y del aval institucional, con estado, entidad responsable y documento adjunto, cifras declaradas de los anexos (SIGP, Anexo 1, Anexo 3 y MGA Web) y licencias y permisos como datos en `artefactos/sgr/requisitos.json`; `scripts/requisitos_sgr.py init` lo siembra desde la rúbrica, `scripts/requisitos_sgr.py check` lo valida, `render` genera §38 y §39 y el usuario marca los requisitos y los aprueba en la pestaña Requisitos y anexos.",
+        "gate": "GRequisitos",
+        "sections": ["38", "39"],
+        "artifacts": ["artefactos/sgr/requisitos.json"],
+        "agents": ["investigador", "redactor", "revisor-estilo-sgr", "revisor"],
+        "skills": [],
         "next": "fase7",
     },
     {
@@ -419,10 +531,16 @@ PIPELINE_UNITS: list[dict[str, Any]] = [
         "sections": [],
         "artifacts": ["redaccion/main.tex"],
         "agents": ["revisor-redundancia", "revisor", "coordinador-propuesta"],
+        "agents_flujo": {"sgr": ["juez-sgr"]},
         "skills": ["estilo-natural-es", "depuracion-redundancias-es"],
         "next": "done",
     },
 ]
+
+
+AGENT_REPLACEMENTS_FLUJO: dict[str, dict[str, str]] = {
+    "sgr": {"grant-flow-auditor": "revisor-estilo-sgr"},
+}
 
 
 def units_for_flujo(flujo: str | None) -> list[dict[str, Any]]:
@@ -431,13 +549,25 @@ def units_for_flujo(flujo: str | None) -> list[dict[str, Any]]:
     Un flujo desconocido es el base. Las unidades exclusivas de otro flujo se
     omiten y el `next` de la unidad previa salta sobre ellas, de modo que el
     flujo base nunca espera una compuerta que no le corresponde. Devuelve copias:
-    el inventario canónico no se toca.
+    el inventario canónico no se toca. Una unidad común suma los agentes que
+    declara en `agents_flujo` y los archivos de `artifacts_flujo` para este
+    flujo, y cada agente que el flujo
+    reemplaza (`AGENT_REPLACEMENTS_FLUJO`) se lista con su reemplazo.
     """
     flujo = flujo if flujo in ("base", "sgr") else "base"
     kept = [dict(u) for u in PIPELINE_UNITS if u.get("flujo", flujo) == flujo]
     ids = {u["id"] for u in kept}
     by_id = {u["id"]: u for u in PIPELINE_UNITS}
+    replacements = AGENT_REPLACEMENTS_FLUJO.get(flujo, {})
     for unit in kept:
+        extra = unit.pop("agents_flujo", {}).get(flujo, [])
+        if extra:
+            unit["agents"] = [*unit["agents"], *extra]
+        extra_files = unit.pop("artifacts_flujo", {}).get(flujo, [])
+        if extra_files:
+            unit["artifacts"] = [*unit["artifacts"], *extra_files]
+        if replacements:
+            unit["agents"] = [replacements.get(a, a) for a in unit["agents"]]
         nxt = unit.get("next")
         while nxt and nxt not in ids and nxt in by_id:
             nxt = by_id[nxt].get("next")

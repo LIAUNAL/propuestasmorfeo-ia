@@ -17,8 +17,10 @@
       "grant-flow-auditor.md",
       "insumos-observador.md",
       "investigador.md",
+      "juez-sgr.md",
       "presupuestador.md",
       "redactor.md",
+      "revisor-estilo-sgr.md",
       "revisor-figuras.md",
       "revisor-redundancia.md",
       "revisor.md",
@@ -32,6 +34,7 @@
       "propuesta-continuar.md",
       "propuesta-exportar.md",
       "propuesta-limpiar.md",
+      "propuesta-juez.md",
       "compilar-pdf.md",
       "compilar-docx.md",
       "_propuesta-steps.md"
@@ -168,6 +171,7 @@
         "propuesta-analizar.md",
         "propuesta-continuar.md",
         "propuesta-limpiar.md",
+        "propuesta-juez.md",
         "_propuesta-steps.md"
       ],
       "find": "`Task`",

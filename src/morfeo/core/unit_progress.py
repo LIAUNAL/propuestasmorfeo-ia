@@ -155,6 +155,26 @@ def unit_progress(
             # SGR run that passed G1a before the GCausas gate existed: Fase 1b took
             # the G1a subproblems as direct causes, so there is nothing to redo.
             state = "skipped"
+        elif uid == "fase1b_sgr" and done and verdict != "PASS" and not any(f["exists"] for f in files):
+            # SGR run that passed G1b before the alliance gate existed: the alliance
+            # and territory data are filled later, so the unit is not owed retroactively.
+            state = "skipped"
+        elif uid == "fase4_sgr" and done and verdict != "PASS" and not any(f["exists"] for f in files):
+            # SGR run that passed G4 before the value-chain gate existed: the chain
+            # is built later from §10 and A23, so the unit is not owed retroactively.
+            state = "skipped"
+        elif uid == "fase5_sgr" and done and verdict != "PASS" and not any(f["exists"] for f in files):
+            # SGR run that passed G5 before the products gate existed: the CTeI
+            # products, talent and indicators are not owed retroactively.
+            state = "skipped"
+        elif uid == "fase5_5_sgr" and done and verdict != "PASS" and not any(f["exists"] for f in files):
+            # SGR run that passed G5.5 before the components gate existed: the TRL
+            # route and the transversal components are not owed retroactively.
+            state = "skipped"
+        elif uid == "fase6_9_sgr" and done and verdict != "PASS" and not any(f["exists"] for f in files):
+            # SGR run that passed G6.5 before the requirements gate existed: the
+            # enabling requirements, licences and annexes are not owed retroactively.
+            state = "skipped"
         elif verdict == "PASS" or done or event is not None:
             state = "partial"
         else:

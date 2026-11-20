@@ -92,6 +92,85 @@ your Task prompt (see `propuesta.md`, Fase 6.4).
    every opposing or harmed participant. In Fase 6.47, when the annexes add a
    risk or strategy without a cost, you are dispatched again to add it and
    re-run the arithmetic checks above.
+11. **SGR flow only, costs per activity code.** The activity costs in
+   `artefactos/sgr/cadena_valor.json` come from `presupuesto.json`: never
+   type them by hand. `scripts/presupuesto_sgr.py sync-cadena` splits each
+   item evenly across its activities and writes every `costo` (see «SGR flow:
+   the budget as data» below).
+
+## SGR flow: the budget as data
+
+Only when the run's flow is `sgr` (`"flujo": "sgr"` in `.morfeo/config.json`;
+the guide fragment then carries `### SGR §13` and `### SGR A30`). In the base
+flow nothing in this section applies and §13 is written as described above.
+
+In SGR you **never write `13_presupuesto.tex` (or `30_fuentes_financiacion.tex`)
+by hand**. You write `artefactos/sgr/presupuesto.json` (schema
+`morfeo.presupuesto-sgr/v1`, documented at the top of
+`scripts/presupuesto_sgr.py`); the dispatcher renders both sections from it.
+Inputs: `artefactos/sgr/cadena_valor.json` (activities and codes, approved at
+G4.cv), `artefactos/sgr/alianza.json` (entities, `aporte_especie`,
+`aporte_efectivo`), §10 and the TdR budget block.
+
+1. **One item per cost.** `id` (`P1`, `P2`…), `descripcion`, and a
+   `justificacion` in Spanish that opens with the activity it finances:
+   «Financia la actividad 1.1.2, <nombre>, con…» (guide `### SGR §13`,
+   «Redacción»).
+2. **Two views.** `rubro`: one of the Minciencias rubros (`talento_humano`,
+   `equipos_software`, `capacitacion_eventos`,
+   `servicios_tecnologicos_pruebas`, `materiales_insumos_documentacion`,
+   `proteccion_conocimiento_divulgacion`, `gastos_viaje`, `infraestructura`,
+   `administrativos`, `seguimiento`, `otros`). `insumo_mga`: one of the 11 MGA
+   inputs (`mano_obra_calificada`, `mano_obra_no_calificada`, `materiales`,
+   `servicios_domiciliarios`, `terrenos`, `edificios`, `maquinaria_equipo`,
+   `transporte`, `alojamiento_comidas`, `servicios_empresas`,
+   `servicios_comunitarios`).
+3. **Entity and source.** `entidad` is an `id` of `alianza.json`; `fuente` is
+   `sgr`, `especie` or `efectivo`. The `especie` and `efectivo` items of each
+   entity add up exactly to its `aporte_especie` and `aporte_efectivo`.
+4. **Value.** `cantidad` × `valor_unitario`, in whole pesos, no separators.
+   For people, fill `talento` instead (`perfil`, `horas_semana`, `valor_hora`,
+   `meses`): the value is horas_semana × valor_hora × meses ×
+   `semanas_por_mes` (default 4) × `factor_prestacional` (or 1), the same
+   calculator the dashboard shows for counterpart hours.
+5. **Activities.** `actividades` lists one or more codes of the value chain;
+   the item's value is split evenly across them.
+6. **Quotes.** `cotizaciones` (an integer) and `soporte`; `equipos_software`
+   and `servicios_tecnologicos_pruebas` items need at least 2.
+7. **Components.** `componente: "transferencia"` items reach at least 1 % of
+   the SGR total; mark `asc` items; a `seguimiento` item with SGR money is
+   mandatory. The Task carries `artefactos/sgr/componentes.json` (approved
+   at GComponentes): every item that finances transfer, social appropriation
+   or follow-up carries its `componente`, and the `transferencia` and `asc`
+   items list activities that the matching block of that file lists
+   (`transferencia.actividades`, the activities of the `asc` route). After
+   `presupuesto_sgr.py check`, the dispatcher also runs
+   `python3 scripts/componentes_sgr.py check <RUN_ROOT>` and returns its
+   findings to you. SGR `gastos_viaje` stay within 2 % of the SGR total. Set
+   `tope_sgr` from the TdR (or leave it null: the rubric's cap applies) and
+   `duracion_meses`.
+7a. **Talent.** The Task carries `artefactos/sgr/productos.json` (approved at
+   GProductos). Every entry of its `talento` block with a `valor_mensual` and
+   a `duracion_meses` has its `talento_humano` items for the same entity, with
+   the same category, number of people, months and monthly value; never
+   change the talent block from the budget: a mismatch you cannot resolve
+   goes back to the dispatcher. When `divulgacion.costeada` is true, the
+   dissemination has an item that finances it. After
+   `presupuesto_sgr.py check`, the dispatcher also runs
+   `python3 scripts/productos_sgr.py check <RUN_ROOT>` and returns its
+   findings to you.
+8. **Then the dispatcher runs**, in this order, and returns every error to you:
+   `python3 scripts/presupuesto_sgr.py check <RUN_ROOT>`,
+   `python3 scripts/presupuesto_sgr.py sync-cadena <RUN_ROOT>` (writes the
+   activity costs into `cadena_valor.json`) and
+   `python3 scripts/presupuesto_sgr.py render <RUN_ROOT>` (writes §13 and
+   §30). Fix the data in `presupuesto.json`, never the rendered `.tex`. The
+   user approves the budget in the dashboard tab «Presupuesto y cronograma»
+   (gate G6.4).
+
+The arithmetic constraints 1 to 4 above hold by construction in SGR: the
+script computes every value and total. Your vault mirror links the json
+instead of a hand-written table.
 
 ## Interactive construction contract
 This section is built through the dispatcher-mediated interactive gate (Fase
@@ -127,6 +206,8 @@ citing external cost benchmarks. Leave `gate_status: pending` — the
 dispatcher flips it after the gate.
 
 ## Output
+In the SGR flow: `artefactos/sgr/presupuesto.json` and the vault mirror (the
+dispatcher renders §13 and §30). In the base flow:
 - `redaccion/sections/13_presupuesto.tex` — self-contained `\section`, one
   `table` with `\label{tab:presupuesto}`, xcolor[table] shading (same style as
   §14 Cronograma Gantt), no new packages.

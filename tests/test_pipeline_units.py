@@ -28,7 +28,7 @@ from morfeo.core.pipeline_units import (  # noqa: E402
 
 STEPS_DOC = REPO / ".claude" / "commands" / "_propuesta-steps.md"
 
-STEP_UNITS_EXPECTED = 18
+STEP_UNITS_EXPECTED = 23
 
 # Valores de compuerta observados en los artefactos de la corrida de referencia,
 # incluidos los que la tabla no reconoce. El inventario tiene que ubicarlos todos:
@@ -125,13 +125,22 @@ class TestPipelineUnits(unittest.TestCase):
             "G5", "G5.5", "G6.4", "G6.46", "G6.5", "G7",
         ):
             self.assertIn(real, canonical, f"falta {real} en las compuertas canónicas")
-        # Catorce del flujo base más las tres del flujo SGR: GCausas (causas
-        # directas, tras G1a), G6.3 (anexos que alimentan el presupuesto) y
-        # G6.47 (anexos MGA).
+        # Catorce del flujo base más las ocho del flujo SGR: GCausas (causas
+        # directas, tras G1a), GTerritorio (alianza y territorio, tras G1b),
+        # G4.cv (cadena de valor, tras G4), GProductos (productos, talento e
+        # indicadores, tras G5), GComponentes (TRL y componentes
+        # transversales, tras G5.5), G6.3 (anexos que alimentan el
+        # presupuesto), G6.47 (anexos MGA) y GRequisitos (requisitos y anexos,
+        # tras G6.5).
         self.assertIn("G6.3", canonical)
         self.assertIn("G6.47", canonical)
         self.assertIn("GCausas", canonical)
-        self.assertEqual(len(canonical), 17, "las compuertas canónicas son diecisiete")
+        self.assertIn("GTerritorio", canonical)
+        self.assertIn("G4.cv", canonical)
+        self.assertIn("GProductos", canonical)
+        self.assertIn("GComponentes", canonical)
+        self.assertIn("GRequisitos", canonical)
+        self.assertEqual(len(canonical), 22, "las compuertas canónicas son veintidós")
 
     def test_early_units_run_scoping_trees_corpus_then_mga_summary(self) -> None:
         # The trees come right after the subproblems (in SGR, after the GCausas
@@ -139,7 +148,7 @@ class TestPipelineUnits(unittest.TestCase):
         # the MGA summary and §3 from it.
         expected = {
             "base": ["fase0", "fase1a", "fase1b", "fase1c", "fase1", "fase2"],
-            "sgr": ["fase0", "fase1a", "fase1a_sgr", "fase1b", "fase1c", "fase1", "fase2"],
+            "sgr": ["fase0", "fase1a", "fase1a_sgr", "fase1b", "fase1b_sgr", "fase1c", "fase1", "fase2"],
         }
         for flujo in ("base", "sgr"):
             by_id = {u["id"]: u for u in units_for_flujo(flujo)}
@@ -228,6 +237,15 @@ class TestUnitsByFlujo(unittest.TestCase):
         self.assertEqual(nxt["fase6_46"], "fase6_5")
         self.assertNotIn("G6.47", {g["id"] for g in canonical_gates("base")})
 
+    def test_only_the_sgr_final_audit_lists_the_sgr_judge(self) -> None:
+        final = {f: next(u for u in units_for_flujo(f) if u["id"] == "fase7") for f in ("base", "sgr")}
+        self.assertEqual(final["base"]["agents"], ["revisor-redundancia", "revisor", "coordinador-propuesta"])
+        self.assertEqual(final["sgr"]["agents"],
+                         ["revisor-redundancia", "revisor", "coordinador-propuesta", "juez-sgr"])
+        self.assertNotIn("agents_flujo", final["sgr"])
+        canonical = next(u for u in PIPELINE_UNITS if u["id"] == "fase7")
+        self.assertEqual(canonical["agents"], ["revisor-redundancia", "revisor", "coordinador-propuesta"])
+
     def test_sgr_flow_runs_the_annexes_between_communities_and_front_matter(self) -> None:
         units = units_for_flujo("sgr")
         ids = self._ids(units)
@@ -238,7 +256,7 @@ class TestUnitsByFlujo(unittest.TestCase):
         self.assertEqual(nxt["fase6_47"], "fase6_5")
         annex = next(u for u in units if u["id"] == "fase6_47")
         self.assertEqual(annex["gate"], "G6.47")
-        self.assertEqual(annex["sections"], ["19", "23", "25"])
+        self.assertEqual(annex["sections"], ["19", "23", "25", "26", "27", "28", "29", "30"])
         self.assertIn("G6.47", {g["id"] for g in canonical_gates("sgr")})
 
     def test_sgr_flow_writes_the_annexes_the_budget_costs_before_the_budget(self) -> None:
@@ -251,7 +269,11 @@ class TestUnitsByFlujo(unittest.TestCase):
         unit = next(u for u in units if u["id"] == "fase6_3")
         self.assertEqual(unit["gate"], "G6.3")
         self.assertEqual(unit["sections"], ["20", "21", "22", "24"])
-        self.assertEqual(unit["agents"], ["redactor", "grant-flow-auditor", "revisor"])
+        # The SGR flow dispatches its style reviewer where the canonical unit
+        # lists grant-flow-auditor (AGENT_REPLACEMENTS_FLUJO).
+        self.assertEqual(unit["agents"], ["redactor", "revisor-estilo-sgr", "revisor"])
+        canonical = next(u for u in PIPELINE_UNITS if u["id"] == "fase6_3")
+        self.assertEqual(canonical["agents"], ["redactor", "grant-flow-auditor", "revisor"])
         self.assertIn("G6.3", {g["id"] for g in canonical_gates("sgr")})
 
     def test_base_flow_goes_from_results_straight_to_the_budget(self) -> None:
@@ -268,6 +290,193 @@ class TestUnitsByFlujo(unittest.TestCase):
         units_for_flujo("base")
         units_for_flujo("sgr")
         self.assertEqual([dict(u) for u in PIPELINE_UNITS], before)
+
+    def test_value_chain_unit_runs_only_in_the_sgr_flow_after_the_objectives(self) -> None:
+        base = {u["id"]: u for u in units_for_flujo("base")}
+        self.assertNotIn("fase4_sgr", base)
+        self.assertEqual(base["fase4"]["next"], "fase5")
+        self.assertNotIn("G4.cv", {g["id"] for g in canonical_gates("base")})
+        sgr = units_for_flujo("sgr")
+        ids = self._ids(sgr)
+        self.assertEqual(ids.index("fase4_sgr"), ids.index("fase4") + 1)
+        by_id = {u["id"]: u for u in sgr}
+        self.assertEqual(by_id["fase4"]["next"], "fase4_sgr")
+        unit = by_id["fase4_sgr"]
+        self.assertEqual(unit["next"], "fase5")
+        self.assertEqual(unit["name"], "Cadena de valor")
+        self.assertEqual(unit["gate"], "G4.cv")
+        self.assertEqual(unit["artifacts"], ["artefactos/sgr/cadena_valor.json"])
+        self.assertEqual(unit["agents"], ["investigador", "revisor"])
+        self.assertEqual(unit["sections"], [])
+        self.assertIn("G4.cv", {g["id"] for g in canonical_gates("sgr")})
+        self.assertEqual(normalise_gate("G cadena"), "G4.cv")
+
+    def test_alliance_unit_runs_only_in_the_sgr_flow_between_trees_and_corpus(self) -> None:
+        base = {u["id"]: u for u in units_for_flujo("base")}
+        self.assertNotIn("fase1b_sgr", base)
+        self.assertEqual(base["fase1b"]["next"], "fase1c")
+        self.assertNotIn("GTerritorio", {g["id"] for g in canonical_gates("base")})
+        sgr = units_for_flujo("sgr")
+        ids = self._ids(sgr)
+        self.assertEqual(ids.index("fase1b_sgr"), ids.index("fase1b") + 1)
+        by_id = {u["id"]: u for u in sgr}
+        self.assertEqual(by_id["fase1b"]["next"], "fase1b_sgr")
+        unit = by_id["fase1b_sgr"]
+        self.assertEqual(unit["next"], "fase1c")
+        self.assertEqual(unit["name"], "Alianza y territorio")
+        self.assertEqual(unit["gate"], "GTerritorio")
+        self.assertEqual(unit["artifacts"], ["artefactos/sgr/alianza.json", "artefactos/sgr/territorio.json"])
+        self.assertEqual(unit["agents"], ["insumos-observador", "investigador", "revisor"])
+        self.assertEqual(unit["sections"], [])
+        self.assertIn("GTerritorio", {g["id"] for g in canonical_gates("sgr")})
+        self.assertEqual(normalise_gate("G territorio"), "GTerritorio")
+        gate = next(g for g in canonical_gates("sgr") if g["id"] == "GTerritorio")
+        self.assertEqual(gate["phase"], "Fase 1b SGR")
+        self.assertIn("Alianza y territorio", gate["name"])
+        self.assertIn("alianza_territorio_sgr.py check", gate["criteria"])
+
+    def test_components_unit_runs_only_in_the_sgr_flow_between_methodology_and_results(self) -> None:
+        base = {u["id"]: u for u in units_for_flujo("base")}
+        self.assertNotIn("fase5_5_sgr", base)
+        self.assertEqual(base["fase5_5"]["next"], "fase6")
+        self.assertNotIn("GComponentes", {g["id"] for g in canonical_gates("base")})
+        self.assertNotIn("31", {s for u in base.values() for s in u["sections"]})
+        self.assertEqual(base["fase6_46"]["sections"], ["17", "18"])
+        sgr = units_for_flujo("sgr")
+        ids = self._ids(sgr)
+        self.assertEqual(ids.index("fase5_5_sgr"), ids.index("fase5_5") + 1)
+        by_id = {u["id"]: u for u in sgr}
+        self.assertEqual(by_id["fase5_5"]["next"], "fase5_5_sgr")
+        unit = by_id["fase5_5_sgr"]
+        self.assertEqual(unit["next"], "fase6")
+        self.assertEqual(unit["name"], "TRL y componentes transversales")
+        self.assertEqual(unit["gate"], "GComponentes")
+        self.assertEqual(unit["artifacts"], ["artefactos/sgr/componentes.json"])
+        self.assertEqual(unit["agents"], ["investigador", "redactor", "revisor-estilo-sgr", "revisor"])
+        self.assertEqual(unit["sections"], ["31", "32", "33", "34", "35"])
+        self.assertEqual(by_id["fase6_46"]["sections"], ["17", "18"])
+        self.assertEqual(normalise_gate("G componentes"), "GComponentes")
+        gate = next(g for g in canonical_gates("sgr") if g["id"] == "GComponentes")
+        self.assertEqual(gate["phase"], "Fase 5.5 SGR")
+        self.assertIn("TRL y componentes transversales", gate["name"])
+        self.assertIn("componentes_sgr.py check", gate["criteria"])
+
+    def test_products_unit_runs_only_in_the_sgr_flow_between_team_and_methodology(self) -> None:
+        base = {u["id"]: u for u in units_for_flujo("base")}
+        self.assertNotIn("fase5_sgr", base)
+        self.assertEqual(base["fase5"]["next"], "fase5_5")
+        self.assertNotIn("GProductos", {g["id"] for g in canonical_gates("base")})
+        self.assertFalse({"36", "37"} & {s for u in base.values() for s in u["sections"]})
+        self.assertEqual(base["fase6_45"]["sections"], ["14", "15", "16"])
+        sgr = units_for_flujo("sgr")
+        ids = self._ids(sgr)
+        self.assertEqual(ids.index("fase5_sgr"), ids.index("fase5") + 1)
+        self.assertEqual(ids.index("fase5_5"), ids.index("fase5_sgr") + 1)
+        by_id = {u["id"]: u for u in sgr}
+        self.assertEqual(by_id["fase5"]["next"], "fase5_sgr")
+        unit = by_id["fase5_sgr"]
+        self.assertEqual(unit["next"], "fase5_5")
+        self.assertEqual(unit["name"], "Productos, talento e indicadores")
+        self.assertEqual(unit["gate"], "GProductos")
+        self.assertEqual(unit["artifacts"], ["artefactos/sgr/productos.json"])
+        self.assertEqual(unit["agents"], ["investigador", "redactor", "revisor-estilo-sgr", "revisor"])
+        self.assertEqual(unit["sections"], ["36", "37"])
+        # §15 stays with the unit that writes it today, in both flows.
+        self.assertEqual(by_id["fase6_45"]["sections"], ["14", "15", "16"])
+        self.assertEqual(normalise_gate("G productos"), "GProductos")
+        gate = next(g for g in canonical_gates("sgr") if g["id"] == "GProductos")
+        self.assertEqual(gate["phase"], "Fase 5 SGR")
+        self.assertIn("Productos, talento e indicadores", gate["name"])
+        self.assertIn("productos_sgr.py check", gate["criteria"])
+        order = [g["id"] for g in canonical_gates("sgr")]
+        self.assertEqual(order.index("GProductos"), order.index("G5") + 1)
+        self.assertEqual(order.index("G5.5"), order.index("GProductos") + 1)
+
+    def test_requirements_unit_runs_only_in_the_sgr_flow_between_front_matter_and_final_audit(self) -> None:
+        sgr = units_for_flujo("sgr")
+        ids = self._ids(sgr)
+        self.assertEqual(ids.index("fase6_9_sgr"), ids.index("fase6_5") + 1)
+        self.assertEqual(ids.index("fase7"), ids.index("fase6_9_sgr") + 1)
+        by_id = {u["id"]: u for u in sgr}
+        self.assertEqual(by_id["fase6_5"]["next"], "fase6_9_sgr")
+        unit = by_id["fase6_9_sgr"]
+        self.assertEqual(unit["kind"], "step")
+        self.assertEqual(unit["next"], "fase7")
+        self.assertEqual(unit["name"], "Requisitos y anexos")
+        self.assertEqual(unit["gate"], "GRequisitos")
+        self.assertEqual(unit["artifacts"], ["artefactos/sgr/requisitos.json"])
+        self.assertEqual(unit["agents"], ["investigador", "redactor", "revisor-estilo-sgr", "revisor"])
+        self.assertEqual(unit["sections"], ["38", "39"])
+        self.assertIn("requisitos_sgr.py check", unit["desc"])
+        self.assertIn("pestaña Requisitos y anexos", unit["desc"])
+        self.assertEqual(normalise_gate("G requisitos"), "GRequisitos")
+        gate = next(g for g in canonical_gates("sgr") if g["id"] == "GRequisitos")
+        self.assertEqual(gate["phase"], "Fase 6.9 SGR")
+        self.assertIn("Requisitos y anexos", gate["name"])
+        self.assertIn("requisitos_sgr.py check", gate["criteria"])
+        order = [g["id"] for g in canonical_gates("sgr")]
+        self.assertEqual(order.index("GRequisitos"), order.index("G6.5") + 1)
+        self.assertEqual(order.index("G7"), order.index("GRequisitos") + 1)
+
+    def test_base_flow_goes_straight_from_the_front_matter_to_the_final_audit(self) -> None:
+        base = units_for_flujo("base")
+        by_id = {u["id"]: u for u in base}
+        self.assertNotIn("fase6_9_sgr", by_id)
+        self.assertEqual(by_id["fase6_5"]["next"], "fase7")
+        self.assertNotIn("GRequisitos", {g["id"] for g in canonical_gates("base")})
+        self.assertFalse({"38", "39"} & {s for u in base for s in u["sections"]})
+        self.assertNotIn("artefactos/sgr/requisitos.json", {a for u in base for a in u["artifacts"]})
+
+    def test_base_flow_unit_order_and_gates_are_unchanged(self) -> None:
+        self.assertEqual(self._ids(units_for_flujo("base")), [
+            "fase0", "g0_5", "fase1a", "fase1b", "fase1c", "fase1", "fase2", "fase3", "fase4",
+            "fase5", "fase5_5", "fase6", "fase6_4", "fase6_45", "fase6_46", "fase6_5", "fase7",
+        ])
+        self.assertEqual([g["id"] for g in canonical_gates("base")], [
+            "G0.5", "G1a", "G1b", "G1c", "G1", "G2", "G3", "G4", "G5", "G5.5",
+            "G6.4", "G6.46", "G6.5", "G7",
+        ])
+
+    def test_existing_sgr_units_keep_their_order(self) -> None:
+        ids = [i for i in self._ids(units_for_flujo("sgr")) if i != "fase6_9_sgr"]
+        self.assertEqual(ids, [
+            "fase0", "g0_5", "fase1a", "fase1a_sgr", "fase1b", "fase1b_sgr", "fase1c", "fase1",
+            "fase2", "fase3", "fase4", "fase4_sgr", "fase5", "fase5_sgr", "fase5_5", "fase5_5_sgr",
+            "fase6", "fase6_3", "fase6_4", "fase6_45", "fase6_46", "fase6_47", "fase6_5", "fase7",
+        ])
+
+    def test_sgr_flow_swaps_the_auditor_for_the_sgr_style_reviewer(self) -> None:
+        for unit in units_for_flujo("sgr"):
+            self.assertNotIn("grant-flow-auditor", unit["agents"], unit["id"])
+        swapped = {u["id"]: u["agents"] for u in units_for_flujo("sgr")}
+        canonical = {u["id"]: u["agents"] for u in PIPELINE_UNITS}
+        for uid, agents in canonical.items():
+            if "grant-flow-auditor" in agents:
+                expected = ["revisor-estilo-sgr" if a == "grant-flow-auditor" else a for a in agents]
+                self.assertEqual(swapped[uid], expected, uid)
+        self.assertEqual(swapped["fase3"], ["redactor", "revisor-estilo-sgr", "revisor"])
+
+    def test_base_flow_keeps_every_unit_agent_list(self) -> None:
+        canonical = {u["id"]: u["agents"] for u in PIPELINE_UNITS}
+        for unit in units_for_flujo("base"):
+            self.assertEqual(unit["agents"], canonical[unit["id"]], unit["id"])
+            self.assertNotIn("revisor-estilo-sgr", unit["agents"], unit["id"])
+        self.assertIn("grant-flow-auditor", {a for u in units_for_flujo("base") for a in u["agents"]})
+
+    def test_sgr_budget_and_schedule_units_add_their_data_files_only_in_the_sgr_flow(self) -> None:
+        expected = {"fase6_4": ["artefactos/sgr/presupuesto.json"], "fase6_45": ["artefactos/sgr/hitos.json"]}
+        sgr = {u["id"]: u for u in units_for_flujo("sgr")}
+        base = {u["id"]: u for u in units_for_flujo("base")}
+        canonical = {u["id"]: u for u in PIPELINE_UNITS}
+        for uid, files in expected.items():
+            self.assertEqual(sgr[uid]["artifacts"], files, uid)
+            self.assertEqual(base[uid]["artifacts"], [], uid)
+            self.assertEqual(canonical[uid]["artifacts"], [], uid)
+            self.assertNotIn("artifacts_flujo", sgr[uid])
+            self.assertNotIn("artifacts_flujo", base[uid])
+        for uid, unit in base.items():
+            self.assertEqual(unit["artifacts"], canonical[uid]["artifacts"], uid)
+            self.assertEqual(unit["sections"], canonical[uid]["sections"], uid)
 
     def test_without_a_flow_every_gate_is_listed(self) -> None:
         """Llamar `canonical_gates()` sin flujo conserva el comportamiento previo."""

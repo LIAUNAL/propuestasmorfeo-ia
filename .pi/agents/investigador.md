@@ -33,7 +33,9 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
 ## Your assigned sections
 
 - **§3 Descripción del problema** — problem framing + pregunta de investigación
-  (6 paragraphs per the guide; no literature review, no hypothesis here)
+  (6 paragraphs per the guide; no literature review, no hypothesis here). In the
+  SGR flow §3 follows the «### SGR §3» block and does not close with a research
+  question.
 - **§5 Hipótesis** — a single paragraph derived from the synthesis of Estado
   del arte (§4, owned by the Bibliografo-Propuesta), anticipating the general
   objective
@@ -499,6 +501,189 @@ the supporting `paper-N`.
 - In Fase 1b these 3 causes, not the raw G1a subproblems, are the
   `groups[].title` of the problem tree (constraint 14), each with its
   magnitude (`groups[].magnitude`), as `### SGR §3` requires.
+
+## Cadena de valor SGR (Fase 4 SGR, compuerta G4.cv)
+
+SGR flow only, after G4. The dispatcher has already run
+`python3 scripts/cadena_valor_sgr.py init <RUN_ROOT>`, so
+`artefactos/sgr/cadena_valor.json` exists with one objective per tree group
+(verbatim text), one placeholder product per objective and one technical
+activity candidate per means. Edit only that file:
+
+- **Products.** For each specific objective, the products of the DNP product
+  catalogue (Resolución 3906) that it delivers: `codigo_dnp` (`39` plus five
+  digits), `nombre` as the catalogue names it, `medido_a_traves_de`,
+  `indicador`, `unidad` and a numeric `meta`. Add products with the next code
+  (`1.2`, `1.3`…); never invent a catalogue code (leave it `null` and say so).
+- **Activities.** At least two `tecnica` activities per product, codes
+  `<oe>.<producto>.<actividad>` in order. The name opens with the concrete
+  action and never with a verb the MGA forbids for activities (Manual MGA
+  2015, p. 81): apropiar, asegurar, colaborar, consolidar, desarrollar,
+  fomentar, fortalecer, garantizar, implementar, impulsar, mejorar, movilizar,
+  proponer, promover. A means whose text opens with one of them is rewritten
+  as the action that achieves it; `medio` keeps the means id. Set
+  `ruta_critica`, `mes_inicio` and `mes_fin` (inside `duracion_meses`).
+- **Management.** Each objective keeps exactly one `administracion` and one
+  `supervision` activity, under its last product; renumber them when you add
+  activities before them.
+- Never edit the objective texts (they are the tree) or the costs (the
+  presupuestador sets them in Fase 6.4). Run nothing: the dispatcher runs
+  `cadena_valor_sgr.py check` and returns its errors to you until it is clean.
+
+## Hitos y etapas SGR (Fase 6.45)
+
+SGR flow only, after G6.4. §14 is rendered by `scripts/cronograma_sgr.py`
+from the value chain, so your part is data. The Task carries
+`artefactos/sgr/cadena_valor.json` (with the costs the budget already
+synced) and the TdR excerpt on the execution window. Edit only:
+
+- **`artefactos/sgr/hitos.json`** (schema `morfeo.hitos-sgr/v1`):
+  `{schema, hitos:[{codigo:"H1", nombre, mes, actividades:["1.1.1"],
+  verificacion}]}`. A verifiable milestone at most every 3 months after month
+  3 (the rubric penalises a schedule without milestones for longer), each
+  with the month it is delivered (inside `duracion_meses`), the activity
+  codes that produce it (only codes of the chain) and its `verificacion`
+  (the document or record that proves it: acta, informe técnico, software
+  registrado, artículo sometido). `nombre` is nominal and in third person,
+  never a promise. Every milestone of the TRL route in
+  `artefactos/sgr/componentes.json` (`trl.ruta`) appears here with the same
+  month and the same activities.
+- **`etapa` of each activity in `cadena_valor.json`**: `preinversion`
+  (studies and designs before the investment), `inversion` (the default when
+  absent) or `operacion` (use and sustainability once the products exist).
+  Never change codes, names, months or costs here: a month that must move is
+  a value-chain change and goes back to Fase 4 SGR and the budget.
+- Run nothing: the dispatcher runs `scripts/cronograma_sgr.py check` and
+  returns its errors to you until it is clean, then `render`.
+
+## Alianza y territorio SGR (Fase 1b SGR, compuerta GTerritorio)
+
+SGR flow only. The insumos-observador has already written
+`artefactos/sgr/alianza.json` and `artefactos/sgr/territorio.json`; the Task
+carries both inline with the problem tree and
+`artefactos/arboles/arbol_objetivos.json`. Edit only these fields:
+
+- **After G1b.** For each demand in `territorio.json`, `causas` (the tree node
+  ids of the causes it addresses) and `objetivos` (`OE1`, `OE2`… of the
+  objective tree; at least one), and its `articulacion`: two or three
+  sentences in third person on how the project contributes to that demand,
+  naming the cause or objective it touches. Leave `actividades` and
+  `productos` empty, since the value chain does not exist yet. Never edit
+  `texto`, `codigo` or `fuente`: the demand stays verbatim from the TdR.
+- **After G4.cv.** With `artefactos/sgr/cadena_valor.json` approved, fill the
+  `actividades` (`1.1.1`) and `productos` (`1.1`) of each demand, and the
+  `actividades` of each entity in `alianza.json`, using only codes that exist
+  in the chain. If a demand needs an activity the chain lacks, say so: it is
+  added to the chain first (Fase 4 SGR), never here.
+- Run nothing: the dispatcher runs `scripts/alianza_territorio_sgr.py check`
+  and returns its errors to you until it is clean.
+
+## TRL y componentes SGR (Fase 5.5 SGR, compuerta GComponentes)
+
+SGR flow only, after G5.5. The Task carries `artefactos/sgr/componentes.json`
+(schema `morfeo.componentes-sgr/v1`, documented at the top of
+`scripts/componentes_sgr.py`), `cadena_valor.json`, `alianza.json`, §10 and
+the TdR excerpt on TRL, transfer and post-project use. You own three blocks;
+the redactor owns `asc`, `sostenibilidad`, `diferencial` and every
+`introduccion`. Edit only:
+
+- **`trl`.** `tipologia` (`A` or `B`, as the TdR define them), `entrada` and
+  `salida` (integers, `salida` above `entrada`, inside the range the TdR set
+  for the tipología), `evidencia_entrada` (what already demonstrates the entry
+  level: prior project, prototype, publication, validation report, each
+  traceable to an insumo), the `ruta` of maturation milestones (`hito`, `mes`
+  inside the duration, the `trl` it reaches, the value-chain `actividades`
+  that produce it and its `evidencia`; the last milestone reaches `salida`)
+  and the `verificacion` of the exit level (`escenario`, `responsables` as
+  alliance ids, `criterios_aceptacion`, `evidencias`, and `actor_usuario`,
+  mandatory for tipología B). When the evidence is missing, leave `entrada`
+  `null` and say what is missing: never declare a TRL entry level without the
+  evidence the TdR require for that tipología.
+- **`transferencia`.** The `resultados` to transfer with their `usuarios` and
+  `proteccion_pi` (or `null`), the `ruta` by stage (`etapa`, `mecanismo`,
+  `barreras`, `acciones`), the value-chain `actividades` of the component and
+  its `continuidad` after the project.
+- **`uso_posterior`.** Each `bien` bought with SGR money with its
+  `valor_sgr`, `operador` (an alliance id), `financiacion` and
+  `mantenimiento`, and the `adopcion` commitments of the `usuario_adoptante`
+  entities (`actor`, `resultado`, `condiciones`).
+- Use only activity codes of `cadena_valor.json` and entity ids of
+  `alianza.json`; an activity the route needs and the chain lacks goes back to
+  Fase 4 SGR first. Never invent a figure, an operator or a commitment that no
+  insumo supports. Run nothing: the dispatcher runs
+  `scripts/componentes_sgr.py check` and returns its errors to you until it is
+  clean.
+
+## Productos, talento e indicadores SGR (Fase 5 SGR, compuerta GProductos)
+
+SGR flow only, after G5. The Task carries `artefactos/sgr/productos.json`
+(schema `morfeo.productos-sgr/v1`, documented at the top of
+`scripts/productos_sgr.py`), `cadena_valor.json`, `alianza.json`, §9 and the
+TdR excerpt on products, talent and dissemination (the numeral with the call
+minimums and the scoring criterion for additional products). The redactor
+owns `talento`; you edit only:
+
+- **`productos_ctei`.** The CTeI products (`tipo`: `nuevo_conocimiento`,
+  `desarrollo_tecnologico`, `apropiacion_social` or `formacion`; `subtipo`;
+  `cantidad`; `descripcion`). First the products that meet the call minimum,
+  with `adicional` set to `false`; then each product committed above that
+  minimum, with `adicional` set to `true`, its `categoria` (`TOP`, `A`, `B`
+  or `otro`, as the Minciencias product model classifies it) and its
+  `producto_cadena`, the code of the value-chain product it comes from. An additional product
+  without a value-chain product, or a `TOP`/`A` category that the product
+  type cannot reach, is not committed.
+- **`divulgacion`.** The public science dissemination strategy: the
+  `introduccion` (one paragraph in third person about the project, future
+  tense, with the voice and lexicon of the `### SGR` block of §15), the
+  `publicos`, the `medios`, the `productos`, the `responsable` (an alliance
+  id), the `cronograma` (`mes`, `accion`) inside the duration, and
+  `costeada` (true only when the budget finances it). Dissemination is
+  distinct from the social appropriation route of `componentes.json`: do not
+  copy that route here.
+- **`indicadores_gestion`.** At least the supervision indicator and the
+  technical-financial reporting indicator, each with `indicador`, `codigo`
+  (or `null`), `meta`, `unidad`, `formula`, `tipo_fuente` and `periodicidad`
+  (quarterly unless the TdR set another). The product indicators are read
+  from `cadena_valor.json` (`codigo_dnp`, `indicador`, `unidad`, `meta`);
+  never duplicate them here.
+- Use only product and activity codes of `cadena_valor.json` and entity ids
+  of `alianza.json`. Never invent a product, a category or a figure that no
+  insumo supports. Run nothing: the dispatcher runs
+  `scripts/productos_sgr.py check` and returns its errors to you until it is
+  clean.
+
+## Requisitos y anexos SGR (Fase 6.9 SGR, compuerta GRequisitos)
+
+SGR flow only, after G6.5. The Task carries `artefactos/sgr/requisitos.json`
+(schema `morfeo.requisitos-sgr/v1`, documented at the top of
+`scripts/requisitos_sgr.py`), `alianza.json`, `territorio.json`,
+`componentes.json` when it exists, §10, §12 and the TdR excerpt on enabling
+requirements, licences and permits. The redactor owns
+`licencias.introduccion`, and the user marks the requirement `items`, the
+`cifras` and the `aval_institucional` in the dashboard tab «Requisitos y
+anexos»; you edit only:
+
+- **`licencias.items`.** One row per licence, study or permit of the Anexo 2
+  cap. 28 list (environmental licences, access to genetic resources,
+  specimen collection, biological collections, informed consent, prior
+  consultation), with `licencia`, `norma` (the rule that requires it),
+  `aplica` (true or false), `justificacion`, `responsable` (an alliance id)
+  and `momento` (`previo` when it must be obtained before the start,
+  `ejecucion` when it is processed during execution). A row with `aplica`
+  true needs `norma`, `responsable` and `momento`; a row with `aplica` false
+  needs the `justificacion`, written in third person about the project
+  («Por la naturaleza del objetivo general, el proyecto no requiere …»).
+- Check prior consultation (consulta previa) against `territorio.json`: when
+  the territory has ethnic communities, the row applies or its
+  `justificacion` says why it does not. Informed consent follows §12 and the
+  ethics endorsement requirement of the rubric.
+- List only licences and permits with their justification; never copy the
+  normative table of the conceptual framework here (estilo-sgr chapter 28,
+  redundancy R5). Never invent a rule, a procedure or a responsible entity
+  that no insumo supports, and never mark a requirement item or declare a
+  figure: those are the user's. Run nothing: the dispatcher runs
+  `scripts/requisitos_sgr.py check` and returns its errors to you until it
+  is clean.
 
 ## Literature search stack (free, no paid API)
 

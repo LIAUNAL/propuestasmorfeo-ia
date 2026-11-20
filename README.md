@@ -19,7 +19,7 @@
 
 **Morfeo IA** (`propuestasmorfeo-ia`) es un entorno de trabajo agéntico y determinista diseñado para investigar, redactar, estructurar y auditar propuestas completas de investigación científica y desarrollo tecnológico en Inteligencia Artificial. Produce documentos formales en **español** bajo formato LaTeX nativo (con exportación determinista a Word/DOCX), articulados rigurosamente en 18 secciones metodológicas con coherencia matemática, lógica, presupuestal y de impacto social (TRL 6 o 7).
 
-El sistema coordina un equipo de **11 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
+El sistema coordina un equipo de **14 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
 
 ---
 
@@ -87,6 +87,16 @@ morfeo init ~/propuestas/regalias-ia --title "Plataforma de IA para el agro" --s
 
 La bandera guarda `"flujo": "sgr"` en `.morfeo/config.json` y `.marco/config.json`, y el pipeline suma lo que pide la metodología MGA sin reemplazar el flujo base. Sin ella el proyecto queda en `"flujo": "base"`. `morfeo upgrade` conserva el valor, y cada corrida lo registra en su `_run.md`.
 
+En el flujo SGR, después de los árboles (Fase 1b), la unidad `fase1b_sgr` «Alianza y territorio» (compuerta `GTerritorio`) guarda las entidades de la alianza y las demandas territoriales copiadas del TdR en `artefactos/sgr/alianza.json` y `artefactos/sgr/territorio.json`; el operador las revisa y aprueba en la pestaña del tablero del mismo nombre.
+
+El presupuesto SGR también es un dato: `artefactos/sgr/presupuesto.json` (rubros de Minciencias e insumos MGA por entidad y fuente) genera §13 y el anexo de fuentes de financiación con `scripts/presupuesto_sgr.py`, y `scripts/cronograma_sgr.py` genera el Gantt de §14 desde la cadena de valor y `artefactos/sgr/hitos.json`; el operador los revisa y aprueba en la pestaña «Presupuesto y cronograma».
+
+Tras el marco y el equipo (Fase 5), la unidad SGR `fase5_sgr` «Productos, talento e indicadores» (compuerta `GProductos`) guarda en `artefactos/sgr/productos.json` los productos CTeI por encima del mínimo de la convocatoria, la estrategia de divulgación, el talento humano con los mínimos de la convocatoria y los indicadores de gestión; `scripts/productos_sgr.py` genera §15, §36 y §37, y el operador los aprueba en la pestaña «Productos e indicadores».
+
+Tras la metodología (Fase 5.5), la unidad SGR `fase5_5_sgr` «TRL y componentes transversales» (compuerta `GComponentes`) guarda en `artefactos/sgr/componentes.json` la ruta y la verificación del TRL, la transferencia, los siete elementos de la apropiación social, la sostenibilidad, el uso posterior y las medidas diferenciales; `scripts/componentes_sgr.py` genera §31 a §35 y §18, y el operador los aprueba en la pestaña «TRL y componentes».
+
+Antes de la auditoría final (Fase 7), la unidad SGR `fase6_9_sgr` «Requisitos y anexos» (compuerta `GRequisitos`) guarda en `artefactos/sgr/requisitos.json` el estado de cada requisito habilitante de la convocatoria (copiados del TdR en la rúbrica), los documentos del aval institucional, las cifras declaradas en el SIGP, el Anexo 1, el Anexo 3 y la MGA Web y las licencias y permisos; `scripts/requisitos_sgr.py` verifica la coherencia de esas cifras con el presupuesto y la alianza y genera §38 (licencias y permisos) y §39 (anexos), y el operador marca los requisitos y los aprueba en la pestaña «Requisitos y anexos».
+
 Dentro del directorio inicializado puedes ejecutar los comandos del asistente en Claude Code (`/propuesta-init`, `/propuesta-analizar`, `/propuesta-continuar`) o el pipeline de tu runtime preferido.
 
 ---
@@ -95,7 +105,7 @@ Dentro del directorio inicializado puedes ejecutar los comandos del asistente en
 
 | Comando | Descripción |
 |---|---|
-| `morfeo init <dir> [--title] [--preset] [--tools] [--sgr]` | Inicializa un workspace autocontenido con los 73 activos base del marco. |
+| `morfeo init <dir> [--title] [--preset] [--tools] [--sgr]` | Inicializa un workspace autocontenido con los 108 activos base del marco. |
 | `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF. |
 | `morfeo ui [dir] [--port 8080] [--no-open]` | Despliega el Command Center web interactivo en tiempo real (puerto 8080 por defecto, o el siguiente libre). |
 | `morfeo compile [dir] [--docx] [--run <id>]` | Compila el proyecto LaTeX a PDF (`build.sh`) o exporta a Word (`--docx`). |
@@ -121,6 +131,7 @@ En entornos asistidos (Claude Code, OpenCode, Antigravity, Pi), el framework ofr
 | `/propuesta` | Ejecuta el pipeline completo de formulación de extremo a extremo, deteniéndose interactivamente en cada compuerta de revisión (*gate*). |
 | `/propuesta-exportar` | Empaqueta y exporta la propuesta activa con todos sus artefactos, insumos y PDF listo para compartir con un colaborador. |
 | `/propuesta-limpiar` | Cierra y archiva la corrida activa en `_run.md` y `registry.md`, dejando el entorno listo para una nueva formulación sin borrar datos. |
+| `/propuesta-juez` | Juez final (flujo SGR): estima el puntaje de la evaluación por pares con la rúbrica de la convocatoria, señala inconsistencias y propone acciones para cada agente. Es asesor y se puede correr en cualquier momento. |
 | `/compilar-pdf` | Compila de forma determinista la propuesta activa a PDF ejecutando `build.sh` en `redaccion/`. |
 | `/compilar-docx` | Exporta la propuesta activa a formato Word DOCX mediante `build.sh --docx` en `redaccion/` vía Pandoc y CSL APA. |
 
@@ -189,7 +200,7 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
 
 ## Ecosistema de Agentes Especializados
 
-El marco cuenta con **11 subagentes especializados** con roles no solapados:
+El marco cuenta con **14 subagentes especializados** con roles no solapados:
 
 | Agente | Modelo sugerido | Responsabilidad |
 |---|---|---|
@@ -203,13 +214,16 @@ El marco cuenta con **11 subagentes especializados** con roles no solapados:
 | `presupuestador` | Sonnet | Desglose financiero (§13): tabla de rubros, cofinanciación y aritmética exacta. |
 | `disenador-tikz` | Sonnet | Autoría de la especificación JSON de los diagramas (nunca escribe LaTeX directo). |
 | `revisor-figuras` | Haiku | Juicio visual (escala, legibilidad, armonía) sobre el render PNG de las figuras. |
+| `revisor-redundancia` | Sonnet | Redundancia entre secciones, de solo lectura, sobre el reporte de `scripts/estilo_es.py` (Fase 7 y, en SGR, cierre de la Fase 6.47). |
 | `tikz-optimizer` | Haiku | Corrección asistida de especificaciones JSON cuando falla la compilación o la auditoría. |
+| `juez-sgr` | Opus | Juez final del flujo SGR: puntaje estimado con la rúbrica oficial, alertas de inconsistencia y acciones de mejora (asesor, no cambia el veredicto del `revisor`). |
+| `revisor-estilo-sgr` | Sonnet | Solo en el flujo SGR: audita y pule estilo, voz en tercera persona, léxico por sección y redundancia según la MGA del DNP (skill `estilo-sgr`); ocupa el lugar de `grant-flow-auditor` antes de cada `revisor`. |
 
 ---
 
 ## Skills de Redacción Científica y Humanización
 
-Toda la prosa en español generada por el marco pasa obligatoriamente por dos metodologías modulares instaladas en `.claude/skills/`:
+Toda la prosa en español generada por el marco pasa obligatoriamente por dos metodologías modulares instaladas en `.claude/skills/`, más una tercera que las ajusta en el flujo SGR:
 
 ### 1. `estilo-natural-es` (Humanización y Prosa Académica Culta)
 Catálogo de **35 patrones de prosa mecánica** (cotejado con *humanizer-mit* y contextualizado en la norma académica culta de Colombia):
@@ -227,6 +241,11 @@ Catálogo de **35 patrones de prosa mecánica** (cotejado con *humanizer-mit* y 
 
 ### 3. Puntaje de estilo y redundancia (`scripts/estilo_es.py`)
 Da un índice de legibilidad de 0 a 100 por sección y por documento, visible en la pestaña **Estilo y redundancia** del tablero. Mide oraciones largas, variedad léxica, fórmulas repetidas y frases duplicadas entre secciones. Una lista de términos protegidos respeta el vocabulario MGA y las copias literales exigidas. El índice no reprueba una sección; lo que bloquea es `verificar`, si el pulido cambió una cifra, una cita o una etiqueta. El agente `revisor-redundancia` revisa, en modo de solo lectura, las repeticiones de idea entre secciones.
+
+### 4. `estilo-sgr` (solo flujo SGR)
+- Ajusta las dos skills anteriores a un proyecto de inversión del Sistema General de Regalías: tercera persona («El proyecto…», «Este proyecto busca…», «La presente propuesta se enmarca…»), sin primera persona, y la impersonal con «se».
+- Patrones de redacción por capítulo del Anexo 2 y léxico prohibido, desaconsejado y favorecido por sección en `scripts/sgr/lexico_sgr.json`, verificado por `scripts/estilo_sgr.py`.
+- Respeta los textos que deben repetirse literal (título, objetivos, productos, actividades) y aplica el veto de verbos de la MGA solo a los nombres de actividad. Evidencia en `docs/sgr/patrones_redaccion_sgr.md`.
 
 ---
 

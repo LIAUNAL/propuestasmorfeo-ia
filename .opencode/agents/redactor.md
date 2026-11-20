@@ -121,10 +121,128 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
   (result indicator), §13, §14 and §15; never invent a figure, population or
   plan goal (`[supuesto]` when not derivable). Tables use `xltabular`. Never
   write these files in a base-flow project.
+- **Idoneidad y trayectoria (SGR flow only, Fase 6.47)** —
+  `29_idoneidad_trayectoria`, written from `artefactos/sgr/alianza.json`,
+  which the Task carries inline with the guide block for that section. One
+  `\subsection*` per entity, proponent first: its type and role in the
+  alliance, its research groups with their classification and lines, and the
+  trajectory projects listed in the file (code, funder, year), tied to the
+  activities it leads. Third person about the entity («La Universidad… cuenta
+  con…»); never paste first-person institutional text («nuestra
+  institución», «somos») from letters or brochures, and never add a group,
+  classification or project that the file does not list. Sections `26`, `27`
+  and `28` are rendered by `scripts/alianza_territorio_sgr.py render`; never
+  write them by hand.
+- **Budget, schedule and financing sources (SGR flow only).** In an SGR
+  project you never write `13_presupuesto`, `14_cronograma_actividades` or
+  `30_fuentes_financiacion`: `scripts/presupuesto_sgr.py render` builds §13
+  and annex 30 from `artefactos/sgr/presupuesto.json`, and
+  `scripts/cronograma_sgr.py render` builds §14 from
+  `artefactos/sgr/cadena_valor.json` and `artefactos/sgr/hitos.json`. When
+  another section cites a figure, a month or a milestone, copy it from those
+  files or from the rendered sections, never recompute it.
 - **SGR flow, existing sections.** When the Task's guide fragment carries a
   `### SGR §N` block, it adds requirements to that section and wins over the
   base guide where they conflict (e.g. §11 result indicator with a numeric
   target, §14 activities by stage, §15 products from the DNP catalogue).
+
+## TRL y componentes SGR (Fase 5.5 SGR, compuerta GComponentes)
+
+SGR flow only, after G5.5. The Task carries `artefactos/sgr/componentes.json`
+(schema `morfeo.componentes-sgr/v1`, documented at the top of
+`scripts/componentes_sgr.py`), `cadena_valor.json`, `alianza.json`, §10 and
+§17 when it exists. The investigador owns `trl`, `transferencia` and
+`uso_posterior`; you edit only:
+
+- **Every `introduccion`** (one per block): one or two paragraphs in third
+  person about the project («El proyecto…», «La alianza…», impersonal «se»),
+  with the voice, lexicon and patterns of the `### SGR` block of that section
+  (§31 TRL, §32 sostenibilidad, §33 uso posterior, §34 transferencia, §18
+  apropiación social, §35 medidas diferenciales). Future tense for what the
+  project will do; every figure copied from the file, never recomputed. The
+  tables come after the introduction from the data, so the introduction does
+  not repeat them row by row.
+- **`asc`.** `actores` (`grupo`, `relacion_problematica`, `saberes`,
+  `rol_momento`, `incidencia`), the `ruta` with the seven elements
+  (`identificacion_problema`, `vinculacion_actores`, `diseno`, `planeacion`,
+  `ejecucion`, `seguimiento`, `resultados_sostenibilidad`), each with its
+  `meses`, `que_se_hace` with the actors and its value-chain `actividades`,
+  and the `productos` with `medio_verificacion`, `mes` and `actividad`. Social
+  appropriation is participation, dialogue of knowledge, co-creation and
+  incidence from formulation onwards: never reduce the seven elements to
+  dissemination, workshops or socialisation of results.
+- **`sostenibilidad`.** `ods` with the `contribucion` and the `productos` that
+  back it, `actores` with their `funciones` and `compromiso`, and the
+  `ambiental` effects of the activities with their `manejo`.
+- **`diferencial`.** `barreras` (`barrera`, `poblacion`, `medida`,
+  `actividades`, `indicador`, `meta`, `evidencia`) or, when the population
+  faces none, `justificacion_sin_barreras`.
+- Use only activity codes of `cadena_valor.json` and entity ids of
+  `alianza.json`. In an SGR project you never write
+  `18_apropiacion_social` or `31_trl`, `32_sostenibilidad`,
+  `33_uso_posterior`, `34_transferencia` and `35_medidas_diferenciales`:
+  `scripts/componentes_sgr.py render` builds them from the file. In Fase 6.46
+  you write only §17, copying its actors and participation moments from the
+  `asc` block. Run nothing: the dispatcher runs `scripts/componentes_sgr.py
+  check` and returns its errors to you until it is clean.
+
+## Productos, talento e indicadores SGR (Fase 5 SGR, compuerta GProductos)
+
+SGR flow only, after G5. The Task carries `artefactos/sgr/productos.json`
+(schema `morfeo.productos-sgr/v1`, documented at the top of
+`scripts/productos_sgr.py`), §9, `alianza.json`, `cadena_valor.json` and the
+talent minimums of the call rubric (`minimos_talento`). The investigador owns
+`productos_ctei`, `divulgacion` and `indicadores_gestion`; you edit only:
+
+- **`talento`.** One entry per category of the human talent to be linked
+  (`categoria`: `joven_investigador`, `maestria`, `doctorado`,
+  `posdoctorado`, `profesional`, `tecnico` or `otro`), with its `cantidad`,
+  the `entidad` that links it (an alliance id), the `perfil` (a nominal
+  profile name), the `formacion` and experience required, the value-chain
+  `actividades` it works on, `duracion_meses`, `valor_mensual` (or `null`
+  when the entity pays it outside the project) and the `producto_final` it
+  delivers. The entries meet the call minimums (for Conv 54, numeral 10: one
+  doctor in a postdoctoral stay, two research master's students and six
+  young researchers and innovators); when the insumos do not support a
+  minimum, keep the gap visible and do not invent a person.
+- Third person about the project and the entity («La Universidad vinculará
+  …»); the official programme names («Jóvenes Investigadores e
+  Innovadores») stay as they are. §9 is not rewritten: the talent in training
+  is tied to the team it describes.
+- Use only activity codes of `cadena_valor.json` and entity ids of
+  `alianza.json`. In an SGR project you never write
+  `15_productos_esperados`, `36_talento_humano` or `37_indicadores`:
+  `scripts/productos_sgr.py render` builds them from the file and the value
+  chain, and in Fase 6.45 it re-renders §15 instead of a §15 Task. Run
+  nothing: the dispatcher runs `scripts/productos_sgr.py check` and returns
+  its errors to you until it is clean.
+
+## Requisitos y anexos SGR (Fase 6.9 SGR, compuerta GRequisitos)
+
+SGR flow only, after G6.5. The Task carries `artefactos/sgr/requisitos.json`
+(schema `morfeo.requisitos-sgr/v1`, documented at the top of
+`scripts/requisitos_sgr.py`), `alianza.json` and the `### SGR A28` block of
+the guide. The investigador owns `licencias.items`, and the user marks the
+requirement `items` and the `cifras` in the dashboard tab «Requisitos y
+anexos»; you edit only:
+
+- **`licencias.introduccion`.** One paragraph in third person about the
+  alliance and the project, written after the licence rows exist: it names
+  the licences and permits that apply, who processes them and when, and the
+  commitment to comply with them during execution. Openings from estilo-sgr
+  chapter 28: «La entidad proponente y las demás entidades aliadas se
+  comprometen a que, durante la ejecución del proyecto, se cumpla con …» or,
+  when a licence does not apply, «Por la naturaleza del objetivo general y
+  los objetivos específicos, el proyecto no requiere <licencia>; sin
+  embargo, si durante la ejecución …». Future tense for the commitments; no
+  first person, no normative table (that belongs to the conceptual
+  framework) and no row-by-row repetition of the table that follows.
+- In an SGR project you never write `38_licencias_permisos` or
+  `39_anexos`: `scripts/requisitos_sgr.py render` builds them from the file,
+  and §39 (cap. 31, «ANEXOS REQUISITOS SECTORIALES QUE LE SEAN
+  APLICABLES.») is a list without prose. Run nothing: the dispatcher runs
+  `scripts/requisitos_sgr.py check` and returns its errors to you until it
+  is clean.
 
 ## Hard constraints
 
@@ -177,11 +295,11 @@ Your draft will be audited and polished by `grant-flow-auditor` before each `rev
    (persuading on relevance), not a violation.
 4. Avoid repetition across sections. Be concise and technically rigorous.
 5. For §14, produce a Gantt-style table (use `tabular` + `tikz` or a `ganttchart`
-   spec) with responsables and hitos marked. In the SGR flow (the prompt carries `### SGR §14`),
-   group the activities under stage rows (Preinversión, Inversión, Operación)
-   and mark the critical-path activities with a symbol explained in a legend
-   that literally says «ruta crítica»; every product has two or more
-   activities. **Never include prórroga
+   spec) with responsables and hitos marked. In the SGR flow §14 is not yours:
+   `scripts/cronograma_sgr.py render` generates it from the value chain, with
+   the activities by stage (Preinversión, Inversión, Operación) and the
+   critical path marked; if the Task asks you for it anyway, say so and stop.
+   **Never include prórroga
    (extension) stages in the schedule (mandatory, durable backstop — the
    full rule normally arrives via the injected `## FRAGMENTO DE GUÍA` block,
    §14, but apply this even if that fragment is missing).** The cronograma

@@ -52,6 +52,69 @@ class Units(unittest.TestCase):
 
     def test_prose_alias_resolves(self) -> None:
         self.assertEqual(normalise_gate("G causas"), "GCausas")
+        self.assertEqual(normalise_gate("G territorio"), "GTerritorio")
+        self.assertEqual(normalise_gate("G componentes"), "GComponentes")
+        self.assertEqual(normalise_gate("G productos"), "GProductos")
+        self.assertEqual(normalise_gate("G requisitos"), "GRequisitos")
+
+    def test_sgr_runs_the_alliance_gate_between_the_trees_and_the_corpus(self) -> None:
+        units = units_for_flujo("sgr")
+        nxt = {u["id"]: u.get("next") for u in units}
+        self.assertEqual(nxt["fase1b"], "fase1b_sgr")
+        self.assertEqual(nxt["fase1b_sgr"], "fase1c")
+        unit = next(u for u in units if u["id"] == "fase1b_sgr")
+        self.assertEqual(unit["gate"], "GTerritorio")
+
+    def test_base_flow_goes_straight_from_the_trees_to_the_corpus(self) -> None:
+        units = units_for_flujo("base")
+        self.assertNotIn("fase1b_sgr", _ids(units))
+        self.assertEqual({u["id"]: u.get("next") for u in units}["fase1b"], "fase1c")
+        self.assertNotIn("GTerritorio", {g["id"] for g in canonical_gates("base")})
+
+    def test_sgr_runs_the_components_gate_between_the_methodology_and_the_results(self) -> None:
+        units = units_for_flujo("sgr")
+        nxt = {u["id"]: u.get("next") for u in units}
+        self.assertEqual(nxt["fase5_5"], "fase5_5_sgr")
+        self.assertEqual(nxt["fase5_5_sgr"], "fase6")
+        unit = next(u for u in units if u["id"] == "fase5_5_sgr")
+        self.assertEqual(unit["gate"], "GComponentes")
+        self.assertIn("artefactos/sgr/componentes.json", unit["artifacts"])
+
+    def test_sgr_runs_the_products_gate_between_the_team_and_the_methodology(self) -> None:
+        units = units_for_flujo("sgr")
+        nxt = {u["id"]: u.get("next") for u in units}
+        self.assertEqual(nxt["fase5"], "fase5_sgr")
+        self.assertEqual(nxt["fase5_sgr"], "fase5_5")
+        unit = next(u for u in units if u["id"] == "fase5_sgr")
+        self.assertEqual(unit["gate"], "GProductos")
+        self.assertIn("artefactos/sgr/productos.json", unit["artifacts"])
+
+    def test_base_flow_goes_straight_from_the_team_to_the_methodology(self) -> None:
+        units = units_for_flujo("base")
+        self.assertNotIn("fase5_sgr", _ids(units))
+        self.assertEqual({u["id"]: u.get("next") for u in units}["fase5"], "fase5_5")
+        self.assertNotIn("GProductos", {g["id"] for g in canonical_gates("base")})
+
+    def test_sgr_runs_the_requirements_gate_between_the_front_matter_and_the_final_audit(self) -> None:
+        units = units_for_flujo("sgr")
+        nxt = {u["id"]: u.get("next") for u in units}
+        self.assertEqual(nxt["fase6_5"], "fase6_9_sgr")
+        self.assertEqual(nxt["fase6_9_sgr"], "fase7")
+        unit = next(u for u in units if u["id"] == "fase6_9_sgr")
+        self.assertEqual(unit["gate"], "GRequisitos")
+        self.assertIn("artefactos/sgr/requisitos.json", unit["artifacts"])
+
+    def test_base_flow_goes_straight_from_the_front_matter_to_the_final_audit(self) -> None:
+        units = units_for_flujo("base")
+        self.assertNotIn("fase6_9_sgr", _ids(units))
+        self.assertEqual({u["id"]: u.get("next") for u in units}["fase6_5"], "fase7")
+        self.assertNotIn("GRequisitos", {g["id"] for g in canonical_gates("base")})
+
+    def test_base_flow_goes_straight_from_the_methodology_to_the_results(self) -> None:
+        units = units_for_flujo("base")
+        self.assertNotIn("fase5_5_sgr", _ids(units))
+        self.assertEqual({u["id"]: u.get("next") for u in units}["fase5_5"], "fase6")
+        self.assertNotIn("GComponentes", {g["id"] for g in canonical_gates("base")})
 
 
 class GateStatus(unittest.TestCase):
@@ -66,6 +129,67 @@ class GateStatus(unittest.TestCase):
         status = self.status("| G1a | APROBADA |\n")
         self.assertEqual(status["G1a"], "PASS")
         self.assertEqual(status["GCausas"], "PENDING")
+
+    def test_approving_g4_does_not_approve_the_value_chain_gate(self) -> None:
+        status = self.status("| G4 | APROBADA |\n")
+        self.assertEqual(status["G4"], "PASS")
+        self.assertEqual(status["G4.cv"], "PENDING")
+
+    def test_the_value_chain_gate_does_not_approve_g4(self) -> None:
+        status = self.status("| G4.cv | APROBADA |\n")
+        self.assertEqual(status["G4.cv"], "PASS")
+        self.assertEqual(status["G4"], "PENDING")
+
+    def test_a_gate_with_a_suffix_is_not_its_prefix_gate(self) -> None:
+        status = self.status("| G6.4 | APROBADA |\n| G1a | APROBADA |\n")
+        self.assertEqual(status["G6.4"], "PASS")
+        self.assertEqual(status["G1a"], "PASS")
+        self.assertEqual(status["G1"], "PENDING")
+
+    def test_a_gate_followed_by_a_label_still_matches(self) -> None:
+        status = self.status("| G4 (objetivos) | APROBADA |\n")
+        self.assertEqual(status["G4"], "PASS")
+        self.assertEqual(status["G4.cv"], "PENDING")
+
+    def test_approving_g1b_does_not_approve_the_alliance_gate(self) -> None:
+        status = self.status("| G1b | APROBADA |\n")
+        self.assertEqual(status["G1b"], "PASS")
+        self.assertEqual(status["GTerritorio"], "PENDING")
+
+    def test_the_alliance_gate_is_read_on_its_own(self) -> None:
+        status = self.status("| G1b | APROBADA |\n| GTerritorio | APROBADA |\n")
+        self.assertEqual(status["GTerritorio"], "PASS")
+        self.assertEqual(status["G1c"], "PENDING")
+
+    def test_approving_g5_5_does_not_approve_the_components_gate(self) -> None:
+        status = self.status("| G5.5 | APROBADA |\n")
+        self.assertEqual(status["G5.5"], "PASS")
+        self.assertEqual(status["GComponentes"], "PENDING")
+
+    def test_the_components_gate_is_read_on_its_own(self) -> None:
+        status = self.status("| G5.5 | APROBADA |\n| GComponentes | APROBADA |\n")
+        self.assertEqual(status["GComponentes"], "PASS")
+        self.assertEqual(status["G6.4"], "PENDING")
+
+    def test_approving_g5_does_not_approve_the_products_gate(self) -> None:
+        status = self.status("| G5 | APROBADA |\n")
+        self.assertEqual(status["G5"], "PASS")
+        self.assertEqual(status["GProductos"], "PENDING")
+
+    def test_the_products_gate_is_read_on_its_own(self) -> None:
+        status = self.status("| G5 | APROBADA |\n| GProductos | APROBADA |\n")
+        self.assertEqual(status["GProductos"], "PASS")
+        self.assertEqual(status["G5.5"], "PENDING")
+
+    def test_approving_g6_5_does_not_approve_the_requirements_gate(self) -> None:
+        status = self.status("| G6.5 | APROBADA |\n")
+        self.assertEqual(status["G6.5"], "PASS")
+        self.assertEqual(status["GRequisitos"], "PENDING")
+
+    def test_the_requirements_gate_is_read_on_its_own(self) -> None:
+        status = self.status("| G6.5 | APROBADA |\n| GRequisitos | APROBADA |\n")
+        self.assertEqual(status["GRequisitos"], "PASS")
+        self.assertEqual(status["G7"], "PENDING")
 
     def test_the_causes_gate_is_read_on_its_own(self) -> None:
         status = self.status("| G1a | APROBADA |\n| GCausas | APROBADA |\n")
@@ -150,13 +274,13 @@ class InFlightRuns(unittest.TestCase):
         (self.run / "redaccion" / "sections").mkdir(parents=True)
         (self.repo / "proposals" / ".current-run").write_text("2026-01-demo\n")
 
-    def progress(self, next_step: str, estado_rows: str = "") -> dict:
+    def progress(self, next_step: str, estado_rows: str = "", unit: str = "fase1a_sgr") -> dict:
         from morfeo.core.status import get_project_status
 
         (self.run / "artefactos" / "estado_propuesta.md").write_text(
             "## Control de ejecución\n\n- mode: stepped\n"
             f"- next_step: {next_step}\n- last_completed: fase1a\n- intake_complete: true\n\n{estado_rows}")
-        return get_project_status(self.repo, force_refresh=True)["unit_progress"]["fase1a_sgr"]
+        return get_project_status(self.repo, force_refresh=True)["unit_progress"][unit]
 
     def test_run_already_past_g1a_skips_the_gate(self) -> None:
         self.assertEqual(self.progress("fase1b", "| G1a | APROBADA |\n")["state"], "skipped")
@@ -169,6 +293,128 @@ class InFlightRuns(unittest.TestCase):
         arboles.mkdir(parents=True)
         (arboles / "causas_directas.md").write_text("| causa |")
         self.assertEqual(self.progress("fase1b", "| G1a | APROBADA |\n| GCausas | APROBADA |\n")["state"], "verified")
+
+    def test_run_already_past_g4_skips_the_value_chain_gate(self) -> None:
+        state = self.progress("fase5", "| G4 | APROBADA |\n", unit="fase4_sgr")["state"]
+        self.assertEqual(state, "skipped")
+
+    def test_run_at_the_value_chain_gate_keeps_it_pending(self) -> None:
+        state = self.progress("fase4_sgr", "| G4 | APROBADA |\n", unit="fase4_sgr")["state"]
+        self.assertEqual(state, "pending")
+
+    def test_run_already_past_g1b_skips_the_alliance_gate(self) -> None:
+        for next_step in ("fase1c", "fase1"):
+            with self.subTest(next_step=next_step):
+                state = self.progress(next_step, "| G1b | APROBADA |\n", unit="fase1b_sgr")["state"]
+                self.assertEqual(state, "skipped")
+
+    def test_run_at_the_alliance_gate_keeps_it_pending(self) -> None:
+        state = self.progress("fase1b_sgr", "| G1b | APROBADA |\n", unit="fase1b_sgr")["state"]
+        self.assertEqual(state, "pending")
+
+    def test_past_run_with_one_alliance_file_is_not_skipped(self) -> None:
+        sgr = self.run / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "alianza.json").write_text("{}")
+        state = self.progress("fase1c", "| G1b | APROBADA |\n", unit="fase1b_sgr")["state"]
+        self.assertEqual(state, "partial")
+
+    def test_alliance_gate_done_with_both_files_is_verified(self) -> None:
+        sgr = self.run / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "alianza.json").write_text("{}")
+        (sgr / "territorio.json").write_text("{}")
+        rows = "| G1b | APROBADA |\n| GTerritorio | APROBADA |\n"
+        self.assertEqual(self.progress("fase1c", rows, unit="fase1b_sgr")["state"], "verified")
+
+    def test_run_already_past_g5_5_skips_the_components_gate(self) -> None:
+        for next_step in ("fase6", "fase6_4"):
+            with self.subTest(next_step=next_step):
+                state = self.progress(next_step, "| G5.5 | APROBADA |\n", unit="fase5_5_sgr")["state"]
+                self.assertEqual(state, "skipped")
+
+    def test_run_at_the_components_gate_keeps_it_pending(self) -> None:
+        state = self.progress("fase5_5_sgr", "| G5.5 | APROBADA |\n", unit="fase5_5_sgr")["state"]
+        self.assertEqual(state, "pending")
+
+    def test_past_run_with_the_components_file_is_not_skipped(self) -> None:
+        sgr = self.run / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "componentes.json").write_text("{}")
+        state = self.progress("fase6", "| G5.5 | APROBADA |\n", unit="fase5_5_sgr")["state"]
+        self.assertEqual(state, "partial")
+
+    def test_components_gate_done_with_its_file_and_sections_is_verified(self) -> None:
+        sgr = self.run / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "componentes.json").write_text("{}")
+        sections = self.run / "redaccion" / "sections"
+        for stem in ("31_trl", "32_sostenibilidad", "33_uso_posterior", "34_transferencia",
+                     "35_medidas_diferenciales"):
+            (sections / f"{stem}.tex").write_text("% rendered\n")
+        rows = "| G5.5 | APROBADA |\n| GComponentes | APROBADA |\n"
+        progress = self.progress("fase6", rows, unit="fase5_5_sgr")
+        self.assertEqual(progress["state"], "verified", progress["missing"])
+
+    def test_run_already_past_g5_skips_the_products_gate(self) -> None:
+        for next_step in ("fase5_5", "fase5_5_sgr", "fase6"):
+            with self.subTest(next_step=next_step):
+                state = self.progress(next_step, "| G5 | APROBADA |\n", unit="fase5_sgr")["state"]
+                self.assertEqual(state, "skipped")
+
+    def test_run_at_the_products_gate_keeps_it_pending(self) -> None:
+        state = self.progress("fase5_sgr", "| G5 | APROBADA |\n", unit="fase5_sgr")["state"]
+        self.assertEqual(state, "pending")
+
+    def test_past_run_with_the_products_file_is_not_skipped(self) -> None:
+        sgr = self.run / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "productos.json").write_text("{}")
+        state = self.progress("fase5_5", "| G5 | APROBADA |\n", unit="fase5_sgr")["state"]
+        self.assertEqual(state, "partial")
+
+    def test_products_gate_done_with_its_file_and_sections_is_verified(self) -> None:
+        sgr = self.run / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "productos.json").write_text("{}")
+        sections = self.run / "redaccion" / "sections"
+        for stem in ("36_talento_humano", "37_indicadores"):
+            (sections / f"{stem}.tex").write_text("% rendered\n")
+        rows = "| G5 | APROBADA |\n| GProductos | APROBADA |\n"
+        progress = self.progress("fase5_5", rows, unit="fase5_sgr")
+        self.assertEqual(progress["state"], "verified", progress["missing"])
+
+    def test_run_already_past_g6_5_skips_the_requirements_gate(self) -> None:
+        for next_step in ("fase7", "done"):
+            with self.subTest(next_step=next_step):
+                state = self.progress(next_step, "| G6.5 | APROBADA |\n", unit="fase6_9_sgr")["state"]
+                self.assertEqual(state, "skipped")
+
+    def test_run_at_the_requirements_gate_keeps_it_pending(self) -> None:
+        state = self.progress("fase6_9_sgr", "| G6.5 | APROBADA |\n", unit="fase6_9_sgr")["state"]
+        self.assertEqual(state, "pending")
+
+    def test_past_run_with_the_requirements_file_is_not_skipped(self) -> None:
+        sgr = self.run / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "requisitos.json").write_text("{}")
+        state = self.progress("fase7", "| G6.5 | APROBADA |\n", unit="fase6_9_sgr")["state"]
+        self.assertEqual(state, "partial")
+
+    def test_requirements_gate_done_with_its_file_and_sections_is_verified(self) -> None:
+        sgr = self.run / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "requisitos.json").write_text("{}")
+        sections = self.run / "redaccion" / "sections"
+        for stem in ("38_licencias_permisos", "39_anexos"):
+            (sections / f"{stem}.tex").write_text("% rendered\n")
+        rows = "| G6.5 | APROBADA |\n| GRequisitos | APROBADA |\n"
+        progress = self.progress("fase7", rows, unit="fase6_9_sgr")
+        self.assertEqual(progress["state"], "verified", progress["missing"])
+
+    def test_the_products_gate_skip_still_holds(self) -> None:
+        state = self.progress("fase7", "| G5 | APROBADA |\n", unit="fase5_sgr")["state"]
+        self.assertEqual(state, "skipped")
 
 
 if __name__ == "__main__":

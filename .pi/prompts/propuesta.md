@@ -60,9 +60,22 @@ nombres de índice se derivan del mismo run-id: `<run-id>-papers` y
 
 `insumos-observador`, `investigador`, `redactor`, `bibliografo-propuesta`,
 `disenador-tikz`, `tikz-optimizer`, `revisor-figuras`, `revisor`,
-`presupuestador`, `grant-flow-auditor`, `revisor-redundancia`. (No existen
-`orquestador`, `observador` ni `bibliotecario`: usa siempre estos 11 nombres reales. `coordinador-propuesta`
+`presupuestador`, `grant-flow-auditor`, `revisor-redundancia`, `juez-sgr`
+(solo flujo SGR), `revisor-estilo-sgr` (solo flujo SGR). (No existen
+`orquestador`, `observador` ni `bibliotecario`: usa siempre
+estos 13 nombres reales. `coordinador-propuesta`
 existe como documento de referencia del pipeline, no como subagente despachable.)
+
+**Regla del flujo SGR para la auditoría de estilo.** Con `"flujo": "sgr"` en
+`.morfeo/config.json` (o `.marco/config.json`), cada despacho de
+`grant-flow-auditor` que describe esta receta se hace a `revisor-estilo-sgr`,
+en el mismo momento (antes del `revisor`) y con las mismas secciones. Ese
+agente aplica `estilo-natural-es` y `depuracion-redundancias-es` con los
+ajustes de la DNP (skill `estilo-sgr`): conserva el «se» impersonal, la tercera
+persona sobre el proyecto y la repetición literal que la plantilla exige. Con el
+flujo `base` nada cambia: sigue `grant-flow-auditor`. El inventario
+(`src/morfeo/core/pipeline_units.py`, `AGENT_REPLACEMENTS_FLUJO`) aplica el
+mismo reemplazo, así que el tablero muestra el agente que de verdad corre.
 
 ## Cómo usar `codebase-memory` (MCP `codegraph`)
 
@@ -292,8 +305,9 @@ Antes de cerrar la siguiente unidad del pipeline, el DISPATCHER lee ese archivo.
 Si tiene entradas sin marcar:
 
 1. Las entrega al `redactor`, que las aplica sobre la sección correspondiente.
-2. Pasa el resultado por `grant-flow-auditor`, que pule la cadencia sin mover
-   cifras, citas ni estructura.
+2. Pasa el resultado por `grant-flow-auditor` (en el flujo SGR,
+   `revisor-estilo-sgr`), que pule la cadencia sin mover cifras, citas ni
+   estructura.
 3. Marca cada casilla como aplicada y anota el veredicto de la compuerta.
 
 Dos reglas que no se negocian. Una instrucción sin ejecutar no se recupera de
@@ -966,6 +980,52 @@ Fase 1b [G1b] Árbol de problemas y árbol de objetivos (en AMBOS flujos,
         "G1b — Corpus y subsecciones SOTA" en APROBADA, el corpus ya se hizo;
         trátala como G1c = APROBADA, no repitas la Fase 1c y corre la Fase 1b
         (árboles) antes de la Fase 1.
+Fase 1b SGR [COMPUERTA GTerritorio] Alianza y territorio como datos. SOLO
+        flujo SGR, después de G1b = APROBADA; con el flujo `base` esta unidad
+        no corre y al aprobar G1b se pasa directo a la Fase 1c. La alianza
+        vive en `artefactos/sgr/alianza.json` (esquema
+        `morfeo.alianza-sgr/v1`: entidades con tipo, proponente, rol,
+        posición, departamento, responsabilidades, aportes en especie y en
+        efectivo, grupos de investigación y trayectoria, más el modelo de
+        gobernanza) y el territorio en `artefactos/sgr/territorio.json`
+        (esquema `morfeo.territorio-sgr/v1`: región SGR, departamentos y
+        municipios de ejecución, demandas territoriales y configuración
+        regional). De estos datos salen después §26 a §29 y la vista previa
+        de los criterios contados de la rúbrica (alcance regional,
+        composición de la alianza, arraigo, aliado internacional,
+        cofinanciación).
+        (a) Task → insumos-observador (rama "Alianza y territorio SGR", ver
+        `insumos-observador.md`) con `RUN_ROOT`, los TdR de `insumos/tdr/`,
+        `artefactos/insumos.md` y los insumos de la alianza (cartas,
+        certificados, borrador). Copia cada demanda territorial textual del
+        TdR (código, texto, departamento y fuente con archivo y página o
+        numeral) en `territorio.json` y los datos de cada entidad en
+        `alianza.json`. Lo que no consta en un insumo queda en `null`: nunca
+        inventa un NIT, un monto ni un grupo de investigación.
+        (b) Task → investigador (rama "Alianza y territorio SGR", ver
+        `investigador.md`) con los dos archivos, el árbol de problemas y
+        `artefactos/arboles/arbol_objetivos.json` inline. Liga cada demanda a
+        los ids de nodo de las causas que atiende (`causas`) y a los objetivos
+        específicos (`objetivos`, `OE1`…), y escribe su `articulacion`: cómo
+        el proyecto contribuye a esa demanda. Deja `actividades` y
+        `productos` vacíos: la cadena de valor todavía no existe (se completan
+        tras la Fase 4 SGR). No toca el `texto` de las demandas.
+        ──→ DISPATCHER: `python3 scripts/alianza_territorio_sgr.py check
+        <RUN_ROOT>`. Mientras reporte errores, devolvé la salida exacta al
+        agente dueño del dato (insumos-observador para entidades, aportes y
+        textos de demanda; investigador para causas, objetivos y
+        articulación) y repetí (a) o (b); los avisos se presentan en la
+        compuerta.
+        ──→ GATE Task → revisor (valida que cada demanda conserve el texto
+        del TdR y se ligue a causas y objetivos que de verdad la atienden,
+        que la composición mínima de la alianza esté y que cada aporte tenga
+        soporte en un insumo; recibe la salida limpia de `check`) ──→
+        usuario: la aprobación se da en la pestaña «Alianza y territorio» del
+        tablero, que la ata al hash de los dos archivos. Un ajuste pedido ahí
+        vuelve a (a) o (b) con el comentario exacto. Al aprobar, escribe
+        `GTerritorio = APROBADA` en `artefactos/estado_propuesta.md` (fila
+        `| GTerritorio | APROBADA |`) y el evento
+        `artefactos/pipeline/11-fase1b_sgr.md`. NO avances sin aprobación.
 Fase 1c [COMPUERTA COMBINADA G1c] Expansión de corpus SOTA: se ejecuta
         siempre que la Fase 1a cerró con G1a = APROBADA (ver
         `artefactos/estado_propuesta.md`, sub-tabla "G1a — Scoping temprano");
@@ -1251,6 +1311,51 @@ Fase 4  Task → investigador → §6 objetivo general + §7 objetivos
         `artefactos/pipeline/50-fase4.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
         de uso acumulados de la fase (ver "Telemetría de uso por fase").
+Fase 4 SGR [COMPUERTA G4.cv] Cadena de valor como datos. SOLO flujo SGR,
+        después de G4 = APROBADA; con el flujo `base` esta unidad no corre y
+        al aprobar G4 se pasa directo a la Fase 5. La cadena de valor vive en
+        `artefactos/sgr/cadena_valor.json` (esquema
+        `morfeo.cadena-valor-sgr/v1`): cada objetivo específico del árbol con
+        sus productos y las actividades que los producen, cada actividad con
+        un código `<oe>.<producto>.<actividad>` que después usan §10, §13, §14
+        y el anexo A23.
+        ──→ DISPATCHER: `python3 scripts/cadena_valor_sgr.py init <RUN_ROOT>`
+        (con `--duracion-meses <N>` si el TDR o `insumos.md` fijan la
+        duración). Siembra un objetivo por grupo del árbol de objetivos con su
+        texto literal, un producto por objetivo y una actividad técnica
+        candidata por medio, más las actividades de administración y de
+        supervisión bajo el último producto. Si el archivo ya existe, no lo
+        pises: `--force` solo con pedido explícito del usuario.
+        (a) Task → investigador (rama "Cadena de valor SGR", ver
+        `investigador.md`) con `RUN_ROOT`, el árbol de objetivos y
+        `cadena_valor.json` inline, y el bloque `## FRAGMENTO DE GUÍA` con
+        Directrices Generales SGR + `### SGR §7` + `### SGR A23`. Completa
+        los productos (código del catálogo de productos DNP, Resolución 3906:
+        `39` y cinco dígitos; nombre del catálogo; medido a través de;
+        indicador; unidad; meta) y las actividades técnicas (nombre sin los
+        verbos que la MGA prohíbe para actividades, ruta crítica, mes de
+        inicio y de fin). Edita solo `cadena_valor.json`; no toca el texto de
+        los objetivos ni los costos, que llegan en la Fase 6.4.
+        ──→ DISPATCHER: `python3 scripts/cadena_valor_sgr.py check <RUN_ROOT>`.
+        Mientras reporte errores, devolvé la salida exacta al investigador y
+        repetí (a); los avisos se presentan en la compuerta.
+        ──→ GATE Task → revisor (valida que cada producto responda a su
+        objetivo específico, que las actividades alcancen para producirlo y
+        que la ruta crítica sea coherente; recibe la salida limpia de
+        `check`) ──→ usuario: la aprobación se da en la pestaña «Cadena de
+        valor» del tablero, que la ata al hash del archivo
+        (`artefactos/sgr/revision.json`). Un ajuste pedido ahí vuelve a (a)
+        con el comentario exacto. Al aprobar, escribe `G4.cv = APROBADA` en
+        `artefactos/estado_propuesta.md` (fila `| G4.cv | APROBADA |`) y el
+        evento `artefactos/pipeline/52-fase4_sgr.md`. NO avances sin
+        aprobación.
+        Tras aprobar G4.cv: Task → investigador (rama "Alianza y territorio
+        SGR") completa en `artefactos/sgr/territorio.json` las `actividades` y
+        `productos` de cada demanda, y en `artefactos/sgr/alianza.json` las
+        `actividades` de cada entidad, con los códigos de
+        `cadena_valor.json`; el DISPATCHER corre
+        `python3 scripts/alianza_territorio_sgr.py check <RUN_ROOT>` hasta que
+        no queden errores. Un código que no existe en la cadena es error.
 Fase 5  Task → investigador → §8 marco conceptual (en paralelo; 3-5
         subsecciones, título claro por concepto — ver `investigador.md`
         constraint 10). Antes de
@@ -1293,6 +1398,74 @@ Fase 5  Task → investigador → §8 marco conceptual (en paralelo; 3-5
         `artefactos/pipeline/60-fase5.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
         de uso acumulados de la fase (ver "Telemetría de uso por fase").
+Fase 5 SGR [COMPUERTA GProductos] Productos, talento e indicadores como
+        datos. SOLO flujo SGR, después de G5 = APROBADA; con el flujo `base`
+        esta unidad no corre y al aprobar G5 se pasa directo a la Fase 5.5.
+        Los datos viven en `artefactos/sgr/productos.json` (esquema
+        `morfeo.productos-sgr/v1`, documentado al inicio de
+        `scripts/productos_sgr.py`): `talento` (categoría, cantidad, entidad
+        que vincula, perfil, formación, actividades, duración, valor mensual
+        y producto final), `productos_ctei` (tipo, subtipo, `categoria`,
+        cantidad, `adicional` y `producto_cadena`), `divulgacion` (con su
+        `introduccion`) e `indicadores_gestion`, ligados a los códigos de
+        actividad y de producto de `cadena_valor.json` y a los ids de entidad
+        de `alianza.json`. Los indicadores de producto no se copian aquí: se
+        leen de `cadena_valor.json` (código DNP, indicador, unidad y meta).
+        De estos datos salen `36_talento_humano.tex` (Anexo 2 caps. 12.4 y
+        20), `37_indicadores.tex` (caps. 24 y 25) y, desde la cadena de
+        valor, `15_productos_esperados.tex` (cap. 21); ninguno lo escribe un
+        agente a mano.
+        (a) Task → investigador (rama "Productos, talento e indicadores
+        SGR", ver `investigador.md`) con `RUN_ROOT`, `cadena_valor.json`,
+        `alianza.json`, §9, el extracto de los TdR sobre productos, talento
+        y divulgación (numeral de mínimos y criterio de puntaje de productos
+        adicionales) inline, y el bloque `## FRAGMENTO DE GUÍA` con
+        Directrices Generales SGR + los bloques `### SGR` de §15 y §37.
+        Escribe `productos_ctei` (el mínimo de la convocatoria cumplido; cada
+        producto por encima de ese mínimo marcado `adicional` con su
+        `categoria` TOP, A o B y ligado a un producto de la cadena por
+        `producto_cadena`), `divulgacion` (la `introduccion`, públicos,
+        medios, productos, entidad responsable, cronograma por mes y si está
+        costeada en el presupuesto) e `indicadores_gestion` (como mínimo la
+        supervisión y los informes técnico-financieros, cada uno con meta,
+        unidad, fórmula, tipo de fuente y periodicidad). No inventa un
+        producto, una categoría ni una cifra que ningún insumo respalde.
+        (b) Task → redactor (rama "Productos, talento e indicadores SGR", ver
+        `redactor.md`) con el archivo, §9, `alianza.json`, la cadena de valor
+        y los mínimos de talento de la rúbrica de la convocatoria
+        (`minimos_talento`) inline, y el bloque `## FRAGMENTO DE GUÍA` con
+        Directrices Generales SGR + el bloque `### SGR` de §36. Escribe el
+        bloque `talento`: un perfil por categoría, en tercera persona, con la
+        entidad que lo vincula, la formación y la experiencia, las
+        actividades de la cadena, la duración, el valor mensual y el producto
+        final, de modo que se cumplan los mínimos de talento de la
+        convocatoria. §9 no se reescribe: el talento en formación se liga a
+        él.
+        (a) y (b) se despachan en el MISMO turno: editan bloques distintos
+        del archivo. Luego Task → revisor-estilo-sgr sobre la `introduccion`
+        de `divulgacion` (voz, léxico y redundancia de la skill
+        `estilo-sgr`).
+        ──→ DISPATCHER: `python3 scripts/productos_sgr.py check <RUN_ROOT>`.
+        Mientras reporte errores, devolvé la salida exacta al agente dueño
+        del bloque (investigador para `productos_ctei`, `divulgacion` e
+        `indicadores_gestion`; redactor para `talento`) y repetí (a) o (b);
+        los avisos se presentan en la compuerta. Con `check` limpio, el
+        DISPATCHER corre `python3 scripts/productos_sgr.py render <RUN_ROOT>`,
+        que genera §15, §36 y §37 y se niega mientras haya hallazgos de
+        error; si cambian los datos o la cadena de valor, se vuelve a correr
+        `render`.
+        ──→ GATE Task → revisor (valida que los productos CTeI cumplan el
+        mínimo de la convocatoria y que los adicionales se apoyen en
+        productos reales de la cadena, que la divulgación tenga públicos,
+        medios, productos, responsable y cronograma, que el talento cumpla
+        los mínimos y se ligue a actividades de la cadena y que las secciones
+        renderizadas no contradigan §9 ni §10; recibe la salida limpia de
+        `check`) ──→ usuario: la aprobación se da en la pestaña «Productos e
+        indicadores» del tablero, que la ata al hash del archivo. Un ajuste
+        pedido ahí vuelve a (a) o (b) con el comentario exacto. Al aprobar,
+        escribe `GProductos = APROBADA` en `artefactos/estado_propuesta.md`
+        (fila `| GProductos | APROBADA |`) y el evento
+        `artefactos/pipeline/60-fase5_sgr.md`. NO avances sin aprobación.
 Fase 5.5 [NUEVO] Task → redactor → §10 metodología (compuerta propia,
         separada de la Fase 5). Antes de despachar esta Task, el dispatcher
         arma el bloque `## FRAGMENTO DE GUÍA` con Directrices Generales +
@@ -1304,7 +1477,11 @@ Fase 5.5 [NUEVO] Task → redactor → §10 metodología (compuerta propia,
         `operacion`) y `oe` (los ids OE del árbol de objetivos que atiende),
         para leerse como cadena de valor por etapa (guía SGR §10); el
         render imprime la etapa en la caja y `check_run.py` advierte
-        `sgr-metodologia-sin-etapa` / `sgr-metodologia-sin-oe`. El diagrama NUNCA incluye personal
+        `sgr-metodologia-sin-etapa` / `sgr-metodologia-sin-oe`. En el flujo
+        SGR, además, el prompt del redactor lleva `cadena_valor.json` inline:
+        §10 nombra cada actividad con su código de la cadena de valor (por
+        ejemplo «Actividad 1.1.2») y no inventa actividades fuera de ella; si
+        falta una, se agrega primero en la cadena (Fase 4 SGR). El diagrama NUNCA incluye personal
         responsable dentro de sus bloques (ver `disenador-tikz.md`).
         `artefactos/vault/secciones/10_metodologia.md` cambió en esta fase; si no
         cambió, reutiliza el reporte de grafo existente sin
@@ -1331,6 +1508,75 @@ Fase 5.5 [NUEVO] Task → redactor → §10 metodología (compuerta propia,
         `artefactos/pipeline/65-fase5_5.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
         de uso acumulados de la fase (ver "Telemetría de uso por fase").
+Fase 5.5 SGR [COMPUERTA GComponentes] TRL y componentes transversales como
+        datos. SOLO flujo SGR, después de G5.5 = APROBADA; con el flujo `base`
+        esta unidad no corre y al aprobar G5.5 se pasa directo a la Fase 6.
+        Los componentes viven en `artefactos/sgr/componentes.json` (esquema
+        `morfeo.componentes-sgr/v1`, documentado al inicio de
+        `scripts/componentes_sgr.py`): `trl` (tipología, nivel de entrada y
+        de salida, evidencia del nivel de entrada, ruta de maduración por
+        hitos y plan de verificación), `transferencia`, `asc` (apropiación
+        social del conocimiento), `sostenibilidad`, `uso_posterior` y
+        `diferencial`, cada bloque con su `introduccion` y ligado a los
+        códigos de actividad de `cadena_valor.json` y a los ids de entidad de
+        `alianza.json`. De estos datos salen `31_trl.tex`,
+        `32_sostenibilidad.tex`, `33_uso_posterior.tex`,
+        `34_transferencia.tex` y `35_medidas_diferenciales.tex` y, en la Fase
+        6.46, `18_apropiacion_social.tex`; ninguno lo escribe un agente a
+        mano.
+        (a) Task → investigador (rama "TRL y componentes SGR", ver
+        `investigador.md`) con `RUN_ROOT`, `cadena_valor.json`,
+        `alianza.json`, §10 y el extracto de los TdR sobre TRL, transferencia
+        y uso posterior inline, y el bloque `## FRAGMENTO DE GUÍA` con
+        Directrices Generales SGR + los bloques `### SGR` de §31, §33 y §34.
+        Escribe `trl` (tipología A o B según los TdR, nivel de entrada y de
+        salida, `evidencia_entrada` con lo que ya demuestra el nivel de
+        entrada, la `ruta` de hitos de maduración, cada uno con su mes, el
+        nivel que alcanza y las actividades de la cadena que lo producen, y
+        la `verificacion` del nivel de salida: escenario, responsables,
+        criterios de aceptación, evidencias y actor usuario), `transferencia`
+        (resultados con sus usuarios, ruta por etapas con barreras y
+        acciones, actividades y continuidad) y `uso_posterior` (bienes con
+        valor SGR, operador, financiación y mantenimiento, y adopción por los
+        usuarios adoptantes). No declara un TRL sin la evidencia que los TdR
+        piden para la tipología.
+        (b) Task → redactor (rama "TRL y componentes SGR", ver `redactor.md`)
+        con el archivo, §10, §17 si existe y el bloque `## FRAGMENTO DE GUÍA`
+        con Directrices Generales SGR + los bloques `### SGR` de §18, §32 y
+        §35. Escribe la `introduccion` de cada bloque, en tercera persona, y
+        los bloques `asc` (actores, la ruta con los siete elementos
+        —identificación del problema, vinculación de actores, diseño,
+        planeación, ejecución, seguimiento y resultados y sostenibilidad—,
+        cada uno con sus actividades, y los productos con medio de
+        verificación y mes), `sostenibilidad` (ODS con los productos que la
+        respaldan, actores con su compromiso y efectos ambientales con su
+        manejo) y `diferencial` (barreras, medidas, actividades, indicador,
+        meta y evidencia, o la justificación de su ausencia). La apropiación
+        social no se reduce a divulgación.
+        (a) y (b) se despachan en el MISMO turno: editan bloques distintos
+        del archivo. Luego Task → revisor-estilo-sgr sobre las
+        `introduccion` (voz, léxico y redundancia de la skill `estilo-sgr`).
+        ──→ DISPATCHER: `python3 scripts/componentes_sgr.py check <RUN_ROOT>`.
+        Mientras reporte errores, devolvé la salida exacta al agente dueño
+        del bloque (investigador para `trl`, `transferencia` y
+        `uso_posterior`; redactor para `asc`, `sostenibilidad`, `diferencial`
+        y las introducciones) y repetí (a) o (b); los avisos se presentan en
+        la compuerta. Con `check` limpio, el DISPATCHER corre
+        `python3 scripts/componentes_sgr.py render <RUN_ROOT>`, que genera
+        §31 a §35 y se niega mientras haya hallazgos de error; si cambian los
+        datos, se vuelve a correr `render`.
+        ──→ GATE Task → revisor (valida que la ruta del TRL parta de un nivel
+        de entrada con evidencia y llegue al de salida con un plan de
+        verificación completo, que transferencia, apropiación social, uso
+        posterior y medidas diferenciales se apoyen en actividades reales de
+        la cadena de valor y que las secciones renderizadas no contradigan
+        §10; recibe la salida limpia de `check`) ──→ usuario: la aprobación
+        se da en la pestaña «TRL y componentes» del tablero, que la ata al
+        hash del archivo. Un ajuste pedido ahí vuelve a (a) o (b) con el
+        comentario exacto. Al aprobar, escribe `GComponentes = APROBADA` en
+        `artefactos/estado_propuesta.md` (fila `| GComponentes | APROBADA |`)
+        y el evento `artefactos/pipeline/65-fase5_5_sgr.md`. NO avances sin
+        aprobación.
 Fase 6  Task → redactor → §11 resultados esperados (sin gate propio; §11 y
         §12 se auditan juntas en la Fase 7 junto con el resto del
         documento, igual que antes). Antes de despachar esta
@@ -1371,6 +1617,57 @@ Fase 6.4 [COMPUERTA INTERACTIVA G-Presupuesto] Presupuesto (interactivo).
         `redaccion/sections/13_presupuesto.tex` + su mirror de vault, con el
         self-audit aritmético ya aplicado; cada monto/cantidad no derivable de
         un insumo va marcado `[supuesto]`.
+        SOLO flujo SGR: el presupuesto es un dato y el presupuestador nunca escribe `13_presupuesto.tex` a
+        mano. En lugar de (a), Task → presupuestador con
+        `artefactos/sgr/cadena_valor.json` y `artefactos/sgr/alianza.json`
+        inline → escribe `artefactos/sgr/presupuesto.json` (esquema
+        `morfeo.presupuesto-sgr/v1`: cada ítem con su rubro de Minciencias,
+        su insumo MGA, la entidad, la fuente sgr, especie o efectivo, las
+        cotizaciones y los códigos de las actividades que lo usan). Tras cada
+        ronda el DISPATCHER corre
+        `python3 scripts/presupuesto_sgr.py check <RUN_ROOT>` y devuelve los
+        errores al presupuestador hasta que salga limpio; luego corre
+        `python3 scripts/presupuesto_sgr.py sync-cadena <RUN_ROOT>`, que
+        reparte el valor de cada ítem por partes iguales entre sus
+        actividades y escribe en `cadena_valor.json` el `costo` de cada
+        actividad por su código (la suma de los costos coincide con el total
+        de §13); después
+        `python3 scripts/cadena_valor_sgr.py check <RUN_ROOT>` (desde esta
+        fase una actividad sin costo es un aviso), si `23_cadena_valor.tex`
+        ya existe `python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>`
+        (la sincronización deja el anexo desactualizado), si
+        `componentes.json` existe `python3 scripts/componentes_sgr.py render <RUN_ROOT>`
+        (por la misma razón: 18 y 31–35 dependen de la cadena), si
+        `productos.json` existe `python3 scripts/productos_sgr.py render <RUN_ROOT>`
+        (§15 y §37 leen la cadena) y
+        `python3 scripts/presupuesto_sgr.py render <RUN_ROOT>`, que genera
+        `13_presupuesto.tex` (rubro por fuente y entidad, vista de insumos
+        MGA y proyección anual) y se niega mientras haya hallazgos de error.
+        El GATE Task → revisor recibe la salida de `check` en lugar de
+        recomputar la aritmética. El bucle interactivo de abajo se hace en la
+        pestaña «Presupuesto y cronograma» del tablero (topes,
+        cofinanciación, transferencia, movilidad, Seguimiento, cotizaciones y
+        la calculadora de horas de contrapartida): cada ajuste del usuario
+        vuelve al presupuestador sobre `presupuesto.json`, se repiten
+        `check`, `sync-cadena` y `render`, y el usuario aprueba G6.4 en esa
+        pestaña. El prompt lleva además `artefactos/sgr/componentes.json`
+        (aprobado en GComponentes) inline: cada ítem que financia la
+        transferencia, la apropiación social o el seguimiento declara su
+        `componente` (`transferencia`, `asc` o `seguimiento`), y los de
+        transferencia y apropiación social usan las actividades que ese
+        bloque de `componentes.json` lista. Tras `presupuesto_sgr.py check`,
+        el DISPATCHER corre también
+        `python3 scripts/componentes_sgr.py check <RUN_ROOT>` (el componente
+        de transferencia frente al 1 % del total SGR y sus actividades frente
+        a los ítems marcados) y devuelve sus hallazgos al presupuestador.
+        El prompt lleva también `artefactos/sgr/productos.json` (aprobado en
+        GProductos) inline: los ítems de `talento_humano` de cada entidad
+        coinciden con el bloque `talento` de ese archivo (categoría,
+        cantidad, duración y valor mensual). Tras `presupuesto_sgr.py check`,
+        el DISPATCHER corre además
+        `python3 scripts/productos_sgr.py check <RUN_ROOT>` (talento frente a
+        los ítems del presupuesto y divulgación costeada) y devuelve sus
+        hallazgos al presupuestador.
         ──→ BUCLE INTERACTIVO (sin tope de rondas; termina SOLO con
         aprobación explícita del usuario):
           1. El DISPATCHER presenta al usuario: (i) la tabla renderizada
@@ -1424,15 +1721,46 @@ Fase 6.45 Task → redactor → §14 cronograma de actividades (Gantt) (sin gate
         que la Fase 6). Antes de despachar esta Task, el dispatcher arma el
         bloque `## FRAGMENTO DE GUÍA` con Directrices Generales + §14
         (Cronograma de actividades) + Convenciones técnicas de LaTeX y lo
-        inyecta inline al inicio del prompt. En el flujo SGR el Gantt agrupa
-        las actividades por etapa y marca la ruta crítica (guía SGR §14);
-        `check_run.py` advierte `sgr-cronograma-sin-etapas` /
-        `sgr-cronograma-sin-ruta-critica`.
+        inyecta inline al inicio del prompt.
+        SOLO flujo SGR: §14 nunca lo escribe el redactor. En lugar de esa
+        Task, Task → investigador (rama "Hitos y etapas SGR") → escribe
+        `artefactos/sgr/hitos.json` (esquema `morfeo.hitos-sgr/v1`: hitos
+        verificables cada 3 meses como máximo, cada uno con su mes, las
+        actividades que lo producen y su medio de verificación), con los
+        hitos de la ruta del TRL de `artefactos/sgr/componentes.json` (mismo
+        mes y mismas actividades), y completa la
+        `etapa` (preinversion, inversion u operacion) de las actividades de
+        `cadena_valor.json`. El DISPATCHER corre
+        `python3 scripts/cronograma_sgr.py check <RUN_ROOT>` y devuelve los
+        errores al investigador hasta que salga limpio, y luego
+        `python3 scripts/cronograma_sgr.py render <RUN_ROOT>`, que genera
+        `14_cronograma_actividades.tex` desde la cadena de valor (objetivo,
+        producto y actividad con su código y su nombre, etapa, ruta crítica
+        e hitos, en la misma convención `ganttchart` del flujo base) y se
+        niega mientras haya hallazgos de error; `check_run.py` sigue
+        advirtiendo `sgr-cronograma-sin-etapas` /
+        `sgr-cronograma-sin-ruta-critica` (guía SGR §14). Si cambian los
+        meses o los hitos, se vuelve a correr `render`. El DISPATCHER compila
+        el Gantt a PNG y SVG con
+        `python3 redaccion/scripts/compile_tikz.py cronograma:gantt`, como
+        en el flujo base. La proyección anual de §13 sale de
+        `python3 scripts/cronograma_sgr.py proyeccion <RUN_ROOT>`.
         Task → redactor → §15 productos esperados (ídem, sin gate propio).
         Antes de despachar esta Task, el dispatcher arma el bloque
         `## FRAGMENTO DE GUÍA` con Directrices Generales + §15 (Productos
         esperados) + Convenciones técnicas de LaTeX y lo inyecta inline al
         inicio del prompt.
+        SOLO flujo SGR: §15 nunca lo escribe el redactor. En lugar de esa
+        Task, el DISPATCHER corre
+        `python3 scripts/productos_sgr.py render <RUN_ROOT>`, que vuelve a
+        generar `15_productos_esperados.tex` (Anexo 2 cap. 21: productos por
+        objetivo con su código DNP, indicador, unidad y meta desde
+        `cadena_valor.json`, los productos CTeI y la estrategia de
+        divulgación de `artefactos/sgr/productos.json` aprobado en
+        GProductos) junto con §36 y §37. Un ajuste a los productos vuelve al
+        investigador sobre `productos.json` (rama "Productos, talento e
+        indicadores SGR"), se repite `productos_sgr.py check` y se vuelve a
+        correr `render`.
         Task → bibliografo-propuesta → §16 bibliografía (BibTeX,
         consolidación final MODE=deliverable §4+§16, cubre todas las
         referencias citadas a lo largo del documento; ídem, sin gate
@@ -1460,6 +1788,17 @@ Fase 6.46 Task → redactor → §17 Estrategia de articulación con comunidades
         Antes de despachar cada Task, el dispatcher arma el bloque
         `## FRAGMENTO DE GUÍA` con Directrices Generales + §17 (o §18) +
         Convenciones técnicas de LaTeX y lo inyecta inline al inicio del prompt.
+        SOLO flujo SGR: el redactor escribe solo §17.
+        `18_apropiacion_social.tex` (Anexo 2 cap. 19) no lo escribe ningún
+        agente: el DISPATCHER corre
+        `python3 scripts/componentes_sgr.py render <RUN_ROOT>`, que lo genera
+        desde el bloque `asc` de `artefactos/sgr/componentes.json` aprobado
+        en GComponentes (actores, ruta con los siete elementos y productos)
+        junto con §31 a §35. §17 copia de ese bloque los actores y los
+        momentos de participación que nombra. Un ajuste a la apropiación
+        social vuelve al redactor sobre `componentes.json` (rama "TRL y
+        componentes SGR"), se repite `componentes_sgr.py check` y se vuelve a
+        correr `render`.
         ──→ [NUEVO] DISPATCHER: vault-graph refresh: guardia — ejecuta este
         bloque solo si en esta fase se crearon o editaron secciones del vault.
         Mecánica: `index_repository(repo_path="<RUN_ROOT>/artefactos/vault",
@@ -1470,14 +1809,40 @@ Fase 6.46 Task → redactor → §17 Estrategia de articulación con comunidades
         mecanismos, responsables y momentos) ──→ usuario. NO avances sin aprobación.
 Fase 6.47 [SOLO FLUJO SGR] Anexos MGA de cierre. Con el flujo `base` esta
         unidad no corre: al aprobar G6.46 se pasa directo a la Fase 6.5. Con
-        `"flujo": "sgr"`: Task → redactor → los tres anexos de
+        `"flujo": "sgr"`: Task → redactor → los anexos de
         `guiaProyectosIA_Agente_Regalias.md` que dependen del presupuesto
-        (bloques `### SGR A19`, `### SGR A23` y `### SGR A25`), cada uno en su
-        archivo de `redaccion/sections/`: `19_alineacion_planes.tex`,
-        `23_cadena_valor.tex` y `25_marco_logico.tex`. `main.tex` ya los
-        incluye si existen. El redactor parte de los árboles aprobados, §10,
+        (bloques `### SGR A19` y `### SGR A25`; A20, A21, A22 y A24 ya se
+        escribieron en la Fase 6.3), cada uno en su archivo de
+        `redaccion/sections/`: `19_alineacion_planes.tex` y
+        `25_marco_logico.tex`. El anexo A23 (`23_cadena_valor.tex`) no lo
+        escribe el redactor: el DISPATCHER corre
+        `python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>`, que lo genera
+        desde `cadena_valor.json` y se niega mientras haya hallazgos de error
+        (`check_run.py` marca error un A23 escrito a mano o anterior al
+        JSON). Si el presupuesto cambia en esta fase, el presupuestador
+        ajusta `presupuesto.json` y se repiten `presupuesto_sgr.py check`,
+        `sync-cadena` y `render` y `cadena_valor_sgr.py render`.
+        Los apartados de la alianza y el territorio salen de sus datos: el
+        DISPATCHER corre `python3 scripts/alianza_territorio_sgr.py render
+        <RUN_ROOT>`, que escribe `26_identificacion.tex`,
+        `27_demandas_territoriales.tex` y `28_matriz_responsabilidades.tex`
+        (ninguno lo escribe el redactor; si cambian los datos, se vuelve a
+        correr `render`). El resumen de fuentes de financiación (Anexo 2
+        cap. 29, `30_fuentes_financiacion.tex`: las tres líneas SGR,
+        contrapartida en especie y contrapartida en efectivo, en letras y en
+        números) tampoco lo escribe el redactor: el DISPATCHER corre
+        `python3 scripts/presupuesto_sgr.py render <RUN_ROOT>`, que lo genera
+        junto con §13 desde `presupuesto.json`. Task → redactor escribe
+        `29_idoneidad_trayectoria.tex` desde `artefactos/sgr/alianza.json`:
+        un apartado por entidad, en tercera persona, con sus grupos y su
+        trayectoria tal como constan en el archivo; no pega texto
+        institucional en primera persona.
+        `main.tex` ya los incluye si existen. El redactor parte de los árboles aprobados, §10,
         §11 (indicador de resultado), §13, §14, §15 y los anexos de la Fase
-        6.3. Antes de despachar cada Task, el
+        6.3. Si un riesgo de A24 o
+        una estrategia de participantes de A20 no tiene costo en §13,
+        Task → presupuestador ajusta `presupuesto.json` (vuelve a pasar
+        `presupuesto_sgr.py check`, `sync-cadena` y `render`) antes del gate. Antes de despachar cada Task, el
         dispatcher arma el bloque `## FRAGMENTO DE GUÍA` con Directrices
         Generales + Directrices Generales SGR + el bloque `### SGR A<n>` +
         Convenciones técnicas de LaTeX. Mismo mirror de vault que el resto
@@ -1513,6 +1878,83 @@ Fase 6.5 Task → redactor → secciones preliminares (front-matter), como
         `artefactos/pipeline/_estado.md`,
         incluye además los campos de uso acumulados de la fase (ver
         "Telemetría de uso por fase").
+Fase 6.9 SGR [COMPUERTA GRequisitos] Requisitos habilitantes, licencias y
+        anexos como datos. SOLO flujo SGR, después de G6.5 = APROBADA; con el
+        flujo `base` esta unidad no corre y al aprobar G6.5 se pasa directo a
+        la Fase 7. Los datos viven en `artefactos/sgr/requisitos.json`
+        (esquema `morfeo.requisitos-sgr/v1`, documentado al inicio de
+        `scripts/requisitos_sgr.py`): `items` (un estado por cada requisito
+        habilitante de la rúbrica de la convocatoria, `pendiente`,
+        `en_tramite`, `listo` o `no_aplica`, con la entidad responsable, el
+        archivo adjunto bajo `insumos/requisitos/`, la fecha, la nota y la
+        `justificacion` de un `no_aplica`), `cifras` (los totales que declaran
+        el SIGP, el Anexo 1 por entidad, el Anexo 3 y la MGA Web),
+        `licencias` (su `introduccion` y una fila por licencia, estudio o
+        permiso) y `aval_institucional` (los documentos del aval interno de la
+        institución proponente, cuando la rúbrica trae su procedimiento). Un
+        `no_aplica` solo cabe en un requisito con condición y siempre lleva
+        `justificacion`. De estos datos salen `38_licencias_permisos.tex`
+        (Anexo 2 cap. 28: introducción y tabla «Licencia o permiso | Norma |
+        ¿Aplica? | Justificación | Responsable | Momento del trámite») y
+        `39_anexos.tex` (cap. 31, título «ANEXOS REQUISITOS SECTORIALES QUE
+        LE SEAN APLICABLES.», la lista sin prosa de los documentos de los
+        requisitos que aplican); ninguno lo escribe un agente a mano.
+        (0) DISPATCHER: `python3 scripts/requisitos_sgr.py init <RUN_ROOT>`,
+        que siembra el archivo desde los `requisitos` de la rúbrica. Es
+        idempotente y nunca sobrescribe un estado, un archivo, una cifra o un
+        bloque ya escrito: en una segunda corrida solo agrega los requisitos
+        que falten.
+        (a) Task → investigador (rama "Requisitos y anexos SGR", ver
+        `investigador.md`) con `RUN_ROOT`, el archivo, `alianza.json`,
+        `territorio.json`, `componentes.json` si existe, §10, §12 y el
+        extracto de los TdR sobre requisitos habilitantes, licencias y
+        permisos inline, y el bloque `## FRAGMENTO DE GUÍA` con Directrices
+        Generales SGR + el bloque `### SGR A28`. Escribe `licencias.items`:
+        una fila por cada licencia, estudio o permiso de la lista de la
+        plantilla del cap. 28 (licencias ambientales, acceso a recursos
+        genéticos, recolección de especímenes, colecciones biológicas,
+        consentimiento informado, consulta previa), con `licencia`, `norma`,
+        `aplica`, `justificacion`, la entidad `responsable` y el `momento`
+        del trámite (`previo` o `ejecucion`). No copia la tabla normativa del
+        marco conceptual: aquí van solo las licencias y los permisos, con su
+        justificación. No inventa una norma ni un trámite que ningún insumo
+        respalde.
+        (b) Tras (a), Task → redactor (rama "Requisitos y anexos SGR", ver
+        `redactor.md`) con el archivo, `alianza.json` y el bloque
+        `## FRAGMENTO DE GUÍA` con Directrices Generales SGR + el bloque
+        `### SGR A28` inline. Escribe `licencias.introduccion`: un párrafo en
+        tercera persona sobre la alianza y el proyecto que nombra las
+        licencias que aplican y el compromiso de tramitarlas. Luego Task →
+        revisor-estilo-sgr sobre esa `introduccion` (voz, léxico y
+        redundancia de la skill `estilo-sgr`).
+        (c) Usuario: en la pestaña «Requisitos y anexos» del tablero marca
+        cada requisito (estado, entidad responsable, archivo adjunto, fecha y
+        nota, o la `justificacion` de un `no_aplica`) y declara las cifras de
+        cada anexo (SIGP, Anexo 1, Anexo 3 y MGA Web). Ni el DISPATCHER ni un
+        agente marcan un requisito como `listo` ni inventan una cifra.
+        ──→ DISPATCHER: `python3 scripts/requisitos_sgr.py check <RUN_ROOT>`.
+        Mientras reporte errores, devolvé la salida exacta a quien los
+        resuelve (investigador para `licencias.items`, redactor para
+        `licencias.introduccion`, el usuario en la pestaña para los estados,
+        los archivos y las cifras) y repetí (a), (b) o (c); los avisos se
+        presentan en la compuerta. Un requisito aplicable todavía pendiente
+        no bloquea esta unidad, pero sí el cierre de la Fase 7
+        (`check --final`). Con `check` limpio, el DISPATCHER corre
+        `python3 scripts/requisitos_sgr.py render <RUN_ROOT>`, que genera
+        `38_licencias_permisos.tex` y `39_anexos.tex`; si cambian los datos,
+        se vuelve a correr `render`.
+        ──→ GATE Task → revisor (valida que cada licencia que aplica tenga
+        norma, responsable y momento del trámite y cada una que no aplica su
+        justificación, que la tabla no repita la normativa del marco
+        conceptual, que §39 liste solo los documentos de los requisitos que
+        aplican y que las secciones renderizadas no contradigan §10 ni §12;
+        recibe la salida limpia de `check`) ──→ usuario: la aprobación se da
+        en la pestaña «Requisitos y anexos» del tablero, que la ata al hash
+        del archivo. Un ajuste pedido ahí vuelve a (a) o (b) con el
+        comentario exacto. Al aprobar, escribe `GRequisitos = APROBADA` en
+        `artefactos/estado_propuesta.md` (fila `| GRequisitos | APROBADA |`)
+        y el evento `artefactos/pipeline/75-fase6_9_sgr.md`. NO avances sin
+        aprobación.
 Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del índice
         del vault" sobre el vault completo (todas las secciones ya escritas),
         con `mode="full"` en vez de `"fast"` — es la última auditoría, conviene
@@ -1524,8 +1966,33 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         Task → revisor → auditoría final (con bloque EVIDENCIA DE GRAFO inline;
         incluye AHORA la verificación cruzada Presupuesto (§13) ↔ Cronograma
         de actividades (§14) diferida desde la Fase 6.4, ya que ambas
-        secciones existen recién en este punto) ──→ usuario. NO avances sin
-        aprobación.
+        secciones existen recién en este punto; en el flujo SGR, si existe
+        `artefactos/juez/evaluacion.json` de una ronda anterior del juez, el
+        prompt le indica al revisor que lea sus alertas `error` abiertas) ──→
+        usuario. NO avances sin aprobación.
+        En el flujo SGR ese cruce §13↔§14 es determinista: antes de la Task
+        el DISPATCHER corre `python3 scripts/presupuesto_sgr.py check
+        <RUN_ROOT>` (los costos de la cadena de valor son las partes del
+        presupuesto) y `python3 scripts/cronograma_sgr.py check <RUN_ROOT>`
+        (los meses del Gantt son los de la cadena, porque §14 sale de ella) e
+        inyecta sus hallazgos en el prompt del revisor, que no recomputa ese
+        cruce a mano.
+        SOLO flujo SGR: requisitos habilitantes al cierre. Antes de la misma
+        Task el DISPATCHER corre también
+        `python3 scripts/requisitos_sgr.py check <RUN_ROOT> --final`: con
+        `--final`, cada requisito habilitante aplicable que no esté `listo`
+        en `artefactos/sgr/requisitos.json` es un error, además de los
+        hallazgos de la Fase 6.9 SGR (cifras declaradas que no coinciden con
+        el presupuesto o la alianza, licencias incompletas). Inyecta sus
+        hallazgos en el prompt del revisor, que no los recalcula. La Fase 7
+        no se cierra mientras haya errores: cada uno se resuelve en la
+        pestaña «Requisitos y anexos» del tablero (adjuntar el documento y
+        marcarlo `listo`, o justificar el `no_aplica` de un requisito con
+        condición), se vuelve a correr
+        `python3 scripts/requisitos_sgr.py render <RUN_ROOT>` y luego
+        `check --final`. En el flujo SGR,
+        `python3 scripts/check_run.py <RUN_ROOT> --final` exige además
+        `38_licencias_permisos.tex` y `39_anexos.tex`.
         ──→ [NUEVO] DISPATCHER: pipeline-graph: escribe
         `artefactos/pipeline/80-fase7.md` (evento de la auditoría final) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
@@ -1595,6 +2062,24 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         timeout), registra una fila "QA visual no disponible en esta corrida:
         `<razón>`" en la misma sección y continúa — la Fase 7 se da por
         completa igual.
+        [NUEVO] SOLO flujo SGR (`"flujo": "sgr"`), después de la pasada de
+        pixelshot: juez final asesor. Task → juez-sgr con `RUN_ROOT`
+        absoluto (receta y salida en `/propuesta-juez`, sección 3): corre
+        `python3 scripts/juez_sgr.py preparar <RUN_ROOT>`, escribe
+        `artefactos/juez/datos_sgr.json` y
+        `artefactos/juez/evaluacion_ronda_<N>.json` y corre
+        `python3 scripts/juez_sgr.py calificar <RUN_ROOT>` hasta que sale con
+        0. Al cerrar la compuerta G7 le mostrás al usuario, desde
+        `artefactos/juez/evaluacion.json`, el total frente al umbral, la
+        elegibilidad y las tres acciones de mayor prioridad, y le decís cómo
+        iterar (pestaña «Juez final» del tablero o `/propuesta-juez AC<n>`).
+        Igual que pixelshot, este paso NUNCA altera el VEREDICTO PASS/FAIL del
+        `revisor` ni bloquea el cierre de la Fase 7. Si el juez falla (rúbrica
+        no detectada, `calificar` sin salir con 0 tras los reintentos del
+        agente), registra una fila "Juez SGR no disponible en esta corrida:
+        `<razón>`" en `## Hallazgos del juez SGR` de
+        `artefactos/estado_propuesta.md` (crea la sección la primera vez) y
+        continúa. Con el flujo `base` este paso no corre.
 ```
 
 ## Bucle de figuras (canónico)
@@ -1718,7 +2203,8 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
 ## Reglas de dependencia (haz que `revisor` las valide en cada gate)
 
 - 3 subproblemas (§3) ↔ 3 objetivos específicos (§7), mapeo 1:1.
-- Pregunta de investigación (cierre §3) ↔ objetivo general (§6).
+- Pregunta de investigación (cierre §3) ↔ objetivo general (§6). En el flujo SGR
+  §3 no cierra con pregunta (guía SGR §3): el cruce es problema central ↔ objetivo general.
 - Hipótesis (§5) ↔ objetivo general (§6).
 - Metodología (§10) ↔ objetivos específicos (§7), marco conceptual (§8) y
   equipo de trabajo (§9), cadena de valor. El punto 1 (Métodos) del
@@ -1788,9 +2274,13 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
   cambios e invariantes), sin puntajes propios. El `revisor`
   sigue siendo la autoridad del veredicto PASS/FAIL; el auditor no lo
   reemplaza ni lo bloquea. No aplica a unidades sin prosa nueva (bucles de
-  figura, presupuesto, bibliografía).
+  figura, presupuesto, bibliografía). En el flujo SGR este paso lo hace
+  `revisor-estilo-sgr` en lugar de `grant-flow-auditor` (ver la regla del
+  flujo SGR bajo el roster), con la ruta de la skill `estilo-sgr` en el
+  prompt; los hallazgos `sgr-estilo-*` de `check_run.py` le llegan como
+  avisos.
 - **Puntaje de estilo y fidelidad alrededor del auditor.** Antes de despachar
-  `grant-flow-auditor`, copiá las secciones de la unidad a
+  `grant-flow-auditor` (en el flujo SGR, `revisor-estilo-sgr`), copiá las secciones de la unidad a
   `artefactos/estilo/antes/` y corré
   `python3 scripts/estilo_es.py auditar <RUN_ROOT> --seccion <N>`; pasale al
   auditor los hallazgos del reporte. Al terminar, corré

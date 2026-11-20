@@ -311,5 +311,118 @@ class TestSubagentRoster(unittest.TestCase):
                 self.assertIn("documento de referencia", self._roster_block(relpath))
 
 
+def _literal_assignment(path: Path, name: str):
+    """Value of the module-level literal `name` in `path`, without importing it."""
+    import ast
+
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in tree.body:
+        targets = node.targets if isinstance(node, ast.Assign) else (
+            [node.target] if isinstance(node, ast.AnnAssign) else []
+        )
+        if any(isinstance(t, ast.Name) and t.id == name for t in targets):
+            return ast.literal_eval(node.value)
+    raise AssertionError(f"{path.relative_to(REPO)} no define {name}")
+
+
+class TestJuezSgrRegistration(unittest.TestCase):
+    """The SGR judge agent and its command must appear in every registry.
+
+    A new agent that misses one map runs on the wrong model in that runtime or
+    is never ported, and nothing else notices.
+    """
+
+    AGENT = "juez-sgr"
+    COMMAND = "propuesta-juez"
+
+    def test_the_canonical_sources_exist(self):
+        self.assertTrue((REPO / ".claude" / "agents" / f"{self.AGENT}.md").is_file())
+        self.assertTrue((REPO / ".claude" / "commands" / f"{self.COMMAND}.md").is_file())
+
+    def test_the_pi_model_table_assigns_it_a_tier(self):
+        models = _load_json(REPO / "scripts" / "agent-models.json")
+        self.assertIn(models["agents"].get(self.AGENT), models["tiers"])
+
+    def test_every_model_preset_names_it(self):
+        sources = [(REPO / "scripts" / "marco_cli.py", "_MODEL_PRESETS")]
+        manifest = REPO / "src" / "morfeo" / "core" / "manifest.py"
+        if manifest.is_file():
+            sources.append((manifest, "MODEL_PRESETS"))
+        for path, name in sources:
+            presets = _literal_assignment(path, name)
+            for preset, lineup in presets.items():
+                with self.subTest(source=path.name, preset=preset):
+                    self.assertTrue(lineup.get(self.AGENT))
+
+    def test_every_generator_ports_it(self):
+        for gen in ("opencode", "pi"):
+            paths = _load_json(REPO / "scripts" / f"gen-{gen}.rules.json")["paths"]
+            with self.subTest(generator=gen):
+                self.assertIn(f"{self.AGENT}.md", paths["agent_files"])
+                self.assertIn(f"{self.COMMAND}.md", paths["command_files"])
+        antigravity = _load_json(REPO / "scripts" / "gen-antigravity.rules.json")
+        self.assertIn(f"{self.COMMAND}.md", antigravity["command_files"])
+
+    def test_the_documentation_lists_both(self):
+        for doc in ("AGENTS.md", "README.md"):
+            if not (REPO / doc).is_file():
+                continue
+            text = (REPO / doc).read_text(encoding="utf-8")
+            with self.subTest(doc=doc):
+                self.assertIn(f"`{self.AGENT}`", text)
+                self.assertIn(f"/{self.COMMAND}", text)
+
+
+class TestRevisorEstiloSgrRegistration(unittest.TestCase):
+    """The SGR style reviewer and its skill must appear in every registry.
+
+    It replaces grant-flow-auditor only in the SGR flow, so it runs on the same
+    light tier; a map that misses it would run it on the wrong model or never
+    port it.
+    """
+
+    AGENT = "revisor-estilo-sgr"
+    SKILL = "estilo-sgr"
+
+    def test_the_canonical_sources_exist(self):
+        agent = REPO / ".claude" / "agents" / f"{self.AGENT}.md"
+        self.assertTrue(agent.is_file())
+        self.assertIn("\nmodel: sonnet\n", agent.read_text(encoding="utf-8"))
+        self.assertTrue((REPO / ".claude" / "skills" / self.SKILL / "SKILL.md").is_file())
+
+    def test_the_pi_model_table_puts_it_on_the_auditor_tier(self):
+        models = _load_json(REPO / "scripts" / "agent-models.json")["agents"]
+        self.assertEqual(models.get(self.AGENT), "mechanical")
+        self.assertEqual(models.get(self.AGENT), models.get("grant-flow-auditor"))
+
+    def test_every_model_preset_names_it(self):
+        sources = [(REPO / "scripts" / "marco_cli.py", "_MODEL_PRESETS")]
+        manifest = REPO / "src" / "morfeo" / "core" / "manifest.py"
+        if manifest.is_file():
+            sources.append((manifest, "MODEL_PRESETS"))
+        for path, name in sources:
+            presets = _literal_assignment(path, name)
+            for preset, lineup in presets.items():
+                with self.subTest(source=path.name, preset=preset):
+                    self.assertTrue(lineup.get(self.AGENT))
+            self.assertEqual(presets["claude"][self.AGENT], "sonnet")
+
+    def test_every_generator_ports_the_agent_and_the_skill(self):
+        for gen in ("opencode", "pi"):
+            paths = _load_json(REPO / "scripts" / f"gen-{gen}.rules.json")["paths"]
+            with self.subTest(generator=gen):
+                self.assertIn(f"{self.AGENT}.md", paths["agent_files"])
+        pi = _load_json(REPO / "scripts" / "gen-pi.rules.json")["paths"]
+        self.assertIn(f"{self.SKILL}/SKILL.md", pi["skill_files"])
+
+    def test_the_documentation_lists_both(self):
+        agents_md = (REPO / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn(f"`{self.AGENT}`", agents_md)
+        self.assertIn(f"`{self.SKILL}`", agents_md)
+        readme = REPO / "README.md"
+        if readme.is_file():
+            self.assertIn(f"`{self.AGENT}`", readme.read_text(encoding="utf-8"))
+
+
 if __name__ == "__main__":
     unittest.main()

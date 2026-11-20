@@ -37,11 +37,13 @@
     "bibliografo-propuesta": "analysis",
     "insumos-observador": "analysis",
     "revisor": "analysis",
+    "juez-sgr": "analysis",
     "disenador-tikz": "mechanical",
     "tikz-optimizer": "mechanical",
     "revisor-figuras": "mechanical",
     "revisor-redundancia": "analysis",
-    "grant-flow-auditor": "mechanical"
+    "grant-flow-auditor": "mechanical",
+    "revisor-estilo-sgr": "mechanical"
   },
   "runtime": {
     "default_mode": "task",

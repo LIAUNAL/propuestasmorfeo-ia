@@ -1,0 +1,83 @@
+{
+  "schema": "morfeo.aval-institucional/v1",
+  "instituciones": [
+    {
+      "id": "unal",
+      "nombre": "Universidad Nacional de Colombia",
+      "patron_nombre": "universidad\\s+nacional\\s+de\\s+colombia|\\bunal\\b",
+      "fuente": "Vicerrectoría de Investigación, «PROCEDIMIENTO DE SOLICITUD Y EXPEDICIÓN DE AVAL PARA PARTICIPAR EN LAS CONVOCATORIAS No. 54 Y 55 DEL SISTEMA GENERAL DE REGALÍAS (SGR)», Etapa 3 (numeral 3.1, iii) y numeral 5, CRONOGRAMA DE ACTIVIDADES",
+      "convocatorias": [
+        "conv54",
+        "conv55"
+      ],
+      "documentos": [
+        {
+          "indice": 1,
+          "texto": "Cartas de certificación de la contrapartida en especie (ESPECIFICANDO horas de dedicación, laboratorios, equipos, software, etc). firmada según sea el caso por el (la) director(a) de la unidad académica básica, decano(a) o quien corresponda."
+        },
+        {
+          "indice": 2,
+          "texto": "Anexo 1: Formato de “Carta de aval y compromiso institucional unificada” debidamente diligenciada en formato Word."
+        },
+        {
+          "indice": 3,
+          "texto": "Anexo 2: Documento técnico de la propuesta estructurada según las condiciones de los TDR de la convocatoria"
+        },
+        {
+          "indice": 4,
+          "texto": "Anexo 3: Presupuesto de acuerdo con lo establecido en los TDR de la convocatoria"
+        },
+        {
+          "indice": 5,
+          "texto": "MGA WEB preliminar del proyecto con todos los campos diligenciados en la Tipología D – Convocatorias CTeI del SGR en la MGA."
+        },
+        {
+          "indice": 6,
+          "texto": "Certificados de no financiación con otras fuentes de recursos."
+        },
+        {
+          "indice": 7,
+          "texto": "Adjuntar la carta Aval del Comité de Ética de la Investigación o de Bioética (Si aplica): en este documento se debe especificar claramente que el proyecto ha sido revisado y avalado por un Comité. En caso de que la institución que presenta el proyecto no cuente con un Comité de ética, podrá solicitar este aval ante otra entidad que cuente con uno de estos Comités. Debe anexar a este aval, el acto administrativo que soporta la conformación del Comité de ética o de Bioética que lo expide."
+        }
+      ],
+      "hitos": [
+        {
+          "actividad": "Manifestación de interés a través de Google Forms",
+          "responsable": "Docente investigador",
+          "fecha": "2026-10-30",
+          "fecha_texto": "Viernes, 30 de octubre 2026 hasta las 4:00 pm"
+        },
+        {
+          "actividad": "Presentación de propuestas a través Sistema de Información Hermes",
+          "responsable": "Docente investigador",
+          "fecha": "2026-11-09",
+          "fecha_texto": "Lunes 9 de noviembre de 2026"
+        },
+        {
+          "actividad": "Revisión, validación y aprobación de requisitos la solicitud a través del Sistema de Información HERMES",
+          "responsable": "Vicedecanatura de Investigación y Extensión de Facultad (o la dependencia que haga sus veces)",
+          "fecha": "2026-11-10",
+          "fecha_texto": "Martes 10 de noviembre de 2026"
+        },
+        {
+          "actividad": "Validación de requisitos para la expedición del aval institucional a través del Sistema de Información HERMES",
+          "responsable": "Direcciones de Investigación y Extensión de Sede (o la dependencia que haga sus veces)",
+          "fecha": "2026-11-11",
+          "fecha_texto": "Miércoles 11 de noviembre de 2026"
+        },
+        {
+          "actividad": "Expedición del aval institucional a través del Sistema Hermes",
+          "responsable": "Direcciones de Investigación y Extensión de Sede (o la dependencia que haga sus veces); Vicerrectoría de Investigación (En el caso de propuestas intersede)",
+          "fecha": "2026-11-12",
+          "fecha_texto": "Jueves 12 de noviembre de 2026."
+        },
+        {
+          "actividad": "Cargue y transferencia de proyectos a la Convocatoria correspondiente en la plataforma SIGP",
+          "responsable": "Docente investigador",
+          "fecha": "2026-11-13",
+          "fecha_texto": "Hasta el 13 de noviembre de 2026, 04:00 p.m. hora colombiana (UTC-5)"
+        }
+      ]
+    }
+  ]
+}

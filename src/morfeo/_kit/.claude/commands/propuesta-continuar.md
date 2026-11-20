@@ -59,13 +59,17 @@ Mapeo id → bloque en `propuesta.md`:
 | `fase1a` | Fase 1a [G1a] |
 | `fase1a_sgr` | Fase 1a SGR [GCausas] (solo flujo SGR) |
 | `fase1b` | Fase 1b [G1b] |
+| `fase1b_sgr` | Fase 1b SGR [GTerritorio] (solo flujo SGR) |
 | `fase1c` | Fase 1c [G1c] |
 | `fase1` | Fase 1 |
 | `fase2` | Fase 2 |
 | `fase3` | Fase 3 |
 | `fase4` | Fase 4 |
+| `fase4_sgr` | Fase 4 SGR [G4.cv] (solo flujo SGR) |
 | `fase5` | Fase 5 |
+| `fase5_sgr` | Fase 5 SGR [GProductos] (solo flujo SGR) |
 | `fase5_5` | Fase 5.5 |
+| `fase5_5_sgr` | Fase 5.5 SGR [GComponentes] (solo flujo SGR) |
 | `fase6` | Fase 6 |
 | `fase6_3` | Fase 6.3 (solo flujo SGR) |
 | `fase6_4` | Fase 6.4 |
@@ -73,6 +77,7 @@ Mapeo id → bloque en `propuesta.md`:
 | `fase6_46` | Fase 6.46 |
 | `fase6_47` | Fase 6.47 (solo flujo SGR) |
 | `fase6_5` | Fase 6.5 |
+| `fase6_9_sgr` | Fase 6.9 SGR [GRequisitos] (solo flujo SGR) |
 | `fase7` | Fase 7 |
 
 **Latido (obligatorio).** Al abrir la unidad escribí
@@ -99,10 +104,17 @@ también paran al terminar).
 ### Gate PASS o unidad sin gate completada
 
 Actualizá control según la tabla de `_propuesta-steps.md` (columna "On PASS →
-next"). Tras `fase1a`, `fase6` y `fase6_46`, el siguiente depende del flujo del
-proyecto (`"flujo"` en `.morfeo/config.json`, o `.marco/config.json`; sin clave
-es `base`): tras `fase1a`, `fase1a_sgr` con `sgr` y `fase1b` con `base`; tras
-`fase6`, `fase6_3` con `sgr` y `fase6_4` con `base`; tras `fase6_46`, `fase6_47` con `sgr` y `fase6_5` con `base`.
+next"). Tras `fase1a`, tras `fase1b`, tras `fase4`, tras `fase5`, tras
+`fase5_5`, tras `fase6`, tras `fase6_46` y tras `fase6_5`, el siguiente
+depende del flujo del proyecto (`"flujo"` en `.morfeo/config.json`, o
+`.marco/config.json`; sin clave es `base`): tras `fase1a`, `fase1a_sgr` con
+`sgr` y `fase1b` con `base`; tras `fase1b`, `fase1b_sgr` con `sgr` y `fase1c`
+con `base`; tras `fase4`, `fase4_sgr` con `sgr` y `fase5` con `base`; tras
+`fase5`, `fase5_sgr` con `sgr` y `fase5_5` con `base`; tras `fase5_5`,
+`fase5_5_sgr` con `sgr` y `fase6` con `base`; tras `fase6`, `fase6_3` con
+`sgr` y `fase6_4` con `base`; tras `fase6_46`, `fase6_47` con `sgr` y
+`fase6_5` con `base`; tras `fase6_5`, `fase6_9_sgr` con `sgr` y `fase7` con
+`base`.
 
 ```markdown
 ## Control de ejecución

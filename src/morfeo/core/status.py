@@ -40,6 +40,25 @@ SECTION_TITLES = {
     "23_cadena_valor": "§23 Cadena de valor",
     "24_riesgos": "§24 Análisis de riesgos",
     "25_marco_logico": "§25 Matriz de marco lógico",
+    # Alianza y territorio del flujo SGR (26 a 28 generados desde datos; 29 lo redacta el redactor).
+    "26_identificacion": "§26 Identificación del proyecto",
+    "27_demandas_territoriales": "§27 Demandas territoriales y configuración regional",
+    "28_matriz_responsabilidades": "§28 Matriz de responsabilidades y gobernanza",
+    "29_idoneidad_trayectoria": "§29 Idoneidad y trayectoria",
+    # Resumen de fuentes de financiación del flujo SGR (Anexo 2 cap. 29), generado desde presupuesto.json.
+    "30_fuentes_financiacion": "§30 Resumen de fuentes de financiación",
+    # TRL y componentes transversales del flujo SGR, generados desde componentes.json.
+    "31_trl": "§31 TRL y verificación",
+    "32_sostenibilidad": "§32 Sostenibilidad social y ambiental",
+    "33_uso_posterior": "§33 Uso y operación posterior",
+    "34_transferencia": "§34 Transferencia, adopción y valoración",
+    "35_medidas_diferenciales": "§35 Medidas diferenciales",
+    # Talento humano e indicadores del flujo SGR, generados desde productos.json.
+    "36_talento_humano": "§36 Vinculación de talento humano",
+    "37_indicadores": "§37 Indicadores de gestión y de producto",
+    # Licencias y anexos del flujo SGR (Anexo 2 caps. 28 y 31), generados desde requisitos.json.
+    "38_licencias_permisos": "§38 Análisis de licencias y permisos",
+    "39_anexos": "§39 Anexos (requisitos sectoriales)",
 }
 
 VALID_FLUJOS = ("base", "sgr")
@@ -245,6 +264,25 @@ def parse_sections_info(run_dir: Path) -> list[dict[str, Any]]:
     return sections
 
 
+def _gate_token_in(needle: str, haystack: str) -> bool:
+    """True when `needle` appears in `haystack` as a whole gate token.
+
+    A plain substring test confused gates that extend another id (G4 and
+    G4.cv, G6 and G6.4, G1 and G1a): the character after the match may not
+    continue the id (letter, digit or a dot followed by more id).
+    """
+    if not needle:
+        return False
+    start = haystack.find(needle)
+    while start != -1:
+        before = haystack[start - 1] if start > 0 else ""
+        after = haystack[start + len(needle):start + len(needle) + 1]
+        if not (before.isalnum() or before == ".") and not (after.isalnum() or after == "."):
+            return True
+        start = haystack.find(needle, start + 1)
+    return False
+
+
 def parse_gates_info(run_dir: Path, flujo: str | None = None) -> list[dict[str, Any]]:
     """Gate verdicts of a run; with `flujo`, only that flow's gates are listed."""
     estado_file = run_dir / "artefactos" / "estado_propuesta.md"
@@ -285,7 +323,7 @@ def parse_gates_info(run_dir: Path, flujo: str | None = None) -> list[dict[str, 
         for rk, rv in recorded_gates.items():
             rk_lower = rk.lower()
             matched = False
-            if gid_lower in rk_lower or rk_lower in gid_lower:
+            if _gate_token_in(gid_lower, rk_lower) or _gate_token_in(rk_lower, gid_lower):
                 matched = True
             elif phase_key == rk_lower or phase_key.replace("_", "") == rk_lower:
                 matched = True

@@ -22,6 +22,27 @@ number. A file listed in two chapters is included once, at its first place.
 backticked `<name>.tex` files in the last one) with `titulo: null`; the
 dispatcher then fills the verbatim titles.
 
+In the SGR flow (read from the project config, like check_run), the sections
+of scripts/alianza_territorio_sgr.py that the structure does not list go at
+the end of the TDR chapter whose verbatim title names them:
+26_identificacion (IDENTIFICACIÓN DEL PROYECTO), 27_demandas_territoriales
+(... DEMANDAS TERRITORIALES ...), 28_matriz_responsabilidades (ANÁLISIS DE
+PARTICIPANTES, as 10.1) and 29_idoneidad_trayectoria (IDONEIDAD Y
+TRAYECTORIA ...); 30_fuentes_financiacion of scripts/presupuesto_sgr.py goes
+in RESUMEN DE FUENTES DE FINANCIACIÓN; the sections of scripts/componentes_sgr.py
+go in METODOLOGÍA PARA DESARROLLAR LA ALTERNATIVA SELECCIONADA (31_trl, as 14.1
+and 14.2), SOSTENIBILIDAD SOCIAL Y AMBIENTAL (32_sostenibilidad), RESULTADOS E
+IMPACTOS (33_uso_posterior, as 17.1), COMPONENTE TRANSVERSAL DE TRANSFERENCIA
+(34_transferencia) and PRODUCTOS ESPERADOS (35_medidas_diferenciales, as
+21.1); the sections of scripts/productos_sgr.py go in VINCULACIÓN DE TALENTO
+HUMANO (36_talento_humano, with the profiles of 12.4) and INDICADORES DE
+GESTIÓN (37_indicadores, which also opens INDICADORES DE PRODUCTO when that
+chapter follows with no file of its own); the sections of scripts/requisitos_sgr.py
+go in ANÁLISIS DE LICENCIAS Y PERMISOS (38_licencias_permisos) and the chapter
+whose title starts with ANEXOS (39_anexos: Conv 54 «ANEXOS», Conv 56 «Anexos
+requisitos sectoriales que le sean aplicables.»). The base flow body does not
+change.
+
 The body carries the structure hash, which scripts/check_run.py compares to
 flag a main.tex assembled from an older structure.
 
@@ -33,6 +54,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import re
 import sys
@@ -46,6 +68,24 @@ HASH_PREFIX = "% estructura_tdr sha256: "
 NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
 ROW_RE = re.compile(r"^\|\s*(\d+)\b[^|]*\|")
 FILE_RE = re.compile(r"`([A-Za-z0-9_]+)\.tex`")
+# SGR sections (scripts/alianza_territorio_sgr.py, scripts/presupuesto_sgr.py, scripts/componentes_sgr.py,
+# scripts/productos_sgr.py, scripts/requisitos_sgr.py) and the TDR chapter title that holds each one.
+SGR_CHAPTER_SECTIONS = (
+    ("26_identificacion", re.compile(r"identificaci[óo]n\s+del\s+proyecto", re.I)),
+    ("27_demandas_territoriales", re.compile(r"demandas\s+territoriales", re.I)),
+    ("28_matriz_responsabilidades", re.compile(r"an[áa]lisis\s+de\s+participantes", re.I)),
+    ("29_idoneidad_trayectoria", re.compile(r"idoneidad\s+y\s+trayectoria", re.I)),
+    ("30_fuentes_financiacion", re.compile(r"fuentes\s+de\s+financiaci[óo]n", re.I)),
+    ("31_trl", re.compile(r"\bmetodolog[íi]a\b", re.I)),
+    ("32_sostenibilidad", re.compile(r"\bsostenibilidad\s+social\b", re.I)),
+    ("33_uso_posterior", re.compile(r"resultados\s+e\s+impactos", re.I)),
+    ("34_transferencia", re.compile(r"\btransferencia\b", re.I)),
+    ("35_medidas_diferenciales", re.compile(r"productos\s+esperados", re.I)),
+    ("36_talento_humano", re.compile(r"vinculaci[óo]n\s+de\s+talento\s+humano", re.I)),
+    ("37_indicadores", re.compile(r"indicadores\s+de\s+gesti[óo]n", re.I)),
+    ("38_licencias_permisos", re.compile(r"licencias\s+y\s+permisos", re.I)),
+    ("39_anexos", re.compile(r"^\s*anexos\b", re.I)),
+)
 
 
 class InputError(Exception):
@@ -92,7 +132,34 @@ def validate(data: dict) -> list[dict]:
     return chapters
 
 
-def body(data: dict) -> str:
+def placed_chapters(data: dict, flujo: str = "base") -> list[dict]:
+    """The structure's chapters; in the SGR flow, each SGR_CHAPTER_SECTIONS file the
+    structure does not list is appended to the first chapter whose title matches."""
+    chapters = [dict(chapter, archivos=list(chapter["archivos"])) for chapter in data["capitulos"]]
+    if flujo != "sgr":
+        return chapters
+    listed = {name for chapter in chapters for name in chapter["archivos"]}
+    for name, pattern in SGR_CHAPTER_SECTIONS:
+        if name in listed:
+            continue
+        chapter = next((c for c in chapters if pattern.search(c.get("titulo") or "")), None)
+        if chapter is not None:
+            chapter["archivos"].append(name)
+    return chapters
+
+
+def _flujo(run: Path) -> str:
+    """Project flow read by check_run.detect_flujo (same folder); "base" without it."""
+    path = Path(__file__).resolve().parent / "check_run.py"
+    if not path.is_file():
+        return "base"
+    spec = importlib.util.spec_from_file_location("_ensamblar_check_run", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.detect_flujo(run)
+
+
+def body(data: dict, flujo: str = "base") -> str:
     lines = [
         "",
         "% --- Cuerpo en el orden de capítulos del TDR -----------------------------------",
@@ -102,7 +169,7 @@ def body(data: dict) -> str:
         f"{HASH_PREFIX}{structure_hash(data)}",
     ]
     seen: set[str] = set()
-    for chapter in data["capitulos"]:
+    for chapter in placed_chapters(data, flujo):
         title = chapter.get("titulo") or "(título pendiente)"
         lines += ["", f"% Cap. {chapter['numero']}: {title}"]
         for name in chapter["archivos"]:
@@ -137,7 +204,7 @@ def assemble(run: Path, use_guide: bool) -> dict:
     cut = current.find(COVER_END)
     if cut < 0:
         raise InputError(f"{MAIN.as_posix()} no tiene la portada de la plantilla ({COVER_END})")
-    new = current[: cut + len(COVER_END)] + "\n" + body(data)
+    new = current[: cut + len(COVER_END)] + "\n" + body(data, _flujo(run))
 
     if created:
         structure_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

@@ -56,10 +56,64 @@ objective trees when their files exist:
     [PENDIENTE, [VERIFICAR, [CONFIRMAR or [PROPUESTA mark in a section file);
     tdr*.tex go through the prose and citation checks; with
     estructura_tdr.json, --final requires its chapter files (diag_* are
-    optional) instead of the canonical sections and the MGA annexes, and
+    optional; sections 26 to 39 join the first chapter whose title matches,
+    as scripts/ensamblar_main.py placed_chapters places them in main.tex)
+    instead of the canonical sections and the MGA annexes, and
     tdr-capitulo-vacio is an error for a chapter without content; without it,
     tdr-estructura-faltante is an error when guia_ajustada_TDR.md has a chapter
     table.
+  value chain and style (SGR flow only; scripts/cadena_valor_sgr.py and
+    scripts/estilo_sgr.py, imported from this folder when they exist):
+    every `cadena-*` finding of artefactos/sgr/cadena_valor.json;
+    cadena-valor-faltante (warning: the run is past the objectives gate G4
+    and has no cadena_valor.json); cadena-anexo-manual (error:
+    23_cadena_valor.tex lacks the GENERADO header) and
+    cadena-anexo-desactualizado (error: it is older than the json); and
+    every `sgr-estilo-*` finding as a warning.
+  alliance and territory (SGR flow only; scripts/alianza_territorio_sgr.py):
+    every `alianza-*` / `territorio-*` finding of artefactos/sgr/alianza.json
+    and territorio.json when they exist; alianza-datos-faltantes /
+    territorio-datos-faltantes (warning: GTerritorio is approved in
+    estado_propuesta.md and the file is missing); alianza-anexo-manual /
+    territorio-anexo-manual (error: 26_identificacion, 28_matriz_responsabilidades
+    or 27_demandas_territoriales lacks the GENERADO header) and
+    alianza-anexo-desactualizado / territorio-anexo-desactualizado (error: the
+    section is older than the json it is rendered from).
+  budget and schedule (SGR flow only; scripts/presupuesto_sgr.py and
+    scripts/cronograma_sgr.py, imported from this folder when they exist):
+    every `presupuesto-*` finding of artefactos/sgr/presupuesto.json when it
+    exists; every `cronograma-*` finding of cronograma_sgr.findings;
+    presupuesto-datos-faltantes (warning: G6.4 is approved in
+    estado_propuesta.md and the file is missing); presupuesto-anexo-manual
+    (error: 30_fuentes_financiacion, or 13_presupuesto when presupuesto.json
+    exists, lacks the GENERADO header) and presupuesto-anexo-desactualizado
+    (error: the section is older than the json it is rendered from).
+  TRL and transversal components (SGR flow only; scripts/componentes_sgr.py):
+    every `componentes-*` finding of artefactos/sgr/componentes.json when it
+    exists; componentes-datos-faltantes (warning: GComponentes is approved in
+    estado_propuesta.md and the file is missing); componentes-anexo-manual
+    (error: 31_trl to 35_medidas_diferenciales, or 18_apropiacion_social when
+    componentes.json exists, lacks the GENERADO header) and
+    componentes-anexo-desactualizado (error: the section is older than the
+    json it is rendered from). A hand-written §18 of an older SGR run without
+    componentes.json is left alone.
+  products, talent and indicators (SGR flow only; scripts/productos_sgr.py):
+    every `productos-*` finding of artefactos/sgr/productos.json when it
+    exists; productos-datos-faltantes (warning: GProductos is approved in
+    estado_propuesta.md and the file is missing); productos-anexo-manual
+    (error: 36_talento_humano or 37_indicadores, or 15_productos_esperados
+    when productos.json exists, lacks the GENERADO header) and
+    productos-anexo-desactualizado (error: the section is older than the json
+    it is rendered from). A hand-written §15 of an older SGR run without
+    productos.json is left alone.
+  requirements, licences and annexes (SGR flow only; scripts/requisitos_sgr.py):
+    every `requisitos-*` finding of artefactos/sgr/requisitos.json when it
+    exists; requisitos-datos-faltantes (warning: GRequisitos is approved in
+    estado_propuesta.md and the file is missing); requisitos-anexo-manual
+    (error: 38_licencias_permisos or 39_anexos lacks the GENERADO header) and
+    requisitos-anexo-desactualizado (error: the section is older than the json
+    it is rendered from). Applicable requirements that are not ready are
+    errors only in `requisitos_sgr.py check --final` (Fase 7).
   tree figures (both flows): figura-desincronizada (error: diag_<tree>.tex is
     not the render of its spec), figura-spec-invalida, figura-sin-verificar.
   TDR chapters (artefactos/estructura_tdr.json, any flow):
@@ -104,6 +158,11 @@ CANONICAL_SECTIONS = (
 SGR_SECTIONS = (
     "19_alineacion_planes", "20_participantes", "21_poblacion", "22_alternativas",
     "23_cadena_valor", "24_riesgos", "25_marco_logico",
+    "26_identificacion", "27_demandas_territoriales", "28_matriz_responsabilidades", "29_idoneidad_trayectoria",
+    "30_fuentes_financiacion",
+    "31_trl", "32_sostenibilidad", "33_uso_posterior", "34_transferencia", "35_medidas_diferenciales",
+    "36_talento_humano", "37_indicadores",
+    "38_licencias_permisos", "39_anexos",
 )
 FLUJOS = ("base", "sgr")
 PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
@@ -978,16 +1037,20 @@ def _load_assembler():
     return assembler
 
 
-def load_tdr_chapters(run_root: Path) -> list[dict] | None:
-    """Chapters of a valid estructura_tdr.json, else None."""
+def load_tdr_chapters(run_root: Path, flujo: str = "base") -> list[dict] | None:
+    """Chapters of a valid estructura_tdr.json, else None. In the SGR flow they are
+    the chapters main.tex prints (ensamblar_main.placed_chapters): each SGR section
+    the structure does not list joins the first chapter whose title matches."""
     data = _read_json_file(run_root / STRUCTURE_FILE)
     assembler = _load_assembler() if data is not None else None
     if assembler is None:
         return None
     try:
-        return assembler.validate(data)
+        chapters = assembler.validate(data)
     except assembler.InputError:
         return None
+    placed = getattr(assembler, "placed_chapters", None)
+    return placed(data, flujo) if placed is not None else chapters
 
 
 def check_tdr_structure(report: Report, run_root: Path, final: bool) -> None:
@@ -1097,6 +1160,318 @@ def check_sgr_problem_structure(report: Report, texts: dict[str, str], sections:
                    f"Faltan las subsecciones: {', '.join(missing)}.", sections[name])
 
 
+def _sibling_module(name: str):
+    """scripts/<name>.py next to this file, or None when it does not exist."""
+    path = Path(__file__).resolve().parent / f"{name}.py"
+    if not path.is_file():
+        return None
+    module_spec = importlib.util.spec_from_file_location(f"_check_run_{name}", path)
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    return module
+
+
+CHAIN_FILE = Path("artefactos") / "sgr" / "cadena_valor.json"
+CHAIN_SECTION = "23_cadena_valor"
+CHAIN_HEADER = "% GENERADO por scripts/cadena_valor_sgr.py"
+G4_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.])G4(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def _past_objectives_gate(run_root: Path, sec_dir: Path) -> bool:
+    """G4 approved in estado_propuesta.md, or a section that comes after it (§8 onwards)."""
+    estado = run_root / "artefactos" / "estado_propuesta.md"
+    if estado.is_file() and G4_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+        return True
+    later = CANONICAL_SECTIONS[CANONICAL_SECTIONS.index("08_marco_conceptual"):]
+    return any((sec_dir / f"{name}.tex").is_file() for name in later)
+
+
+def check_sgr_value_chain(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """Value chain as data (scripts/cadena_valor_sgr.py): its findings, its absence, and annex A23."""
+    if flujo != "sgr":
+        return
+    chain_path = run_root / CHAIN_FILE
+    if chain_path.is_file():
+        try:
+            module = _sibling_module("cadena_valor_sgr")
+            found = module.findings(run_root) if module is not None else []
+        except Exception as exc:  # a broken helper must not hide the other checks
+            report.add("warning", "cadena-no-verificable",
+                       f"No se pudo correr scripts/cadena_valor_sgr.py: {exc!r}.", chain_path)
+            found = []
+        for f in found:
+            report.add(f["severity"], f["code"], f["message"], chain_path, node=f.get("node"))
+    elif _past_objectives_gate(run_root, sec_dir):
+        report.add("warning", "cadena-valor-faltante",
+                   "En el flujo SGR, después de G4 la cadena de valor vive en artefactos/sgr/cadena_valor.json "
+                   "(unidad fase4_sgr): corré python3 scripts/cadena_valor_sgr.py init <RUN_ROOT>.")
+    tex = sec_dir / f"{CHAIN_SECTION}.tex"
+    if not tex.is_file():
+        return
+    first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+    if not first or first[0].strip() != CHAIN_HEADER:
+        report.add("error", "cadena-anexo-manual",
+                   "En el flujo SGR el anexo A23 no se escribe a mano: lo genera "
+                   "python3 scripts/cadena_valor_sgr.py render <RUN_ROOT> desde cadena_valor.json.", tex)
+    elif chain_path.is_file() and tex.stat().st_mtime < chain_path.stat().st_mtime:
+        report.add("error", "cadena-anexo-desactualizado",
+                   "23_cadena_valor.tex es anterior a cadena_valor.json: volvé a correr "
+                   "python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>.", tex)
+
+
+ALLIANCE_FILE = Path("artefactos") / "sgr" / "alianza.json"
+TERRITORY_FILE = Path("artefactos") / "sgr" / "territorio.json"
+ALLIANCE_HEADER = "% GENERADO por scripts/alianza_territorio_sgr.py"
+# Sections rendered by scripts/alianza_territorio_sgr.py: finding prefix and the json files they come from.
+ALLIANCE_SECTIONS = {
+    "26_identificacion": ("alianza", (ALLIANCE_FILE, TERRITORY_FILE)),
+    "27_demandas_territoriales": ("territorio", (TERRITORY_FILE,)),
+    "28_matriz_responsabilidades": ("alianza", (ALLIANCE_FILE,)),
+}
+GTERRITORIO_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.])GTerritorio(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def check_sgr_alliance_territory(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """Alliance and territory as data (scripts/alianza_territorio_sgr.py): findings, absence, rendered sections."""
+    if flujo != "sgr":
+        return
+    files = {"alianza": run_root / ALLIANCE_FILE, "territorio": run_root / TERRITORY_FILE}
+    if any(path.is_file() for path in files.values()):
+        try:
+            module = _sibling_module("alianza_territorio_sgr")
+            found = module.findings(run_root) if module is not None else []
+        except Exception as exc:  # a broken helper must not hide the other checks
+            report.add("warning", "alianza-no-verificable",
+                       f"No se pudo correr scripts/alianza_territorio_sgr.py: {exc!r}.", files["alianza"])
+            found = []
+        for f in found:
+            path = files["territorio"] if str(f.get("code")).startswith("territorio-") else files["alianza"]
+            report.add(f["severity"], f["code"], f["message"], path, node=f.get("node"))
+    estado = run_root / "artefactos" / "estado_propuesta.md"
+    if estado.is_file() and GTERRITORIO_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+        for prefix, path in files.items():
+            if not path.is_file():
+                report.add("warning", f"{prefix}-datos-faltantes",
+                           f"En el flujo SGR, después de GTerritorio los datos de {prefix} viven en "
+                           f"{path.relative_to(run_root).as_posix()} (unidad fase1b_sgr «Alianza y territorio»).")
+    for stem, (prefix, sources) in ALLIANCE_SECTIONS.items():
+        tex = sec_dir / f"{stem}.tex"
+        if not tex.is_file():
+            continue
+        first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        stamps = [(run_root / s).stat().st_mtime for s in sources if (run_root / s).is_file()]
+        if not first or first[0].strip() != ALLIANCE_HEADER:
+            report.add("error", f"{prefix}-anexo-manual",
+                       f"En el flujo SGR {stem}.tex no se escribe a mano: lo genera "
+                       "python3 scripts/alianza_territorio_sgr.py render <RUN_ROOT> desde alianza.json y territorio.json.",
+                       tex)
+        elif stamps and tex.stat().st_mtime < max(stamps):
+            report.add("error", f"{prefix}-anexo-desactualizado",
+                       f"{stem}.tex es anterior a los datos de los que sale: volvé a correr "
+                       "python3 scripts/alianza_territorio_sgr.py render <RUN_ROOT>.", tex)
+
+
+BUDGET_FILE = Path("artefactos") / "sgr" / "presupuesto.json"
+BUDGET_HEADER = "% GENERADO por scripts/presupuesto_sgr.py"
+# Sections rendered by scripts/presupuesto_sgr.py and the json files they come from.
+BUDGET_SECTIONS = {
+    "13_presupuesto": (BUDGET_FILE, ALLIANCE_FILE, CHAIN_FILE),
+    "30_fuentes_financiacion": (BUDGET_FILE, ALLIANCE_FILE),
+}
+G64_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.-])(G6\.4|G-Presupuesto)(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def _module_findings(report: Report, name: str, code: str, run_root: Path, path: Path | None) -> list[dict]:
+    """findings(run_root) of scripts/<name>.py; [] when it does not exist, a warning when it breaks."""
+    try:
+        module = _sibling_module(name)
+        return list(module.findings(run_root) or []) if module is not None else []
+    except Exception as exc:  # a broken helper must not hide the other checks
+        report.add("warning", code, f"No se pudo correr scripts/{name}.py: {exc!r}.", path)
+        return []
+
+
+def check_sgr_budget_schedule(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """Budget as data (scripts/presupuesto_sgr.py) and schedule (scripts/cronograma_sgr.py): findings,
+    absence after G6.4 and the rendered sections 13 and 30."""
+    if flujo != "sgr":
+        return
+    budget = run_root / BUDGET_FILE
+    if budget.is_file():
+        for f in _module_findings(report, "presupuesto_sgr", "presupuesto-no-verificable", run_root, budget):
+            report.add(f["severity"], f["code"], f["message"], budget, node=f.get("node"))
+    else:
+        estado = run_root / "artefactos" / "estado_propuesta.md"
+        if estado.is_file() and G64_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+            report.add("warning", "presupuesto-datos-faltantes",
+                       "En el flujo SGR, después de G6.4 el presupuesto vive en artefactos/sgr/presupuesto.json "
+                       "y §13 se genera con python3 scripts/presupuesto_sgr.py render <RUN_ROOT>.")
+    chain = run_root / CHAIN_FILE
+    for f in _module_findings(report, "cronograma_sgr", "cronograma-no-verificable", run_root, chain):
+        report.add(f["severity"], f["code"], f["message"], chain, node=f.get("node"))
+    for stem, sources in BUDGET_SECTIONS.items():
+        tex = sec_dir / f"{stem}.tex"
+        if not tex.is_file() or (stem == "13_presupuesto" and not budget.is_file()):
+            continue
+        first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        stamps = [(run_root / s).stat().st_mtime for s in sources if (run_root / s).is_file()]
+        if not first or first[0].strip() != BUDGET_HEADER:
+            report.add("error", "presupuesto-anexo-manual",
+                       f"En el flujo SGR {stem}.tex no se escribe a mano: lo genera "
+                       "python3 scripts/presupuesto_sgr.py render <RUN_ROOT> desde presupuesto.json.", tex)
+        elif stamps and tex.stat().st_mtime < max(stamps):
+            report.add("error", "presupuesto-anexo-desactualizado",
+                       f"{stem}.tex es anterior a los datos de los que sale: volvé a correr "
+                       "python3 scripts/presupuesto_sgr.py render <RUN_ROOT>.", tex)
+
+
+COMPONENTS_FILE = Path("artefactos") / "sgr" / "componentes.json"
+COMPONENTS_HEADER = "% GENERADO por scripts/componentes_sgr.py"
+# Sections rendered by scripts/componentes_sgr.py and the json files they come from.
+COMPONENTS_SECTIONS = {
+    "31_trl": (COMPONENTS_FILE, CHAIN_FILE, ALLIANCE_FILE),
+    "32_sostenibilidad": (COMPONENTS_FILE, CHAIN_FILE),
+    "33_uso_posterior": (COMPONENTS_FILE, ALLIANCE_FILE),
+    "34_transferencia": (COMPONENTS_FILE, CHAIN_FILE, ALLIANCE_FILE, BUDGET_FILE),
+    "35_medidas_diferenciales": (COMPONENTS_FILE, CHAIN_FILE),
+    "18_apropiacion_social": (COMPONENTS_FILE, CHAIN_FILE),
+}
+GCOMPONENTES_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.])GComponentes(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def check_sgr_components(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """TRL route and transversal components as data (scripts/componentes_sgr.py): findings, absence
+    after GComponentes and the rendered sections 31 to 35 and 18."""
+    if flujo != "sgr":
+        return
+    data = run_root / COMPONENTS_FILE
+    if data.is_file():
+        for f in _module_findings(report, "componentes_sgr", "componentes-no-verificable", run_root, data):
+            report.add(f["severity"], f["code"], f["message"], data, node=f.get("node"))
+    else:
+        estado = run_root / "artefactos" / "estado_propuesta.md"
+        if estado.is_file() and GCOMPONENTES_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+            report.add("warning", "componentes-datos-faltantes",
+                       "En el flujo SGR, después de GComponentes el TRL y los componentes transversales viven en "
+                       "artefactos/sgr/componentes.json (unidad fase5_5_sgr «TRL y componentes transversales»).")
+    for stem, sources in COMPONENTS_SECTIONS.items():
+        tex = sec_dir / f"{stem}.tex"
+        if not tex.is_file() or (stem == "18_apropiacion_social" and not data.is_file()):
+            continue
+        first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        stamps = [(run_root / s).stat().st_mtime for s in sources if (run_root / s).is_file()]
+        if not first or first[0].strip() != COMPONENTS_HEADER:
+            report.add("error", "componentes-anexo-manual",
+                       f"En el flujo SGR {stem}.tex no se escribe a mano: lo genera "
+                       "python3 scripts/componentes_sgr.py render <RUN_ROOT> desde componentes.json.", tex)
+        elif stamps and tex.stat().st_mtime < max(stamps):
+            report.add("error", "componentes-anexo-desactualizado",
+                       f"{stem}.tex es anterior a los datos de los que sale: volvé a correr "
+                       "python3 scripts/componentes_sgr.py render <RUN_ROOT>.", tex)
+
+
+PRODUCTS_FILE = Path("artefactos") / "sgr" / "productos.json"
+PRODUCTS_HEADER = "% GENERADO por scripts/productos_sgr.py"
+# Sections rendered by scripts/productos_sgr.py and the json files they come from.
+PRODUCTS_SECTIONS = {
+    "36_talento_humano": (PRODUCTS_FILE, CHAIN_FILE, ALLIANCE_FILE),
+    "37_indicadores": (PRODUCTS_FILE, CHAIN_FILE),
+    "15_productos_esperados": (PRODUCTS_FILE, CHAIN_FILE, ALLIANCE_FILE),
+}
+GPRODUCTOS_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.])GProductos(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def check_sgr_products(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """Products, talent and indicators as data (scripts/productos_sgr.py): findings, absence after
+    GProductos and the rendered sections 36, 37 and 15."""
+    if flujo != "sgr":
+        return
+    data = run_root / PRODUCTS_FILE
+    if data.is_file():
+        for f in _module_findings(report, "productos_sgr", "productos-no-verificable", run_root, data):
+            report.add(f["severity"], f["code"], f["message"], data, node=f.get("node"))
+    else:
+        estado = run_root / "artefactos" / "estado_propuesta.md"
+        if estado.is_file() and GPRODUCTOS_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+            report.add("warning", "productos-datos-faltantes",
+                       "En el flujo SGR, después de GProductos los productos, el talento humano y los indicadores "
+                       "viven en artefactos/sgr/productos.json (unidad fase5_sgr «Productos, talento e indicadores»).")
+    for stem, sources in PRODUCTS_SECTIONS.items():
+        tex = sec_dir / f"{stem}.tex"
+        if not tex.is_file() or (stem == "15_productos_esperados" and not data.is_file()):
+            continue
+        first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        stamps = [(run_root / s).stat().st_mtime for s in sources if (run_root / s).is_file()]
+        if not first or first[0].strip() != PRODUCTS_HEADER:
+            report.add("error", "productos-anexo-manual",
+                       f"En el flujo SGR {stem}.tex no se escribe a mano: lo genera "
+                       "python3 scripts/productos_sgr.py render <RUN_ROOT> desde productos.json.", tex)
+        elif stamps and tex.stat().st_mtime < max(stamps):
+            report.add("error", "productos-anexo-desactualizado",
+                       f"{stem}.tex es anterior a los datos de los que sale: volvé a correr "
+                       "python3 scripts/productos_sgr.py render <RUN_ROOT>.", tex)
+
+
+REQUIREMENTS_FILE = Path("artefactos") / "sgr" / "requisitos.json"
+REQUIREMENTS_HEADER = "% GENERADO por scripts/requisitos_sgr.py"
+# Sections rendered by scripts/requisitos_sgr.py and the json files they come from.
+REQUIREMENTS_SECTIONS = {
+    "38_licencias_permisos": (REQUIREMENTS_FILE, ALLIANCE_FILE),
+    "39_anexos": (REQUIREMENTS_FILE, ALLIANCE_FILE, Path("artefactos") / "sgr" / "presupuesto.json"),
+}
+GREQUISITOS_APPROVED_RE = re.compile(r"(?im)^.*(?<![\w.])GRequisitos(?![\w.]).*\b(APROBADA|APROBADO|PASS)\b")
+
+
+def check_sgr_requirements(report: Report, run_root: Path, sec_dir: Path, flujo: str) -> None:
+    """Enabling requirements, licences and annexes as data (scripts/requisitos_sgr.py): findings, absence
+    after GRequisitos and the rendered sections 38 and 39."""
+    if flujo != "sgr":
+        return
+    data = run_root / REQUIREMENTS_FILE
+    if data.is_file():
+        for f in _module_findings(report, "requisitos_sgr", "requisitos-no-verificable", run_root, data):
+            report.add(f["severity"], f["code"], f["message"], data, node=f.get("node"))
+    else:
+        estado = run_root / "artefactos" / "estado_propuesta.md"
+        if estado.is_file() and GREQUISITOS_APPROVED_RE.search(estado.read_text(encoding="utf-8", errors="replace")):
+            report.add("warning", "requisitos-datos-faltantes",
+                       "En el flujo SGR, después de GRequisitos los requisitos habilitantes, las licencias y los "
+                       "anexos viven en artefactos/sgr/requisitos.json (unidad fase6_9_sgr «Requisitos y anexos»).")
+    for stem, sources in REQUIREMENTS_SECTIONS.items():
+        tex = sec_dir / f"{stem}.tex"
+        if not tex.is_file():
+            continue
+        first = tex.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        stamps = [(run_root / s).stat().st_mtime for s in sources if (run_root / s).is_file()]
+        if not first or first[0].strip() != REQUIREMENTS_HEADER:
+            report.add("error", "requisitos-anexo-manual",
+                       f"En el flujo SGR {stem}.tex no se escribe a mano: lo genera "
+                       "python3 scripts/requisitos_sgr.py render <RUN_ROOT> desde requisitos.json.", tex)
+        elif stamps and tex.stat().st_mtime < max(stamps):
+            report.add("error", "requisitos-anexo-desactualizado",
+                       f"{stem}.tex es anterior a los datos de los que sale: volvé a correr "
+                       "python3 scripts/requisitos_sgr.py render <RUN_ROOT>.", tex)
+
+
+def check_sgr_style(report: Report, run_root: Path, flujo: str) -> None:
+    """SGR style findings (scripts/estilo_sgr.py), as warnings: advice for the style reviewer."""
+    if flujo != "sgr":
+        return
+    try:
+        module = _sibling_module("estilo_sgr")
+        found = module.findings(run_root) if module is not None else []
+    except Exception as exc:
+        report.add("warning", "sgr-estilo-no-verificable", f"No se pudo correr scripts/estilo_sgr.py: {exc!r}.")
+        return
+    for f in found or []:
+        archivo = f.get("archivo")
+        path = (run_root / archivo) if archivo and not Path(archivo).is_absolute() else (Path(archivo) if archivo else None)
+        message = str(f.get("message") or "")
+        if f.get("extracto"):
+            message += f" «{f['extracto']}»"
+        report.add("warning", str(f.get("code") or "sgr-estilo"), message, path, line=f.get("linea"))
+
+
 def _file_has_content(path: Path) -> bool:
     """A file with something besides comments, headings and labels."""
     if not path.is_file():
@@ -1203,7 +1578,7 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
 
     sgr = report.flujo == "sgr"
     convocatoria = load_convocatoria(run_root, report) if sgr else {}
-    chapters = load_tdr_chapters(run_root) if sgr else None
+    chapters = load_tdr_chapters(run_root, report.flujo) if sgr else None
     # With a structure, even an invalid one, the TDR decides the required files.
     by_chapters = sgr and (run_root / STRUCTURE_FILE).is_file()
 
@@ -1237,6 +1612,13 @@ def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
     check_sgr_chapters(report, run_root, sec_dir, chapters, report.flujo, final)
     check_sgr_marks(report, sec_dir, report.flujo, final)
     check_rubrica(report, run_root, convocatoria, chapters, report.flujo)
+    check_sgr_value_chain(report, run_root, sec_dir, report.flujo)
+    check_sgr_alliance_territory(report, run_root, sec_dir, report.flujo)
+    check_sgr_budget_schedule(report, run_root, sec_dir, report.flujo)
+    check_sgr_components(report, run_root, sec_dir, report.flujo)
+    check_sgr_products(report, run_root, sec_dir, report.flujo)
+    check_sgr_requirements(report, run_root, sec_dir, report.flujo)
+    check_sgr_style(report, run_root, report.flujo)
     return report
 
 

@@ -23,7 +23,22 @@ from ..core.presentation import ASSET_TYPES, build_presentation, resolve_asset
 from ..core.sgr_panel import load_style_report, load_tdr_chapters
 from ..core.sgr_rules import load_sgr_blocks
 from ..core.status import get_project_status, read_flujo
-from ..core.trees import approve_tree, load_trees, record_feedback
+from ..core.judge import EVALUACION_FILE, JUDGE_COMMAND, build_action_prompt, load_judge
+from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
+from ..core.style_sgr import load_style
+from ..core.value_chain import approve as approve_value_chain, build_adjust_prompt, load_value_chain
+from ..core.alliance import approve as approve_alliance, build_adjust_prompt as build_alliance_prompt, load_alliance
+from ..core.budget import approve as approve_budget, build_adjust_prompt as build_budget_prompt, load_budget
+from ..core.components import approve as approve_components, build_adjust_prompt as build_components_prompt, load_components
+from ..core.products import approve as approve_products, build_adjust_prompt as build_products_prompt, load_products
+from ..core.annex2 import load_annex2
+from ..core.requirements import (
+    MAX_BODY_BYTES as REQUIREMENTS_MAX_BODY,
+    approve as approve_requirements,
+    build_adjust_prompt as build_requirements_prompt,
+    load_requirements,
+    update_item as update_requirement,
+)
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -162,6 +177,24 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_tdr_chapters()
         elif path == "/api/estilo":
             self.serve_style_report()
+        elif path == "/api/judge":
+            self.serve_judge()
+        elif path == "/api/value-chain":
+            self.serve_value_chain()
+        elif path == "/api/alliance":
+            self.serve_alliance()
+        elif path == "/api/budget":
+            self.serve_budget()
+        elif path == "/api/components":
+            self.serve_components()
+        elif path == "/api/products":
+            self.serve_products()
+        elif path == "/api/requirements":
+            self.serve_requirements()
+        elif path == "/api/anexo2":
+            self.serve_annex2()
+        elif path == "/api/style-sgr":
+            self.serve_style_sgr()
         else:
             self.send_error(404, "Not Found")
 
@@ -185,6 +218,36 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_trees_approve()
         elif path == "/api/estilo/auditar":
             self.handle_style_audit()
+        elif path == "/api/judge/send":
+            self.handle_judge_send()
+        elif path == "/api/judge/run":
+            self.handle_judge_run()
+        elif path == "/api/value-chain/approve":
+            self.handle_value_chain_approve()
+        elif path == "/api/value-chain/adjust":
+            self.handle_value_chain_adjust()
+        elif path == "/api/alliance/approve":
+            self.handle_alliance_approve()
+        elif path == "/api/alliance/adjust":
+            self.handle_alliance_adjust()
+        elif path == "/api/budget/approve":
+            self.handle_budget_approve()
+        elif path == "/api/budget/adjust":
+            self.handle_budget_adjust()
+        elif path == "/api/components/approve":
+            self.handle_components_approve()
+        elif path == "/api/components/adjust":
+            self.handle_components_adjust()
+        elif path == "/api/products/approve":
+            self.handle_products_approve()
+        elif path == "/api/products/adjust":
+            self.handle_products_adjust()
+        elif path == "/api/requirements/approve":
+            self.handle_requirements_approve()
+        elif path == "/api/requirements/adjust":
+            self.handle_requirements_adjust()
+        elif path == "/api/requirements/item":
+            self.handle_requirements_item()
         else:
             self.send_error(404, "Not Found")
 
@@ -629,6 +692,324 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         result = approve_tree(run_dir, str(payload.get("tree") or ""))
         # 409: el flujo todavía no permite aprobar (falta el árbol previo o textos).
         self._send_json(200 if result.get("ok") else 409, result)
+
+    # El juez final: como en «Enviar ajuste al agente» de los árboles, el servidor
+    # arma el prompt y el tablero lo entrega a la terminal con sendTerminalPrompt.
+    def serve_judge(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_judge(run_dir)})
+
+    def handle_judge_send(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        judge = load_judge(run_dir)
+        if judge["evaluacion"] is None:
+            # 409: todavía no hay una evaluación de la que salgan acciones.
+            error = "; ".join(judge["errores"]) or f"No hay evaluación del juez: corre {JUDGE_COMMAND} primero."
+            self._send_json(409, {"ok": False, "error": error})
+            return
+        accion_id = str(payload.get("accion_id") or "")
+        try:
+            prompt = build_action_prompt(judge["evaluacion"], accion_id,
+                                         fuente=_workspace_path(run_dir, EVALUACION_FILE))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "accion_id": accion_id, "prompt": prompt})
+
+    def handle_judge_run(self) -> None:
+        if self._active_run_dir() is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "prompt": JUDGE_COMMAND})
+
+    # Cadena de valor y estilo SGR (solo flujo SGR; en el base responden sin datos).
+    # El ajuste, como en los árboles y el juez, devuelve el prompt y el tablero lo
+    # entrega a la terminal con sendTerminalPrompt.
+    def serve_value_chain(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_value_chain(run_dir)})
+
+    def handle_value_chain_approve(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = approve_value_chain(run_dir, str(payload.get("hash") or "") or None)
+        # 409: la cadena no se puede aprobar todavía (hallazgos de error o cambió).
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_value_chain_adjust(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            prompt = build_adjust_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    # Alianza y territorio (solo flujo SGR), con las convenciones de la cadena de valor.
+    def serve_alliance(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_alliance(run_dir)})
+
+    def handle_alliance_approve(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = approve_alliance(run_dir, str(payload.get("hash") or "") or None)
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_alliance_adjust(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            prompt = build_alliance_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    # Presupuesto y cronograma (solo flujo SGR), con las convenciones de la alianza.
+    def serve_budget(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_budget(run_dir)})
+
+    def handle_budget_approve(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = approve_budget(run_dir, str(payload.get("hash") or "") or None)
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_budget_adjust(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            prompt = build_budget_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    # TRL y componentes transversales (solo flujo SGR), con las convenciones del presupuesto.
+    def serve_components(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_components(run_dir)})
+
+    def handle_components_approve(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = approve_components(run_dir, str(payload.get("hash") or "") or None)
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_components_adjust(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            prompt = build_components_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    # Productos, talento e indicadores (solo flujo SGR), con las convenciones de los componentes.
+    def serve_products(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_products(run_dir)})
+
+    def handle_products_approve(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        result = approve_products(run_dir, str(payload.get("hash") or "") or None)
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_products_adjust(self) -> None:
+        payload = self._read_json_body()
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            prompt = build_products_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    # Requisitos, licencias y cifras de los anexos (solo flujo SGR), con las convenciones de los
+    # productos y un tope al cuerpo de los POST: una edición en línea es un puñado de campos.
+    def _read_requirements_body(self) -> tuple[dict[str, Any] | None, bool]:
+        """(payload, demasiado_grande). Un cuerpo por encima del tope se descarta sin guardarse."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+        except (TypeError, ValueError):
+            return None, False
+        if length > REQUIREMENTS_MAX_BODY:
+            # Se descarta por trozos, sin guardarlo, para que el cliente reciba el 413
+            # en vez de un reinicio de la conexión; la conexión se cierra después.
+            remaining = min(length, 64 * REQUIREMENTS_MAX_BODY)
+            while remaining > 0:
+                chunk = self.rfile.read(min(remaining, REQUIREMENTS_MAX_BODY))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+            self.close_connection = True
+            return None, True
+        return self._read_json_body(), False
+
+    def _requirements_body_or_error(self) -> tuple[dict[str, Any] | None, Path | None]:
+        payload, too_large = self._read_requirements_body()
+        if too_large:
+            self._send_json(413, {"ok": False, "error": f"El cuerpo supera {REQUIREMENTS_MAX_BODY // 1024} KB."})
+            return None, None
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return None, None
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return None, None
+        return payload, run_dir
+
+    def serve_requirements(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_requirements(run_dir)})
+
+    def handle_requirements_approve(self) -> None:
+        payload, run_dir = self._requirements_body_or_error()
+        if run_dir is None:
+            return
+        result = approve_requirements(run_dir, str(payload.get("hash") or "") or None)
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_requirements_adjust(self) -> None:
+        payload, run_dir = self._requirements_body_or_error()
+        if run_dir is None:
+            return
+        try:
+            prompt = build_requirements_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    def handle_requirements_item(self) -> None:
+        payload, run_dir = self._requirements_body_or_error()
+        if run_dir is None:
+            return
+        try:
+            result = update_requirement(run_dir, payload)
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        except Exception as err:
+            self._send_json(500, {"ok": False, "error": f"No se pudo guardar el requisito: {err}"})
+            return
+        if not result.get("ok"):
+            self._send_json(409, result)
+            return
+        self._send_json(200, {"run": run_dir.name, **result})
+
+    # Vista del Anexo 2 (solo flujo SGR, solo lectura): en el flujo base responde 409.
+    def serve_annex2(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        data = load_annex2(run_dir)
+        if data["flujo"] != "sgr":
+            self._send_json(409, {"ok": False, "run": run_dir.name, **data})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **data})
+
+    def serve_style_sgr(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_style(run_dir)})
 
     def serve_idea(self) -> None:
         candidates = [self.workspace_dir / "idea.md"]

@@ -264,6 +264,21 @@ class TdrChapters(RunCase):
         self.assertEqual(_with(findings, "seccion-faltante"), [], findings)
         self.assertEqual(_with(findings, "sgr-anexo-faltante"), [], findings)
 
+    def test_final_requires_the_sgr_sections_placed_in_a_matching_chapter(self) -> None:
+        # ensamblar_main.placed_chapters appends 30_fuentes_financiacion to the chapter
+        # titled «Fuentes de financiación»; --final then needs that file too.
+        self.chapters.append({"numero": 4, "titulo": "Fuentes de financiación", "archivos": ["tdr04_fuentes"]})
+        _structure(self.root, self.chapters)
+        _section(self.root, "tdr04_fuentes", "\\section{Fuentes de financiación}\nTexto del capítulo.\n")
+        code, findings = _run(self.root, *FINAL)
+        missing = _with(findings, "seccion-faltante", "error")
+        self.assertEqual([f["message"] for f in missing],
+                         ["Falta sections/30_fuentes_financiacion.tex (capítulo 4)."], findings)
+        self.assertEqual(code, 1)
+        _section(self.root, "30_fuentes_financiacion", "% GENERADO por scripts/presupuesto_sgr.py\nTabla.\n")
+        _, findings = _run(self.root, *FINAL)
+        self.assertEqual(_with(findings, "seccion-faltante"), [], findings)
+
     def test_a_missing_chapter_file_is_an_error(self) -> None:
         (self.root / "redaccion/sections/tdr01_identificacion.tex").unlink()
         code, findings = _run(self.root, *FINAL)
