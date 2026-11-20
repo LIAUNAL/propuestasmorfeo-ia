@@ -781,5 +781,119 @@ class TestSgrComponentsRecipe(unittest.TestCase):
             self.assertIn(command, juez)
 
 
+class TestSgrProductsRecipe(unittest.TestCase):
+    """SGR-only products, talent and indicators unit (odd/tasks/sgr-productos-indicadores.md, S1, S5)."""
+
+    COMMANDS = REPO_ROOT / ".claude" / "commands"
+
+    def setUp(self):
+        self.raw = (self.COMMANDS / "propuesta.md").read_text(encoding="utf-8")
+
+    def _block(self, start: str, end: str, text: str | None = None) -> str:
+        text = self.raw if text is None else text
+        i = text.index(start)
+        return " ".join(text[i:text.index(end, i + len(start))].split())
+
+    def _sgr_part(self, block: str) -> str:
+        return block[block.index("SOLO flujo SGR"):]
+
+    def test_products_unit_runs_only_in_the_sgr_flow_between_team_and_methodology(self):
+        block = self._block("Fase 5 SGR [COMPUERTA GProductos]", "\nFase 5.5 [NUEVO]")
+        self.assertIn("SOLO flujo SGR", block)
+        self.assertIn("con el flujo `base` esta unidad no corre", block)
+        steps = ["Task → investigador", "Task → redactor", "Task → revisor-estilo-sgr",
+                 "python3 scripts/productos_sgr.py check <RUN_ROOT>",
+                 "python3 scripts/productos_sgr.py render <RUN_ROOT>", "GATE Task → revisor",
+                 "pestaña «Productos e indicadores»", "| GProductos | APROBADA |",
+                 "artefactos/pipeline/60-fase5_sgr.md"]
+        positions = [block.index(step) for step in steps]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("artefactos/sgr/productos.json", block)
+        for field in ("`productos_ctei`", "`divulgacion`", "`indicadores_gestion`", "`talento`",
+                      "`adicional`", "`categoria`", "`producto_cadena`", "`introduccion`"):
+            self.assertIn(field, block)
+        for duty in ("mínimo de la convocatoria", "costeada", "supervisión", "informes técnico-financieros",
+                     "periodicidad", "mínimos de talento"):
+            self.assertIn(duty, block)
+        for stem in ("15_productos_esperados", "36_talento_humano", "37_indicadores"):
+            self.assertIn(stem, block)
+        self.assertLess(self.raw.index("\nFase 5  Task → investigador"),
+                        self.raw.index("Fase 5 SGR [COMPUERTA GProductos]"))
+        self.assertLess(self.raw.index("Fase 5 SGR [COMPUERTA GProductos]"), self.raw.index("Fase 5.5 [NUEVO]"))
+
+    def test_budget_and_section_15_use_the_products_in_sgr(self):
+        budget = self._sgr_part(self._block("Fase 6.4 [COMPUERTA INTERACTIVA", "\nFase 6.45 "))
+        self.assertIn("artefactos/sgr/productos.json", budget)
+        self.assertIn("bloque `talento`", budget)
+        self.assertIn("python3 scripts/productos_sgr.py check <RUN_ROOT>", budget)
+        self.assertIn("python3 scripts/productos_sgr.py render <RUN_ROOT>", budget)
+        self.assertLess(budget.index("sync-cadena"), budget.index("python3 scripts/productos_sgr.py render <RUN_ROOT>"))
+        schedule = self._sgr_part(self._block("Fase 6.45 Task → redactor", "\nFase 6.46 "))
+        self.assertIn("§15 nunca lo escribe el redactor", schedule)
+        self.assertIn("python3 scripts/productos_sgr.py render <RUN_ROOT>", schedule)
+        self.assertIn("15_productos_esperados.tex", schedule)
+
+    def test_base_flow_text_never_runs_the_products_script(self):
+        team = self._block("Fase 5  Task → investigador", "\nFase 5 SGR ")
+        self.assertNotIn("productos_sgr.py", team)
+        self.assertTrue(team.endswith("incluye además los campos de uso acumulados de la fase (ver \"Telemetría de uso por fase\")."), team[-200:])
+        self.assertNotIn("productos_sgr.py", self._block("Fase 5.5 [NUEVO]", "\nFase 5.5 SGR "))
+        for start, end in (("Fase 6.4 [COMPUERTA INTERACTIVA", "\nFase 6.45 "),
+                           ("Fase 6.45 Task → redactor", "\nFase 6.46 ")):
+            with self.subTest(block=start):
+                block = self._block(start, end)
+                self.assertNotIn("productos_sgr.py", block[:block.index("SOLO flujo SGR")])
+        schedule = self._block("Fase 6.45 Task → redactor", "\nFase 6.46 ")
+        self.assertIn("Task → redactor → §15 productos esperados (ídem, sin gate propio).", schedule)
+
+    def test_step_table_and_continuar_declare_the_unit(self):
+        steps = (self.COMMANDS / "_propuesta-steps.md").read_text(encoding="utf-8")
+        rows = {cells[0]: line for line in steps.splitlines() if line.startswith("| `")
+                for cells in [[c.strip(" `") for c in line.strip("|").split("|")]]}
+        self.assertTrue(rows["fase5"].endswith("| G5 | `fase5_sgr` (flujo SGR) o `fase5_5` (flujo base) |"),
+                        rows["fase5"])
+        self.assertTrue(rows["fase5"].startswith("| `fase5` | §8 marco + §9 equipo + grant-flow-auditor + revisor |"))
+        self.assertIn("el flujo base la salta", rows["fase5_sgr"])
+        self.assertIn("| G productos | `fase5_5` |", rows["fase5_sgr"])
+        self.assertIn("productos_sgr.py check", rows["fase5_sgr"])
+        self.assertIn("productos_sgr.py check", rows["fase6_4"])
+        self.assertIn("productos_sgr.py render", rows["fase6_45"])
+        self.assertTrue(rows["fase6_45"].startswith(
+            "| `fase6_45` | §14 cronograma + §15 productos (xltabular) + §16 bib + grant-flow-auditor (no own gate)"))
+        continuar = (self.COMMANDS / "propuesta-continuar.md").read_text(encoding="utf-8")
+        self.assertIn("| `fase5_sgr` | Fase 5 SGR [GProductos] (solo flujo SGR) |", continuar)
+        self.assertLess(continuar.index("| `fase5` | Fase 5 |"), continuar.index("| `fase5_sgr` |"))
+        note = self._block("### Gate PASS o unidad sin gate completada", "```", continuar)
+        self.assertIn("tras `fase5`, `fase5_sgr` con `sgr` y `fase5_5` con `base`", note)
+
+    def test_agents_carry_their_sgr_only_products_duties(self):
+        agents = REPO_ROOT / ".claude" / "agents"
+        heading = "## Productos, talento e indicadores SGR (Fase 5 SGR, compuerta GProductos)\n\nSGR flow only"
+        investigador = (agents / "investigador.md").read_text(encoding="utf-8")
+        self.assertIn(heading, investigador)
+        start = investigador.index(heading)
+        section = " ".join(investigador[start:investigador.index("\n## ", start)].split())
+        for field in ("`productos_ctei`", "`divulgacion`", "`indicadores_gestion`", "`adicional`",
+                      "`categoria`", "`producto_cadena`", "`periodicidad`", "`costeada`"):
+            self.assertIn(field, section)
+        self.assertIn("call minimum", section)
+        redactor = (agents / "redactor.md").read_text(encoding="utf-8")
+        self.assertIn(heading, redactor)
+        start = redactor.index(heading)
+        section = " ".join(redactor[start:redactor.index("\n## ", start)].split())
+        self.assertIn("`talento`", section)
+        self.assertIn("call minimums", section)
+        self.assertIn("never write `15_productos_esperados`, `36_talento_humano` or `37_indicadores`", section)
+        presupuestador = " ".join((agents / "presupuestador.md").read_text(encoding="utf-8").split())
+        self.assertIn("artefactos/sgr/productos.json", presupuestador)
+        self.assertIn("python3 scripts/productos_sgr.py check <RUN_ROOT>", presupuestador)
+        juez = " ".join((agents / "juez-sgr.md").read_text(encoding="utf-8").split())
+        for command in ("python3 scripts/productos_sgr.py datos <RUN_ROOT> --json",
+                        "python3 scripts/productos_sgr.py check <RUN_ROOT> --json"):
+            self.assertIn(command, juez)
+        self.assertIn("2.5", juez)
+        self.assertIn("`36_*` y `37_*`", juez)
+
+
 if __name__ == "__main__":
     unittest.main()

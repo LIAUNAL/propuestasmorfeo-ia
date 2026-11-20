@@ -28,7 +28,7 @@ from morfeo.core.pipeline_units import (  # noqa: E402
 
 STEPS_DOC = REPO / ".claude" / "commands" / "_propuesta-steps.md"
 
-STEP_UNITS_EXPECTED = 20
+STEP_UNITS_EXPECTED = 21
 
 # Valores de compuerta observados en los artefactos de la corrida de referencia,
 # incluidos los que la tabla no reconoce. El inventario tiene que ubicarlos todos:
@@ -125,16 +125,18 @@ class TestPipelineUnits(unittest.TestCase):
             "G5", "G5.5", "G6.4", "G6.46", "G6.5", "G7",
         ):
             self.assertIn(real, canonical, f"falta {real} en las compuertas canónicas")
-        # Catorce del flujo base más las cinco del flujo SGR: GCausas (causas
+        # Catorce del flujo base más las seis del flujo SGR: GCausas (causas
         # directas, tras G1a), GTerritorio (alianza y territorio, tras G1b),
-        # G4.cv (cadena de valor, tras G4), GComponentes (TRL y componentes
+        # G4.cv (cadena de valor, tras G4), GProductos (productos, talento e
+        # indicadores, tras G5), GComponentes (TRL y componentes
         # transversales, tras G5.5) y G6.47 (anexos MGA).
         self.assertIn("G6.47", canonical)
         self.assertIn("GCausas", canonical)
         self.assertIn("GTerritorio", canonical)
         self.assertIn("G4.cv", canonical)
+        self.assertIn("GProductos", canonical)
         self.assertIn("GComponentes", canonical)
-        self.assertEqual(len(canonical), 19, "las compuertas canónicas son diecinueve")
+        self.assertEqual(len(canonical), 20, "las compuertas canónicas son veinte")
 
     def test_early_units_run_scoping_trees_corpus_then_mga_summary(self) -> None:
         # The trees come right after the subproblems (in SGR, after the GCausas
@@ -331,6 +333,37 @@ class TestUnitsByFlujo(unittest.TestCase):
         self.assertEqual(gate["phase"], "Fase 5.5 SGR")
         self.assertIn("TRL y componentes transversales", gate["name"])
         self.assertIn("componentes_sgr.py check", gate["criteria"])
+
+    def test_products_unit_runs_only_in_the_sgr_flow_between_team_and_methodology(self) -> None:
+        base = {u["id"]: u for u in units_for_flujo("base")}
+        self.assertNotIn("fase5_sgr", base)
+        self.assertEqual(base["fase5"]["next"], "fase5_5")
+        self.assertNotIn("GProductos", {g["id"] for g in canonical_gates("base")})
+        self.assertFalse({"36", "37"} & {s for u in base.values() for s in u["sections"]})
+        self.assertEqual(base["fase6_45"]["sections"], ["14", "15", "16"])
+        sgr = units_for_flujo("sgr")
+        ids = self._ids(sgr)
+        self.assertEqual(ids.index("fase5_sgr"), ids.index("fase5") + 1)
+        self.assertEqual(ids.index("fase5_5"), ids.index("fase5_sgr") + 1)
+        by_id = {u["id"]: u for u in sgr}
+        self.assertEqual(by_id["fase5"]["next"], "fase5_sgr")
+        unit = by_id["fase5_sgr"]
+        self.assertEqual(unit["next"], "fase5_5")
+        self.assertEqual(unit["name"], "Productos, talento e indicadores")
+        self.assertEqual(unit["gate"], "GProductos")
+        self.assertEqual(unit["artifacts"], ["artefactos/sgr/productos.json"])
+        self.assertEqual(unit["agents"], ["investigador", "redactor", "revisor-estilo-sgr", "revisor"])
+        self.assertEqual(unit["sections"], ["36", "37"])
+        # §15 stays with the unit that writes it today, in both flows.
+        self.assertEqual(by_id["fase6_45"]["sections"], ["14", "15", "16"])
+        self.assertEqual(normalise_gate("G productos"), "GProductos")
+        gate = next(g for g in canonical_gates("sgr") if g["id"] == "GProductos")
+        self.assertEqual(gate["phase"], "Fase 5 SGR")
+        self.assertIn("Productos, talento e indicadores", gate["name"])
+        self.assertIn("productos_sgr.py check", gate["criteria"])
+        order = [g["id"] for g in canonical_gates("sgr")]
+        self.assertEqual(order.index("GProductos"), order.index("G5") + 1)
+        self.assertEqual(order.index("G5.5"), order.index("GProductos") + 1)
 
     def test_sgr_flow_swaps_the_auditor_for_the_sgr_style_reviewer(self) -> None:
         for unit in units_for_flujo("sgr"):

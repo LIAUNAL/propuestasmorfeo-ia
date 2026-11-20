@@ -150,6 +150,16 @@ G4.cv), `artefactos/sgr/alianza.json` (entities, `aporte_especie`,
    findings to you. SGR `gastos_viaje` stay within 2 % of the SGR total. Set
    `tope_sgr` from the TdR (or leave it null: the rubric's cap applies) and
    `duracion_meses`.
+7a. **Talent.** The Task carries `artefactos/sgr/productos.json` (approved at
+   GProductos). Every entry of its `talento` block with a `valor_mensual` and
+   a `duracion_meses` has its `talento_humano` items for the same entity, with
+   the same category, number of people, months and monthly value; never
+   change the talent block from the budget: a mismatch you cannot resolve
+   goes back to the dispatcher. When `divulgacion.costeada` is true, the
+   dissemination has an item that finances it. After
+   `presupuesto_sgr.py check`, the dispatcher also runs
+   `python3 scripts/productos_sgr.py check <RUN_ROOT>` and returns its
+   findings to you.
 8. **Then the dispatcher runs**, in this order, and returns every error to you:
    `python3 scripts/presupuesto_sgr.py check <RUN_ROOT>`,
    `python3 scripts/presupuesto_sgr.py sync-cadena <RUN_ROOT>` (writes the

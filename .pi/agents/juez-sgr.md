@@ -71,7 +71,8 @@ En este orden, y solo lo necesario para cada subcriterio:
   exigidos.
 - Las secciones ensambladas en `redaccion/sections/*.tex`, incluidos los
   anexos SGR (`19_*` a `30_*`), los componentes transversales (`31_*` a
-  `35_*`) y el presupuesto (`13_presupuesto.tex`).
+  `35_*`), el talento humano y los indicadores (`36_*` y `37_*`) y el
+  presupuesto (`13_presupuesto.tex`).
 - Los árboles en `artefactos/arboles/` y el resumen MGA en
   `artefactos/mga_resumido.md`.
 - Los datos de la alianza y el territorio, antes que la prosa:
@@ -117,6 +118,22 @@ En este orden, y solo lo necesario para cada subcriterio:
   `18_apropiacion_social`, y un hallazgo `error` de `check` es candidato a
   alerta. Que la ruta de maduración sea creíble para el problema no sale de
   los datos: eso lo juzgás vos leyendo §10 y §31.
+- Los productos, el talento y los indicadores, también como datos: si existe
+  `artefactos/sgr/productos.json`, corré
+  `python3 scripts/productos_sgr.py datos <RUN_ROOT> --json` (los
+  `productos_adicionales` de `morfeo.datos-sgr/v1`, con `total`, `top_o_a` y
+  `fuente`, y el `talento` por categoría) y
+  `python3 scripts/productos_sgr.py check <RUN_ROOT> --json` (hallazgos
+  `productos-*` sobre el mínimo de productos, los adicionales y su vista
+  previa del componente A del criterio 2.5, la divulgación, los mínimos de
+  talento, el talento frente al presupuesto y los indicadores de gestión).
+  Son los hechos del criterio 2.5 (productos adicionales y estrategia de
+  divulgación) y de los mínimos de talento: copiá `productos_adicionales`
+  tal cual a `datos_sgr.json`, la evidencia está en
+  `15_productos_esperados`, `36_talento_humano` y `37_indicadores`, y un
+  hallazgo `error` de `check` es candidato a alerta. Que un producto
+  adicional sea alcanzable con las actividades de la cadena no sale de los
+  datos: eso lo juzgás vos leyendo §10 y §15.
 
 ### 3. Extraer los datos (`datos_sgr.json`)
 

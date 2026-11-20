@@ -1396,6 +1396,74 @@ Fase 5  Task → investigador → §8 marco conceptual (en paralelo; 3-5
         `artefactos/pipeline/60-fase5.md` (evento de esta compuerta) y
         actualiza `artefactos/pipeline/_estado.md`, incluye además los campos
         de uso acumulados de la fase (ver "Telemetría de uso por fase").
+Fase 5 SGR [COMPUERTA GProductos] Productos, talento e indicadores como
+        datos. SOLO flujo SGR, después de G5 = APROBADA; con el flujo `base`
+        esta unidad no corre y al aprobar G5 se pasa directo a la Fase 5.5.
+        Los datos viven en `artefactos/sgr/productos.json` (esquema
+        `morfeo.productos-sgr/v1`, documentado al inicio de
+        `scripts/productos_sgr.py`): `talento` (categoría, cantidad, entidad
+        que vincula, perfil, formación, actividades, duración, valor mensual
+        y producto final), `productos_ctei` (tipo, subtipo, `categoria`,
+        cantidad, `adicional` y `producto_cadena`), `divulgacion` (con su
+        `introduccion`) e `indicadores_gestion`, ligados a los códigos de
+        actividad y de producto de `cadena_valor.json` y a los ids de entidad
+        de `alianza.json`. Los indicadores de producto no se copian aquí: se
+        leen de `cadena_valor.json` (código DNP, indicador, unidad y meta).
+        De estos datos salen `36_talento_humano.tex` (Anexo 2 caps. 12.4 y
+        20), `37_indicadores.tex` (caps. 24 y 25) y, desde la cadena de
+        valor, `15_productos_esperados.tex` (cap. 21); ninguno lo escribe un
+        agente a mano.
+        (a) Task → investigador (rama "Productos, talento e indicadores
+        SGR", ver `investigador.md`) con `RUN_ROOT`, `cadena_valor.json`,
+        `alianza.json`, §9, el extracto de los TdR sobre productos, talento
+        y divulgación (numeral de mínimos y criterio de puntaje de productos
+        adicionales) inline, y el bloque `## FRAGMENTO DE GUÍA` con
+        Directrices Generales SGR + los bloques `### SGR` de §15 y §37.
+        Escribe `productos_ctei` (el mínimo de la convocatoria cumplido; cada
+        producto por encima de ese mínimo marcado `adicional` con su
+        `categoria` TOP, A o B y ligado a un producto de la cadena por
+        `producto_cadena`), `divulgacion` (la `introduccion`, públicos,
+        medios, productos, entidad responsable, cronograma por mes y si está
+        costeada en el presupuesto) e `indicadores_gestion` (como mínimo la
+        supervisión y los informes técnico-financieros, cada uno con meta,
+        unidad, fórmula, tipo de fuente y periodicidad). No inventa un
+        producto, una categoría ni una cifra que ningún insumo respalde.
+        (b) Task → redactor (rama "Productos, talento e indicadores SGR", ver
+        `redactor.md`) con el archivo, §9, `alianza.json`, la cadena de valor
+        y los mínimos de talento de la rúbrica de la convocatoria
+        (`minimos_talento`) inline, y el bloque `## FRAGMENTO DE GUÍA` con
+        Directrices Generales SGR + el bloque `### SGR` de §36. Escribe el
+        bloque `talento`: un perfil por categoría, en tercera persona, con la
+        entidad que lo vincula, la formación y la experiencia, las
+        actividades de la cadena, la duración, el valor mensual y el producto
+        final, de modo que se cumplan los mínimos de talento de la
+        convocatoria. §9 no se reescribe: el talento en formación se liga a
+        él.
+        (a) y (b) se despachan en el MISMO turno: editan bloques distintos
+        del archivo. Luego Task → revisor-estilo-sgr sobre la `introduccion`
+        de `divulgacion` (voz, léxico y redundancia de la skill
+        `estilo-sgr`).
+        ──→ DISPATCHER: `python3 scripts/productos_sgr.py check <RUN_ROOT>`.
+        Mientras reporte errores, devolvé la salida exacta al agente dueño
+        del bloque (investigador para `productos_ctei`, `divulgacion` e
+        `indicadores_gestion`; redactor para `talento`) y repetí (a) o (b);
+        los avisos se presentan en la compuerta. Con `check` limpio, el
+        DISPATCHER corre `python3 scripts/productos_sgr.py render <RUN_ROOT>`,
+        que genera §15, §36 y §37 y se niega mientras haya hallazgos de
+        error; si cambian los datos o la cadena de valor, se vuelve a correr
+        `render`.
+        ──→ GATE Task → revisor (valida que los productos CTeI cumplan el
+        mínimo de la convocatoria y que los adicionales se apoyen en
+        productos reales de la cadena, que la divulgación tenga públicos,
+        medios, productos, responsable y cronograma, que el talento cumpla
+        los mínimos y se ligue a actividades de la cadena y que las secciones
+        renderizadas no contradigan §9 ni §10; recibe la salida limpia de
+        `check`) ──→ usuario: la aprobación se da en la pestaña «Productos e
+        indicadores» del tablero, que la ata al hash del archivo. Un ajuste
+        pedido ahí vuelve a (a) o (b) con el comentario exacto. Al aprobar,
+        escribe `GProductos = APROBADA` en `artefactos/estado_propuesta.md`
+        (fila `| GProductos | APROBADA |`) y el evento
+        `artefactos/pipeline/60-fase5_sgr.md`. NO avances sin aprobación.
 Fase 5.5 [NUEVO] Task → redactor → §10 metodología (compuerta propia,
         separada de la Fase 5). Antes de despachar esta Task, el dispatcher
         arma el bloque `## FRAGMENTO DE GUÍA` con Directrices Generales +
@@ -1555,7 +1623,9 @@ Fase 6.4 [COMPUERTA INTERACTIVA G-Presupuesto] Presupuesto (interactivo).
         ya existe `python3 scripts/cadena_valor_sgr.py render <RUN_ROOT>`
         (la sincronización deja el anexo desactualizado), si
         `componentes.json` existe `python3 scripts/componentes_sgr.py render <RUN_ROOT>`
-        (por la misma razón: 18 y 31–35 dependen de la cadena) y
+        (por la misma razón: 18 y 31–35 dependen de la cadena), si
+        `productos.json` existe `python3 scripts/productos_sgr.py render <RUN_ROOT>`
+        (§15 y §37 leen la cadena) y
         `python3 scripts/presupuesto_sgr.py render <RUN_ROOT>`, que genera
         `13_presupuesto.tex` (rubro por fuente y entidad, vista de insumos
         MGA y proyección anual) y se niega mientras haya hallazgos de error.
@@ -1576,6 +1646,14 @@ Fase 6.4 [COMPUERTA INTERACTIVA G-Presupuesto] Presupuesto (interactivo).
         `python3 scripts/componentes_sgr.py check <RUN_ROOT>` (el componente
         de transferencia frente al 1 % del total SGR y sus actividades frente
         a los ítems marcados) y devuelve sus hallazgos al presupuestador.
+        El prompt lleva también `artefactos/sgr/productos.json` (aprobado en
+        GProductos) inline: los ítems de `talento_humano` de cada entidad
+        coinciden con el bloque `talento` de ese archivo (categoría,
+        cantidad, duración y valor mensual). Tras `presupuesto_sgr.py check`,
+        el DISPATCHER corre además
+        `python3 scripts/productos_sgr.py check <RUN_ROOT>` (talento frente a
+        los ítems del presupuesto y divulgación costeada) y devuelve sus
+        hallazgos al presupuestador.
         ──→ BUCLE INTERACTIVO (sin tope de rondas; termina SOLO con
         aprobación explícita del usuario):
           1. El DISPATCHER presenta al usuario: (i) la tabla renderizada
@@ -1658,6 +1736,17 @@ Fase 6.45 Task → redactor → §14 cronograma de actividades (Gantt) (sin gate
         `## FRAGMENTO DE GUÍA` con Directrices Generales + §15 (Productos
         esperados) + Convenciones técnicas de LaTeX y lo inyecta inline al
         inicio del prompt.
+        SOLO flujo SGR: §15 nunca lo escribe el redactor. En lugar de esa
+        Task, el DISPATCHER corre
+        `python3 scripts/productos_sgr.py render <RUN_ROOT>`, que vuelve a
+        generar `15_productos_esperados.tex` (Anexo 2 cap. 21: productos por
+        objetivo con su código DNP, indicador, unidad y meta desde
+        `cadena_valor.json`, los productos CTeI y la estrategia de
+        divulgación de `artefactos/sgr/productos.json` aprobado en
+        GProductos) junto con §36 y §37. Un ajuste a los productos vuelve al
+        investigador sobre `productos.json` (rama "Productos, talento e
+        indicadores SGR"), se repite `productos_sgr.py check` y se vuelve a
+        correr `render`.
         Task → bibliografo-propuesta → §16 bibliografía (BibTeX,
         consolidación final MODE=deliverable §4+§16, cubre todas las
         referencias citadas a lo largo del documento; ídem, sin gate

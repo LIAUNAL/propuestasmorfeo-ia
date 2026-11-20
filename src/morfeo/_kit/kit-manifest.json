@@ -97,6 +97,7 @@
     "scripts/marco_cli.py",
     "scripts/pdf_to_md.py",
     "scripts/presupuesto_sgr.py",
+    "scripts/productos_sgr.py",
     "scripts/render_atlas.py",
     "scripts/sgr/lexico_sgr.json",
     "tests/__init__.py",

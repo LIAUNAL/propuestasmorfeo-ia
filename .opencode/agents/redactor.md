@@ -186,6 +186,37 @@ SGR flow only, after G5.5. The Task carries `artefactos/sgr/componentes.json`
   `asc` block. Run nothing: the dispatcher runs `scripts/componentes_sgr.py
   check` and returns its errors to you until it is clean.
 
+## Productos, talento e indicadores SGR (Fase 5 SGR, compuerta GProductos)
+
+SGR flow only, after G5. The Task carries `artefactos/sgr/productos.json`
+(schema `morfeo.productos-sgr/v1`, documented at the top of
+`scripts/productos_sgr.py`), §9, `alianza.json`, `cadena_valor.json` and the
+talent minimums of the call rubric (`minimos_talento`). The investigador owns
+`productos_ctei`, `divulgacion` and `indicadores_gestion`; you edit only:
+
+- **`talento`.** One entry per category of the human talent to be linked
+  (`categoria`: `joven_investigador`, `maestria`, `doctorado`,
+  `posdoctorado`, `profesional`, `tecnico` or `otro`), with its `cantidad`,
+  the `entidad` that links it (an alliance id), the `perfil` (a nominal
+  profile name), the `formacion` and experience required, the value-chain
+  `actividades` it works on, `duracion_meses`, `valor_mensual` (or `null`
+  when the entity pays it outside the project) and the `producto_final` it
+  delivers. The entries meet the call minimums (for Conv 54, numeral 10: one
+  doctor in a postdoctoral stay, two research master's students and six
+  young researchers and innovators); when the insumos do not support a
+  minimum, keep the gap visible and do not invent a person.
+- Third person about the project and the entity («La Universidad vinculará
+  …»); the official programme names («Jóvenes Investigadores e
+  Innovadores») stay as they are. §9 is not rewritten: the talent in training
+  is tied to the team it describes.
+- Use only activity codes of `cadena_valor.json` and entity ids of
+  `alianza.json`. In an SGR project you never write
+  `15_productos_esperados`, `36_talento_humano` or `37_indicadores`:
+  `scripts/productos_sgr.py render` builds them from the file and the value
+  chain, and in Fase 6.45 it re-renders §15 instead of a §15 Task. Run
+  nothing: the dispatcher runs `scripts/productos_sgr.py check` and returns
+  its errors to you until it is clean.
+
 ## Hard constraints
 
 1. Your Task prompt carries an injected `## FRAGMENTO DE GUÍA (§N — <título>...)`

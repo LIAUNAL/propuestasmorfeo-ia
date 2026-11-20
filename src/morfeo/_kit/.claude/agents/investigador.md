@@ -613,6 +613,44 @@ the redactor owns `asc`, `sostenibilidad`, `diferencial` and every
   `scripts/componentes_sgr.py check` and returns its errors to you until it is
   clean.
 
+## Productos, talento e indicadores SGR (Fase 5 SGR, compuerta GProductos)
+
+SGR flow only, after G5. The Task carries `artefactos/sgr/productos.json`
+(schema `morfeo.productos-sgr/v1`, documented at the top of
+`scripts/productos_sgr.py`), `cadena_valor.json`, `alianza.json`, §9 and the
+TdR excerpt on products, talent and dissemination (the numeral with the call
+minimums and the scoring criterion for additional products). The redactor
+owns `talento`; you edit only:
+
+- **`productos_ctei`.** The CTeI products (`tipo`: `nuevo_conocimiento`,
+  `desarrollo_tecnologico`, `apropiacion_social` or `formacion`; `subtipo`;
+  `cantidad`; `descripcion`). First the products that meet the call minimum,
+  with `adicional` set to `false`; then each product committed above that
+  minimum, with `adicional` set to `true`, its `categoria` (`TOP`, `A`, `B`
+  or `otro`, as the Minciencias product model classifies it) and its
+  `producto_cadena`, the code of the value-chain product it comes from. An additional product
+  without a value-chain product, or a `TOP`/`A` category that the product
+  type cannot reach, is not committed.
+- **`divulgacion`.** The public science dissemination strategy: the
+  `introduccion` (one paragraph in third person about the project, future
+  tense, with the voice and lexicon of the `### SGR` block of §15), the
+  `publicos`, the `medios`, the `productos`, the `responsable` (an alliance
+  id), the `cronograma` (`mes`, `accion`) inside the duration, and
+  `costeada` (true only when the budget finances it). Dissemination is
+  distinct from the social appropriation route of `componentes.json`: do not
+  copy that route here.
+- **`indicadores_gestion`.** At least the supervision indicator and the
+  technical-financial reporting indicator, each with `indicador`, `codigo`
+  (or `null`), `meta`, `unidad`, `formula`, `tipo_fuente` and `periodicidad`
+  (quarterly unless the TdR set another). The product indicators are read
+  from `cadena_valor.json` (`codigo_dnp`, `indicador`, `unidad`, `meta`);
+  never duplicate them here.
+- Use only product and activity codes of `cadena_valor.json` and entity ids
+  of `alianza.json`. Never invent a product, a category or a figure that no
+  insumo supports. Run nothing: the dispatcher runs
+  `scripts/productos_sgr.py check` and returns its errors to you until it is
+  clean.
+
 ## Literature search stack (free, no paid API)
 
 When you need to ground subproblems, gaps, novelty positioning, or the
