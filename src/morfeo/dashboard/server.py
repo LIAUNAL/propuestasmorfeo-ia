@@ -28,6 +28,7 @@ from ..core.alliance import approve as approve_alliance, build_adjust_prompt as 
 from ..core.budget import approve as approve_budget, build_adjust_prompt as build_budget_prompt, load_budget
 from ..core.components import approve as approve_components, build_adjust_prompt as build_components_prompt, load_components
 from ..core.products import approve as approve_products, build_adjust_prompt as build_products_prompt, load_products
+from ..core.annex2 import load_annex2
 from ..core.requirements import (
     MAX_BODY_BYTES as REQUIREMENTS_MAX_BODY,
     approve as approve_requirements,
@@ -183,6 +184,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_products()
         elif path == "/api/requirements":
             self.serve_requirements()
+        elif path == "/api/anexo2":
+            self.serve_annex2()
         elif path == "/api/style-sgr":
             self.serve_style_sgr()
         else:
@@ -979,6 +982,18 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self._send_json(409, result)
             return
         self._send_json(200, {"run": run_dir.name, **result})
+
+    # Vista del Anexo 2 (solo flujo SGR, solo lectura): en el flujo base responde 409.
+    def serve_annex2(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        data = load_annex2(run_dir)
+        if data["flujo"] != "sgr":
+            self._send_json(409, {"ok": False, "run": run_dir.name, **data})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **data})
 
     def serve_style_sgr(self) -> None:
         run_dir = self._active_run_dir()

@@ -591,6 +591,17 @@
     .rq-progress { margin: 0.4rem 0 0.7rem; font-size: 0.8rem; color: var(--text); }
     .rq-progress__bar { height: 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-subtle); overflow: hidden; margin-top: 0.3rem; }
     .rq-progress__bar span { display: block; height: 100%; background: var(--ok); }
+    .a2-summary { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.4rem 0 0.7rem; font-size: 0.8rem; color: var(--text); }
+    .a2-filter { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; color: var(--text); margin-bottom: 0.6rem; }
+    .a2-chapter { border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.6rem 0.75rem; margin-bottom: 0.7rem; background: var(--surface-2); }
+    .a2-chapter__head { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; font-size: 0.86rem; color: var(--text); }
+    .a2-chapter__head h4 { margin: 0; font-size: 0.88rem; }
+    .a2-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; font-size: 0.78rem; color: var(--text-muted); margin-top: 0.45rem; }
+    .a2-chip { font-weight: 500; }
+    .a2-rule { font-size: 0.8rem; line-height: 1.5; color: var(--text); margin-top: 0.45rem; }
+    .a2-rule dt { font-weight: 600; margin-top: 0.3rem; }
+    .a2-rule dd { margin: 0 0 0 0.8rem; }
+    .a2-findings ul { margin: 0.4rem 0 0; padding-left: 1rem; font-size: 0.8rem; }
     .rq-table td { min-width: 6rem; }
     .rq-input { width: 100%; min-width: 6rem; font: inherit; font-size: 0.74rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.2rem 0.3rem; margin-top: 0.2rem; }
     .rq-input--num { min-width: 8rem; }
@@ -3052,6 +3063,20 @@
             <p class="tree-message" id="rqMessage" role="status"></p>
           </div>
         </aside>
+      </div>
+    </div>
+
+    <!-- TAB: ANEXO 2 (solo flujo SGR, solo lectura; el botón se agrega con el flujo) -->
+    <div id="pane-anexo2" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Anexo 2: capítulos del documento técnico con su estado, sus secciones y su regla de redacción</div>
+          <span class="panel__meta" id="a2RunMeta">—</span>
+        </div>
+        <p class="judge-intro">Cada capítulo del Anexo 2 con las secciones de Morfeo que lo llenan, su estado, sus palabras y sus hallazgos; la regla de redacción del capítulo, su léxico y los criterios de la rúbrica que lo leen. Es una vista de solo lectura: las secciones se abren en el panel «Secciones».</p>
+      </div>
+      <div class="panel">
+        <div id="a2Content"></div>
       </div>
     </div>
 
@@ -7805,6 +7830,254 @@
       if (RQ_STATE.pendingPrompt) await deliverRequirementsPrompt(RQ_STATE.pendingPrompt);
     }
 
+    // ── Anexo 2 (SGR, solo lectura) ─────────────────────────────────────────
+    // Lee /api/anexo2 (la vista de scripts/anexo2_sgr.py, esquema
+    // morfeo.anexo2-sgr/v1): capítulos del Anexo 2 con su estado, las secciones
+    // que los llenan, sus hallazgos, la regla de redacción, el léxico y los
+    // criterios de la rúbrica. Solo existe en el flujo SGR: el botón se agrega
+    // después de «Requisitos y anexos» y, en el flujo base, la ruta responde 409
+    // y la pestaña avisa. No aprueba ni escribe nada.
+    const A2_STATE = { data: null, sig: null, timer: null, soloPendientes: false, open: new Set() };
+    const A2_CAPITULO_ESTADOS = [
+      ['falta', 'Falta', 'bad'],
+      ['incompleto', 'Incompleto', 'warn'],
+      ['desactualizado', 'Desactualizado', 'warn'],
+      ['listo', 'Listo', 'ok'],
+    ];
+    const A2_SECCION_ESTADOS = {
+      falta: ['Falta', 'bad'],
+      borrador: ['Borrador', 'warn'],
+      redactado: ['Redactado', 'ok'],
+      generado: ['Generado', 'info'],
+      desactualizado: ['Desactualizado', 'warn'],
+    };
+
+    function syncAnnex2Tab() {
+      const nav = document.querySelector('.tabs-nav');
+      if (!nav) return;
+      let btn = document.getElementById('annex2TabBtn');
+      if (!isSgrFlujo()) {
+        if (btn) btn.remove();
+        return;
+      }
+      if (btn) return;
+      btn = document.createElement('button');
+      btn.id = 'annex2TabBtn';
+      btn.className = `tab-nav__btn${activeTab === 'anexo2' ? ' active' : ''}`;
+      btn.setAttribute('onclick', "navigateTab('anexo2')");
+      btn.textContent = 'Anexo 2';
+      const anchor = document.getElementById('requirementsTabBtn') || document.getElementById('productsTabBtn')
+        || document.getElementById('componentsTabBtn') || document.getElementById('budgetTabBtn')
+        || document.getElementById('allianceTabBtn') || document.getElementById('valueChainTabBtn')
+        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+      if (anchor) anchor.after(btn);
+      else nav.appendChild(btn);
+    }
+
+    async function loadAnnex2() {
+      let data = null;
+      try {
+        const res = await fetch('/api/anexo2', { cache: 'no-store' });
+        data = await res.json();
+        // 409: corrida del flujo base; la vista lo explica en vez de fallar.
+        if (res.status !== 409 && (!res.ok || !data.ok)) throw new Error(data.error || `HTTP ${res.status}`);
+      } catch (err) {
+        A2_STATE.data = null;
+        A2_STATE.sig = null;
+        const el = document.getElementById('a2Content');
+        if (el) el.innerHTML = `<div class="tree-empty"><p>No se pudo leer la vista del Anexo 2 de la corrida activa.</p><small>${escapeHtml(err.message || String(err))}</small></div>`;
+        return;
+      }
+      A2_STATE.data = data;
+      const sig = JSON.stringify(data);
+      if (sig !== A2_STATE.sig) {
+        A2_STATE.sig = sig;
+        renderAnnex2();
+      }
+    }
+
+    function startAnnex2Polling() {
+      loadAnnex2();
+      if (A2_STATE.timer) return;
+      // La vista corre check_run y estilo_sgr: se refresca con menos frecuencia que las pestañas editables.
+      A2_STATE.timer = setInterval(() => {
+        if (activeTab === 'anexo2' && !document.hidden) loadAnnex2();
+      }, 15000);
+    }
+
+    function stopAnnex2Polling() {
+      if (A2_STATE.timer) clearInterval(A2_STATE.timer);
+      A2_STATE.timer = null;
+    }
+
+    function a2Int(v) {
+      return vcNumber(v) || 0;
+    }
+
+    function a2Plural(n, one, many) {
+      return `${escapeHtml(String(n))} ${n === 1 ? one : many}`;
+    }
+
+    function a2CapituloBadge(estado) {
+      const found = A2_CAPITULO_ESTADOS.find(([key]) => key === estado);
+      if (!found) return `<span class="badge">${vcText(estado)}</span>`;
+      return `<span class="badge badge--${found[2]}">${escapeHtml(found[1])}</span>`;
+    }
+
+    function a2SeccionBadge(estado) {
+      const found = A2_SECCION_ESTADOS[estado];
+      if (!found) return `<span class="badge">${vcText(estado)}</span>`;
+      return `<span class="badge badge--${found[1]}">${escapeHtml(found[0])}</span>`;
+    }
+
+    function a2SummaryHtml(resumen) {
+      const r = cpObj(resumen);
+      const por = cpObj(r.por_estado);
+      const total = a2Int(r.capitulos);
+      return `<div class="a2-summary" id="a2Resumen">
+          <strong>${a2Plural(total, 'capítulo', 'capítulos')}</strong>
+          ${A2_CAPITULO_ESTADOS.map(([key, label, tone]) => {
+            const n = a2Int(por[key]);
+            return `<span class="badge badge--${tone}" data-estado="${key}" data-n="${escapeHtml(String(n))}">${escapeHtml(label)}: ${escapeHtml(String(n))}</span>`;
+          }).join('')}
+          <span>${a2Plural(a2Int(r.palabras), 'palabra', 'palabras')}</span>
+        </div>`;
+    }
+
+    function a2FindingCounts(hallazgos) {
+      const h = cpObj(hallazgos);
+      return VC_SEVERITIES.map(([sev, , tone, one]) => {
+        const n = a2Int(h[sev]);
+        return n ? `<span class="badge badge--${tone}" data-severidad="${sev}" title="${escapeHtml(one)}">${escapeHtml(String(n))}</span>` : '';
+      }).join(' ') || '—';
+    }
+
+    function a2SectionsHtml(secciones) {
+      const list = vcList(secciones);
+      if (!list.length) return '<p class="judge-empty">Ninguna sección de Morfeo llena este capítulo.</p>';
+      return `<div class="table-responsive"><table class="table">
+          <thead><tr><th>Sección</th><th>Guía</th><th>Estado</th><th>Palabras</th><th>Hallazgos</th><th></th></tr></thead>
+          <tbody>${list.map(s => {
+            const stem = String(s.stem || '');
+            const guia = s.guia || sgrBlockKey(stem) || '';
+            const origen = s.script ? ` <span class="vc-code">${escapeHtml(String(s.script))}</span>` : '';
+            return `<tr data-stem="${escapeHtml(stem)}">
+              <td><span class="vc-code">${escapeHtml(stem)}</span></td>
+              <td>${vcText(guia)}</td>
+              <td>${a2SeccionBadge(s.estado)}${origen}</td>
+              <td>${escapeHtml(String(a2Int(s.palabras)))}</td>
+              <td>${a2FindingCounts(s.hallazgos)}</td>
+              <td><button class="btn btn--xs btn--primary" data-open-stem="${escapeHtml(stem)}" onclick="a2OpenSection(this.getAttribute('data-open-stem'))" title="Abrir la sección en el panel «Secciones»">👁️ Abrir</button></td>
+            </tr>`;
+          }).join('')}</tbody></table></div>`;
+    }
+
+    function a2RuleHtml(regla) {
+      const r = cpObj(regla);
+      const items = list => {
+        const values = (Array.isArray(list) ? list : []).filter(v => typeof v === 'string' && v.trim() !== '');
+        return values.length ? `<ul>${values.map(v => `<li>${escapeHtml(String(v))}</li>`).join('')}</ul>` : '—';
+      };
+      return `<dl class="a2-rule">
+          <dt>Propósito</dt><dd>${vcText(r.proposito)}</dd>
+          <dt>Estructura</dt><dd>${vcText(r.estructura)}</dd>
+          <dt>Extensión</dt><dd>${vcText(r.extension)}</dd>
+          <dt>Aperturas favorecidas</dt><dd>${items(r.aperturas)}</dd>
+          <dt>Evitar</dt><dd>${items(r.evitar)}</dd>
+          <dt>Fuente</dt><dd>${vcText(r.fuente)}</dd>
+        </dl>`;
+    }
+
+    function a2CriteriaHtml(criterios, rubrica) {
+      const list = vcList(criterios);
+      if (!list.length) {
+        return `<span>${rubrica ? 'Ningún criterio de la rúbrica lee este capítulo.' : 'Sin rúbrica detectada para la convocatoria.'}</span>`;
+      }
+      return list.map(c => `<span class="badge badge--info a2-chip">${escapeHtml(`${c.id ?? ''} ${c.nombre ?? ''} (${c.max ?? '—'})`.trim())}</span>`).join(' ');
+    }
+
+    function a2ChapterFindingsHtml(hallazgos) {
+      const list = vcList(hallazgos);
+      if (!list.length) return '';
+      return `<div class="a2-findings"><ul>${list.map(f => {
+        const sev = ['error', 'warning', 'info'].includes(f.severidad) ? f.severidad : 'info';
+        const [, , tone, one] = VC_SEVERITIES.find(([key]) => key === sev);
+        return `<li data-severidad="${sev}"><span class="badge badge--${tone}">${one}</span> <span>${escapeHtml(String(f.mensaje || f.codigo || ''))}</span> <span class="tree-findings__node">${f.seccion ? `${escapeHtml(String(f.seccion))} · ` : ''}${escapeHtml(String(f.codigo || ''))}</span></li>`;
+      }).join('')}</ul></div>`;
+    }
+
+    function a2ChapterHtml(c, rubrica) {
+      const numero = a2Int(c.numero);
+      const lex = cpObj(c.lexico);
+      const open = A2_STATE.open.has(numero);
+      const rule = c.regla
+        ? `<button class="btn btn--xs" data-regla-btn="${escapeHtml(String(numero))}" onclick="a2ToggleRule(${numero})">${open ? 'Ocultar regla' : 'Ver regla de redacción'}</button>`
+        : '<span>Sin regla de redacción para este capítulo.</span>';
+      return `<article class="a2-chapter" data-numero="${escapeHtml(String(numero))}" data-estado="${escapeHtml(String(c.estado || ''))}">
+          <div class="a2-chapter__head">
+            <h4>${escapeHtml(String(numero))}. ${vcText(c.titulo)}</h4>
+            ${a2CapituloBadge(c.estado)}
+            <span class="vc-code">${a2Plural(a2Int(c.palabras), 'palabra', 'palabras')}</span>
+          </div>
+          ${a2SectionsHtml(c.secciones)}
+          <div class="a2-meta">${rule}</div>
+          ${open && c.regla ? a2RuleHtml(c.regla) : ''}
+          <div class="a2-meta a2-lexicon">Léxico: ${a2Plural(a2Int(lex.favorecida), 'favorecida', 'favorecidas')} · ${a2Plural(a2Int(lex.desaconsejada), 'desaconsejada', 'desaconsejadas')} · ${a2Plural(a2Int(lex.prohibida), 'prohibida', 'prohibidas')}</div>
+          <div class="a2-meta">Rúbrica: ${a2CriteriaHtml(c.criterios, rubrica)}</div>
+          ${a2ChapterFindingsHtml(c.hallazgos)}
+        </article>`;
+    }
+
+    function renderAnnex2() {
+      const d = A2_STATE.data;
+      const el = document.getElementById('a2Content');
+      if (!d || !el) return;
+      document.getElementById('a2RunMeta').textContent = `Corrida ${d.run || '—'}`;
+      if (d.flujo !== 'sgr') {
+        el.innerHTML = `<div class="tree-empty">
+          <p>La vista del Anexo 2 se usa solo en el flujo SGR.</p>
+          <small>Este proyecto sigue el flujo base de propuestas de investigación: las secciones se revisan en «Secciones».</small>
+        </div>`;
+        return;
+      }
+      if (!d.disponible || !d.vista) {
+        el.innerHTML = `<div class="tree-empty">
+          <p>La vista del Anexo 2 no está disponible para esta corrida.</p>
+          ${d.error ? `<p class="judge-validation">${escapeHtml(String(d.error))}</p>` : ''}
+          <small>La calcula <code>scripts/anexo2_sgr.py datos</code> a partir de la estructura del TdR o del mapa de capítulos del léxico SGR.</small>
+        </div>`;
+        return;
+      }
+      const v = cpObj(d.vista);
+      const capitulos = vcList(v.capitulos);
+      const visibles = A2_STATE.soloPendientes ? capitulos.filter(c => c.estado !== 'listo') : capitulos;
+      const fuentes = [v.fuente_capitulos, v.fuente_reglas].filter(Boolean)
+        .map(f => `<span class="vc-code">${escapeHtml(String(f))}</span>`).join(' · ');
+      el.innerHTML = `${a2SummaryHtml(v.resumen)}
+        <label class="a2-filter"><input type="checkbox" id="a2SoloPendientes"${A2_STATE.soloPendientes ? ' checked' : ''} onchange="a2SetFilter(this.checked)"> Solo pendientes</label>
+        ${fuentes ? `<p class="judge-empty">Fuentes: ${fuentes}${v.rubrica ? ` · rúbrica <span class="vc-code">${escapeHtml(String(v.rubrica))}</span>` : ''}</p>` : ''}
+        <div id="a2Capitulos">${visibles.length ? visibles.map(c => a2ChapterHtml(c, v.rubrica)).join('')
+          : '<p class="judge-empty">No quedan capítulos pendientes.</p>'}</div>`;
+    }
+
+    function a2SetFilter(checked) {
+      A2_STATE.soloPendientes = !!checked;
+      renderAnnex2();
+    }
+
+    function a2ToggleRule(numero) {
+      if (A2_STATE.open.has(numero)) A2_STATE.open.delete(numero);
+      else A2_STATE.open.add(numero);
+      renderAnnex2();
+    }
+
+    // Abre la sección con el mismo mecanismo que la tabla del panel «Secciones».
+    function a2OpenSection(stem) {
+      if (!stem) return;
+      navigateTab('sections');
+      openSectionStructure(stem);
+    }
+
     // ── Estilo SGR en Secciones ─────────────────────────────────────────────
     // Columna solo del flujo SGR con los hallazgos de scripts/estilo_sgr.py por
     // sección (/api/style-sgr); en el flujo base la tabla queda como antes.
@@ -7982,6 +8255,9 @@
 
       if (tabId === 'requisitos') startRequirementsPolling();
       else stopRequirementsPolling();
+
+      if (tabId === 'anexo2') startAnnex2Polling();
+      else stopAnnex2Polling();
 
       if (tabId === 'sections' && isSgrFlujo()) loadStyleSgr();
 
@@ -8443,6 +8719,7 @@
         syncComponentsTab();
         syncProductsTab();
         syncRequirementsTab();
+        syncAnnex2Tab();
         if (data.active_run) {
           const footerRun = document.getElementById('terminalFooterRun');
           if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;
@@ -12536,7 +12813,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'requisitos', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'requisitos', 'anexo2', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');

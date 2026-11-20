@@ -157,7 +157,7 @@ test('SGR: la pestaña «Requisitos y anexos» aparece justo después de «Produ
   const i = labels.indexOf('Requisitos y anexos');
   assert.ok(i > 0, 'la pestaña existe en SGR');
   assert.equal(labels[i - 1], 'Productos e indicadores');
-  assert.equal(labels[i + 1], 'MGA resumido');
+  assert.equal(labels[i + 1], 'Anexo 2');
   viewer.viewer('navigateTab', 'requisitos');
   await flush();
   const active = viewer.document.querySelectorAll('.tab-nav__btn.active');
