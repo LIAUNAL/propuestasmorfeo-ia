@@ -37,7 +37,7 @@ Section state: `falta` (no file); `generado` (first lines carry `% GENERADO por 
 |----|-------|-------|--------|--------|
 | T1 | S2, S3 | delegated (parallel writer, disjoint surface) | done | f139b3e (28 tests RED→GREEN) |
 | T2 | S1, S4 | delegated (parallel writer, disjoint surface) | done | 5a31b83 (12 py + 14 js tests RED→GREEN) |
-| T3 | all | inline (parent): kit, README, seam, full suite, commits, merge, push, release | in progress | seam in f139b3e |
+| T3 | all | inline (parent): kit, README, seam, full suite, commits, merge, push, release | done | seam in f139b3e; merge ef54868; release v0.8.0 |
 
 Route evidence: two independent units with disjoint edit surfaces (script vs dashboard), each several files and over 100 changed lines, launched together; the contract above is the seam. The parent owns git, the kit manifest, ports and the release.
 
@@ -50,3 +50,5 @@ L2 (2026-11-20, evidence): `origin/main` holds 11 commits the stack never saw: v
 L3 (2026-11-20, user, verbatim answer to «¿Cómo hago el merge?»): «Unir ambas (Recomendado)» — keep both lines; where they collide the v0.7.0 rule wins (`--final` requires the `estructura_tdr.json` chapters, with the new SGR sections placed through `placed_chapters`); both style and rubric systems stay; full suite; release v0.8.0.
 
 L4 (2026-11-20, close of T1–T2): kit manifest gains `scripts/anexo2_sgr.py` (README 105 assets); kit in step; three port checks clean. Seam against a copy of the tept run set to sgr: 31 chapters from the lexicon (10 listo, 7 incompleto, 14 falta), rule matched, base run rejected. Full Python suite 1329, only the 14 environment failures; JS 252/252. Choices: rubric through `juez_sgr.resolve_rubric`; check_run `sgr-estilo*` findings dropped in favour of the direct estilo_sgr pass; chapters 3, 24, 25, 29, 30 and 31 keep guidance under labels outside the six parsed bullets, so their rule shows little.
+
+L5 (2026-11-20, merge): branch `merge/sgr-v0.8` from `origin/main`; 32 conflicts resolved by a delegated writer (context backstop) under the L3 policy; kit and ports regenerated; README 108 assets; AGENTS.md trimmed to the 24,000-char budget. SGR chain: fase1a → fase1a_sgr → fase1b → fase1b_sgr → fase1c → fase1 → fase2 → fase3 → fase4 → fase4_sgr → fase5 → fase5_sgr → fase5_5 → fase5_5_sgr → fase6 → fase6_3 → fase6_4 → fase6_45 → fase6_46 → fase6_47 → fase6_5 → fase6_9_sgr → fase7; base chain identical to v0.7.0. The union left A23 «Evaluación MGA» without a writer (v0.7.0 prose vs the stack's rendered A23); fixed inline: optional `evaluacion_mga` text in `cadena_valor.json`, rendered after the table (3 tests RED→GREEN). Full suite 1508, 13 environment failures; JS 262/262; base check_run differential against v0.7.0 identical. To confirm with the user: SGR `fase6_3` dispatches `revisor-estilo-sgr` instead of `grant-flow-auditor` (stack rule; a v0.7.0 test was adapted); the new «Redacción» part of guide §12 was written by the merge writer.
