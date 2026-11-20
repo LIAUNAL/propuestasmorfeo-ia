@@ -66,6 +66,7 @@ Fuentes en el repositorio: la evidencia completa en
 | 10 Participantes | `20_participantes` | Vocabulario fijo MGA (Beneficiario, Cooperante, Oponente, Perjudicado) |
 | 11 Población | `21_poblacion` | Personas con cifra, fuente y localización; medidas en futuro |
 | 12 Objetivos | `06_objetivo_general`, `07_objetivos_especificos` | Textos literales del árbol; sin medio, fin, meta ni producto |
+| 12.4 y 20 Perfiles y vinculación de talento humano | `36_talento_humano` (generada) | Categorías oficiales del TdR con los mínimos de la convocatoria; perfil con actividades, meses y producto final; sin copiar la tabla de perfiles en prosa |
 | 13 Alternativas | `22_alternativas` | Párrafos rotulados por factor; descarte por razón técnica |
 | 14 Metodología | `10_metodologia` | «Actividad <n.n.n>: <infinitivo + objeto>» con Responsable, Tareas, Resultados y Medio de verificación; futuro e impersonal |
 | 14.1 y 14.2 Madurez tecnológica y verificación del TRL | `31_trl` (generada) | TRL de entrada con evidencia, hitos hasta el TRL de salida y plan de verificación; sin TRL declarado sin evidencia |
@@ -75,10 +76,11 @@ Fuentes en el repositorio: la evidencia completa en
 | 17.1 Uso y operación posterior | `33_uso_posterior` (generada) | Operador y fuente de recursos por bien; compromiso de adopción del actor usuario; sin gastos de funcionamiento con SGR |
 | 18 Transferencia, adopción y valoración | `34_transferencia` (generada) | Usuarios por resultado, ruta con barreras, actividades con presupuesto (mínimo 1 %); no reducida a publicaciones o eventos; futuro |
 | 19 ASC | `18_apropiacion_social` (generada en SGR) | Siete elementos de la ruta con meses y actividades; participación, diálogo de saberes, co-creación, incidencia; no solo socializar |
-| 21 Productos | `15_productos_esperados` | Nombre del catálogo sin participio; el participio va en el indicador |
+| 21 Productos | `15_productos_esperados` (generada en SGR) | Nombre y código del catálogo sin participio (el participio va en el indicador); productos de CTeI con tipo y categoría, sin contar el mínimo como adicional; divulgación con públicos, medios, productos, responsable, cronograma y costeo |
 | 21.1 Medidas diferenciales | `35_medidas_diferenciales` (generada) | Barrera, medida, actividad, indicador, meta y evidencia; «población vulnerable» siempre con su barrera |
 | 22 Cronograma | `14_cronograma_actividades` | Meses, etapa y ruta crítica; mismos nombres de actividad |
 | 23 Riesgos | `24_riesgos` | Descripción nominal; medida en infinitivo con responsable y costo |
+| 24 y 25 Indicadores de gestión y de producto | `37_indicadores` (generada) | Informes de supervisión y técnico-financieros con periodicidad trimestral; indicadores de producto tomados de la cadena de valor; sin «periódicamente» |
 | 26 Ética | `12_consideraciones_eticas` | Futuro normativo atado a las actividades |
 | 1 Identificación | `26_identificacion` (generada) | Tablas desde `alianza.json` y `territorio.json`; demandas textuales con su código |
 | 8 y 8.1 Demandas territoriales | `27_demandas_territoriales` (generada) | Demanda textual + articulación en presente y futuro, en tercera persona |
@@ -86,7 +88,7 @@ Fuentes en el repositorio: la evidencia completa en
 | 27 Idoneidad y trayectoria | `29_idoneidad_trayectoria` | Una subsección por entidad, tercera persona, sin texto institucional en primera persona |
 | 29 Resumen de fuentes de financiación | `30_fuentes_financiacion` (generada) | Las tres líneas literales en letras y números; cifras iguales a la carta unificada y al Anexo 3 |
 
-Los capítulos 24, 25, 28 y 31 aún no tienen archivo en Morfeo;
+Los capítulos 28 y 31 aún no tienen archivo en Morfeo;
 el léxico los lista en `capitulos_sin_archivo` con su nota de redacción.
 
 ## 4. Ajustes a `estilo-natural-es` y `depuracion-redundancias-es` en SGR
@@ -114,8 +116,9 @@ deshacen.
 
 **Lista blanca de repetición obligatoria.** Título, problema central, objetivo
 general, objetivos específicos, nombres de actividades, nombres y códigos de
-productos, textos de las demandas, nombres de planes y programas y cifras de la
-línea base. Se copian literal; el revisor de redundancia no los parafrasea ni
+productos, perfiles del talento y productos de CTeI y de divulgación de
+`productos.json`, textos de las demandas, nombres de planes y programas y cifras
+de la línea base. Se copian literal; el revisor de redundancia no los parafrasea ni
 los sustituye por sinónimos.
 
 ## 5. Redundancia SGR (R1 a R14)

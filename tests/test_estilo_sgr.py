@@ -161,6 +161,34 @@ class LexiconSchema(unittest.TestCase):
         pending = {item["capitulo"] for item in self.lex["capitulos_sin_archivo"]}
         self.assertFalse({16, 18} & pending)
 
+    def test_product_talent_and_indicator_sections_have_their_lexicon(self) -> None:
+        for stem in ("36_talento_humano", "37_indicadores", "15_productos_esperados"):
+            with self.subTest(stem=stem):
+                entries = self.lex["secciones"][stem]
+                self.assertIn("favorecida", {e["tipo"] for e in entries})
+                self.assertTrue(any(e["regex"] for e in entries if e["tipo"] != "favorecida"))
+
+    def test_product_lexicon_catches_the_rubric_pitfalls(self) -> None:
+        cases = {"36_talento_humano": "El equipo vinculará seis semilleristas del grupo.",
+                 "37_indicadores": "Los informes de supervisión se entregarán periódicamente.",
+                 "15_productos_esperados": "La estrategia de divulgación llegará al público en general."}
+        for stem, sentence in cases.items():
+            with self.subTest(stem=stem):
+                rules = [estilo.compile_rule(e["regex"]) for e in self.lex["secciones"][stem]
+                         if e["regex"] and e["tipo"] != "favorecida"]
+                self.assertTrue(any(r.search(sentence) for r in rules), sentence)
+
+    def test_chapters_12_20_24_and_25_map_to_the_product_sections(self) -> None:
+        mapped = {item["capitulo"]: item["secciones"] for item in self.lex["mapa_capitulos"]}
+        self.assertIn("36_talento_humano", mapped[12])
+        self.assertEqual(mapped[20], ["36_talento_humano"])
+        self.assertEqual(mapped[21][0], "15_productos_esperados")
+        self.assertEqual(mapped[24], ["37_indicadores"])
+        self.assertEqual(mapped[25], ["37_indicadores"])
+        pending = {item["capitulo"] for item in self.lex["capitulos_sin_archivo"]}
+        self.assertFalse({20, 21, 24, 25} & pending)
+        self.assertEqual(pending, {28, 31})
+
     def test_whitelist_kinds(self) -> None:
         kinds = {item["tipo"] for item in self.lex["repeticion_obligatoria"]}
         for kind in ("titulo", "problema_central", "objetivo_general", "objetivos_especificos",
@@ -289,6 +317,21 @@ class Findings(unittest.TestCase):
         self.assertNotIn("sgr-estilo-inflacion", found)
         self.assertNotIn("sgr-estilo-redundancia-entre-secciones", found)
 
+    def test_product_and_talent_names_repeat_verbatim(self) -> None:
+        profile = "Profesional fundamental en analítica de datos clínicos para la red departamental"
+        product = "Artículo crucial de investigación sobre el tamizaje temprano en la cohorte"
+        sgr = self.root / "artefactos" / "sgr"
+        sgr.mkdir(parents=True)
+        (sgr / "productos.json").write_text(json.dumps({
+            "schema": "morfeo.productos-sgr/v1", "talento": [{"perfil": profile}],
+            "productos_ctei": [{"subtipo": product}], "divulgacion": None}, ensure_ascii=False), encoding="utf-8")
+        self.write("36_talento_humano", f"El perfil {profile} apoya el levantamiento.")
+        self.write("09_equipo_trabajo", f"El equipo incluye el perfil {profile} desde el mes 1.")
+        self.write("15_productos_esperados", f"El producto {product} se entrega en el mes 20.")
+        found = self.codes()
+        self.assertNotIn("sgr-estilo-inflacion", found)
+        self.assertNotIn("sgr-estilo-redundancia-entre-secciones", found)
+
     def test_copied_prose_between_sections_is_an_info_signal(self) -> None:
         copied = ("la cuenca media registra una cobertura de monitoreo de apenas cuatro estaciones activas "
                   "para una población ribereña dispersa en once veredas del territorio")
@@ -391,7 +434,7 @@ class GuideWritingPatterns(unittest.TestCase):
 
     EXPECTED = {"§2", "§3", "§6", "§7", "§10", "§11", "§13", "§14", "§15", "§17", "§18",
                 "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27", "A28", "A29", "A30",
-                "A31", "A32", "A33", "A34", "A35"}
+                "A31", "A32", "A33", "A34", "A35", "A36", "A37"}
 
     def setUp(self) -> None:
         self.text = (REPO / GUIDE).read_text(encoding="utf-8")
@@ -431,6 +474,27 @@ class GuideWritingPatterns(unittest.TestCase):
                 self.assertIn("componentes_sgr.py render", body)
         self.assertIn("Hito | Mes | TRL | Actividades | Evidencia", " ".join(self.blocks["A31"].split()))
         self.assertIn("1 %", self.blocks["A34"])
+
+    def test_product_blocks_describe_their_data(self) -> None:
+        products = " ".join(self.blocks["§15"].split())
+        self.assertIn("productos.json", products)
+        self.assertIn("productos_sgr.py render", products)
+        self.assertIn("Programa | Producto | Medido a través de | Indicador de producto | Unidad de medida | "
+                      "Descripción", products)
+        self.assertIn("divulgación pública de la ciencia", products)
+        for key, stem in (("A36", "36_talento_humano"), ("A37", "37_indicadores")):
+            with self.subTest(block=key):
+                body = " ".join(self.blocks[key].split())
+                self.assertIn(f"{stem}.tex", body)
+                self.assertIn("productos_sgr.py render", body)
+        talent = " ".join(self.blocks["A36"].split())
+        self.assertIn("Categoría | Cantidad | Entidad que vincula | Duración | Valor mensual | Producto final", talent)
+        self.assertIn("Perfil | Entidad que lo vincula | Formación y experiencia | Actividades y meses | "
+                      "Producto final", talent)
+        self.assertIn("minimos_talento", talent)
+        indicators = " ".join(self.blocks["A37"].split())
+        self.assertIn("Indicador | Medida/Meta | Código | Fórmula | Tipo de fuente | Periodicidad", indicators)
+        self.assertIn("trimestral", indicators)
 
     def test_section_3_drops_the_research_question_in_sgr(self) -> None:
         body = self.blocks["§3"]

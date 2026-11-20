@@ -53,6 +53,9 @@ SECTION_TITLES = {
     "33_uso_posterior": "§33 Uso y operación posterior",
     "34_transferencia": "§34 Transferencia, adopción y valoración",
     "35_medidas_diferenciales": "§35 Medidas diferenciales",
+    # Talento humano e indicadores del flujo SGR, generados desde productos.json.
+    "36_talento_humano": "§36 Vinculación de talento humano",
+    "37_indicadores": "§37 Indicadores de gestión y de producto",
 }
 
 VALID_FLUJOS = ("base", "sgr")

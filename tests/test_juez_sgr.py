@@ -161,6 +161,34 @@ class RubricFilesTest(unittest.TestCase):
             self.assertEqual([c["max"] for c in rubric["criterios"]], maxima, rid)
             self.assertEqual(sum(s["max"] for c in rubric["criterios"] for s in c["subcriterios"]), 100, rid)
 
+    def test_rubrics_carry_the_talent_and_product_minimums_verbatim(self) -> None:
+        for rid in ("conv54", "conv56"):
+            rubric = _rubric(rid)
+            with self.subTest(rubric=rid):
+                self.assertEqual([m["categoria"] for m in rubric["minimos_talento"]],
+                                 ["posdoctorado", "maestria", "joven_investigador"])
+                self.assertEqual([m["cantidad"] for m in rubric["minimos_talento"]], [1, 2, 6])
+                self.assertEqual({m["categoria"] for m in rubric["minimo_productos"]},
+                                 {"joven_investigador", "maestria", "posdoctorado"})
+                for entry in rubric["minimos_talento"] + rubric["minimo_productos"]:
+                    self.assertEqual(set(entry), {"categoria", "cantidad", "texto"})
+
+    def test_minimums_are_optional_but_must_be_well_formed(self) -> None:
+        rubric = _rubric("conv54")
+        for key in ("minimos_talento", "minimo_productos"):
+            with self.subTest(key=key):
+                bare = copy.deepcopy(rubric)
+                bare.pop(key)
+                self.assertEqual(self.juez.validate_rubric(bare), [])
+                for bad in ({"categoria": "maestria"}, [{"categoria": "", "cantidad": 2, "texto": "Dos"}],
+                            [{"categoria": "maestria", "cantidad": "2", "texto": "Dos"}],
+                            [{"categoria": "maestria", "cantidad": 2, "texto": ""}]):
+                    broken = copy.deepcopy(rubric)
+                    broken[key] = bad
+                    errors = self.juez.validate_rubric(broken)
+                    self.assertEqual(len(errors), 1, bad)
+                    self.assertIn(key, errors[0])
+
     def test_modes_follow_the_tdr(self) -> None:
         conv54, conv56 = _rubric("conv54"), _rubric("conv56")
         modes54 = {s["id"]: s["modo"] for c in conv54["criterios"] for s in c["subcriterios"]}

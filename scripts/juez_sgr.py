@@ -186,7 +186,18 @@ def validate_rubric(rubric) -> list[str]:
     for minimum in eligibility.get("minimos") or []:
         if minimum.get("criterio") not in criterion_ids:
             errors.append(f"Mínimo sobre un criterio inexistente: {minimum.get('criterio')}.")
+    for key in ("minimos_talento", "minimo_productos"):
+        if key in rubric and not _valid_minimums(rubric[key]):
+            errors.append(f"{key} debe ser una lista de {{categoria, cantidad entera, texto}} (texto literal del TdR).")
     return errors
+
+
+def _valid_minimums(value) -> bool:
+    """Optional talent and product minimums of the call (read by scripts/productos_sgr.py)."""
+    return isinstance(value, list) and all(
+        isinstance(m, dict) and isinstance(m.get("categoria"), str) and m["categoria"]
+        and _is_int(m.get("cantidad")) and m["cantidad"] >= 0
+        and isinstance(m.get("texto"), str) and m["texto"] for m in value)
 
 
 def _validate_subcriterion(sub: dict, families: set[str] | None) -> list[str]:

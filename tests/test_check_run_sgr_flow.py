@@ -25,12 +25,16 @@ from test_alianza_territorio_sgr import _alliance, _territory  # noqa: E402
 from test_cadena_valor_sgr import TREE, _valid_chain  # noqa: E402
 from test_componentes_sgr import _components  # noqa: E402
 from test_presupuesto_sgr import _budget  # noqa: E402
+from test_productos_sgr import _productos  # noqa: E402
 
 CHECK = REPO / "scripts" / "check_run.py"
-NEW_PREFIXES = ("cadena-", "sgr-estilo-", "alianza-", "territorio-", "presupuesto-", "cronograma-", "componentes-")
+NEW_PREFIXES = ("cadena-", "sgr-estilo-", "alianza-", "territorio-", "presupuesto-", "cronograma-", "componentes-",
+                "productos-")
 BUDGET_HEADER = "% GENERADO por scripts/presupuesto_sgr.py"
 COMPONENTS_HEADER = "% GENERADO por scripts/componentes_sgr.py"
 COMPONENT_STEMS = ("31_trl", "32_sostenibilidad", "33_uso_posterior", "34_transferencia", "35_medidas_diferenciales")
+PRODUCTS_HEADER = "% GENERADO por scripts/productos_sgr.py"
+PRODUCT_STEMS = ("36_talento_humano", "37_indicadores")
 
 STUB_CRONOGRAMA = '''
 def findings(run_root):
@@ -162,6 +166,26 @@ class Base(unittest.TestCase):
             self.assertEqual(_findings_final(run, "base"), before_final)
             (run / "artefactos" / "sgr" / "componentes.json").unlink()
             self.assertEqual(_findings(run, "base"), before)
+
+    def test_base_run_ignores_the_products(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            run = _make_run(Path(tmp))
+            sections = run / "redaccion" / "sections"
+            (sections / "15_productos_esperados.tex").write_text("\\section{Productos}\nA mano.\n", encoding="utf-8")
+            before = _findings(run, "base")
+            before_final = _findings_final(run, "base")
+            products = _productos()
+            products["talento"][0]["entidad"] = "E99"
+            products["divulgacion"] = None
+            _write_sgr(run, "productos.json", products)
+            for stem in PRODUCT_STEMS:
+                (sections / f"{stem}.tex").write_text("\\section{A mano}\nTexto.\n", encoding="utf-8")
+            (run / "artefactos" / "estado_propuesta.md").write_text("| GProductos | APROBADA |\n", encoding="utf-8")
+            self.assertEqual(_findings(run, "base"), before)
+            self.assertEqual(_findings_final(run, "base"), before_final)
+            (run / "artefactos" / "sgr" / "productos.json").unlink()
+            self.assertEqual(_findings(run, "base"), before)
+            self.assertEqual(_findings_final(run, "base"), before_final)
 
     def test_base_run_never_calls_the_style_module(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -494,6 +518,88 @@ class SgrComponents(unittest.TestCase):
     def test_final_sgr_run_requires_the_component_sections(self) -> None:
         missing = [f["message"] for f in _findings_final(self.run, "sgr") if f["code"] == "sgr-anexo-faltante"]
         for stem in COMPONENT_STEMS:
+            self.assertTrue(any(stem in m for m in missing), stem)
+
+
+class SgrProducts(unittest.TestCase):
+    """S3/S4: product findings, the absence of productos.json after GProductos, sections 36 and 37 and the SGR §15."""
+
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.run = _make_run(self.tmp)
+        self.sections = self.run / "redaccion" / "sections"
+        _write_chain(self.run, _valid_chain())
+        _write_sgr(self.run, "alianza.json", _alliance())
+
+    def generated(self, stem: str) -> Path:
+        tex = self.sections / f"{stem}.tex"
+        tex.write_text(f"{PRODUCTS_HEADER}\n\\section{{Generada}}\n", encoding="utf-8")
+        return tex
+
+    def test_product_findings_are_included_with_their_file(self) -> None:
+        products = _productos()
+        products["talento"][0]["actividades"] = ["9.9.9"]
+        _write_sgr(self.run, "productos.json", products)
+        hit = next(f for f in _findings(self.run, "sgr") if f["code"] == "productos-actividad-desconocida")
+        self.assertEqual((hit["severity"], hit["file"], hit["node"]),
+                         ("error", "artefactos/sgr/productos.json", "talento[1]"))
+
+    def test_clean_products_add_nothing(self) -> None:
+        _write_sgr(self.run, "productos.json", _productos())
+        self.assertFalse([c for c in _codes(_findings(self.run, "sgr")) if c.startswith("productos-")])
+
+    def test_missing_products_warn_only_past_gproductos(self) -> None:
+        estado = self.run / "artefactos" / "estado_propuesta.md"
+        self.assertNotIn("productos-datos-faltantes", _codes(_findings(self.run, "sgr")))
+        estado.write_text("| GProductos | PENDIENTE |\n", encoding="utf-8")
+        self.assertNotIn("productos-datos-faltantes", _codes(_findings(self.run, "sgr")))
+        estado.write_text("| Compuerta | Estado |\n|---|---|\n| GProductos | APROBADA |\n", encoding="utf-8")
+        self.assertIn("productos-datos-faltantes", _codes(_findings(self.run, "sgr"), "warning"))
+
+    def test_hand_written_talent_or_indicator_section_is_an_error(self) -> None:
+        for stem in PRODUCT_STEMS:
+            (self.sections / f"{stem}.tex").write_text("\\section{A mano}\nTexto.\n", encoding="utf-8")
+        hit = [f for f in _findings(self.run, "sgr") if f["code"] == "productos-anexo-manual"]
+        self.assertEqual([(f["severity"], f["file"]) for f in hit],
+                         [("error", "redaccion/sections/36_talento_humano.tex"),
+                          ("error", "redaccion/sections/37_indicadores.tex")])
+
+    def test_hand_written_section_15_is_an_error_only_with_the_json(self) -> None:
+        (self.sections / "15_productos_esperados.tex").write_text("\\section{Productos}\nA mano.\n",
+                                                                   encoding="utf-8")
+        self.assertNotIn("productos-anexo-manual", _codes(_findings(self.run, "sgr")))
+        _write_sgr(self.run, "productos.json", _productos())
+        hit = [f for f in _findings(self.run, "sgr") if f["code"] == "productos-anexo-manual"]
+        self.assertEqual([f["file"] for f in hit], ["redaccion/sections/15_productos_esperados.tex"])
+
+    def test_section_older_than_its_data_is_an_error(self) -> None:
+        data = _write_sgr(self.run, "productos.json", _productos())
+        texs = [self.generated(stem) for stem in PRODUCT_STEMS + ("15_productos_esperados",)]
+        self.assertFalse([c for c in _codes(_findings(self.run, "sgr")) if c.startswith("productos-anexo")])
+        stamp = max(t.stat().st_mtime for t in texs)
+        os.utime(data, (stamp + 10, stamp + 10))
+        found = [f for f in _findings(self.run, "sgr") if f["code"] == "productos-anexo-desactualizado"]
+        self.assertEqual({f["file"].rsplit("/", 1)[-1] for f in found},
+                         {f"{s}.tex" for s in PRODUCT_STEMS + ("15_productos_esperados",)})
+        os.utime(data, (stamp - 10, stamp - 10))
+        os.utime(self.run / "artefactos" / "sgr" / "cadena_valor.json", (stamp - 10, stamp - 10))
+        alliance = self.run / "artefactos" / "sgr" / "alianza.json"
+        os.utime(alliance, (stamp + 10, stamp + 10))
+        found = [f for f in _findings(self.run, "sgr") if f["code"] == "productos-anexo-desactualizado"]
+        self.assertEqual(sorted(f["file"].rsplit("/", 1)[-1] for f in found),
+                         ["15_productos_esperados.tex", "36_talento_humano.tex"])
+
+    def test_a_broken_products_module_is_a_warning(self) -> None:
+        _write_sgr(self.run, "productos.json", _productos())
+        check = _isolated_check(self.tmp, with_stub=False,
+                                extra={"productos_sgr.py": "def findings(run_root):\n    raise RuntimeError('x')\n"})
+        self.assertIn("productos-no-verificable", _codes(_findings(self.run, "sgr", check), "warning"))
+
+    def test_final_sgr_run_requires_the_talent_and_indicator_sections(self) -> None:
+        missing = [f["message"] for f in _findings_final(self.run, "sgr") if f["code"] == "sgr-anexo-faltante"]
+        for stem in PRODUCT_STEMS:
             self.assertTrue(any(stem in m for m in missing), stem)
 
 

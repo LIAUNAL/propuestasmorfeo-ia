@@ -34,7 +34,10 @@ go in METODOLOGÍA PARA DESARROLLAR LA ALTERNATIVA SELECCIONADA (31_trl, as 14.1
 and 14.2), SOSTENIBILIDAD SOCIAL Y AMBIENTAL (32_sostenibilidad), RESULTADOS E
 IMPACTOS (33_uso_posterior, as 17.1), COMPONENTE TRANSVERSAL DE TRANSFERENCIA
 (34_transferencia) and PRODUCTOS ESPERADOS (35_medidas_diferenciales, as
-21.1). The base flow body does not change.
+21.1); the sections of scripts/productos_sgr.py go in VINCULACIÓN DE TALENTO
+HUMANO (36_talento_humano, with the profiles of 12.4) and INDICADORES DE
+GESTIÓN (37_indicadores, which also opens INDICADORES DE PRODUCTO when that
+chapter follows with no file of its own). The base flow body does not change.
 
 The body carries the structure hash, which scripts/check_run.py compares to
 flag a main.tex assembled from an older structure.
@@ -61,8 +64,8 @@ HASH_PREFIX = "% estructura_tdr sha256: "
 NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
 ROW_RE = re.compile(r"^\|\s*(\d+)\b[^|]*\|")
 FILE_RE = re.compile(r"`([A-Za-z0-9_]+)\.tex`")
-# SGR sections (scripts/alianza_territorio_sgr.py, scripts/presupuesto_sgr.py, scripts/componentes_sgr.py)
-# and the TDR chapter title that holds each one.
+# SGR sections (scripts/alianza_territorio_sgr.py, scripts/presupuesto_sgr.py, scripts/componentes_sgr.py,
+# scripts/productos_sgr.py) and the TDR chapter title that holds each one.
 SGR_CHAPTER_SECTIONS = (
     ("26_identificacion", re.compile(r"identificaci[óo]n\s+del\s+proyecto", re.I)),
     ("27_demandas_territoriales", re.compile(r"demandas\s+territoriales", re.I)),
@@ -74,6 +77,8 @@ SGR_CHAPTER_SECTIONS = (
     ("33_uso_posterior", re.compile(r"resultados\s+e\s+impactos", re.I)),
     ("34_transferencia", re.compile(r"\btransferencia\b", re.I)),
     ("35_medidas_diferenciales", re.compile(r"productos\s+esperados", re.I)),
+    ("36_talento_humano", re.compile(r"vinculaci[óo]n\s+de\s+talento\s+humano", re.I)),
+    ("37_indicadores", re.compile(r"indicadores\s+de\s+gesti[óo]n", re.I)),
 )
 
 

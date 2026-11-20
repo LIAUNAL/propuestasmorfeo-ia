@@ -743,6 +743,33 @@
         "motivo": "El nombre del producto no incluye su condición; el participio solo va en el indicador o si es parte del nombre del catálogo («Infraestructura para la I+D+i dotada»).",
         "fuente": "L15; Manual conceptual MGA 2015, p. 81; guía SGR §15",
         "aplica_a": "tabla"
+      },
+      {
+        "id": "productos-apertura",
+        "tipo": "favorecida",
+        "expresion": "El proyecto entregará <nombre y código del catálogo>…; los productos de CTeI con su tipo, categoría y producto de la cadena de valor",
+        "regex": "\\bel\\s+proyecto\\s+entregar[áa]\\b",
+        "motivo": "Futuro de compromiso y nombres literales del catálogo; los productos de CTeI se listan con su tipología.",
+        "fuente": "Guía SGR §15; patrones SGR cap. 21",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "productos-divulgacion-publico-generico",
+        "tipo": "desaconsejada",
+        "expresion": "público en general, la comunidad en general (como público de la divulgación)",
+        "regex": "\\b(el\\s+)?p[úu]blico\\s+en\\s+general\\b|\\bla\\s+comunidad\\s+en\\s+general\\b",
+        "motivo": "La estrategia de divulgación nombra sus públicos, medios, productos, responsable y cronograma (criterio 2.5 B).",
+        "fuente": "TdR Conv 54 criterio 2.5 B",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "productos-minimo-como-adicional",
+        "tipo": "desaconsejada",
+        "expresion": "contar como adicionales los productos que el talento entrega por las orientaciones de vinculación",
+        "regex": null,
+        "motivo": "«Los productos exigidos en el numeral 10 no otorgan puntaje»: solo los productos por encima del mínimo suman en el criterio 2.5 A.",
+        "fuente": "TdR Conv 54 criterio 2.5, nota",
+        "aplica_a": "tabla"
       }
     ],
     "17_articulacion_comunidades": [
@@ -1358,6 +1385,73 @@
         "fuente": "Rúbrica Conv 54 4.4",
         "aplica_a": "prosa"
       }
+    ],
+    "36_talento_humano": [
+      {
+        "id": "talento-humano-apertura",
+        "tipo": "favorecida",
+        "expresion": "El equipo de formación del proyecto integra la cadena de formación de los términos de referencia…; Todos se vinculan como sujetos activos de la investigación, con actividades, meses y productos definidos…",
+        "regex": "\\b(cadena\\s+de\\s+formaci[óo]n|sujetos\\s+activos\\s+de\\s+la\\s+investigaci[óo]n)\\b",
+        "motivo": "Aperturas del proyecto de referencia, en tercera persona, atadas a la tabla de perfiles.",
+        "fuente": "Patrones SGR cap. 20; proyecto de referencia, cap. 20",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "talento-humano-categorias-oficiales",
+        "tipo": "prohibida",
+        "expresion": "jóvenes talentos, semilleristas (por las categorías oficiales)",
+        "regex": "\\b(j[óo]venes\\s+talentos|semilleristas?)\\b",
+        "motivo": "Las categorías de la cadena de formación se nombran como en el TdR («Jóvenes Investigadores e Innovadores», «Estudiantes de maestría», «Doctor en estancia posdoctoral»).",
+        "fuente": "Patrones SGR cap. 20; TdR Conv 54 numeral 10",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "talento-humano-duplicar-perfiles",
+        "tipo": "desaconsejada",
+        "expresion": "repetir en prosa la tabla de perfiles (cap. 12.4)",
+        "regex": null,
+        "motivo": "R6: en la referencia los caps. 20 y 12.4 comparten 161 6-gramas; la prosa remite a la tabla y no la copia.",
+        "fuente": "Patrones SGR cap. 20; R6",
+        "aplica_a": "prosa"
+      },
+      {
+        "id": "talento-humano-sin-producto",
+        "tipo": "desaconsejada",
+        "expresion": "perfil sin actividades, meses ni producto final",
+        "regex": null,
+        "motivo": "Cada integrante se vincula «con responsabilidades definidas» y entrega un producto final.",
+        "fuente": "TdR Conv 54 numerales 10 a 10.3",
+        "aplica_a": "tabla"
+      }
+    ],
+    "37_indicadores": [
+      {
+        "id": "indicadores-fila-supervision",
+        "tipo": "favorecida",
+        "expresion": "Informes de supervisión del proyecto | Número / <n> | Trimestral; Informes técnicos y financieros | Número / <n> | Trimestral",
+        "regex": "\\b(informes?\\s+de\\s+supervisi[óo]n|trimestral(es)?)\\b",
+        "motivo": "Fila base de la plantilla y de la referencia: informes de supervisión y técnico-financieros trimestrales.",
+        "fuente": "Plantilla Anexo 2 cap. 24; patrones SGR cap. 24",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "indicadores-periodicidad-vaga",
+        "tipo": "prohibida",
+        "expresion": "periódicamente, cuando se requiera, según se requiera (en lugar de la periodicidad)",
+        "regex": "\\b(peri[óo]dicamente|de\\s+manera\\s+peri[óo]dica|cuando\\s+se\\s+requiera|seg[úu]n\\s+se\\s+requiera)\\b",
+        "motivo": "«Deben presentarse informes de gestión trimestrales, es decir al menos cuatro informes por cada periodo estimado en la MGA».",
+        "fuente": "Plantilla Anexo 2 Conv 56 cap. 24",
+        "aplica_a": "tabla"
+      },
+      {
+        "id": "indicadores-producto-reescrito",
+        "tipo": "desaconsejada",
+        "expresion": "indicadores de producto distintos de los de la cadena de valor",
+        "regex": null,
+        "motivo": "Los indicadores de producto se leen de la cadena de valor (código DNP, indicador, unidad y meta) y no se reescriben.",
+        "fuente": "Patrones SGR cap. 25; Instructivo MGA 2023, p. 108",
+        "aplica_a": "tabla"
+      }
     ]
   },
   "exenciones": [
@@ -1442,6 +1536,11 @@
       "tipo": "entidades",
       "fuente": "artefactos/sgr/alianza.json (entidades[].nombre y grupos[].nombre)",
       "motivo": "Nombres oficiales de las entidades y los grupos: idénticos en la identificación, la matriz, la idoneidad y las cartas."
+    },
+    {
+      "tipo": "talento_y_productos_ctei",
+      "fuente": "artefactos/sgr/productos.json (talento[].perfil, productos_ctei[].subtipo y divulgacion.productos[])",
+      "motivo": "Perfiles del talento y productos de CTeI y de divulgación: idénticos en §36, §15, el equipo de trabajo y el presupuesto."
     }
   ],
   "redundancia": {
@@ -1567,7 +1666,8 @@
       "secciones": [
         "06_objetivo_general",
         "07_objetivos_especificos",
-        "09_equipo_trabajo"
+        "09_equipo_trabajo",
+        "36_talento_humano"
       ]
     },
     {
@@ -1625,7 +1725,7 @@
       "capitulo": 20,
       "titulo": "VINCULACIÓN DE TALENTO HUMANO",
       "secciones": [
-        "09_equipo_trabajo"
+        "36_talento_humano"
       ]
     },
     {
@@ -1648,6 +1748,20 @@
       "titulo": "ANÁLISIS DE RIESGOS",
       "secciones": [
         "24_riesgos"
+      ]
+    },
+    {
+      "capitulo": 24,
+      "titulo": "INDICADORES DE GESTIÓN",
+      "secciones": [
+        "37_indicadores"
+      ]
+    },
+    {
+      "capitulo": 25,
+      "titulo": "INDICADORES DE PRODUCTO",
+      "secciones": [
+        "37_indicadores"
       ]
     },
     {
@@ -1681,16 +1795,6 @@
     }
   ],
   "capitulos_sin_archivo": [
-    {
-      "capitulo": 24,
-      "titulo": "INDICADORES DE GESTIÓN",
-      "nota": "Tabla Indicador | Medida / meta | Fecha de entrega; informes de supervisión trimestrales."
-    },
-    {
-      "capitulo": 25,
-      "titulo": "INDICADORES DE PRODUCTO",
-      "nota": "Tabla del catálogo coherente con productos esperados; sin prosa."
-    },
     {
       "capitulo": 28,
       "titulo": "ANÁLISIS DE LICENCIAS Y PERMISOS",

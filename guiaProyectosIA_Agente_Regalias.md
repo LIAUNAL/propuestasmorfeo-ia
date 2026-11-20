@@ -432,25 +432,51 @@ tres meses seguidos sin un hito verificable.
 
 ### SGR §15
 
-Cada producto se toma del catálogo de productos del DNP, con su indicador de
-producto, unidad y meta (Instructivo MGA 2023, p. 108). El nombre del producto no
-incluye «elaborado», «implementado» ni «entregado», y no se confunde con la
-población, las actividades ni los insumos (Instructivo MGA 2023, p. 64). Los
-productos de CTeI que exija el TDR se listan además con su tipología.
+En el flujo SGR, §15 (`15_productos_esperados.tex`, Anexo 2 cap. 21) no se
+redacta a mano cuando existe `artefactos/sgr/productos.json`: lo genera
+`python3 scripts/productos_sgr.py render <RUN_ROOT>` con la cabecera
+`% GENERADO`. Los productos por objetivo salen de la cadena de valor: cada
+producto se toma del catálogo de productos del DNP, con su código
+(`^39\d{5}$`), su indicador de producto, unidad y meta (Instructivo MGA 2023, p.
+108); `check` avisa cuando a un producto le falta alguno de ellos. El nombre del
+producto no incluye «elaborado», «implementado» ni «entregado», y no se confunde
+con la población, las actividades ni los insumos (Instructivo MGA 2023, p. 64).
+Siguen los productos de CTeI del bloque `productos_ctei` (tipo, subtipo,
+categoría, cantidad, producto de la cadena y si es adicional al mínimo de la
+convocatoria) y la estrategia de divulgación pública de la ciencia del bloque
+`divulgacion` (públicos, medios, productos, responsable, cronograma y si está
+costeada). `check` exige el mínimo de productos de CTeI que fija la rúbrica
+(`minimo_productos`, por integrante del talento) y calcula la vista previa del
+criterio 2.5 de la Convocatoria 54: los productos del mínimo no suman; los
+adicionales sí (tres o más con dos TOP o A, 3 puntos; dos con uno TOP o A, 2;
+uno, 1), y la divulgación completa y costeada vale 2 (incompleta, 1).
+`investigador` escribe los productos de CTeI y la estrategia de divulgación;
+`redactor`, su `introduccion`. Una corrida SGR anterior sin `productos.json`
+conserva su §15 escrito a mano. En el flujo base §15 sigue la guía base.
 
-**Redacción.** (Anexo 2, cap. 21.)
+**Redacción.** (Anexo 2, cap. 21; rúbrica 2.5.) Rige la `introduccion` de la
+divulgación y los textos de los productos de CTeI.
 
-* Apertura: una frase de entrada a la tabla.
+* Apertura: «El proyecto entregará…» con el nombre del catálogo; para la
+  divulgación, «La estrategia de divulgación pública de la ciencia acercará
+  <resultado> a <público>, mediante <medio>…».
 * Favorecer: el nombre y el código del catálogo, literales («3906012
   Documentos de investigación»), con su indicador («Documentos de
-  investigación elaborados»): en el indicador el participio es oficial.
+  investigación elaborados»): en el indicador el participio es oficial; cada
+  producto de CTeI con su tipo, categoría y producto de la cadena; públicos y
+  medios con nombre propio.
 * Evitar: «elaborado», «implementado» o «entregado» en el nombre del
-  producto; productos inventados, repetidos o de más de un programa; medidas
-  diferenciales sin indicador; «se espera» para productos.
+  producto; productos inventados, repetidos o de más de un programa; contar
+  como adicionales los productos del mínimo de la convocatoria; «público en
+  general» como destinatario de la divulgación; «se espera» para productos.
 * Tiempo: futuro de compromiso en la prosa («El proyecto entregará…»).
-* Extensión: prosa mínima.
-* Tabla: `Programa | Producto | Medido a través de | Indicador de producto |
-  Unidad de medida`.
+* Extensión: introducción de la divulgación de 60 a 150 palabras; el resto va
+  en las tablas.
+* Tablas (generadas): `Programa | Producto | Medido a través de | Indicador de
+  producto | Unidad de medida | Descripción`, agrupada por objetivo
+  específico; `Tipo | Subtipo | Categoría | Cantidad | Producto de la cadena |
+  Compromiso | Descripción`; `Públicos | Medios | Productos | Responsable |
+  Costeada`; `Mes | Acción`.
 
 ### SGR §17
 
@@ -520,8 +546,8 @@ verificación y mes. En el flujo base §18 sigue la guía base.
 Cada anexo es un archivo de `redaccion/sections/` que `main.tex` incluye después
 de §18 y antes de la bibliografía. Los redacta `redactor`, salvo los que se
 generan desde datos: A23 (`cadena_valor.json`), A26 a A28 (`alianza.json` y
-`territorio.json`), A30 (`presupuesto.json`, con §13) y A31 a A35
-(`componentes.json`, con §18).
+`territorio.json`), A30 (`presupuesto.json`, con §13), A31 a A35
+(`componentes.json`, con §18) y A36 y A37 (`productos.json`, con §15).
 Las tablas usan `xltabular`; la prosa sigue `estilo-natural-es` con los
 ajustes de la skill `estilo-sgr`.
 
@@ -1015,6 +1041,77 @@ TdR entra como subsección del capítulo «PRODUCTOS ESPERADOS».
 * Extensión: introducción de 60 a 150 palabras.
 * Tabla (generada): `Barrera | Población | Medida | Actividades | Indicador |
   Meta | Evidencia`.
+
+### SGR A36
+
+`36_talento_humano.tex`, «Vinculación de talento humano» (Anexo 2 Conv 54, cap.
+20) con la «Descripción de perfiles, actividades y plan de trabajo del talento
+humano a vincular» (cap. 12.4). Fuente: el bloque `talento` de
+`artefactos/sgr/productos.json` (categoría, cantidad, entidad que vincula,
+perfil, formación y experiencia, actividades de la cadena de valor, duración,
+valor mensual y producto final). Lo genera
+`python3 scripts/productos_sgr.py render <RUN_ROOT>` con la cabecera
+`% GENERADO`; con `artefactos/estructura_tdr.json` abre el capítulo
+«VINCULACIÓN DE TALENTO HUMANO» (o entra como subsección cuando otro archivo lo
+abre). `check` exige los mínimos de la convocatoria que copia la rúbrica
+(`minimos_talento`; Conv 54 y Conv 56: «Un (1) doctor para la realización de
+una estancia posdoctoral», «Dos (2) estudiantes de maestría en modalidad de
+investigación», «Seis (6) jóvenes investigadores e innovadores») y avisa cuando
+el talento con valor y duración no coincide con un ítem de talento humano de la
+misma entidad en `presupuesto.json` (Fase 6.4). Debajo de la tabla, una línea
+compara lo vinculado con cada mínimo.
+
+**Redacción.** (Anexo 2, caps. 12.4 y 20; TdR numeral 10.) `redactor` escribe
+los perfiles: `perfil`, `formacion` y `producto_final` de cada integrante.
+
+* Apertura: «El equipo de formación del proyecto integra la cadena de
+  formación de los términos de referencia…»; «Todos se vinculan como sujetos
+  activos de la investigación, con actividades, meses y productos
+  definidos…».
+* Favorecer: las categorías oficiales del TdR («Jóvenes Investigadores e
+  Innovadores», «Estudiantes de maestría», «Doctor en estancia
+  posdoctoral»); el producto final que el TdR fija para cada categoría; las
+  actividades con su código, tal como figuran en la cadena de valor.
+* Evitar: renombrar las categorías («jóvenes talentos», «semilleristas»);
+  perfiles sin actividades, meses ni producto final; copiar en prosa la tabla
+  de perfiles (R6); vincular al doctor de la estancia posdoctoral con una
+  entidad de la alianza de la que sea empleado.
+* Tiempo: presente para los perfiles; futuro para las actividades.
+* Extensión: sin prosa propia; los textos van en las celdas.
+* Tablas (generadas): `Categoría | Cantidad | Entidad que vincula | Duración |
+  Valor mensual | Producto final`; `Perfil | Entidad que lo vincula |
+  Formación y experiencia | Actividades y meses | Producto final`.
+
+### SGR A37
+
+`37_indicadores.tex`, «Indicadores de gestión» e «Indicadores de producto»
+(Anexo 2 Conv 54, caps. 24 y 25). Fuente: el bloque `indicadores_gestion` de
+`artefactos/sgr/productos.json` (indicador, código, meta, unidad, fórmula, tipo
+de fuente y periodicidad) y, para los indicadores de producto, la cadena de
+valor (código DNP, indicador, unidad y meta de cada producto), que no se
+duplica. Lo genera `python3 scripts/productos_sgr.py render <RUN_ROOT>`; con la
+estructura del TdR abre «INDICADORES DE GESTIÓN» y, cuando el capítulo
+«INDICADORES DE PRODUCTO» le sigue sin archivo propio, también lo abre. `check`
+avisa cuando faltan los informes de supervisión o los informes técnicos y
+financieros con su periodicidad.
+
+**Redacción.** (Anexo 2, caps. 24 y 25; plantilla Conv 56.) `investigador`
+escribe los indicadores de gestión.
+
+* Apertura: sin prosa; la fila base es «Informes de supervisión del proyecto
+  | Número / <n> | Trimestral».
+* Favorecer: la periodicidad trimestral de la plantilla («al menos cuatro
+  informes por cada periodo estimado en la MGA»); fórmulas verificables
+  («Informes entregados / informes programados»); el tipo de fuente con su
+  documento.
+* Evitar: «periódicamente», «cuando se requiera» o «según se requiera» en
+  lugar de la periodicidad; indicadores de producto distintos de los de la
+  cadena de valor; metas sin unidad.
+* Tiempo: nominal en las celdas.
+* Extensión: sin prosa; solo las tablas.
+* Tablas (generadas): `Indicador | Medida/Meta | Código | Fórmula | Tipo de
+  fuente | Periodicidad`; `Producto | Código DNP | Indicador de producto |
+  Unidad de medida | Meta`.
 
 ---
 

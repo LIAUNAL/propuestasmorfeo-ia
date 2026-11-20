@@ -54,6 +54,40 @@
     "diferencia": 30,
     "promedio_min": 75
   },
+  "minimos_talento": [
+    {
+      "categoria": "posdoctorado",
+      "cantidad": 1,
+      "texto": "Un (1) doctor para la realización de una estancia posdoctoral."
+    },
+    {
+      "categoria": "maestria",
+      "cantidad": 2,
+      "texto": "Dos (2) estudiantes de maestría en modalidad de investigación."
+    },
+    {
+      "categoria": "joven_investigador",
+      "cantidad": 6,
+      "texto": "Seis (6) jóvenes investigadores e innovadores (pueden ser estudiantes de pregrado o profesionales recién graduados)."
+    }
+  ],
+  "minimo_productos": [
+    {
+      "categoria": "joven_investigador",
+      "cantidad": 1,
+      "texto": "Cada joven entregará como producto final un artículo en autoría o coautoría, en formato publicable en revista A1, A2, B o C de Publindex o su homologación, y un (1) producto de divulgación pública de la ciencia."
+    },
+    {
+      "categoria": "maestria",
+      "cantidad": 1,
+      "texto": "Cada estudiante presentará un producto tipo TOP o tipo A (sometido a evaluación o publicado) de generación de nuevo conocimiento o desarrollo tecnológico e innovación, y un producto de divulgación pública de la ciencia."
+    },
+    {
+      "categoria": "posdoctorado",
+      "cantidad": 2,
+      "texto": "El doctor acompañará y asesorará a los jóvenes investigadores e innovadores y a los estudiantes de maestría vinculados, y entregará dos (2) productos tipo TOP o tipo A, un producto de divulgación pública de la ciencia y un informe técnico final."
+    }
+  ],
   "notas": [
     "El TdR de la Convocatoria 54 no fija la extensión de la justificación ni del concepto final; Morfeo usa los valores por defecto del formato M801PR02 (justificación de 1000 a 4000 caracteres, concepto de al menos 300 palabras con «Recomienda»).",
     "Para integrar el banco especial de proyectos elegibles, la propuesta deberá obtener un puntaje final igual o superior a setenta y cinco (75) puntos sobre cien (100) y mínimo veinticuatro (24) puntos de los cuarenta (40) correspondientes al criterio 1. El cumplimiento del puntaje total no compensará el incumplimiento de este mínimo técnico.",
@@ -110,7 +144,8 @@
             "10_metodologia",
             "14_cronograma_actividades",
             "22_alternativas",
-            "23_cadena_valor"
+            "23_cadena_valor",
+            "37_indicadores"
           ],
           "agentes": [
             "investigador",
@@ -156,7 +191,8 @@
             "10_metodologia",
             "04_estado_arte",
             "09_equipo_trabajo",
-            "11_resultados_esperados"
+            "11_resultados_esperados",
+            "36_talento_humano"
           ],
           "agentes": [
             "investigador",
@@ -519,6 +555,7 @@
           "familia": "productos_divulgacion",
           "evidencia": [
             "15_productos_esperados",
+            "36_talento_humano",
             "18_apropiacion_social",
             "13_presupuesto",
             "14_cronograma_actividades"
