@@ -28,6 +28,13 @@ from ..core.alliance import approve as approve_alliance, build_adjust_prompt as 
 from ..core.budget import approve as approve_budget, build_adjust_prompt as build_budget_prompt, load_budget
 from ..core.components import approve as approve_components, build_adjust_prompt as build_components_prompt, load_components
 from ..core.products import approve as approve_products, build_adjust_prompt as build_products_prompt, load_products
+from ..core.requirements import (
+    MAX_BODY_BYTES as REQUIREMENTS_MAX_BODY,
+    approve as approve_requirements,
+    build_adjust_prompt as build_requirements_prompt,
+    load_requirements,
+    update_item as update_requirement,
+)
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -174,6 +181,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_components()
         elif path == "/api/products":
             self.serve_products()
+        elif path == "/api/requirements":
+            self.serve_requirements()
         elif path == "/api/style-sgr":
             self.serve_style_sgr()
         else:
@@ -221,6 +230,12 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_products_approve()
         elif path == "/api/products/adjust":
             self.handle_products_adjust()
+        elif path == "/api/requirements/approve":
+            self.handle_requirements_approve()
+        elif path == "/api/requirements/adjust":
+            self.handle_requirements_adjust()
+        elif path == "/api/requirements/item":
+            self.handle_requirements_item()
         else:
             self.send_error(404, "Not Found")
 
@@ -887,6 +902,83 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {"ok": False, "error": str(err)})
             return
         self._send_json(200, {"ok": True, "prompt": prompt})
+
+    # Requisitos, licencias y cifras de los anexos (solo flujo SGR), con las convenciones de los
+    # productos y un tope al cuerpo de los POST: una edición en línea es un puñado de campos.
+    def _read_requirements_body(self) -> tuple[dict[str, Any] | None, bool]:
+        """(payload, demasiado_grande). Un cuerpo por encima del tope se descarta sin guardarse."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+        except (TypeError, ValueError):
+            return None, False
+        if length > REQUIREMENTS_MAX_BODY:
+            # Se descarta por trozos, sin guardarlo, para que el cliente reciba el 413
+            # en vez de un reinicio de la conexión; la conexión se cierra después.
+            remaining = min(length, 64 * REQUIREMENTS_MAX_BODY)
+            while remaining > 0:
+                chunk = self.rfile.read(min(remaining, REQUIREMENTS_MAX_BODY))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+            self.close_connection = True
+            return None, True
+        return self._read_json_body(), False
+
+    def _requirements_body_or_error(self) -> tuple[dict[str, Any] | None, Path | None]:
+        payload, too_large = self._read_requirements_body()
+        if too_large:
+            self._send_json(413, {"ok": False, "error": f"El cuerpo supera {REQUIREMENTS_MAX_BODY // 1024} KB."})
+            return None, None
+        run_dir = self._active_run_dir()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return None, None
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return None, None
+        return payload, run_dir
+
+    def serve_requirements(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_requirements(run_dir)})
+
+    def handle_requirements_approve(self) -> None:
+        payload, run_dir = self._requirements_body_or_error()
+        if run_dir is None:
+            return
+        result = approve_requirements(run_dir, str(payload.get("hash") or "") or None)
+        self._send_json(200 if result.get("ok") else 409, result)
+
+    def handle_requirements_adjust(self) -> None:
+        payload, run_dir = self._requirements_body_or_error()
+        if run_dir is None:
+            return
+        try:
+            prompt = build_requirements_prompt(run_dir, payload.get("nota"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
+
+    def handle_requirements_item(self) -> None:
+        payload, run_dir = self._requirements_body_or_error()
+        if run_dir is None:
+            return
+        try:
+            result = update_requirement(run_dir, payload)
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        except Exception as err:
+            self._send_json(500, {"ok": False, "error": f"No se pudo guardar el requisito: {err}"})
+            return
+        if not result.get("ok"):
+            self._send_json(409, result)
+            return
+        self._send_json(200, {"run": run_dir.name, **result})
 
     def serve_style_sgr(self) -> None:
         run_dir = self._active_run_dir()

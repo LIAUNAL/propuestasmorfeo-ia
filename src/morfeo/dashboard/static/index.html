@@ -587,6 +587,14 @@
     .pr-check.is-missing { border-left-color: var(--bad); }
     .pr-check__head { font-weight: 600; color: var(--text); }
     .pr-check__detail { color: var(--text-muted); margin-top: 0.15rem; }
+    /* Requisitos y anexos SGR: barra de progreso y campos editables en línea. */
+    .rq-progress { margin: 0.4rem 0 0.7rem; font-size: 0.8rem; color: var(--text); }
+    .rq-progress__bar { height: 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-subtle); overflow: hidden; margin-top: 0.3rem; }
+    .rq-progress__bar span { display: block; height: 100%; background: var(--ok); }
+    .rq-table td { min-width: 6rem; }
+    .rq-input { width: 100%; min-width: 6rem; font: inherit; font-size: 0.74rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.2rem 0.3rem; margin-top: 0.2rem; }
+    .rq-input--num { min-width: 8rem; }
+    .rq-detail { color: var(--text-muted); font-size: 0.72rem; margin-top: 0.15rem; }
     /* Juez final: puntaje estimado, criterios, alertas, acciones e historial. */
     .judge-intro { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
     .judge-feedback { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -3013,6 +3021,40 @@
       </div>
     </div>
 
+    <!-- TAB: REQUISITOS Y ANEXOS (solo flujo SGR; el botón se agrega con el flujo) -->
+    <div id="pane-requisitos" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Requisitos habilitantes y anexos: documentos del TdR, aval institucional, licencias y permisos, y coherencia de las cifras</div>
+          <span class="panel__meta" id="rqRunMeta">—</span>
+        </div>
+        <p class="judge-intro">Los requisitos habilitantes de la convocatoria con su condición, si aplican a este proyecto, el documento esperado y su estado; marca aquí el estado, la entidad responsable, el archivo, la fecha y la nota de cada uno. Debajo, la coherencia de las cifras entre el SIGP, el Anexo 1, el Anexo 3 y la MGA Web frente al presupuesto y la alianza, el análisis de licencias y permisos, y los documentos y plazos internos del aval institucional.</p>
+      </div>
+      <div class="tree-layout">
+        <div class="panel tree-stage">
+          <div id="rqContent"></div>
+        </div>
+        <aside class="panel tree-review" id="rqReviewPanel">
+          <div class="panel__header">
+            <div class="panel__title">Revisión con el agente</div>
+            <span class="badge" id="rqStatusBadge">—</span>
+          </div>
+          <div class="tree-review__body">
+            <p class="vc-review-note" id="rqHashNote"></p>
+            <label class="tree-label" for="rqNoteInput">Ajuste solicitado</label>
+            <textarea id="rqNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar el permiso de recolección de especímenes o corregir la justificación de la licencia ambiental"></textarea>
+            <p class="tree-gate-note" id="rqGateNote"></p>
+            <div class="tree-actions">
+              <button class="btn btn--sm btn--primary" id="rqSendBtn" onclick="sendRequirementsAdjust()">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="rqApproveBtn" onclick="approveRequirements()">✅ Aprobar requisitos y anexos</button>
+              <button class="btn btn--sm" id="rqRetryBtn" onclick="retryRequirementsPrompt()" style="display: none;">↻ Reintentar envío</button>
+            </div>
+            <p class="tree-message" id="rqMessage" role="status"></p>
+          </div>
+        </aside>
+      </div>
+    </div>
+
     <!-- TAB: MGA RESUMIDO -->
     <div id="pane-mga" class="tab-pane">
       <div class="panel">
@@ -3943,6 +3985,7 @@
       fase6_46: { label: 'Indicaciones para comunidades y apropiación', placeholder: 'Comunidades y aliados, estrategias de articulación, talleres o actividades de apropiación social del conocimiento…', panel: { tab: 'sections', label: 'Ver §17 y §18 en Secciones' } },
       fase6_47: { label: 'Indicaciones para los anexos MGA', placeholder: 'Planes de desarrollo con los que se alinea, participantes, población afectada y objetivo, alternativas, riesgos y metas del marco lógico…', panel: { tab: 'sections', label: 'Ver los anexos 19 a 25 en Secciones' } },
       fase6_5: { label: 'Indicaciones para el resumen', placeholder: 'Énfasis del resumen y del resumen ejecutivo, palabras clave que deben aparecer…', panel: { tab: 'sections', label: 'Ver el front-matter en Secciones' } },
+      fase6_9_sgr: { label: 'Indicaciones para requisitos y anexos', placeholder: 'Requisitos que ya tienes o que no aplican y por qué, entidad responsable de cada carta o certificado, licencias y permisos que exige el proyecto (norma y momento del trámite), cifras del SIGP, el Anexo 1, el Anexo 3 y la MGA Web…', panel: { tab: 'requisitos', label: 'Ver requisitos y anexos' } },
       fase7: { label: 'Indicaciones para la auditoría final', placeholder: 'Ajustes finales de forma o de fondo que la auditoría y el ensamble deben atender…', panel: { tab: 'preview', label: 'Revisar el PDF en Previsualización' } },
     };
 
@@ -7306,6 +7349,462 @@
       if (PR_STATE.pendingPrompt) await deliverProductsPrompt(PR_STATE.pendingPrompt);
     }
 
+    // ── Requisitos habilitantes, licencias y cifras SGR ─────────────────────
+    // Lee /api/requirements (la vista de scripts/requisitos_sgr.py sobre
+    // artefactos/sgr/requisitos.json: requisitos con su aplicabilidad, progreso,
+    // coherencia de cifras, licencias, aval institucional y hallazgos). Solo
+    // existe en el flujo SGR: el botón se agrega después de «Productos e
+    // indicadores» y, en el flujo base, la ruta directa avisa. El estado, el
+    // responsable, el archivo, la fecha, la nota y la justificación de cada
+    // requisito, y las cifras declaradas, se editan en línea con
+    // /api/requirements/item; la respuesta trae la vista recalculada.
+    const RQ_STATE = { data: null, sig: null, timer: null, pendingPrompt: null };
+    const RQ_ESTADOS = [
+      ['pendiente', 'Pendiente', 'warn'],
+      ['en_tramite', 'En trámite', 'info'],
+      ['listo', 'Listo', 'ok'],
+      ['no_aplica', 'No aplica', ''],
+    ];
+    const RQ_CONDICIONES = {
+      etica: 'Aval de ética',
+      internacional: 'Entidad internacional',
+      sector_productivo: 'Sector productivo',
+      sociedad_civil: 'Sociedad civil',
+      infraestructura: 'Infraestructura',
+      inmuebles: 'Inmuebles',
+      cofinanciacion: 'Cofinanciación',
+      desastre: 'Gestión del riesgo de desastres',
+      otro: 'Otra condición',
+    };
+    const RQ_DOCUMENTOS = { sigp: 'SIGP', anexo1: 'Anexo 1', anexo3: 'Anexo 3', mga: 'MGA Web' };
+    const RQ_CAMPOS = { total_sgr: 'Total SGR', total_contrapartida: 'Total contrapartida', total: 'Total', especie: 'En especie', efectivo: 'En efectivo' };
+    const RQ_MOMENTOS = { previo: 'Previo', ejecucion: 'Durante la ejecución' };
+    const RQ_TEXT_FIELDS = [
+      ['archivo', 'Archivo', 'insumos/requisitos/…'],
+      ['nota', 'Nota', ''],
+      ['justificacion', 'Justificación (no aplica)', ''],
+    ];
+
+    function rqMessage(text, tone) {
+      const el = document.getElementById('rqMessage');
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = `tree-message${tone ? ' is-' + tone : ''}`;
+    }
+
+    function rqEntity(id) {
+      if (id === null || id === undefined || id === '') return '—';
+      const name = cpObj(RQ_STATE.data && RQ_STATE.data.entidades)[String(id)];
+      return name ? `${escapeHtml(String(name))} <span class="vc-code">${escapeHtml(String(id))}</span>` : escapeHtml(String(id));
+    }
+
+    function rqAttr(v) {
+      return escapeHtml(v === null || v === undefined ? '' : String(v));
+    }
+
+    // Días de calendario entre hoy y `fecha` (YYYY-MM-DD); negativo si ya pasó.
+    function rqDaysLeft(fecha, today) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(fecha || ''));
+      if (!m) return null;
+      const now = today instanceof Date ? today : new Date();
+      const target = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      const base = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+      return Math.round((target - base) / 86400000);
+    }
+
+    function rqDaysLabel(days) {
+      if (days === null) return '—';
+      if (days > 1) return `Faltan ${days} días`;
+      if (days === 1) return 'Falta 1 día';
+      if (days === 0) return 'Hoy';
+      return `Vencido hace ${-days} día${days === -1 ? '' : 's'}`;
+    }
+
+    function syncRequirementsTab() {
+      const nav = document.querySelector('.tabs-nav');
+      if (!nav) return;
+      let btn = document.getElementById('requirementsTabBtn');
+      if (!isSgrFlujo()) {
+        if (btn) btn.remove();
+        return;
+      }
+      if (btn) return;
+      btn = document.createElement('button');
+      btn.id = 'requirementsTabBtn';
+      btn.className = `tab-nav__btn${activeTab === 'requisitos' ? ' active' : ''}`;
+      btn.setAttribute('onclick', "navigateTab('requisitos')");
+      btn.textContent = 'Requisitos y anexos';
+      const anchor = document.getElementById('productsTabBtn') || document.getElementById('componentsTabBtn')
+        || document.getElementById('budgetTabBtn') || document.getElementById('allianceTabBtn')
+        || document.getElementById('valueChainTabBtn')
+        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+      if (anchor) anchor.after(btn);
+      else nav.appendChild(btn);
+    }
+
+    async function loadRequirements() {
+      let data = null;
+      try {
+        const res = await fetch('/api/requirements', { cache: 'no-store' });
+        data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      } catch (err) {
+        RQ_STATE.data = null;
+        RQ_STATE.sig = null;
+        const el = document.getElementById('rqContent');
+        if (el) el.innerHTML = `<div class="tree-empty"><p>No se pudieron leer los requisitos y los anexos de la corrida activa.</p><small>${escapeHtml(err.message || String(err))}</small></div>`;
+        return;
+      }
+      rqSetData(data);
+    }
+
+    function rqSetData(data) {
+      RQ_STATE.data = data;
+      const sig = JSON.stringify(data);
+      if (sig !== RQ_STATE.sig) {
+        RQ_STATE.sig = sig;
+        renderRequirements();
+      }
+    }
+
+    function startRequirementsPolling() {
+      loadRequirements();
+      if (RQ_STATE.timer) return;
+      RQ_STATE.timer = setInterval(() => {
+        // No se repinta mientras se escribe en un campo de la tabla.
+        const focused = document.activeElement;
+        if (focused && focused.closest && focused.closest('#rqContent [data-field], #rqContent [data-cifra]')) return;
+        if (activeTab === 'requisitos' && !document.hidden) loadRequirements();
+      }, 5000);
+    }
+
+    function stopRequirementsPolling() {
+      if (RQ_STATE.timer) clearInterval(RQ_STATE.timer);
+      RQ_STATE.timer = null;
+    }
+
+    function rqProgressHtml(progreso) {
+      const p = cpObj(progreso);
+      const listos = vcNumber(p.listos) || 0;
+      const aplicables = vcNumber(p.aplicables) || 0;
+      const pct = aplicables > 0 ? Math.round((listos / aplicables) * 100) : 0;
+      return `<div class="rq-progress" id="rqProgreso" data-listos="${escapeHtml(String(listos))}" data-aplicables="${escapeHtml(String(aplicables))}">
+          <div class="rq-progress__label"><strong>${escapeHtml(String(listos))} de ${escapeHtml(String(aplicables))}</strong> requisitos aplicables listos (${escapeHtml(String(pct))} %)</div>
+          <div class="rq-progress__bar"><span style="width: ${escapeHtml(String(pct))}%"></span></div>
+        </div>`;
+    }
+
+    function rqEstadoBadge(estado) {
+      const found = RQ_ESTADOS.find(([key]) => key === estado);
+      if (!found) return `<span class="badge">${vcText(estado)}</span>`;
+      return `<span class="badge${found[2] ? ' badge--' + found[2] : ''}">${escapeHtml(found[1])}</span>`;
+    }
+
+    // Condición del TdR y aplicabilidad derivada de la alianza, el presupuesto y los componentes.
+    function rqApplicability(r) {
+      if (r.condicion === null || r.condicion === undefined || r.condicion === '') return '<span class="badge badge--ok">Siempre</span>';
+      const cond = prLabel(RQ_CONDICIONES, r.condicion);
+      const derived = r.aplica_derivada === true ? '<span class="badge badge--warn">Aplica (derivado)</span>'
+        : r.aplica_derivada === false ? '<span class="badge">No aplica (derivado)</span>'
+        : '<span class="badge badge--info">Lo decide el equipo</span>';
+      return `${cond}<br>${derived}`;
+    }
+
+    function rqSelect(field, value, options) {
+      return `<select class="rq-input" data-field="${field}" onchange="rqEditField(this)">${options.map(([v, label, disabled]) =>
+        `<option value="${rqAttr(v)}"${String(v) === String(value ?? '') ? ' selected' : ''}${disabled ? ' disabled' : ''}>${escapeHtml(label)}</option>`).join('')}</select>`;
+    }
+
+    function rqRequirementsHtml(rows) {
+      const list = vcList(rows);
+      if (!list.length) return '<p class="judge-empty">La rúbrica de la convocatoria no declara requisitos habilitantes.</p>';
+      const entidades = cpObj(RQ_STATE.data && RQ_STATE.data.entidades);
+      const responsables = [['', '—'], ...Object.keys(entidades).map(id => [id, `${entidades[id]} (${id})`])];
+      return `<div class="al-scroll"><table class="al-table rq-table"><thead><tr>
+          <th>Requisito</th><th>Condición y aplicabilidad</th><th>Documento esperado</th><th>Estado</th><th>Responsable</th>
+          <th>Archivo</th><th>Fecha</th><th>Nota</th><th>Justificación (no aplica)</th>
+        </tr></thead><tbody>${list.map(r => {
+          const conditional = !(r.condicion === null || r.condicion === undefined || r.condicion === '');
+          const estados = RQ_ESTADOS.map(([key, label]) => [key, label, key === 'no_aplica' && !conditional]);
+          const resp = r.responsable && !Object.prototype.hasOwnProperty.call(entidades, String(r.responsable))
+            ? [...responsables, [String(r.responsable), String(r.responsable)]] : responsables;
+          const text = ([field, , placeholder]) => `<input class="rq-input" type="text" data-field="${field}" value="${rqAttr(r[field])}" placeholder="${escapeHtml(placeholder)}" onchange="rqEditField(this)">`;
+          return `<tr data-id="${rqAttr(r.id)}" data-estado="${rqAttr(r.estado)}">
+            <td><code>${vcText(r.id)}</code> <strong>${vcText(r.nombre)}</strong>${r.texto ? `<div class="rq-detail">${escapeHtml(String(r.texto))}</div>` : ''}</td>
+            <td>${rqApplicability(r)}</td>
+            <td>${vcText(r.documento)}</td>
+            <td>${rqEstadoBadge(r.estado)}<br>${rqSelect('estado', r.estado || 'pendiente', estados)}</td>
+            <td>${rqSelect('responsable', r.responsable, resp)}</td>
+            <td>${text(RQ_TEXT_FIELDS[0])}</td>
+            <td><input class="rq-input" type="date" data-field="fecha" value="${rqAttr(r.fecha)}" onchange="rqEditField(this)"></td>
+            <td>${text(RQ_TEXT_FIELDS[1])}</td>
+            <td>${text(RQ_TEXT_FIELDS[2])}</td>
+          </tr>`;
+        }).join('')}</tbody></table></div>`;
+    }
+
+    function rqCampoLabel(documento, campo) {
+      const parts = String(campo || '').split('.').filter(p => p !== 'por_entidad');
+      if (documento === 'anexo1' && parts.length === 2) {
+        return `${rqEntity(parts[0])} · ${prLabel(RQ_CAMPOS, parts[1])}`;
+      }
+      return prLabel(RQ_CAMPOS, campo);
+    }
+
+    function rqCoincide(r) {
+      if (r.declarado === null || r.declarado === undefined || r.declarado === '') return '<span class="badge badge--info">Sin declarar</span>';
+      if (r.coincide === true) return '<span class="badge badge--ok">Coincide</span>';
+      if (r.coincide === false) return '<span class="badge badge--bad">No coincide</span>';
+      return '<span class="badge">Sin referencia</span>';
+    }
+
+    function rqFiguresHtml(cifras) {
+      const list = vcList(cifras);
+      if (!list.length) return '<p class="judge-empty">Sin cifras que comparar: el presupuesto y la alianza todavía no tienen totales.</p>';
+      return `<div class="al-scroll"><table class="al-table"><thead><tr>
+          <th>Documento</th><th>Cifra</th><th>Declarado</th><th>Esperado (presupuesto y alianza)</th><th>Coherencia</th>
+        </tr></thead><tbody>${list.map(r => `<tr data-documento="${rqAttr(r.documento)}" data-campo="${rqAttr(r.campo)}">
+            <td>${prLabel(RQ_DOCUMENTOS, r.documento)}</td>
+            <td>${rqCampoLabel(r.documento, r.campo)}</td>
+            <td><input class="rq-input rq-input--num" type="number" step="any" data-cifra data-documento="${rqAttr(r.documento)}" data-campo="${rqAttr(r.campo)}" value="${rqAttr(vcNumber(r.declarado))}" onchange="rqEditFigure(this)"></td>
+            <td>${vcMoney(r.esperado)}</td>
+            <td>${rqCoincide(r)}</td>
+          </tr>`).join('')}</tbody></table></div>`;
+    }
+
+    function rqLicensesHtml(licencias) {
+      const l = licencias && typeof licencias === 'object' && !Array.isArray(licencias) ? licencias : null;
+      if (!l) return '<p class="judge-empty">Sin análisis de licencias y permisos: lo escribe el investigador en <code>requisitos.json</code> (bloque <code>licencias</code>).</p>';
+      return `${cpIntro(l)}${cpTable(l.items, [
+        ['Licencia o permiso', r => vcText(r.licencia)],
+        ['Norma', r => vcText(r.norma)],
+        ['¿Aplica?', r => r.aplica === true ? '<span class="badge badge--warn">Sí</span>' : r.aplica === false ? '<span class="badge">No</span>' : '—'],
+        ['Justificación', r => vcText(r.justificacion)],
+        ['Responsable', r => rqEntity(r.responsable)],
+        ['Momento del trámite', r => prLabel(RQ_MOMENTOS, r.momento)],
+      ], 'El bloque de licencias no tiene ítems.')}`;
+    }
+
+    function rqAvalHtml(aval) {
+      const a = cpObj(aval);
+      const inst = a.institucion;
+      const docs = vcList(a.documentos);
+      const hitos = vcList(a.hitos);
+      if (!inst && !docs.length && !hitos.length) {
+        return '<p class="judge-empty">La entidad proponente no tiene un procedimiento interno de aval registrado para esta convocatoria.</p>';
+      }
+      const name = inst && typeof inst === 'object' ? (inst.nombre || inst.id) : inst;
+      const today = new Date();
+      return `${name ? `<p class="pg-card__detail">Procedimiento de aval de <strong>${escapeHtml(String(name))}</strong></p>` : ''}
+        <h5 class="al-heading">Documentos del aval</h5>
+        ${docs.length ? `<ul class="pr-checklist">${docs.map(d => {
+          const ok = d.estado === 'listo';
+          return `<li class="pr-check ${ok ? 'is-ok' : 'is-missing'}" data-indice="${rqAttr(d.indice)}">
+            <div class="pr-check__head">${vcText(d.indice)}. ${vcText(d.texto)} ${rqEstadoBadge(d.estado || 'pendiente')}</div>
+            <div class="pr-check__detail">${d.archivo ? escapeHtml(String(d.archivo)) : 'Sin archivo'}</div>
+          </li>`;
+        }).join('')}</ul>` : '<p class="judge-empty">Sin documentos del aval.</p>'}
+        <h5 class="al-heading">Hitos internos</h5>
+        ${hitos.length ? `<div class="al-scroll"><table class="al-table"><thead><tr><th>Actividad</th><th>Responsable</th><th>Fecha</th><th>Plazo</th></tr></thead>
+          <tbody>${hitos.map(h => {
+            const days = rqDaysLeft(h.fecha, today);
+            const tone = days === null ? '' : days < 0 ? 'bad' : days <= 3 ? 'warn' : 'ok';
+            return `<tr data-dias="${days === null ? '' : escapeHtml(String(days))}">
+              <td>${vcText(h.actividad)}</td><td>${vcText(h.responsable)}</td><td>${vcText(h.fecha_texto || h.fecha)}</td>
+              <td><span class="badge${tone ? ' badge--' + tone : ''}">${escapeHtml(rqDaysLabel(days))}</span></td>
+            </tr>`;
+          }).join('')}</tbody></table></div>` : '<p class="judge-empty">Sin hitos internos.</p>'}`;
+    }
+
+    function rqFindingsHtml(hallazgos) {
+      const list = vcList(hallazgos);
+      if (!list.length) return '<p class="judge-empty">La revisión de los requisitos y los anexos no reporta hallazgos.</p>';
+      return VC_SEVERITIES.map(([sev, label, tone, one]) => {
+        const items = list.filter(f => vcSeverity(f) === sev);
+        if (!items.length) return '';
+        return `<div class="judge-alerts__group" data-severidad="${sev}">
+          <h4><span class="badge badge--${tone}">${label}</span> ${escapeHtml(String(items.length))}</h4>
+          <ul>${items.map(f => `<li><span class="badge badge--${tone}">${one}</span><span>${escapeHtml(f.message || f.code || '')}</span><span class="tree-findings__node">${f.node ? `${escapeHtml(String(f.node))} · ` : ''}${escapeHtml(f.code || '')}</span></li>`).join('')}</ul>
+        </div>`;
+      }).join('');
+    }
+
+    function renderRequirementsReview(d) {
+      const sgr = !!d && d.flujo === 'sgr';
+      const panel = document.getElementById('rqReviewPanel');
+      if (panel) panel.hidden = !sgr;
+      const [label, tone] = pgStatus(d);
+      const badge = document.getElementById('rqStatusBadge');
+      if (badge) {
+        badge.textContent = label;
+        badge.className = `badge${tone ? ' badge--' + tone : ''}`;
+      }
+      const errors = sgr ? vcList(d.hallazgos).filter(f => vcSeverity(f) === 'error').length : 0;
+      const complete = sgr && !!d.disponible && !!d.requisitos && !!d.hash;
+      const approve = document.getElementById('rqApproveBtn');
+      if (approve) approve.disabled = !complete || !!d.aprobado || errors > 0;
+      const send = document.getElementById('rqSendBtn');
+      if (send) send.disabled = !sgr;
+      const gate = document.getElementById('rqGateNote');
+      if (gate) gate.textContent = errors ? `Corrige los ${String(errors)} hallazgos de error antes de aprobar.` : '';
+      const note = document.getElementById('rqHashNote');
+      if (note) {
+        const rev = d && d.revision && typeof d.revision === 'object' ? d.revision : null;
+        note.textContent = !sgr || !d.disponible || !d.hash ? ''
+          : d.aprobado ? `Aprobado el ${rev && rev.fecha ? String(rev.fecha).replace('T', ' ') : '—'} (versión ${String(d.hash)}). Si un requisito o una cifra cambian, la aprobación caduca.`
+          : label === 'Desactualizado' ? 'Los requisitos o las cifras cambiaron después de aprobarlos: revisa la versión nueva y vuelve a aprobarla.'
+          : `Versión ${String(d.hash)}. La aprobación (compuerta GRequisitos) queda atada a esta versión de requisitos.json.`;
+      }
+    }
+
+    function renderRequirements() {
+      const d = RQ_STATE.data;
+      const el = document.getElementById('rqContent');
+      if (!d || !el) return;
+      document.getElementById('rqRunMeta').textContent = `Corrida ${d.run || '—'}`;
+      renderRequirementsReview(d);
+      const errores = Array.isArray(d.errores) ? d.errores.filter(Boolean).map(String) : [];
+      const errHtml = errores.length ? `<div class="judge-validation"><strong>⚠️ No se pudo leer todo lo de los requisitos y los anexos</strong>
+        <ul>${errores.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div>` : '';
+      if (d.flujo !== 'sgr') {
+        el.innerHTML = `<div class="tree-empty">
+          <p>Los requisitos habilitantes, las licencias y las cifras de los anexos se usan solo en el flujo SGR.</p>
+          <small>Este proyecto sigue el flujo base de propuestas de investigación: los documentos de soporte se revisan en «Artefactos».</small>
+        </div>`;
+        return;
+      }
+      if (!d.disponible || !d.vista) {
+        el.innerHTML = `${errHtml}<div class="tree-empty">
+          <p>La vista de requisitos y anexos no está disponible para esta corrida.</p>
+          <p>La calcula <code>scripts/requisitos_sgr.py</code> en la unidad <code>fase6_9_sgr</code> «Requisitos y anexos», después del resumen y antes de la auditoría final.</p>
+        </div>`;
+        return;
+      }
+      const v = cpObj(d.vista);
+      const seed = d.requisitos ? '' : `<p class="judge-empty">Todavía no hay <code>artefactos/sgr/requisitos.json</code>: los requisitos se muestran pendientes. Lo siembra <code>python3 scripts/requisitos_sgr.py init</code> en la unidad <code>fase6_9_sgr</code>, o la primera edición de esta tabla.</p>`;
+      el.innerHTML = `${errHtml}${seed}
+        ${rqProgressHtml(v.progreso)}
+        <h4 class="al-heading">Requisitos habilitantes${v.convocatoria ? ` <span class="vc-code">${escapeHtml(String(v.convocatoria))}</span>` : ''}</h4>
+        <div id="rqRequisitos">${rqRequirementsHtml(v.requisitos)}</div>
+        <h4 class="al-heading">Coherencia de las cifras (SIGP, Anexo 1, Anexo 3 y MGA Web)</h4>
+        <div id="rqCifras">${rqFiguresHtml(v.cifras)}</div>
+        <h4 class="al-heading">Licencias y permisos</h4>
+        <div id="rqLicencias">${rqLicensesHtml(v.licencias)}</div>
+        <h4 class="al-heading">Aval institucional</h4>
+        <div id="rqAval">${rqAvalHtml(v.aval)}</div>
+        <div class="tree-findings" id="rqFindings" aria-live="polite"><h4>Hallazgos de los requisitos y los anexos</h4>${rqFindingsHtml(d.hallazgos)}</div>`;
+    }
+
+    async function rqSaveItem(id, cambios, okText) {
+      let result;
+      try {
+        const res = await fetch('/api/requirements/item', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, cambios }),
+        });
+        result = await res.json();
+      } catch (err) {
+        rqMessage(`No se pudo guardar ${id}: ${err.message || err}`, 'error');
+        RQ_STATE.sig = null;
+        renderRequirements();
+        return false;
+      }
+      if (!result || !result.ok) {
+        rqMessage((result && result.error) || `No se pudo guardar ${id}.`, 'error');
+        // La fila vuelve a lo guardado.
+        RQ_STATE.sig = null;
+        renderRequirements();
+        return false;
+      }
+      const { item, ...data } = result;
+      rqSetData(data);
+      rqMessage(okText, 'ok');
+      return true;
+    }
+
+    async function rqEditField(input) {
+      const tr = input && input.closest ? input.closest('tr[data-id]') : null;
+      const field = input ? input.getAttribute('data-field') : null;
+      if (!tr || !field) return;
+      const value = String(input.value || '').trim();
+      const id = tr.getAttribute('data-id');
+      await rqSaveItem(id, { [field]: value === '' ? null : value }, `Requisito ${id} guardado. Si estaba aprobado, la aprobación caduca.`);
+    }
+
+    // Arma el bloque de cifras declaradas de un documento con todos sus campos
+    // en la tabla; los vacíos no se declaran. En el Anexo 1 los campos van por entidad.
+    async function rqEditFigure(input) {
+      const documento = input ? input.getAttribute('data-documento') : null;
+      if (!documento) return;
+      const block = {};
+      document.querySelectorAll('#rqCifras input[data-cifra]').forEach(el => {
+        if (el.getAttribute('data-documento') !== documento) return;
+        const n = vcNumber(String(el.value || '').trim());
+        if (n === null) return;
+        let path = String(el.getAttribute('data-campo') || '').split('.').filter(Boolean);
+        if (documento === 'anexo1' && path[0] !== 'por_entidad') path = ['por_entidad', ...path];
+        let node = block;
+        path.slice(0, -1).forEach(key => {
+          if (!node[key] || typeof node[key] !== 'object') node[key] = {};
+          node = node[key];
+        });
+        if (path.length) node[path[path.length - 1]] = n;
+      });
+      const label = RQ_DOCUMENTOS[documento] || documento;
+      await rqSaveItem(`cifras.${documento}`, block, `Cifras declaradas de ${label} guardadas.`);
+    }
+
+    async function approveRequirements() {
+      const d = RQ_STATE.data;
+      if (!d || !d.hash) return;
+      let result;
+      try {
+        result = await postJudge('/api/requirements/approve', { hash: d.hash });
+      } catch (err) {
+        rqMessage(`No se pudo aprobar: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { rqMessage(result.error || 'No se pudieron aprobar los requisitos y los anexos.', 'error'); return; }
+      rqMessage('Requisitos y anexos aprobados. Si requisitos.json cambia, la aprobación caduca.', 'ok');
+      await loadRequirements();
+    }
+
+    async function sendRequirementsAdjust() {
+      const input = document.getElementById('rqNoteInput');
+      const nota = input ? input.value.trim() : '';
+      if (!nota) { rqMessage('Escribe qué cambiar en los requisitos, las licencias o las cifras antes de enviarlo al agente.', 'error'); return; }
+      let result;
+      try {
+        result = await postJudge('/api/requirements/adjust', { nota });
+      } catch (err) {
+        rqMessage(`No se pudo preparar el ajuste: ${err.message || err}`, 'error');
+        return;
+      }
+      if (!result.ok) { rqMessage(result.error || 'No se pudo preparar el ajuste.', 'error'); return; }
+      if (await deliverRequirementsPrompt(result.prompt) && input) input.value = '';
+    }
+
+    async function deliverRequirementsPrompt(prompt) {
+      const retry = document.getElementById('rqRetryBtn');
+      RQ_STATE.pendingPrompt = prompt;
+      rqMessage('Ajuste: enviando al agente…');
+      const delivered = await sendTerminalPrompt(prompt);
+      if (delivered === false) {
+        if (retry) retry.style.display = '';
+        rqMessage(`El ajuste no llegó al agente: la terminal no conectó en ${Math.round(TERMINAL_READY_TIMEOUT_MS / 1000)} s. Abre el asistente y pulsa «Reintentar envío».`, 'error');
+        return false;
+      }
+      RQ_STATE.pendingPrompt = null;
+      if (retry) retry.style.display = 'none';
+      rqMessage('El ajuste se envió al agente. Cuando corra requisitos_sgr.py check, la versión nueva aparece aquí.', 'ok');
+      return true;
+    }
+
+    async function retryRequirementsPrompt() {
+      if (RQ_STATE.pendingPrompt) await deliverRequirementsPrompt(RQ_STATE.pendingPrompt);
+    }
+
     // ── Estilo SGR en Secciones ─────────────────────────────────────────────
     // Columna solo del flujo SGR con los hallazgos de scripts/estilo_sgr.py por
     // sección (/api/style-sgr); en el flujo base la tabla queda como antes.
@@ -7480,6 +7979,9 @@
 
       if (tabId === 'productos') startProductsPolling();
       else stopProductsPolling();
+
+      if (tabId === 'requisitos') startRequirementsPolling();
+      else stopRequirementsPolling();
 
       if (tabId === 'sections' && isSgrFlujo()) loadStyleSgr();
 
@@ -7940,6 +8442,7 @@
         syncBudgetTab();
         syncComponentsTab();
         syncProductsTab();
+        syncRequirementsTab();
         if (data.active_run) {
           const footerRun = document.getElementById('terminalFooterRun');
           if (footerRun && !monitoredProjectPath) footerRun.textContent = `proposals/${data.active_run}`;
@@ -12033,7 +12536,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'requisitos', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');

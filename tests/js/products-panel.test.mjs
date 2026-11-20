@@ -123,7 +123,7 @@ test('SGR: la pestaña «Productos e indicadores» aparece justo después de «T
   const i = labels.indexOf('Productos e indicadores');
   assert.ok(i > 0, 'la pestaña existe en SGR');
   assert.equal(labels[i - 1], 'TRL y componentes');
-  assert.equal(labels[i + 1], 'MGA resumido');
+  assert.equal(labels[i + 1], 'Requisitos y anexos');
   viewer.viewer('navigateTab', 'productos');
   await flush();
   const active = viewer.document.querySelectorAll('.tab-nav__btn.active');
