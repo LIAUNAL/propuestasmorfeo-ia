@@ -1,48 +1,192 @@
-"""HTTP and WebSocket routes of the dashboard's embedded terminal.
+"""HTTP and WebSocket routes of the dashboard's embedded terminal, and the
+access guard of every dashboard request.
 
-The request handler (`server.MorfeoDashboardHandler`) delegates every
-`/api/terminal/*` request and the `/ws/terminal` upgrade to `dispatch`. The
-handlers below write the response through the handler object, reusing its
-helpers (`_send_json`, `send_response`, `wfile`, `workspace_dir`), so the
-responses are the same as when they lived in `server.py`.
+The request handler (`server.MorfeoDashboardHandler`) calls `dispatch` first
+for every GET, POST and DELETE. Before any routing, `dispatch` applies the
+checks of `terminal_auth`: a Host header outside the allow-list gets 421 (DNS
+rebinding) and a state-changing request from a foreign origin gets 403, on
+every path (the terminal's own routes also require the Origin header). It then serves the `/api/terminal/*` routes and the
+`/ws/terminal` upgrade, which require the terminal session cookie. The
+handlers write through the handler object, reusing its helpers (`_send_json`,
+`send_response`, `wfile`, `workspace_dir`).
 """
 
 from __future__ import annotations
 
 import json
+import re
+import urllib.parse
+import webbrowser
+from pathlib import Path
 from typing import Any
 
+from . import terminal_auth
+
 SESSIONS_PREFIX = "/api/terminal/sessions/"
+#: Quick commands offered by the CLI footer, at most.
+MAX_QUICK_COMMANDS = 24
+
+_NOT_ACTIVATED = "El CLI del tablero no está activado: usa «Activar CLI» o el enlace que imprimió morfeo ui"
 
 
 def dispatch(handler: Any, method: str, path: str) -> bool:
-    """Serve a terminal route; return True when `path` is one of them."""
+    """Guard every request, then serve a terminal route.
+
+    Returns True when this function answered (a refusal or a terminal route),
+    False when the server should route `path` itself.
+    """
+    if not terminal_auth.host_allowed(handler):
+        _refuse(handler, 421, "Host no permitido: abre el tablero en 127.0.0.1 o localhost")
+        return True
+    if method in terminal_auth.MUTATING_METHODS:
+        # Any route refuses a foreign (or `null`) Origin or Referer; the
+        # terminal's routes, which reach a shell, also refuse a missing one.
+        reason = terminal_auth.origin_refusal(
+            handler, require_origin=path.startswith("/api/terminal/"))
+        if reason is not None:
+            _refuse(handler, 403, f"Solicitud rechazada: {reason}")
+            return True
+
     if method == "GET":
         if path == "/api/terminal/agents":
             serve_terminal_agents(handler)
+        elif path == "/api/terminal/login":
+            handle_terminal_login(handler)
         elif path == "/api/terminal/tools":
-            serve_terminal_tools(handler)
+            if _require_session(handler):
+                serve_terminal_tools(handler)
         elif path == "/ws/terminal":
             handle_terminal_ws(handler)
         elif path.startswith(SESSIONS_PREFIX):
-            handle_terminal_session(handler, "GET", path)
+            if _require_session(handler):
+                handle_terminal_session(handler, "GET", path)
+        elif path.startswith("/api/terminal/"):
+            _refuse(handler, 404, "Ruta del CLI desconocida")
         else:
             return False
         return True
     if method == "POST":
-        if path == "/api/terminal/launch-external":
-            handle_launch_external_terminal(handler)
+        if path == "/api/terminal/activate":
+            handle_terminal_activate(handler)
+        elif path == "/api/terminal/launch-external":
+            if _require_session(handler):
+                handle_launch_external_terminal(handler)
         elif path.startswith(SESSIONS_PREFIX):
-            handle_terminal_session(handler, "POST", path)
+            if _require_session(handler):
+                handle_terminal_session(handler, "POST", path)
         else:
             return False
         return True
     if method == "DELETE":
         if path.startswith(SESSIONS_PREFIX):
-            handle_terminal_session(handler, "DELETE", path)
+            if _require_session(handler):
+                handle_terminal_session(handler, "DELETE", path)
             return True
         return False
     return False
+
+
+def _refuse(handler: Any, status: int, error: str) -> None:
+    # The body of a refused request is never read: close the connection so it
+    # is not parsed as the next request.
+    handler.close_connection = True
+    handler._send_json(status, {"ok": False, "error": error})
+
+
+def _require_session(handler: Any) -> bool:
+    if terminal_auth.has_session(handler):
+        return True
+    _refuse(handler, 401, _NOT_ACTIVATED)
+    return False
+
+
+def open_browser(url: str) -> bool:
+    """Open `url` in the desktop browser; never raises."""
+    try:
+        return bool(webbrowser.open(url))
+    except Exception:
+        return False
+
+
+def handle_terminal_login(handler: Any) -> None:
+    """Exchange the login secret (`?token=`) for the session cookie, then go to `/`."""
+    query = urllib.parse.parse_qs(urllib.parse.urlsplit(handler.path).query)
+    presented = (query.get("token") or [""])[0]
+    # The access log prints the request line: never with the secret in it.
+    handler.requestline = re.sub(r"token=[^&\s]*", "token=***", getattr(handler, "requestline", ""))
+    auth = terminal_auth.auth_for(handler.server)
+    if not auth.accepts_login(presented):
+        _refuse(handler, 403, "Enlace de activación inválido o vencido")
+        return
+    token = auth.issue_session()
+    handler.send_response(303)
+    handler.send_header("Location", "/")
+    handler.send_header("Set-Cookie", auth.set_cookie_value(token))
+    handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Referrer-Policy", "no-referrer")
+    handler.send_header("Content-Length", "0")
+    handler.end_headers()
+
+
+def handle_terminal_activate(handler: Any) -> None:
+    """Open the login URL in the desktop browser (on a click of «Activar CLI»).
+
+    `dispatch` already checked that the request is same-origin. The secret goes
+    only to the browser the OS opens, never to the caller, and only to the
+    socket this server listens on, never to a name taken from the request. The
+    page is told that origin: a tab reached under another name (localhost for
+    127.0.0.1) does not receive the cookie.
+    """
+    auth = terminal_auth.auth_for(handler.server)
+    if auth.origin is None:
+        _refuse(handler, 403, "El servidor no escucha en una dirección local: abre el enlace que imprimió morfeo ui")
+        return
+    if not auth.claim_activation():
+        handler._send_json(429, {"ok": False, "throttled": True, "origin": auth.origin,
+                                 "error": "Ya se abrió el enlace de activación: espera unos segundos"})
+        return
+    opened = open_browser(auth.login_url(auth.origin))
+    handler._send_json(200, {"ok": True, "opened": opened, "origin": auth.origin})
+
+
+def _terminal_enabled() -> bool:
+    try:
+        import fcntl  # noqa: F401
+        import pty  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def _frontmatter_description(path: Path) -> str:
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as fh:
+            head = fh.read(4096)
+    except OSError:
+        return ""
+    lines = head.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return ""
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        key, sep, value = line.partition(":")
+        if sep and key.strip() == "description":
+            value = value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                value = value[1:-1]
+            return value.strip()
+    return ""
+
+
+def quick_commands(workspace_dir: Path) -> list[dict[str, str]]:
+    """The workspace's slash commands (`.claude/commands/*.md`), at most 24."""
+    commands_dir = Path(workspace_dir) / ".claude" / "commands"
+    if not commands_dir.is_dir():
+        return []
+    files = sorted(p for p in commands_dir.glob("*.md") if p.is_file() and not p.name.startswith("_"))
+    return [{"name": f"/{p.stem}", "description": _frontmatter_description(p)}
+            for p in files[:MAX_QUICK_COMMANDS]]
 
 
 def handle_terminal_session(handler: Any, method: str, path: str) -> None:
@@ -68,14 +212,27 @@ def handle_terminal_session(handler: Any, method: str, path: str) -> None:
 
 
 def serve_terminal_agents(handler: Any) -> None:
+    """Whether the CLI is enabled and this browser activated, its agents and quick commands.
+
+    The agents (and where their CLIs live) are withheld until the browser holds
+    the session cookie; an agent whose CLI is not installed is `available: false`.
+    """
     from .terminal import get_available_agents
-    agents = get_available_agents()
-    body = json.dumps({"ok": True, "agents": agents}, ensure_ascii=False).encode("utf-8")
-    handler.send_response(200)
-    handler.send_header("Content-Type", "application/json; charset=utf-8")
-    handler.send_header("Content-Length", str(len(body)))
-    handler.end_headers()
-    handler.wfile.write(body)
+
+    enabled = _terminal_enabled()
+    authorized = terminal_auth.has_session(handler)
+    agents = []
+    if authorized:
+        agents = [{**a, "available": bool(a.get("installed"))} for a in get_available_agents()]
+    default = next((a["id"] for a in agents if a["available"]), "shell")
+    handler._send_json(200, {
+        "ok": True,
+        "enabled": enabled,
+        "authorized": authorized,
+        "agents": agents,
+        "default": default,
+        "quick": quick_commands(handler.workspace_dir),
+    })
 
 
 def serve_terminal_tools(handler: Any) -> None:
@@ -113,6 +270,16 @@ def handle_terminal_ws(handler: Any) -> None:
         handler.send_error(400, "Missing Sec-WebSocket-Key")
         return
 
+    # Browsers apply no CORS to WebSockets: the upgrade itself must prove it
+    # comes from the dashboard's page (Origin, no Referer fallback) of an
+    # activated browser (the session cookie).
+    reason = terminal_auth.origin_refusal(handler, allow_referer=False)
+    if reason is not None:
+        _refuse(handler, 403, f"Conexión rechazada: {reason}")
+        return
+    if not _require_session(handler):
+        return
+
     from .terminal import run_pty_session, ws_handshake_accept
 
     accept_token = ws_handshake_accept(key)
@@ -125,7 +292,6 @@ def handle_terminal_ws(handler: Any) -> None:
     handler.wfile.write(response.encode("ascii"))
     handler.wfile.flush()
 
-    import urllib.parse
     parsed = urllib.parse.urlparse(handler.path)
     qs = urllib.parse.parse_qs(parsed.query)
     agent = qs.get("agent", ["herdr"])[0]

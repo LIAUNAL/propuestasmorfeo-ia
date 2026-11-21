@@ -194,6 +194,13 @@ Imprime un resumen del estado actual de un proyecto portable.
 5. Si no existe `.marco/version`, imprime una advertencia clara y termina
    con código 1 — no intenta leer los archivos de estado.
 
+**`morfeo status` y el tablero:** el CLI del paquete (`morfeo status`) imprime,
+además de los conteos de la corrida activa, la unidad actual (la primera cuya
+verificación no está aprobada), lo que le falta (`Pendiente:`) y el siguiente
+comando (`Siguiente:`). El botón **«⟳ Actualizar tablero»** de `morfeo ui`
+muestra el mismo reporte en el panel de estado; ver la sección del tablero en
+el README.
+
 **Ejemplos:**
 
 ```bash
@@ -246,6 +253,52 @@ marco --list-presets
 ```
 
 Lista en consola todos los presets de modelos incorporados (`claude`, `gpt`, `opencode-go`) y su alineación de modelos por cada uno de los 10 agentes.
+
+### 2.6 `morfeo ui` — Activar el CLI del tablero
+
+El tablero (`morfeo ui`) escucha solo en `127.0.0.1` e incluye un CLI embebido
+(una terminal real del workspace). Como esa terminal da una shell, el servidor
+protege todas sus rutas:
+
+- **Host permitido.** Solo responde a `127.0.0.1:PUERTO`, `localhost:PUERTO` y
+  `[::1]:PUERTO`; cualquier otro `Host` recibe `421` (evita el *DNS rebinding*).
+- **Mismo origen.** Un `POST` o `DELETE` de cualquier ruta cuyo `Origin` (o, si
+  falta, su `Referer`) sea de otro sitio, o `null`, recibe `403`. Un navegador
+  siempre envía `Origin` en esas peticiones; un cliente local sin ninguna de
+  las dos cabeceras (`curl`, las pruebas) se atiende como antes, salvo en las
+  rutas del CLI, que exigen `Origin`.
+- **Cookie del CLI.** Las rutas `/api/terminal/*` y la conexión WebSocket
+  `/ws/terminal` exigen una cookie de sesión (`HttpOnly`, `SameSite=Strict`,
+  `Path=/`); la conexión WebSocket exige además un `Origin` del tablero. Sin la
+  cookie responden `401`.
+
+**De dónde sale el enlace de activación.** Cada arranque del servidor genera un
+secreto de activación que solo vive en memoria. El enlace
+`http://127.0.0.1:PUERTO/api/terminal/login?token=…` lo cambia una vez por la
+cookie y redirige a `/`; el secreto nunca se guarda en el navegador ni aparece
+en el registro de accesos (se imprime como `token=***`).
+
+**Cómo activar.** Al abrir el tablero sin la cookie (una pestaña vieja, un
+marcador o un servidor reiniciado) aparece un banner rojo:
+**«El CLI del tablero no está activado»**. El botón **«Activar CLI»** pide al
+servidor (`POST /api/terminal/activate`, como mucho una vez cada 10 s) que abra
+el enlace de activación en el navegador del sistema; el secreto viaja solo a
+ese navegador, nunca a la página. La pestaña consulta cada 0,7 s, hasta 45 s,
+si ya quedó autorizada; entonces quita el banner y abre la sesión del CLI. La
+activación ocurre solo con ese clic, nunca al cargar la página.
+
+- Si el tablero se abrió como `localhost` y el servidor escucha en
+  `127.0.0.1`, la cookie queda en `127.0.0.1`: el banner lo dice y enlaza la
+  dirección correcta.
+- Si pasan los 45 s sin activación, el banner pide abrir el enlace que imprimió
+  `morfeo ui` o volver a intentar.
+
+**Herramientas que faltan.** Si faltan Herdr o un emulador de terminal, el CLI
+embebido sigue funcionando: solo se desactiva el botón del terminal externo
+(su ayuda dice qué falta) y aparece un aviso que se puede cerrar. Los agentes
+cuyo CLI no está instalado aparecen desactivados con «(no instalado)», y los
+comandos rápidos del pie son los de `.claude/commands/*.md` del workspace
+(hasta 24).
 
 ---
 

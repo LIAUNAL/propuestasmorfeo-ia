@@ -20,6 +20,7 @@ import urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
+from src.morfeo.dashboard import terminal_auth
 from src.morfeo.dashboard.server import MorfeoDashboardHandler
 from src.morfeo.dashboard.terminal import SESSIONS, interrupt_key
 
@@ -52,10 +53,12 @@ def read_frames(buf: bytearray) -> list[tuple[int, bytes]]:
 
 
 class Client:
-    def __init__(self, port: int, query: str) -> None:
+    def __init__(self, port: int, query: str, cookie: str) -> None:
         self.sock = socket.create_connection(("127.0.0.1", port), timeout=2.0)
+        # The dashboard's own page of an activated browser: Origin and cookie.
         self.sock.sendall((
             f"GET /ws/terminal?{query} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n"
+            f"Origin: http://127.0.0.1:{port}\r\nCookie: {cookie}\r\n"
             "Upgrade: websocket\r\nConnection: Upgrade\r\n"
             "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"
         ).encode("ascii"))
@@ -104,11 +107,14 @@ class TerminalSessionTest(unittest.TestCase):
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self.addCleanup(self.server.server_close)
         self.addCleanup(self.server.shutdown)
+        auth = terminal_auth.auth_for(self.server)
+        self.cookie = f"{auth.cookie_name}={auth.issue_session()}"
         SESSIONS.close_all()  # sessions other tests left behind
         self.addCleanup(SESSIONS.close_all)
 
     def http(self, method: str, path: str) -> tuple[int, dict]:
-        req = urllib.request.Request(f"http://127.0.0.1:{self.port}{path}", method=method)
+        req = urllib.request.Request(f"http://127.0.0.1:{self.port}{path}", method=method,
+                                     headers={"Origin": f"http://127.0.0.1:{self.port}", "Cookie": self.cookie})
         try:
             with urllib.request.urlopen(req, timeout=3) as res:
                 return res.status, json.loads(res.read())
@@ -116,7 +122,7 @@ class TerminalSessionTest(unittest.TestCase):
             return err.code, json.loads(err.read())
 
     def open_shell(self) -> tuple[Client, str]:
-        client = Client(self.port, "agent=shell&cols=80&rows=24")
+        client = Client(self.port, "agent=shell&cols=80&rows=24", self.cookie)
         client.pump()
         self.assertTrue(client.texts, "the server announces the session")
         hello = client.texts[0]
@@ -138,7 +144,7 @@ class TerminalSessionTest(unittest.TestCase):
         self.assertEqual(body["alive"], True)
         self.assertEqual(body["attached"], False)
 
-        second = Client(self.port, f"agent=shell&session={sid}")
+        second = Client(self.port, f"agent=shell&session={sid}", self.cookie)
         second.pump(until=b"MARK_42")
         self.addCleanup(second.close)
         self.assertEqual(second.texts[0], {"type": "session", "id": sid, "agent": "shell", "reattached": True})
@@ -150,7 +156,7 @@ class TerminalSessionTest(unittest.TestCase):
     def test_a_second_viewer_takes_the_session_and_the_first_is_told(self) -> None:
         first, sid = self.open_shell()
         self.addCleanup(first.close)
-        second = Client(self.port, f"agent=shell&session={sid}")
+        second = Client(self.port, f"agent=shell&session={sid}", self.cookie)
         self.addCleanup(second.close)
         second.pump()
         self.assertTrue(second.texts[0]["reattached"])
@@ -158,7 +164,7 @@ class TerminalSessionTest(unittest.TestCase):
         self.assertIn({"type": "detached", "reason": "taken"}, first.texts)
 
     def test_an_unknown_session_id_opens_a_new_session(self) -> None:
-        client = Client(self.port, "agent=shell&session=deadbeef")
+        client = Client(self.port, "agent=shell&session=deadbeef", self.cookie)
         self.addCleanup(client.close)
         client.pump()
         self.assertFalse(client.texts[0]["reattached"])
@@ -167,7 +173,7 @@ class TerminalSessionTest(unittest.TestCase):
     def test_a_session_of_another_agent_is_not_reattached(self) -> None:
         first, sid = self.open_shell()
         first.close()
-        other = Client(self.port, f"agent=claude-missing&session={sid}")
+        other = Client(self.port, f"agent=claude-missing&session={sid}", self.cookie)
         self.addCleanup(other.close)
         other.pump()
         self.assertNotEqual(other.texts[0]["id"], sid)

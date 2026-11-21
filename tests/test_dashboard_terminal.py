@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from http.server import ThreadingHTTPServer
 
+from src.morfeo.dashboard import terminal_auth
 from src.morfeo.dashboard.server import MorfeoDashboardHandler
 from src.morfeo.dashboard.terminal import (
     ws_handshake_accept,
@@ -18,6 +19,13 @@ from src.morfeo.dashboard.terminal import (
     get_current_agent_pane_id,
     forward_input_to_pane,
 )
+
+
+def session_headers(server, port):
+    """Origin and cookie of the dashboard's own page in an activated browser."""
+    auth = terminal_auth.auth_for(server)
+    return {"Origin": f"http://127.0.0.1:{port}",
+            "Cookie": f"{auth.cookie_name}={auth.issue_session()}"}
 
 
 class TestDashboardTerminalBridge(unittest.TestCase):
@@ -145,15 +153,16 @@ class TestDashboardTerminalBridge(unittest.TestCase):
 
         try:
             import urllib.request
+            auth_headers = session_headers(server, port)
             url = f"http://127.0.0.1:{port}/api/terminal/agents"
-            with urllib.request.urlopen(url) as resp:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=auth_headers)) as resp:
                 self.assertEqual(resp.status, 200)
                 data = json.loads(resp.read().decode("utf-8"))
                 self.assertTrue(data.get("ok"))
                 self.assertTrue(isinstance(data.get("agents"), list))
 
             tools_url = f"http://127.0.0.1:{port}/api/terminal/tools"
-            with urllib.request.urlopen(tools_url) as resp:
+            with urllib.request.urlopen(urllib.request.Request(tools_url, headers=auth_headers)) as resp:
                 self.assertEqual(resp.status, 200)
                 tdata = json.loads(resp.read().decode("utf-8"))
                 self.assertTrue(tdata.get("ok"))
@@ -175,11 +184,14 @@ class TestDashboardTerminalBridge(unittest.TestCase):
 
         s = None
         try:
+            auth_headers = session_headers(server, port)
             s = socket.create_connection(("127.0.0.1", port), timeout=2.0)
             key = "dGhlIHNhbXBsZSBub25jZQ=="
             req = (
                 f"GET /ws/terminal?agent=shell HTTP/1.1\r\n"
                 f"Host: 127.0.0.1:{port}\r\n"
+                f"Origin: {auth_headers['Origin']}\r\n"
+                f"Cookie: {auth_headers['Cookie']}\r\n"
                 f"Upgrade: websocket\r\n"
                 f"Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Key: {key}\r\n"
@@ -244,11 +256,14 @@ class TestDashboardTerminalBridge(unittest.TestCase):
 
         s = None
         try:
+            auth_headers = session_headers(server, port)
             s = socket.create_connection(("127.0.0.1", port), timeout=2.0)
             key = "dGhlIHNhbXBsZSBub25jZQ=="
             req = (
                 f"GET /ws/terminal?agent=shell HTTP/1.1\r\n"
                 f"Host: 127.0.0.1:{port}\r\n"
+                f"Origin: {auth_headers['Origin']}\r\n"
+                f"Cookie: {auth_headers['Cookie']}\r\n"
                 f"Upgrade: websocket\r\n"
                 f"Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Key: {key}\r\n"
@@ -301,6 +316,7 @@ class TestTerminalControllerExtraction(unittest.TestCase):
         threading.Thread(target=server.serve_forever, daemon=True).start()
         self.addCleanup(server.server_close)
         self.addCleanup(server.shutdown)
+        self.server = server
         return server.server_address[1]
 
     def test_cli_console_script_is_served_as_javascript(self):
@@ -323,18 +339,24 @@ class TestTerminalControllerExtraction(unittest.TestCase):
 
         from src.morfeo.dashboard import terminal_routes
 
-        self.assertFalse(terminal_routes.dispatch(object(), "GET", "/api/status"))
         port = self._serve()
+        allowed = type("Handler", (), {"server": self.server,
+                                       "headers": {"Host": f"127.0.0.1:{port}"}})()
+        self.assertFalse(terminal_routes.dispatch(allowed, "GET", "/api/status"))
+        auth_headers = session_headers(self.server, port)
         with mock.patch.object(
             terminal_routes, "serve_terminal_agents", wraps=terminal_routes.serve_terminal_agents
         ) as spy:
-            with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/terminal/agents") as resp:
+            agents_request = urllib.request.Request(f"http://127.0.0.1:{port}/api/terminal/agents",
+                                                    headers=auth_headers)
+            with urllib.request.urlopen(agents_request) as resp:
                 self.assertEqual(resp.status, 200)
                 data = json.loads(resp.read().decode("utf-8"))
         spy.assert_called_once()
         self.assertTrue(data["ok"])
         self.assertIsInstance(data["agents"], list)
-        request = urllib.request.Request(f"http://127.0.0.1:{port}/api/terminal/sessions/nope", method="DELETE")
+        request = urllib.request.Request(f"http://127.0.0.1:{port}/api/terminal/sessions/nope",
+                                         method="DELETE", headers=auth_headers)
         with self.assertRaises(urllib.error.HTTPError) as ctx:
             urllib.request.urlopen(request)
         self.assertEqual(ctx.exception.code, 404)

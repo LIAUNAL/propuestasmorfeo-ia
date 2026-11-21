@@ -1,6 +1,7 @@
 /*
  * Embedded terminal controller of the Morfeo dashboard (FAB, terminal window,
- * agent picker, WebSocket client, tools modal and quick commands).
+ * agent picker, WebSocket client, «Activar CLI» banner, tools notice and quick
+ * commands).
  *
  * Loaded by index.html with a classic <script src> placed right before the
  * main inline script, so its globals and function declarations are shared
@@ -20,6 +21,12 @@
     // saber que el agente no recibió nada.
     function withCommandAgentReady(fn, onFail) {
       const isOpen = () => terminalSocket && terminalSocket.readyState === 1;
+      // Sin activar, la terminal nunca conectará: se avisa en lugar de esperar.
+      if (terminalAuthorized === false) {
+        showActivationBanner();
+        if (onFail) onFail();
+        return;
+      }
       const capable = TERMINAL_COMMAND_AGENTS.includes(selectedAgent);
       if (capable && isOpen()) { fn(); return; }
       // Cambiar a Claude Code cierra la sesión viva de Shell o AGY: solo con confirmación.
@@ -98,6 +105,30 @@
     let terminalSessionTaken = false;
     let cachedTerminalAgents = null;
 
+    // Activación del CLI (terminal_auth.py): el servidor exige una cookie de
+    // sesión para la terminal. `null` mientras no se sabe; `false` cuando el
+    // servidor dijo que este navegador no está activado. Activar solo ocurre
+    // con un clic en «Activar CLI», nunca al cargar la página.
+    const TERMINAL_ACTIVATION_POLL_MS = 700;
+    const TERMINAL_ACTIVATION_WAIT_MS = 45000;
+    let terminalAuthorized = null;
+    let terminalActivating = null;
+    let cachedTerminalInfo = null;
+    let terminalToolsNoticeDismissed = false;
+    // Nombres de los emuladores que detect_terminal_tools puede preferir.
+    const TERMINAL_EMULATOR_LABELS = {
+      ghostty: 'Ghostty',
+      wezterm: 'WezTerm',
+      'gnome-terminal': 'GNOME Terminal',
+      konsole: 'Konsole',
+      'x-terminal-emulator': 'Terminal'
+    };
+    const TERMINAL_EMULATOR_HINT = 'instala un emulador de terminal (GNOME Terminal, Konsole, Ghostty o WezTerm)';
+
+    function terminalEmulatorLabel(id) {
+      return TERMINAL_EMULATOR_LABELS[id] || (id ? String(id) : 'Terminal');
+    }
+
     function terminalAgentLabel(agent) {
       return TERMINAL_AGENT_LABELS[agent] || agent;
     }
@@ -165,6 +196,8 @@
       if (!rec || typeof fetch === 'undefined') return false;
       try {
         const res = await fetch(`/api/terminal/sessions/${encodeURIComponent(rec.id)}`);
+        // Sin activar no se sabe si sigue viva: se conserva para después de activar.
+        if (res.status === 401) { terminalAuthorized = false; return false; }
         if (res.status === 404) { forgetTerminalSession(rec.id); return false; }
         const info = await res.json();
         if (!info || !info.alive) { forgetTerminalSession(rec.id); return false; }
@@ -250,6 +283,7 @@
       }
       try {
         const res = await fetch('/api/terminal/tools');
+        if (res.status === 401) { terminalAuthorized = false; return null; }
         const data = await res.json();
         if (data && data.ok && data.tools) {
           cachedTerminalTools = data.tools;
@@ -273,19 +307,306 @@
       }
     }
 
+    // Lo que falta para el terminal externo, en palabras.
+    function missingToolsText(tools) {
+      const names = ((tools && tools.missing) || []).map(item => {
+        if (item === 'herdr') return 'Herdr';
+        if (item === 'terminal') return 'Ghostty o WezTerm';
+        if (item === 'terminal emulator') return 'un emulador de terminal (GNOME Terminal, Konsole, Ghostty o WezTerm)';
+        return String(item);
+      });
+      return names.length ? names.join(' y ') : 'herramientas del terminal externo';
+    }
+
+    // Cómo instalar lo que falta: Homebrew en macOS, una pista genérica en Linux.
+    function missingToolsHints(tools) {
+      const missing = (tools && tools.missing) || [];
+      const hints = [];
+      if (missing.includes('herdr')) hints.push('brew install herdr');
+      if (missing.includes('terminal')) hints.push('brew install --cask ghostty');
+      if (missing.includes('terminal emulator')) hints.push(TERMINAL_EMULATOR_HINT);
+      return hints;
+    }
+
+    // Una herramienta que falta solo desactiva el botón del terminal externo:
+    // el CLI embebido sigue funcionando.
     function updateExternalLaunchButton() {
       const btn = document.getElementById('btnLaunchExternalTerm');
       if (!btn || !cachedTerminalTools) return;
       const pref = cachedTerminalTools.preferred_terminal;
-      if (pref === 'ghostty') {
-        btn.textContent = '🖥️ Ghostty';
-        btn.title = 'Traer al frente o abrir en Ghostty con Herdr';
-      } else if (pref === 'wezterm') {
-        btn.textContent = '🖥️ WezTerm';
-        btn.title = 'Traer al frente o abrir en WezTerm con Herdr';
-      } else {
-        btn.textContent = '🖥️ Terminal';
-        btn.title = 'Abrir en terminal nativo';
+      const name = terminalEmulatorLabel(pref);
+      btn.textContent = `🖥️ ${name}`;
+      btn.disabled = !cachedTerminalTools.ready;
+      btn.title = cachedTerminalTools.ready
+        ? (pref ? `Traer al frente o abrir en ${name} con Herdr` : 'Abrir en terminal nativo')
+        : `No disponible: falta ${missingToolsText(cachedTerminalTools)}`;
+    }
+
+    // Aviso descartable, dentro de la ventana del CLI, de lo que falta para el
+    // terminal externo. No cierra ni bloquea la terminal embebida.
+    function showToolsNotice(tools) {
+      if (terminalToolsNoticeDismissed || !tools || tools.ready) return;
+      const win = document.getElementById('morfeoTerminalWindow');
+      const body = document.getElementById('morfeoTerminalBody');
+      if (!win || document.getElementById('cliToolsNotice')) return;
+      const notice = document.createElement('div');
+      notice.id = 'cliToolsNotice';
+      notice.setAttribute('role', 'status');
+      notice.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:0.4rem 0.75rem;'
+        + 'padding:0.45rem 0.85rem;background:var(--warn-dim, rgba(245,158,11,.15));'
+        + 'border-bottom:1px solid var(--warn, #f59e0b);color:var(--text, #f9fafb);font-size:0.75rem;line-height:1.35;';
+      const text = document.createElement('span');
+      text.style.cssText = 'flex:1 1 14rem;min-width:0;overflow-wrap:anywhere;';
+      text.textContent = `El CLI embebido funciona; el terminal externo no está disponible porque falta ${missingToolsText(tools)}.`;
+      const hints = missingToolsHints(tools);
+      if (hints.length) {
+        const hint = document.createElement('code');
+        hint.style.cssText = 'display:block;margin-top:0.2rem;font-family:var(--font-mono, monospace);color:var(--text-muted, #9ca3af);';
+        hint.textContent = hints.join(' · ');
+        text.appendChild(hint);
+      }
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.textContent = '×';
+      close.title = 'Cerrar aviso';
+      close.setAttribute('aria-label', 'Cerrar aviso');
+      close.style.cssText = 'background:none;border:0;color:inherit;font-size:1.1rem;line-height:1;cursor:pointer;padding:0 0.2rem;';
+      close.addEventListener('click', () => {
+        terminalToolsNoticeDismissed = true;
+        notice.remove();
+        if (fitAddonInstance) fitAddonInstance.fit();
+      });
+      notice.append(text, close);
+      if (body && body.parentNode === win) win.insertBefore(notice, body);
+      else win.appendChild(notice);
+    }
+
+    function setTerminalAgentOptions(agents) {
+      const selectEl = document.getElementById('terminalAgentSelect');
+      if (!selectEl) return;
+      const isAvailable = a => (a.available !== undefined ? !!a.available : a.installed !== false);
+      selectEl.innerHTML = '';
+      agents.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        const usable = isAvailable(a);
+        opt.textContent = `${a.name || terminalAgentLabel(a.id)}${usable ? '' : ' (no instalado)'}`;
+        opt.disabled = !usable;
+        if (a.desc) opt.title = a.desc;
+        selectEl.appendChild(opt);
+      });
+      const usable = agents.filter(isAvailable).map(a => a.id);
+      // Con una sesión viva se respeta su agente; si no, un agente no instalado
+      // cede el lugar al que el servidor propone.
+      if (!terminalSessionId && usable.length && !usable.includes(selectedAgent)) {
+        const fallback = cachedTerminalInfo && usable.includes(cachedTerminalInfo.default) ? cachedTerminalInfo.default : usable[0];
+        selectedAgent = fallback;
+      }
+      if ([...selectEl.options].some(o => o.value === selectedAgent)) selectEl.value = selectedAgent;
+    }
+
+    // Los comandos rápidos son los slash commands del workspace (.claude/commands)
+    // que lista el servidor; reemplazan a los atajos fijos del pie.
+    function setTerminalQuickCommands(quick) {
+      const actions = document.querySelector('#morfeoTerminalWindow .terminal-footer-actions');
+      if (!actions) return;
+      actions.querySelectorAll('button').forEach(b => {
+        if (/sendTerminalQuickCommand/.test(b.getAttribute('onclick') || '')) b.remove();
+      });
+      let select = document.getElementById('terminalQuickSelect');
+      if (!select) {
+        select = document.createElement('select');
+        select.id = 'terminalQuickSelect';
+        select.className = 'btn-term-shortcut';
+        select.setAttribute('aria-label', 'Comandos rápidos');
+        select.title = 'Comandos rápidos del workspace';
+        select.style.cssText = 'max-width:11rem;min-width:0;cursor:pointer;';
+        select.addEventListener('change', () => {
+          const cmd = select.value;
+          select.value = '';
+          if (cmd) sendTerminalQuickCommand(cmd);
+        });
+        actions.insertBefore(select, actions.firstChild);
+      }
+      select.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Comandos…';
+      select.appendChild(placeholder);
+      quick.forEach(item => {
+        const name = item && typeof item === 'object' ? item.name : item;
+        if (!name) return;
+        const opt = document.createElement('option');
+        opt.value = String(name);
+        opt.textContent = String(name);
+        if (item && item.description) opt.title = String(item.description);
+        select.appendChild(opt);
+      });
+      select.value = '';
+      select.disabled = select.options.length <= 1;
+    }
+
+    // Lo que dice /api/terminal/agents: si el CLI está habilitado, si este
+    // navegador está activado, sus agentes y los comandos rápidos.
+    async function fetchTerminalInfo() {
+      if (typeof fetch === 'undefined') return null;
+      try {
+        const res = await fetch('/api/terminal/agents');
+        const data = await res.json();
+        return data && data.ok ? data : null;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function applyTerminalInfo(data) {
+      if (!data) return;
+      cachedTerminalInfo = data;
+      if (typeof data.authorized === 'boolean') terminalAuthorized = data.authorized;
+      if (Array.isArray(data.agents) && data.agents.length) {
+        cachedTerminalAgents = data.agents;
+        setTerminalAgentOptions(data.agents);
+      }
+      if (Array.isArray(data.quick)) setTerminalQuickCommands(data.quick);
+      if (data.enabled !== false && data.authorized === false) showActivationBanner();
+      else if (data.authorized === true) hideActivationBanner();
+    }
+
+    // Banner rojo de un navegador sin la cookie del CLI (una pestaña vieja, un
+    // marcador, un servidor reiniciado). Se crea aquí y no en index.html.
+    function showActivationBanner() {
+      let banner = document.getElementById('cliActivationBanner');
+      if (banner) return banner;
+      banner = document.createElement('div');
+      banner.id = 'cliActivationBanner';
+      banner.setAttribute('role', 'alert');
+      banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100000;'
+        + 'box-sizing:border-box;width:max-content;max-width:calc(100vw - 24px);'
+        + 'display:flex;flex-wrap:wrap;align-items:center;gap:0.4rem 0.75rem;padding:0.6rem 0.85rem;'
+        + 'background:#7f1d1d;color:#fff;border:1px solid var(--bad, #ef4444);border-radius:var(--radius, 8px);'
+        + 'box-shadow:0 4px 16px rgba(0,0,0,.35);font:0.85rem/1.4 var(--font-sans, system-ui, sans-serif);';
+      const text = document.createElement('span');
+      text.id = 'cliActivationText';
+      text.style.cssText = 'font-weight:600;flex:1 1 12rem;min-width:0;';
+      text.textContent = 'El CLI del tablero no está activado';
+      const activate = document.createElement('button');
+      activate.type = 'button';
+      activate.id = 'cliActivateBtn';
+      activate.textContent = 'Activar CLI';
+      activate.style.cssText = 'background:#fff;color:#7f1d1d;border:0;border-radius:6px;padding:0.3rem 0.7rem;'
+        + 'font-weight:700;cursor:pointer;white-space:nowrap;';
+      activate.addEventListener('click', () => { ensureAuthorized().catch(() => {}); });
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.textContent = '×';
+      close.title = 'Ocultar aviso';
+      close.setAttribute('aria-label', 'Ocultar aviso');
+      close.style.cssText = 'background:none;border:0;color:#fff;font-size:1.15rem;line-height:1;cursor:pointer;padding:0 0.2rem;';
+      close.addEventListener('click', () => banner.remove());
+      const note = document.createElement('span');
+      note.id = 'cliActivationNote';
+      note.style.cssText = 'flex:1 1 100%;font-size:0.78rem;opacity:0.9;overflow-wrap:anywhere;';
+      note.hidden = true;
+      banner.append(text, activate, close, note);
+      document.body.appendChild(banner);
+      return banner;
+    }
+
+    function hideActivationBanner() {
+      const banner = document.getElementById('cliActivationBanner');
+      if (banner) banner.remove();
+    }
+
+    function setActivationNote(message, link) {
+      const banner = showActivationBanner();
+      const note = banner.querySelector('#cliActivationNote');
+      if (!note) return;
+      note.textContent = message;
+      if (link) {
+        const a = document.createElement('a');
+        a.href = link;
+        a.textContent = link;
+        a.style.cssText = 'color:#fff;text-decoration:underline;margin-left:0.3rem;';
+        note.appendChild(a);
+      }
+      note.hidden = !message;
+    }
+
+    // Pregunta cada 0,7 s si este navegador ya tiene la cookie, hasta 45 s. Se
+    // cuentan ticks (no el reloj): mismo plazo bajo el reloj manual de las pruebas.
+    function pollTerminalAuthorization() {
+      return new Promise(resolve => {
+        let ticks = Math.ceil(TERMINAL_ACTIVATION_WAIT_MS / TERMINAL_ACTIVATION_POLL_MS);
+        let busy = false;
+        let done = false;
+        const finish = (value) => { done = true; clearInterval(timer); resolve(value); };
+        const timer = setInterval(async () => {
+          if (busy || done) return;
+          ticks -= 1;
+          busy = true;
+          const info = await fetchTerminalInfo();
+          busy = false;
+          if (done) return;
+          if (info && info.authorized) finish(info);
+          else if (ticks <= 0) finish(null);
+        }, TERMINAL_ACTIVATION_POLL_MS);
+      });
+    }
+
+    // «Activar CLI»: el servidor abre su enlace de activación en el navegador
+    // del sistema (el secreto nunca llega a esta página), ese navegador recibe
+    // la cookie y esta pestaña espera hasta quedar autorizada; entonces abre la
+    // sesión. Solo con un clic, nunca al cargar.
+    async function ensureAuthorized() {
+      if (terminalActivating) return terminalActivating;
+      terminalActivating = (async () => {
+        if (terminalAuthorized !== false) {
+          const info = await fetchTerminalInfo();
+          if (info) applyTerminalInfo(info);
+          if (!info || info.authorized !== false || info.enabled === false) return info;
+        }
+        setActivationNote('Abriendo el enlace de activación en el navegador…');
+        let result = {};
+        try {
+          const res = await fetch('/api/terminal/activate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}'
+          });
+          result = await res.json().catch(() => ({}));
+          // 429: el enlace ya se abrió hace un momento; basta con esperar.
+          if (!res.ok && res.status !== 429) {
+            setActivationNote(`No se pudo activar: ${result.error || `HTTP ${res.status}`}. Abre el enlace que imprimió morfeo ui.`);
+            return cachedTerminalInfo;
+          }
+        } catch (err) {
+          setActivationNote('No se pudo contactar al servidor. Abre el enlace que imprimió morfeo ui.');
+          return cachedTerminalInfo;
+        }
+        // La cookie pertenece a la dirección del servidor: una pestaña abierta
+        // con otro nombre (localhost por 127.0.0.1) nunca la recibe.
+        const here = window.location.origin;
+        if (result.origin && /^https?:\/\/[^\s"'<>]+$/.test(result.origin) && result.origin !== here) {
+          setActivationNote('El CLI se activa en otra dirección; abre el tablero en', `${result.origin}/`);
+          return cachedTerminalInfo;
+        }
+        const info = await pollTerminalAuthorization();
+        if (!info) {
+          setActivationNote('No llegó la activación. Abre el enlace que imprimió morfeo ui o vuelve a intentarlo.');
+          return cachedTerminalInfo;
+        }
+        applyTerminalInfo(info);
+        hideActivationBanner();
+        checkTerminalTools();
+        if (!isTerminalOpen) openMorfeoTerminal();
+        else if (terminalInstance) connectTerminalWs(selectedAgent);
+        else setupTerminal();
+        return info;
+      })();
+      try {
+        return await terminalActivating;
+      } finally {
+        terminalActivating = null;
       }
     }
 
@@ -294,33 +615,11 @@
       if (select) {
         select.value = selectedAgent;
       }
-      checkTerminalTools();
-      if (typeof fetch !== 'undefined') {
-        fetch('/api/terminal/agents')
-          .then(r => r.json())
-          .then(data => {
-            if (data && data.ok && Array.isArray(data.agents)) {
-              cachedTerminalAgents = data.agents;
-              const selectEl = document.getElementById('terminalAgentSelect');
-              if (selectEl) {
-                const currentVal = selectedAgent || selectEl.value;
-                selectEl.innerHTML = '';
-                data.agents.forEach(a => {
-                  const opt = document.createElement('option');
-                  opt.value = a.id;
-                  opt.textContent = `${a.name}${a.installed ? '' : ' (no instalado)'}`;
-                  selectEl.appendChild(opt);
-                });
-                if ([...selectEl.options].some(o => o.value === currentVal)) {
-                  selectEl.value = currentVal;
-                } else {
-                  selectEl.value = 'herdr';
-                }
-              }
-            }
-          })
-          .catch(() => {});
-      }
+      // Solo lee: activar el CLI espera el clic en «Activar CLI».
+      fetchTerminalInfo().then(data => {
+        applyTerminalInfo(data);
+        if (!data || data.authorized !== false) checkTerminalTools();
+      }).catch(() => {});
     }
 
     function toggleMorfeoTerminal() {
@@ -329,21 +628,17 @@
         return;
       }
 
-      // Si previamente se determinó que faltan herramientas, muestra el modal de aviso
-      if (cachedTerminalTools && !cachedTerminalTools.ready) {
-        showToolsRequiredModal(cachedTerminalTools);
+      // La terminal embebida se abre siempre; lo que falte para el terminal
+      // externo solo desactiva su botón y deja un aviso descartable.
+      openMorfeoTerminal();
+      if (terminalAuthorized === false) {
+        showActivationBanner();
         return;
       }
 
-      // Abre el terminal de inmediato y verifica herramientas en segundo plano
-      openMorfeoTerminal();
-
       if (typeof fetch !== 'undefined') {
         checkTerminalTools().then(tools => {
-          if (tools && !tools.ready) {
-            closeMorfeoTerminal();
-            showToolsRequiredModal(tools);
-          }
+          if (tools && !tools.ready) showToolsNotice(tools);
         }).catch(() => {});
       }
     }
@@ -353,10 +648,12 @@
       const body = document.getElementById('morfeoToolsModalBody');
       if (!modal || !body) return;
 
+      const missing = (tools && tools.missing) || [];
       const hasHerdr = tools && tools.herdr && tools.herdr.installed;
       const hasGhostty = tools && tools.ghostty && tools.ghostty.installed;
       const hasWezterm = tools && tools.wezterm && tools.wezterm.installed;
-      const hasTerminal = hasGhostty || hasWezterm;
+      const linuxEmulator = missing.includes('terminal emulator');
+      const hasTerminal = !!(tools && tools.preferred_terminal) || ((hasGhostty || hasWezterm) && !linuxEmulator);
 
       let html = `
         <p style="margin-bottom:0.75rem;">Para visualizar la pantalla de terminal como un espejo interactivo de <strong>Herdr</strong> y operar en el entorno nativo del proyecto, se requiere contar con las herramientas correspondientes:</p>
@@ -384,7 +681,17 @@
         `;
       }
 
-      if (!hasTerminal) {
+      if (!hasTerminal && linuxEmulator) {
+        html += `
+          <div class="tools-pkg-card is-missing">
+            <div class="tools-pkg-title">
+              <span>✕ Emulador de Terminal</span>
+              <span style="color:#ef4444;font-size:0.75rem;font-weight:700;">No instalado</span>
+            </div>
+            <div style="font-size:0.8rem;color:#94a3b8;">Para abrir la consola nativa, ${TERMINAL_EMULATOR_HINT}.</div>
+          </div>
+        `;
+      } else if (!hasTerminal) {
         html += `
           <div class="tools-pkg-card is-missing">
             <div class="tools-pkg-title">
@@ -397,11 +704,13 @@
           </div>
         `;
       } else {
-        const termName = hasGhostty ? 'Ghostty (prioritario)' : 'WezTerm';
+        const termName = tools && tools.preferred_terminal
+          ? terminalEmulatorLabel(tools.preferred_terminal)
+          : (hasGhostty ? 'Ghostty (prioritario)' : 'WezTerm');
         html += `
           <div class="tools-pkg-card is-ok">
             <div class="tools-pkg-title">
-              <span>✓ Emulador de Terminal: ${termName}</span>
+              <span>✓ Emulador de Terminal: ${escapeTerminalText(termName)}</span>
               <span style="color:#10b981;font-size:0.75rem;font-weight:700;">Instalado</span>
             </div>
           </div>
@@ -410,12 +719,16 @@
 
       html += `
         <p style="margin-top:0.85rem;font-size:0.8rem;color:#94a3b8;">
-          Ruta del proyecto monitoreado: <code style="color:#38bdf8;">${monitoredProjectPath || 'Directorio del workspace'}</code>
+          Ruta del proyecto monitoreado: <code style="color:#38bdf8;">${escapeTerminalText(monitoredProjectPath || 'Directorio del workspace')}</code>
         </p>
       `;
 
       body.innerHTML = html;
       modal.classList.add('is-open');
+    }
+
+    function escapeTerminalText(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     }
 
     function closeToolsRequiredModal() {
@@ -434,9 +747,10 @@
     async function launchExternalTerminal() {
       try {
         const res = await fetch('/api/terminal/launch-external', { method: 'POST' });
+        if (res.status === 401) { terminalAuthorized = false; showActivationBanner(); return; }
         const data = await res.json();
         if (data && data.ok) {
-          const name = data.terminal === 'ghostty' ? 'Ghostty' : 'WezTerm';
+          const name = terminalEmulatorLabel(data.terminal);
           const act = data.action === 'activated' ? 'enfocado' : 'iniciado';
           console.log(`[Morfeo] Terminal ${name} ${act} en: ${data.cwd}`);
         } else {
@@ -603,6 +917,16 @@
 
       terminalProcessExited = false;
       terminalSessionTaken = false;
+      // Sin la cookie del CLI el servidor rechaza la conexión: no se intenta
+      // (ni se reintenta en bucle) hasta activar.
+      if (terminalAuthorized === false) {
+        updateTerminalStatus('disconnected', agent);
+        showActivationBanner();
+        if (terminalInstance && isTerminalOpen) {
+          terminalInstance.write('\r\n\x1b[33m[Morfeo] El CLI del tablero no está activado: usa «Activar CLI».\x1b[0m\r\n');
+        }
+        return;
+      }
       updateTerminalStatus('connecting', agent);
 
       // Se reconecta a la sesión viva del mismo agente; el servidor abre una nueva
@@ -627,9 +951,11 @@
       }
 
       ws.binaryType = 'arraybuffer';
+      let wsOpened = false;
 
       ws.onopen = () => {
         if (terminalSocket !== ws) return;
+        wsOpened = true;
         updateTerminalStatus('connected', agent);
         // Oculta, la terminal no tiene medidas reales: no se le cambia el tamaño al agente.
         if (isTerminalOpen) {
@@ -704,8 +1030,15 @@
             terminalPingTimer = null;
           }
           updateTerminalStatus('disconnected', agent);
+          // Rechazada antes de abrir: quizá la cookie ya no vale (servidor
+          // reiniciado). Se pregunta, y sin autorización no se reintenta.
+          if (!wsOpened) {
+            fetchTerminalInfo().then(info => {
+              if (info && info.authorized === false) applyTerminalInfo(info);
+            }).catch(() => {});
+          }
           // Se reconecta a la misma sesión (la conexión cayó, el agente sigue).
-          const wanted = () => (isTerminalOpen || terminalSessionId) && !terminalProcessExited && !terminalSessionTaken;
+          const wanted = () => (isTerminalOpen || terminalSessionId) && !terminalProcessExited && !terminalSessionTaken && terminalAuthorized !== false;
           if (wanted() && !document.hidden) {
             terminalReconnectTimer = setTimeout(() => {
               if (wanted() && terminalSocket === ws) {
