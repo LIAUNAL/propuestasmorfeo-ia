@@ -29,7 +29,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # --- init ---
     p_init = sub.add_parser("init", help="Crea un nuevo espacio de trabajo independiente para una propuesta.")
-    p_init.add_argument("dir", type=Path, help="Ruta del directorio a crear")
+    p_init.add_argument(
+        "dir", nargs="?", type=Path, default=Path("."),
+        help="Directorio del proyecto (default: el directorio actual; debe estar vacío salvo con --force)",
+    )
     p_init.add_argument(
         "--tools",
         default="claude,opencode,pi,antigravity",

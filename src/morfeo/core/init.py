@@ -44,6 +44,11 @@ def init_project(
     if flujo not in FLUJO_LABELS:
         raise UserError(f"Flujo desconocido: {flujo} (válidos: {', '.join(FLUJO_LABELS)})")
     target_dir = target_dir.resolve()
+    if not force and ((target_dir / ".morfeo").is_dir() or (target_dir / ".marco").is_dir()):
+        raise UserError(
+            f"{target_dir} ya es un proyecto Morfeo.\n"
+            "Usa `morfeo upgrade` para actualizarlo, o --force para inicializarlo de nuevo."
+        )
     if target_dir.exists() and not force:
         existing = [p for p in target_dir.iterdir() if p.name != ".DS_Store"]
         if existing:

@@ -193,6 +193,50 @@ class TestMorfeoCLI(unittest.TestCase):
             upgrade_exit = upgrade_project(target, quiet=True)
             self.assertEqual(upgrade_exit, 0)
 
+    def _in_dir(self, path: Path):
+        import os
+        previous = os.getcwd()
+        os.chdir(path)
+        self.addCleanup(os.chdir, previous)
+
+    def test_init_without_dir_creates_the_project_in_the_current_directory(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._in_dir(Path(tmpdir))
+            self.assertEqual(main(["init", "--tools", "claude"]), 0)
+            self.assertTrue((Path(tmpdir) / ".morfeo" / "version").is_file())
+            self.assertTrue((Path(tmpdir) / "idea.md").is_file())
+
+    def test_init_without_dir_refuses_a_non_empty_current_directory(self):
+        import contextlib
+        import io
+        with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "notas.txt").write_text("x", encoding="utf-8")
+            self._in_dir(Path(tmpdir))
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = main(["init", "--tools", "claude"])
+            self.assertNotEqual(code, 0)
+            self.assertIn("--force", err.getvalue())
+            self.assertFalse((Path(tmpdir) / ".morfeo").exists())
+
+    def test_init_on_an_existing_project_points_to_upgrade(self):
+        import contextlib
+        import io
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.assertEqual(main(["init", tmpdir, "--tools", "claude"]), 0)
+            self._in_dir(Path(tmpdir))
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = main(["init", "--tools", "claude"])
+            self.assertNotEqual(code, 0)
+            self.assertIn("morfeo upgrade", err.getvalue())
+
+    def test_init_with_a_dir_still_creates_it_there(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target = Path(tmpdir) / "nueva"
+            self.assertEqual(main(["init", str(target), "--tools", "claude"]), 0)
+            self.assertTrue((target / ".morfeo" / "version").is_file())
+
     def test_cli_help(self):
         with self.assertRaises(SystemExit) as cm:
             main(["--help"])
