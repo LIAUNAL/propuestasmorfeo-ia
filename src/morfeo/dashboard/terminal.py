@@ -17,11 +17,13 @@ import pty
 import re
 import secrets
 import select
+import shlex
 import shutil
 import signal
 import socket
 import struct
 import subprocess
+import sys
 import termios
 import threading
 import time
@@ -218,8 +220,68 @@ def get_current_agent_pane_id(workspace_dir: Optional[Path] = None) -> Optional[
     return None
 
 
+def _app_installed(name: str) -> bool:
+    """Whether a macOS application bundle is installed system-wide or per user."""
+    return any((base / f"{name}.app").exists()
+               for base in (Path("/Applications"), Path.home() / "Applications"))
+
+
+#: Terminal emulators probed on PATH outside macOS, in preference order.
+LINUX_TERMINALS = ("ghostty", "wezterm", "gnome-terminal", "konsole", "x-terminal-emulator")
+
+
+def _preferred_terminal() -> tuple[Optional[str], str]:
+    """The terminal to launch and the label ``missing`` reports when none is found.
+
+    macOS probes installed applications plus PATH (Ghostty, WezTerm); every
+    other platform probes PATH only, in :data:`LINUX_TERMINALS` order.
+    """
+    if sys.platform == "darwin":
+        ghostty = bool(find_executable("ghostty") or _app_installed("Ghostty"))
+        wezterm = bool(find_executable("wezterm") or _app_installed("WezTerm"))
+        return ("ghostty" if ghostty else ("wezterm" if wezterm else None)), "terminal"
+    for name in LINUX_TERMINALS:
+        if shutil.which(name):
+            return name, "terminal emulator"
+    return None, "terminal emulator"
+
+
+def _linux_launch_argv(terminal_name: str, cwd: str, command: str) -> Optional[list[str]]:
+    """Argument list that opens ``terminal_name`` at ``cwd`` running ``command``."""
+    if terminal_name == "ghostty":
+        return ["ghostty", f"--working-directory={cwd}", "-e", command]
+    if terminal_name == "wezterm":
+        return ["wezterm", "start", "--cwd", cwd, command]
+    if terminal_name == "gnome-terminal":
+        return ["gnome-terminal", f"--working-directory={cwd}", "--", command]
+    if terminal_name == "konsole":
+        return ["konsole", "--workdir", cwd, "-e", command]
+    if terminal_name == "x-terminal-emulator":
+        # The Debian alternative has no working-directory flag; run the agent
+        # through a shell that cds first, so a path with spaces still lands.
+        return ["x-terminal-emulator", "-e", "/bin/sh", "-c",
+                f"cd {shlex.quote(cwd)} && exec {shlex.quote(command)}"]
+    return None
+
+
+def _emulator_info(name: str, app: str) -> dict[str, Any]:
+    """Installed flag and path of Ghostty or WezTerm (app bundles only on macOS)."""
+    path = shutil.which(name) if sys.platform != "darwin" else find_executable(name)
+    if not path and sys.platform == "darwin":
+        for base in (Path("/Applications"), Path.home() / "Applications"):
+            bundle = base / f"{app}.app"
+            if bundle.exists():
+                path = str(bundle)
+                break
+    return {"installed": bool(path), "path": path}
+
+
 def detect_terminal_tools(workspace_dir: Optional[Path] = None) -> dict[str, Any]:
-    """Inspect availability of Herdr and terminal emulators (Ghostty priority over WezTerm)."""
+    """Inspect availability of Herdr and an external terminal emulator.
+
+    macOS prefers Ghostty over WezTerm; other platforms probe
+    :data:`LINUX_TERMINALS` on PATH in order.
+    """
     herdr_bin = find_executable("herdr")
     herdr_socket = Path.home() / ".config" / "herdr" / "herdr.sock"
     herdr_server_running = False
@@ -239,22 +301,7 @@ def detect_terminal_tools(workspace_dir: Optional[Path] = None) -> dict[str, Any
         except Exception:
             herdr_client_running = False
 
-    # Ghostty detection (priority)
-    ghostty_bin = find_executable("ghostty")
-    ghostty_app = Path("/Applications/Ghostty.app")
-    ghostty_user_app = Path.home() / "Applications" / "Ghostty.app"
-    ghostty_installed = bool(ghostty_bin or ghostty_app.exists() or ghostty_user_app.exists())
-    ghostty_path = ghostty_bin or (str(ghostty_app) if ghostty_app.exists() else (str(ghostty_user_app) if ghostty_user_app.exists() else None))
-
-    # WezTerm detection
-    wezterm_bin = find_executable("wezterm")
-    wezterm_app = Path("/Applications/WezTerm.app")
-    wezterm_user_app = Path.home() / "Applications" / "WezTerm.app"
-    wezterm_installed = bool(wezterm_bin or wezterm_app.exists() or wezterm_user_app.exists())
-    wezterm_path = wezterm_bin or (str(wezterm_app) if wezterm_app.exists() else (str(wezterm_user_app) if wezterm_user_app.exists() else None))
-
-    # Preferred terminal emulator: Ghostty priority over WezTerm
-    preferred_terminal = "ghostty" if ghostty_installed else ("wezterm" if wezterm_installed else None)
+    preferred_terminal, missing_terminal = _preferred_terminal()
 
     herdr_installed = herdr_bin is not None
     ready = bool(herdr_installed and preferred_terminal)
@@ -265,7 +312,7 @@ def detect_terminal_tools(workspace_dir: Optional[Path] = None) -> dict[str, Any
     if not herdr_installed:
         missing.append("herdr")
     if not preferred_terminal:
-        missing.append("terminal")
+        missing.append(missing_terminal)
 
     return {
         "ready": ready,
@@ -279,14 +326,8 @@ def detect_terminal_tools(workspace_dir: Optional[Path] = None) -> dict[str, Any
             "client_running": herdr_client_running,
             "active_pane": active_pane_id,
         },
-        "ghostty": {
-            "installed": ghostty_installed,
-            "path": ghostty_path,
-        },
-        "wezterm": {
-            "installed": wezterm_installed,
-            "path": wezterm_path,
-        },
+        "ghostty": _emulator_info("ghostty", "Ghostty"),
+        "wezterm": _emulator_info("wezterm", "WezTerm"),
     }
 
 
@@ -326,7 +367,14 @@ def ensure_herdr_workspace(workspace_dir: Path) -> dict[str, Any]:
 
 
 def launch_external_terminal(workspace_dir: Path) -> dict[str, Any]:
-    """Launch or focus external terminal (Ghostty priority over WezTerm) with Herdr at workspace_dir."""
+    """Open Herdr at ``workspace_dir`` in an external terminal emulator.
+
+    macOS goes through ``open(1)`` (Ghostty preferred over WezTerm) and only
+    focuses the app when a herdr client already runs. Linux and other POSIX
+    platforms start the preferred emulator directly, detached, with an
+    argument list (see :data:`LINUX_TERMINALS`); there is no portable way to
+    focus an existing window there, so every call opens a new one.
+    """
     tools = detect_terminal_tools(workspace_dir)
     if not tools["ready"]:
         return {
@@ -337,6 +385,7 @@ def launch_external_terminal(workspace_dir: Path) -> dict[str, Any]:
         }
 
     resolved_path = workspace_dir.resolve()
+    cwd = str(resolved_path)
     ensure_herdr_workspace(resolved_path)
 
     preferred = tools["preferred_terminal"]
@@ -344,35 +393,36 @@ def launch_external_terminal(workspace_dir: Path) -> dict[str, Any]:
     client_running = tools["herdr"]["client_running"]
 
     try:
-        if preferred == "ghostty":
+        if sys.platform == "darwin":
+            app = "Ghostty" if preferred == "ghostty" else "WezTerm"
             if client_running:
-                subprocess.run(["open", "-a", "Ghostty"], capture_output=True, text=True, timeout=3.0)
+                subprocess.run(["open", "-a", app], capture_output=True, text=True, timeout=5.0)
                 action = "activated"
             else:
-                subprocess.run(
-                    ["open", "-a", "Ghostty", "--args", f"--working-directory={resolved_path}", "-e", herdr_bin],
-                    capture_output=True, text=True, timeout=3.0
-                )
-                action = "launched"
-            return {"ok": True, "terminal": "ghostty", "action": action, "cwd": str(resolved_path)}
-
-        elif preferred == "wezterm":
-            wezterm_bin = tools["wezterm"]["path"]
-            if client_running:
-                subprocess.run(["open", "-a", "WezTerm"], capture_output=True, text=True, timeout=3.0)
-                action = "activated"
-            else:
-                if wezterm_bin and shutil.which("wezterm"):
-                    subprocess.Popen([wezterm_bin, "start", "--cwd", str(resolved_path), herdr_bin])
+                if preferred == "ghostty":
+                    app_args = [f"--working-directory={cwd}", "-e", herdr_bin]
                 else:
-                    subprocess.run(["open", "-a", "WezTerm"], capture_output=True, text=True, timeout=3.0)
+                    app_args = ["start", "--cwd", cwd, herdr_bin]
+                subprocess.run(["open", "-na", app, "--args", *app_args],
+                               capture_output=True, text=True, timeout=5.0)
                 action = "launched"
-            return {"ok": True, "terminal": "wezterm", "action": action, "cwd": str(resolved_path)}
-
-    except Exception as e:
+        else:
+            argv = _linux_launch_argv(preferred, cwd, herdr_bin)
+            if argv is None:
+                return {"ok": False, "error": f"Emulador de terminal no soportado: {preferred}"}
+            subprocess.Popen(
+                argv,
+                cwd=cwd,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            action = "launched"
+    except (OSError, subprocess.SubprocessError) as e:
         return {"ok": False, "error": str(e)}
 
-    return {"ok": False, "error": "No hay emulador de terminal disponible"}
+    return {"ok": True, "terminal": preferred, "action": action, "cwd": cwd}
 
 
 def get_available_agents() -> list[dict[str, Any]]:
