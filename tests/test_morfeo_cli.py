@@ -104,6 +104,38 @@ class TestMorfeoCLI(unittest.TestCase):
             self.assertIsNone(status["control"])
             self.assertEqual(status["run_details"]["insumos_count"], 0)
 
+    def test_status_prints_the_current_unit_what_is_pending_and_the_next_command(self):
+        """`morfeo status` reports where the run stands, like the dashboard's
+        «⟳ Actualizar tablero» panel, beside the counts it already printed."""
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo = Path(tmpdir)
+            run = repo / "proposals" / "2026-01-demo"
+            (run / "artefactos").mkdir(parents=True)
+            (repo / "proposals" / ".current-run").write_text("2026-01-demo\n", encoding="utf-8")
+            (run / "artefactos" / "insumos.md").write_text("# Insumos\n", encoding="utf-8")
+            (run / "artefactos" / "estado_propuesta.md").write_text(
+                "# Estado\n\n| Gate | Estado |\n|---|---|\n| G0.5 | PASS |\n\n"
+                "## Control de ejecución\n\n"
+                "- mode: stepped\n- next_step: fase1a\n"
+                "- next_command: /propuesta-continuar\n"
+                "- last_completed: fase0\n- intake_complete: true\n",
+                encoding="utf-8",
+            )
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(status_project(repo), 0)
+        text = out.getvalue()
+        self.assertIn("Unidad actual:  fase1a", text)
+        self.assertIn("Pendiente:", text)
+        self.assertIn("  - Compuerta G1a en PASS", text)
+        self.assertIn("Siguiente:      /propuesta-continuar", text)
+        # The previous report is still printed.
+        self.assertIn("Corrida activa: 2026-01-demo", text)
+        self.assertIn("Compuertas:", text)
+
     def test_status_without_a_heartbeat_reports_none(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo = Path(tmpdir)

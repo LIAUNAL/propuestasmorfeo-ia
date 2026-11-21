@@ -494,6 +494,49 @@ def _package_version() -> str:
     return __version__
 
 
+_VERSION_LINE = re.compile(r"""^__version__\s*=\s*["']([^"']+)["']""", re.M)
+
+# The package version on disk when `morfeo ui` started its server. An upgrade
+# installed while the server runs does not reach the running code, so the
+# status compares the two and the dashboard footer says so (papersmith pattern).
+_SERVER_STARTED_VERSION: str | None = None
+
+
+def installed_package_version() -> str:
+    """The version of the package installed on disk now, read from its
+    `__init__.py` rather than from the module already imported."""
+    init_file = Path(__file__).resolve().parent.parent / "__init__.py"
+    try:
+        match = _VERSION_LINE.search(init_file.read_text(encoding="utf-8"))
+    except OSError:
+        match = None
+    return match.group(1) if match else _package_version()
+
+
+def record_server_start() -> str:
+    """Remember the installed version at server start; returns it."""
+    global _SERVER_STARTED_VERSION
+    _SERVER_STARTED_VERSION = installed_package_version()
+    return _SERVER_STARTED_VERSION
+
+
+def reset_server_start() -> None:
+    global _SERVER_STARTED_VERSION
+    _SERVER_STARTED_VERSION = None
+
+
+def server_version_report() -> dict[str, Any]:
+    """`stale_server` plus both versions once a server recorded its start."""
+    if _SERVER_STARTED_VERSION is None:
+        return {"stale_server": False}
+    installed = installed_package_version()
+    return {
+        "stale_server": installed != _SERVER_STARTED_VERSION,
+        "server_version": _SERVER_STARTED_VERSION,
+        "installed_version": installed,
+    }
+
+
 def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
     target_dir = target_dir.resolve()
     cache_key = str(target_dir)
@@ -501,7 +544,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
     if not force_refresh:
         cached = _STATUS_CACHE.get(cache_key)
         if cached and (now - cached[0] < 1.5):
-            return cached[1]
+            return {**cached[1], **server_version_report()}
 
     version = _package_version()
     # Flujo del proyecto (`base` o `sgr`): decide qué unidades y compuertas le tocan.
@@ -669,7 +712,7 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
         "idea_exists": (target_dir / "idea.md").is_file(),
     }
     _STATUS_CACHE[cache_key] = (now, result_data)
-    return result_data
+    return {**result_data, **server_version_report()}
 
 
 def status_project(target_dir: Path, as_json: bool = False) -> int:
@@ -699,6 +742,7 @@ def status_project(target_dir: Path, as_json: bool = False) -> int:
         print(f"Grafo papers:   {'Generado' if details.get('papers_graph') else 'Pendiente'}")
         print(f"Grafo vault:    {'Generado' if details.get('vault_graph') else 'Pendiente'}")
         print(f"Flujo Archify:  {'Disponible' if status.get('archify_flow_ready') else 'Pendiente'}")
+        _print_pending(status)
     else:
         print("Corrida activa: Ninguna (Usa '/propuesta-init <idea>' para iniciar)")
 
@@ -708,3 +752,24 @@ def status_project(target_dir: Path, as_json: bool = False) -> int:
         print(f"  - {r}{mark}")
 
     return 0
+
+
+def _print_pending(status: dict) -> None:
+    """Where the run stands: the current unit, what it still lacks and the next
+    command (the same report as the dashboard's «⟳ Actualizar tablero»)."""
+    from .board import summarize
+
+    summary = summarize(status)
+    current = summary["current"]
+    if current is None:
+        print("Unidad actual:  ninguna (todas las unidades aprobadas)")
+    else:
+        print(f"Unidad actual:  {current['id']} · {current['name']}")
+        if summary["missing"]:
+            print("Pendiente:")
+            for label in summary["missing"]:
+                print(f"  - {label}")
+    if summary["failed_gates"]:
+        print("Compuertas fallidas: " + ", ".join(g["id"] for g in summary["failed_gates"]))
+    if summary["next_command"]:
+        print(f"Siguiente:      {summary['next_command']}")

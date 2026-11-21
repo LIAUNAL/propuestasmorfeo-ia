@@ -22,7 +22,8 @@ from ..core.pdf_annotator import apply_pdf_annotations
 from ..core.presentation import ASSET_TYPES, build_presentation, resolve_asset
 from ..core.sgr_panel import load_style_report, load_tdr_chapters
 from ..core.sgr_rules import load_sgr_blocks
-from ..core.status import get_project_status, read_flujo
+from ..core import board
+from ..core.status import get_project_status, read_flujo, record_server_start
 from ..core.judge import EVALUACION_FILE, JUDGE_COMMAND, build_action_prompt, load_judge
 from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
 from ..core.style_sgr import load_style
@@ -122,7 +123,10 @@ def flatten_idea(markdown: str) -> str:
 BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 # Page code moved out of index.html: it must stay as fresh as the page that
 # loads it, so a cached copy never runs against a newer index.html.
-PAGE_SCRIPTS = frozenset({"cli-console.js"})
+PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js"})
+
+# Origins a loopback server answers from: the browser may name it either way.
+_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 
 # build.sh escribe en la misma carpeta: dos compilaciones a la vez se pisan.
@@ -196,6 +200,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_style_sgr()
         elif path == "/api/convocatorias":
             self.serve_opportunities()
+        elif path == "/api/board/summary":
+            self.serve_board_summary()
         else:
             self.send_error(404, "Not Found")
 
@@ -251,6 +257,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_opportunities_search()
         elif path == "/api/convocatorias/iniciar":
             self.handle_opportunities_start()
+        elif path == "/api/board/refresh":
+            self.handle_board_refresh()
         else:
             self.send_error(404, "Not Found")
 
@@ -434,15 +442,48 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def _resolve_scripts_dir(self) -> Path:
-        # The packaged kit goes first: a portable project's scripts/ is a copy
-        # frozen at the kit version it was created with, and rendering with it
-        # would hide every graph fix shipped since.
-        kit_scripts = Path(__file__).resolve().parent.parent / "_kit" / "scripts"
-        repo_root = Path(__file__).resolve().parent.parent.parent.parent
-        for candidate in (kit_scripts, self.workspace_dir / "scripts", repo_root / "scripts"):
-            if (candidate / "build_manuscript_graph.py").is_file():
-                return candidate
-        return self.workspace_dir / "scripts"
+        # The packaged kit goes first (see board.resolve_scripts_dir).
+        return board.resolve_scripts_dir(self.workspace_dir)
+
+    # --- «⟳ Actualizar tablero» ---------------------------------------------
+
+    def _same_origin(self) -> bool:
+        """Whether an action request came from this server's own page.
+
+        A bodyless cross-origin POST is a simple request browsers send without
+        a preflight, so any page open in the browser could trigger it. A request
+        without `Origin` (curl, tests, same-origin navigations) is allowed; a
+        present one must name this server's port and a loopback or bound host.
+        """
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True
+        import urllib.parse
+
+        try:
+            parsed = urllib.parse.urlparse(origin)
+            port = parsed.port or {"http": 80, "https": 443}.get(parsed.scheme)
+        except ValueError:
+            return False
+        bound_host, bound_port = self.server.server_address[:2]
+        return (parsed.scheme in ("http", "https") and port == bound_port
+                and parsed.hostname in (_LOOPBACK_HOSTS | {str(bound_host)}))
+
+    def handle_board_refresh(self) -> None:
+        if not self._same_origin():
+            self._send_json(403, {"ok": False, "error": "Solicitud de otro origen rechazada"})
+            return
+        result = board.refresher_for(self.workspace_dir).run()
+        if result is None:
+            self._send_json(409, {"ok": False, "busy": True,
+                                  "error": "Ya hay una actualización del tablero en curso"})
+            return
+        self._send_json(200, result)
+
+    def serve_board_summary(self) -> None:
+        # Read-only: the status as it stands plus the last refresh (the start-up
+        # one or the button's), so the page can report it once.
+        self._send_json(200, board.refresher_for(self.workspace_dir).current_summary())
 
     def handle_graph_build(self) -> None:
         data = get_project_status(self.workspace_dir)
@@ -552,6 +593,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(content)))
+        # The page and its scripts change together on an upgrade: revalidate.
+        self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         self.wfile.write(content)
 
@@ -1247,7 +1290,11 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(content)
 
 
-def run_server(workspace_dir: Path, port: int = 8080, host: str = "127.0.0.1") -> None:
+def run_server(workspace_dir: Path, port: int = 8080, host: str = "127.0.0.1",
+               refresh: bool = True) -> None:
+    """Serve the dashboard. `refresh` runs the board refresh once in the
+    background when the server starts, so the first visit shows the project as
+    it stands."""
     handler = type("ConfiguredHandler", (MorfeoDashboardHandler,), {"workspace_dir": workspace_dir})
     try:
         server = ThreadingHTTPServer((host, port), handler)
@@ -1257,6 +1304,10 @@ def run_server(workspace_dir: Path, port: int = 8080, host: str = "127.0.0.1") -
             print("Puedes especificar otro puerto usando: morfeo ui --port <nuevo_puerto>")
             return
         raise
+    record_server_start()
+    if refresh:
+        threading.Thread(target=board.refresher_for(workspace_dir).run_quietly,
+                         name="board-refresh", daemon=True).start()
     print(f"==> Morfeo Command Center UI activo en: http://{host}:{port}/")
     print("    Presiona Ctrl+C para detener el servidor.")
     try:

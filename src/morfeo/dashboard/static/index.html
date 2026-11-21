@@ -2610,6 +2610,58 @@
       border-color: var(--accent);
       color: var(--accent);
     }
+    /* «⟳ Actualizar tablero» report (board-refresh.js): compact, wraps on phones. */
+    .board-status {
+      margin: 0 0 1rem;
+      padding: 0.6rem 0.85rem;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--surface);
+      font-size: 0.82rem;
+      color: var(--text);
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-wrap: anywhere;
+    }
+    .board-status[hidden] { display: none; }
+    .board-status[data-tone="done"] { border-left-color: var(--ok); }
+    .board-status[data-tone="warn"] { border-left-color: var(--warn); }
+    .board-status[data-tone="alert"] { border-left-color: var(--bad); }
+    .board-status__head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.25rem 0.75rem;
+    }
+    .board-status__title { flex: 1 1 14rem; min-width: 0; }
+    .board-status__when { color: var(--text-muted); font-size: 0.75rem; }
+    .board-status__close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 0 0.2rem;
+    }
+    .board-status__lines, .board-status__missing {
+      margin: 0.35rem 0 0;
+      padding-left: 1.1rem;
+    }
+    .board-status__lines li, .board-status__missing li { margin: 0.1rem 0; }
+    .board-status__sub { margin: 0.45rem 0 0; color: var(--text-muted); font-weight: 600; }
+    .board-status__next {
+      margin-top: 0.5rem;
+      max-width: 100%;
+      white-space: normal;
+      text-align: left;
+    }
+    .board-status__next code { font-family: var(--font-mono); }
+    .footer__stale {
+      color: var(--warn);
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
   </style>
 </head>
 <body>
@@ -2632,7 +2684,7 @@
         <option value="">Cargando corridas...</option>
       </select>
       <button class="btn" onclick="toggleTheme()" id="themeBtn" title="Cambiar tema" aria-label="Cambiar tema">☀️ <span class="btn__label">Claro</span></button>
-      <button class="btn btn--primary" onclick="loadStatus({ fresh: true })" title="Actualizar datos" aria-label="Actualizar datos">⟳ <span class="btn__label">Actualizar</span></button>
+      <button class="btn btn--primary" id="boardRefreshBtn" onclick="refreshBoard()" title="Regenera los grafos de la corrida e informa el estado actual y lo que falta" aria-label="Actualizar tablero">⟳ <span class="btn__label">Actualizar tablero</span></button>
     </div>
   </header>
 
@@ -2667,6 +2719,8 @@
 
   <!-- Main content area -->
   <main>
+    <!-- «⟳ Actualizar tablero» report: current unit, pending steps, gates (board-refresh.js). -->
+    <div id="boardStatus" class="board-status" role="status" aria-live="polite" hidden></div>
     <!-- TAB 1: FLUJO GENERAL (ARCHIFY) -->
     <div id="pane-flow" class="tab-pane active">
       <div class="panel">
@@ -3638,6 +3692,7 @@
   <footer class="dashboard-footer">
     <div class="footer__col footer__col--left">
       <strong id="footerVersion">Morfeo IA</strong>
+      <span id="footerStaleServer" class="footer__stale" role="alert" hidden></span>
       <a id="footerTelemetria" href="#telemetria" hidden>Telemetría y costos</a>
       <span>Orquestador Multi-Agente de Formulación Científica en IA</span>
     </div>
@@ -3747,6 +3802,7 @@
   </div>
 
   <script src="/static/cli-console.js"></script>
+  <script src="/static/board-refresh.js"></script>
   <script>
     // El inventario de unidades llega en el sobre de estado (`pipeline_units`).
     // Antes esta lista estaba escrita aquí con trece entradas que inventaban
@@ -8460,6 +8516,15 @@
       if (!pkg) return;
       const kit = data.version && data.version !== pkg ? ` (kit del proyecto: ${data.version})` : '';
       el.textContent = `Morfeo IA v${pkg}${kit}`;
+      // An upgrade installed while `morfeo ui` runs does not reach this server.
+      const stale = document.getElementById('footerStaleServer');
+      if (stale) {
+        stale.hidden = !data.stale_server;
+        stale.textContent = data.stale_server ? 'El servidor corre una versión anterior: reinicia `morfeo ui`' : '';
+        stale.title = data.stale_server
+          ? `Servidor: ${data.server_version || '?'} · instalada: ${data.installed_version || '?'}`
+          : '';
+      }
     }
 
     // The theme button keeps its icon visible and hides the word on phones;

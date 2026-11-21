@@ -106,7 +106,7 @@ Dentro del directorio inicializado puedes ejecutar los comandos del asistente en
 | Comando | Descripción |
 |---|---|
 | `morfeo init <dir> [--title] [--preset] [--tools] [--sgr]` | Inicializa un workspace autocontenido con los 113 activos base del marco. |
-| `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF. |
+| `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF; imprime la unidad actual, lo que le falta y el siguiente comando. |
 | `morfeo ui [dir] [--port 8080] [--no-open]` | Despliega el Command Center web interactivo en tiempo real (puerto 8080 por defecto, o el siguiente libre). |
 | `morfeo compile [dir] [--docx] [--run <id>]` | Compila el proyecto LaTeX a PDF (`build.sh`) o exporta a Word (`--docx`). |
 | `morfeo export [dir] [-o <archivo>] [--run <id>]` | Empaqueta y exporta la propuesta con todos sus artefactos en `.tar.gz` o `.zip`. |
@@ -155,6 +155,8 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
    - Las fases completadas y aprobadas se iluminan con borde activo, resplandor esmeralda/cian y badge de verificación.
    - Las fases pendientes permanecen en reposo visual sutil, evitando sobrecarga cognitiva.
    - Cada caja de fase trae un botón **«Ejecutar»**. Solo queda activo en la unidad que el flujo va a correr (`next_step` del control de ejecución) o en el intake mientras siga abierto, y envía `/propuesta-continuar` o `/propuesta-analizar` a la terminal del asistente. En cualquier otra fase explica qué etapas, compuertas y secciones faltan para habilitarla. La caja «Intake y enrutamiento de insumos» queda activa incluso antes de crear la corrida: abre un campo con la idea inicial, precargada desde `idea.md` (o `insumos/ideas/idea.md` de la corrida), y lanza `/propuesta-analizar <idea>`, que crea la corrida y hace el intake. Un clic en cualquier caja abre ese mismo recuadro: la unidad habilitada trae un campo con la guía de lo que se puede pedir en esa fase (términos de búsqueda, región y fuentes de cifras, equipo, tope del presupuesto…) y lo envía como `/propuesta-continuar <indicaciones>`; las fases con panel propio ofrecen ir a él (árboles en 1b y 4, MGA resumido en 1, Secciones en las que redactan, Previsualización en la 7).
+
+   - Botón **«⟳ Actualizar tablero»** (barra superior): regenera los grafos de la corrida activa y relee el estado (`POST /api/board/refresh`; solo generadores locales, sin llamadas a modelos; uno a la vez, 409 si ya hay otro en curso, 403 desde otro origen). El panel de estado sobre las pestañas dice dónde está el proyecto: la unidad actual, hasta seis «Pasos que aún faltan», las compuertas pendientes o fallidas, lo que no se pudo regenerar y un botón **«Siguiente: <comando>»** que envía el comando a la terminal integrada. `morfeo ui` corre la misma actualización al iniciar y el tablero la reporta una vez por arranque (`GET /api/board/summary`). Si se instala otra versión de Morfeo mientras el servidor corre, el pie de página avisa «El servidor corre una versión anterior: reinicia `morfeo ui`».
 
 2. **Visor PDF Integrado de Alto Rendimiento:**
    - Motor de previsualización basado en PDF.js con renderizado asíncrono no bloqueante.
