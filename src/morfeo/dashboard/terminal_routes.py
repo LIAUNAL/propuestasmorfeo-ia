@@ -16,7 +16,6 @@ from __future__ import annotations
 import json
 import re
 import urllib.parse
-import webbrowser
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +50,11 @@ def dispatch(handler: Any, method: str, path: str) -> bool:
         if reason is not None:
             _refuse(handler, 403, f"Solicitud rechazada: {reason}")
             return True
+    # `morfeo ui --no-terminal`: every CLI route but the agents status refuses.
+    if (path.startswith("/api/terminal/") or path == "/ws/terminal") and path != "/api/terminal/agents" \
+            and not _cli_switched_on(handler):
+        _refuse(handler, 403, "El CLI del tablero está desactivado (morfeo ui --no-terminal)")
+        return True
 
     if method == "GET":
         if path == "/api/terminal/agents":
@@ -106,9 +110,11 @@ def _require_session(handler: Any) -> bool:
 
 
 def open_browser(url: str) -> bool:
-    """Open `url` in the desktop browser; never raises."""
+    """Open `url` in a browser that fits the platform (WSL, display sockets,
+    headless Linux prints the URL instead of starting a text browser); never raises."""
+    from ..core import browser
     try:
-        return bool(webbrowser.open(url))
+        return bool(browser.open_browser(url))
     except Exception:
         return False
 
@@ -154,7 +160,14 @@ def handle_terminal_activate(handler: Any) -> None:
     handler._send_json(200, {"ok": True, "opened": opened, "origin": auth.origin})
 
 
-def _terminal_enabled() -> bool:
+def _cli_switched_on(handler: Any) -> bool:
+    """False when `morfeo ui --no-terminal` switched the embedded CLI off."""
+    return getattr(handler.server, "morfeo_terminal_enabled", True) is not False
+
+
+def _terminal_enabled(handler: Any = None) -> bool:
+    if handler is not None and not _cli_switched_on(handler):
+        return False
     try:
         import fcntl  # noqa: F401
         import pty  # noqa: F401
@@ -224,7 +237,7 @@ def serve_terminal_agents(handler: Any) -> None:
     """
     from .terminal import get_available_agents
 
-    enabled = _terminal_enabled()
+    enabled = _terminal_enabled(handler)
     authorized = terminal_auth.has_session(handler)
     agents = []
     if authorized:

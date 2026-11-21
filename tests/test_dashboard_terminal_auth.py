@@ -133,6 +133,27 @@ class DashboardAccessTest(unittest.TestCase):
         self.assertIn("token=***", captured.getvalue())
         self.assertNotIn(secret, captured.getvalue())
 
+    # -- morfeo ui --no-terminal --------------------------------------------
+    def test_no_terminal_flag_disables_every_cli_route(self) -> None:
+        self.server.morfeo_terminal_enabled = False
+        cookie = self.cookie()
+        status, _, body = self.request("GET", "/api/terminal/agents", {"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertFalse(json.loads(body)["enabled"])
+        status, _, _ = self.request("GET", f"/api/terminal/login?token={self.auth.login_secret}")
+        self.assertEqual(status, 403)
+        status, _, _ = self.request("POST", "/api/terminal/activate", {"Origin": self.origin}, b"{}")
+        self.assertEqual(status, 403)
+        status, _, _ = self.request("GET", "/api/terminal/tools", {"Cookie": cookie})
+        self.assertEqual(status, 403)
+        line = self.handshake({"Origin": self.origin, "Cookie": cookie})
+        self.assertNotIn(b"101", line)
+
+    def test_activation_opens_the_browser_through_the_display_aware_opener(self) -> None:
+        with mock.patch("src.morfeo.core.browser.open_browser", return_value=True) as opener:
+            self.assertTrue(terminal_routes.open_browser("http://127.0.0.1:1/x"))
+        opener.assert_called_once_with("http://127.0.0.1:1/x")
+
     # -- WebSocket ---------------------------------------------------------
     def test_websocket_upgrade_without_cookie_is_refused(self) -> None:
         status = self.handshake({"Origin": self.origin})
