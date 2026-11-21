@@ -30,9 +30,9 @@ S5. Agent and command: `/propuesta-convocatorias buscar [--alcance proyecto|banc
 
 | ID | Specs | Route | Status | Commit |
 |----|-------|-------|--------|--------|
-| T1 | S2, S3 | delegated writer (parallel, disjoint: scripts/convocatorias.py, tests/test_convocatorias.py) | pending | |
-| T2 | S1, S4 | delegated writer (parallel, disjoint: dashboard static, core/opportunities.py, server.py route, tests) | pending | |
-| T3 | S5 + integration | inline (parent): agent, command, docs, kit, ports, suites, browser seam check, commits | pending | |
+| T1 | S2, S3 | delegated writer (parallel, disjoint: scripts/convocatorias.py, tests/test_convocatorias.py) | done | f0c1b33 (32 new tests RED→GREEN, 59 total), 8774b81 (perfil.titulo) |
+| T2 | S1, S4 | delegated writer (parallel, disjoint: dashboard static, core/opportunities.py, server.py route, tests) | done | df4da6c (13 + 1 js and 9 py tests RED→GREEN; browser: 0 px overflow at 6 widths, 17/17 labels, 0 overlaps) |
+| T3 | S5 + integration | inline (parent): agent, command, docs, kit, ports, suites, browser seam check, commits | done | f244f45 (agent, command, ports) |
 
 Route evidence: two independent units with disjoint surfaces, each several files and well over 100 lines, launched together; the S2/S3 contract is the seam. Writers also justified by the parent context backstop.
 
@@ -41,3 +41,5 @@ Route evidence: two independent units with disjoint surfaces, each several files
 L1 (2026-11-20, user, verbatim): «integra arbol y constelacion al panel de convocaotiras»
 
 L2 (2026-11-20, parent decisions): fields are optional and additive; `puntaje` kept, `match` added and used for ordering in the view (approved design of the prototype: 35/25/25/15); two profile files instead of a mode flag so a banco search never overwrites the project profile; the front end lives in a new `static/convocatorias-map.js` (no-cache, inlined by the jsdom harness) to keep index.html manageable.
+
+L3 (2026-11-20, close): after T2, two parent fixes with RED→GREEN tests: the view carries `perfil.titulo` so the tree trunk names the project or the lab (8774b81), and after «Buscar para …» on a scope without a profile the panel follows that scope once the agent writes it (df4da6c). Full Python suite 1692 with only the 13 environment failures; JS 324/324; kit and three ports in step. Browser seam on a real `morfeo ui`: trunk «IA para la detección temprana…» / «Laboratorio de IA (banco LIA)», 17 constellation labels, three consecutive node clicks switch the detail, scope toggle reloads with ?alcance=banco, 0 px overflow at 390, no page errors (two pre-existing 404s without an active run: /api/artifact, /api/pdf/annotations). Known wording: «Cierra en 1 días» (spec verbatim).
