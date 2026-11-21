@@ -176,8 +176,14 @@
       100% { opacity: 0.4; }
     }
 
-    /* Buttons */
-    .btn {
+    /* Links: readable accent in both themes (the browser default blue is
+       1.6:1 on the dark surface). Buttons rendered as links keep .btn colours. */
+    a { color: var(--accent); }
+    a:hover { text-decoration-thickness: 2px; }
+
+    /* Buttons. The modal footers use .btn-primary / .btn-secondary: they share
+       the .btn look instead of falling back to unstyled browser buttons. */
+    .btn, .btn-secondary, .btn-primary {
       background: var(--surface-2);
       color: var(--text);
       border: 1px solid var(--border);
@@ -192,14 +198,15 @@
       text-decoration: none;
       transition: background 0.15s, border-color 0.15s;
     }
-    .btn:hover { background: var(--surface-hover); border-color: var(--accent); }
-    .btn--primary {
+    .btn:hover, .btn-secondary:hover, .btn-primary:hover { background: var(--surface-hover); border-color: var(--accent); }
+    .btn--primary, .btn-primary {
       background: var(--accent);
       color: #0b0f19;
       border-color: var(--accent);
     }
-    [data-theme="light"] .btn--primary { color: #ffffff; }
-    .btn--primary:hover {
+    [data-theme="light"] .btn--primary, [data-theme="light"] .btn-primary { color: #ffffff; }
+    .btn--primary:hover, .btn-primary:hover {
+      background: var(--accent);
       filter: brightness(1.1);
     }
 
@@ -259,7 +266,12 @@
       display: flex;
       gap: 0.25rem;
       overflow-x: auto;
+      /* A thin, always visible scrollbar tells that more tabs follow. */
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
     }
+    .tabs-nav::-webkit-scrollbar { height: 4px; }
+    .tabs-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
     .tab-nav__btn {
       background: none;
       border: none;
@@ -271,6 +283,10 @@
       position: relative;
       white-space: nowrap;
       transition: color 0.15s;
+      flex: 0 0 auto;
+      /* navigateTab() scrolls the active tab into view: keep it clear of the
+         sticky top bar. */
+      scroll-margin-top: 80px;
     }
     .tab-nav__btn:hover { color: var(--text); }
     .tab-nav__btn.active {
@@ -308,8 +324,10 @@
     }
     .panel__header {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
+      gap: 0.5rem 1rem;
       margin-bottom: 1rem;
       padding-bottom: 0.65rem;
       border-bottom: 1px solid var(--border-subtle);
@@ -320,6 +338,8 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
     .panel__meta {
       font-size: 0.78rem;
@@ -329,7 +349,7 @@
     /* Pipeline Cards Grid */
     .pipeline-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
       gap: 1rem;
     }
     .phase-card {
@@ -475,7 +495,7 @@
     .vc-fields dt { color: var(--text-dim); }
     .vc-fields dd { margin: 0; color: var(--text); }
     .vc-activities { width: 100%; border-collapse: collapse; font-size: 0.74rem; }
-    .vc-activities th { text-align: left; font-weight: 600; color: var(--text-dim); padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--border-subtle); }
+    .vc-activities th { text-align: left; font-weight: 600; color: var(--text-dim); padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--border-subtle); overflow-wrap: normal; word-break: normal; hyphens: manual; }
     .vc-activities td { padding: 0.3rem; vertical-align: top; border-bottom: 1px solid var(--border-subtle); }
     .vc-activities td:first-child { border-left: 3px solid transparent; }
     .vc-activities .vc-costo, .vc-activities .vc-meses { white-space: nowrap; text-align: right; }
@@ -612,6 +632,7 @@
     .cv-resumen { font-size: 0.82rem; line-height: 1.5; color: var(--text); margin: 0.45rem 0 0; }
     .cv-evidencia { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem; }
     .cv-evidencia ul, .cv-sources { margin: 0.2rem 0 0; padding-left: 1rem; font-size: 0.78rem; overflow-wrap: anywhere; }
+    .cv-evidencia a, .cv-sources a { color: var(--accent); overflow-wrap: anywhere; }
     .cv-card__actions { margin-top: 0.5rem; }
     .rq-table td { min-width: 6rem; }
     .rq-input { width: 100%; min-width: 6rem; font: inherit; font-size: 0.74rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.2rem 0.3rem; margin-top: 0.2rem; }
@@ -903,8 +924,13 @@
     /* Split layout */
     .split-layout {
       display: grid;
-      grid-template-columns: 280px 1fr;
+      grid-template-columns: 280px minmax(0, 1fr);
       gap: 1.25rem;
+    }
+    /* Phones and narrow windows: the artifact list goes above the viewer. */
+    @media (max-width: 700px) {
+      .split-layout { grid-template-columns: minmax(0, 1fr); gap: 0.85rem; }
+      .split-layout .sidebar-list { height: auto; max-height: 38vh; }
     }
     .sidebar-list {
       background: var(--surface);
@@ -1122,10 +1148,33 @@
       }
     }
     @media (max-width: 600px) {
-      :root { --fab-size: 48px; --fab-offset: 16px; }
+      /* A smaller, closer FAB covers less of the tables under it. */
+      :root { --fab-size: 44px; --fab-offset: 12px; }
+      .morfeo-fab__logo { width: 30px; height: 30px; }
       /* Theme and refresh buttons collapse to their icon. */
       .btn__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
       .topbar__title h1 { font-size: 0.95rem; }
+      /* Panel headers: the title takes the whole row and the meta goes below. */
+      .panel__header > :first-child { flex: 1 1 100%; }
+      .panel { padding: 1rem 0.85rem; }
+    }
+    /* Phones: the header scrolls away with the page instead of keeping ~170 px
+       pinned, and it is compacted so the content starts near the top. */
+    @media (max-width: 700px) {
+      .topbar { position: static; padding: 0.45rem 1rem; gap: 0.4rem; }
+      .topbar__avatar-wrap { width: 32px; height: 32px; }
+      .topbar__title p { display: none; }
+      .topbar__actions { flex-wrap: nowrap; gap: 0.4rem; }
+      .topbar__actions .badge { font-size: 0.65rem; padding: 0.2rem 0.45rem; white-space: nowrap; }
+      /* LIVE keeps only its pulsing dot. */
+      .topbar__actions .badge--live { font-size: 0; gap: 0; padding: 0.3rem; }
+      #runSelector { flex: 1 1 0; min-width: 0; }
+      .meta-strip { padding: 0.4rem 1rem; gap: 0.35rem; }
+      .meta-strip__left { min-width: 0; max-width: 100%; }
+      .meta-strip__item { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .totals-bar { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+      .totals__chip { flex: 0 0 auto; }
+      .tab-nav__btn { padding: 0.65rem 0.75rem; scroll-margin-top: 0; }
     }
 
     /* =========================================================
@@ -1242,8 +1291,11 @@
       margin-bottom: 0.35rem;
       max-width: 110px;
       overflow: hidden;
+      overflow-wrap: break-word;
       display: -webkit-box;
-      -webkit-line-clamp: 2;
+      /* Three lines: the longest short names («Árboles de problemas y
+         objetivos») need them in the narrow steps of a phone. */
+      -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       font-weight: 500;
     }
@@ -1511,8 +1563,10 @@
     }
     .pdf-topbar__left {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 0.65rem;
+      min-width: 0;
     }
     .pdf-doc-title {
       font-size: 0.95rem;
@@ -1525,8 +1579,11 @@
     }
     .pdf-topbar__right {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 0.5rem;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .btn-group {
@@ -2336,6 +2393,28 @@
       max-height: none;
       border-radius: 8px;
     }
+    /* The FAB (z-index 99999) sits above the terminal (99998): while the
+       terminal is maximized it would cover the footer, so it steps aside. The
+       header keeps Restore and Close. */
+    body:has(.morfeo-terminal-window.is-open.is-maximized) .morfeo-fab {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    /* The «Activar CLI» banner (cli-console.js, inline position at the top)
+       would cover the maximized terminal's header controls: it moves above the
+       terminal footer instead. */
+    body:has(.morfeo-terminal-window.is-open.is-maximized) #cliActivationBanner {
+      top: auto !important;
+      bottom: 56px !important;
+    }
+    /* On phones the banner would cover the top bar's actions: it sits at the
+       bottom, above the CLI button, until it is dismissed or the CLI activates. */
+    @media (max-width: 600px) {
+      #cliActivationBanner {
+        top: auto !important;
+        bottom: calc(var(--fab-size, 44px) + 24px) !important;
+      }
+    }
 
     /* Cabecera del Terminal */
     .morfeo-terminal-header {
@@ -2343,8 +2422,10 @@
       border-bottom: 1px solid #1e293b;
       padding: 0.5rem 0.85rem;
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
+      gap: 0.4rem 0.6rem;
       user-select: none;
     }
     .morfeo-terminal-title {
@@ -2380,7 +2461,11 @@
     .morfeo-terminal-controls {
       display: flex;
       align-items: center;
+      justify-content: flex-end;
       gap: 0.45rem;
+      min-width: 0;
+      max-width: 100%;
+      margin-left: auto;
     }
     .terminal-agent-picker {
       display: flex;
@@ -2388,8 +2473,12 @@
       gap: 0.35rem;
       font-size: 0.75rem;
       color: var(--text-muted);
+      min-width: 0;
     }
+    .terminal-btn-icon { flex-shrink: 0; }
     .terminal-agent-select {
+      min-width: 0;
+      max-width: 100%;
       background: #1e293b;
       color: var(--text);
       border: 1px solid #334155;
@@ -2571,19 +2660,32 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 0.75rem;
       font-size: 0.73rem;
       color: var(--text-muted);
       user-select: none;
     }
+    /* The label shrinks first and ends in an ellipsis; its flex items need
+       their own overflow rules because text-overflow does not cross them. */
     .terminal-footer-info {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       white-space: nowrap;
       overflow: hidden;
-      text-overflow: ellipsis;
       max-width: 50%;
+      min-width: 0;
+      flex: 1 1 auto;
     }
+    .terminal-footer-info > * { flex-shrink: 0; }
+    .terminal-footer-info > strong, .terminal-footer-info > .terminal-footer-path {
+      flex-shrink: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* The run path gives way before the agent name. */
+    .terminal-footer-info > .terminal-footer-path { flex-shrink: 1000; }
     .terminal-footer-path {
       font-family: var(--font-mono);
       font-size: 0.68rem;
@@ -2593,6 +2695,7 @@
       display: flex;
       align-items: center;
       gap: 0.4rem;
+      flex-shrink: 0;
     }
     .btn-term-shortcut {
       background: #1e293b;
@@ -2605,10 +2708,27 @@
       cursor: pointer;
       transition: all 0.15s ease;
     }
+    #terminalQuickSelect { max-width: 11rem; }
     .btn-term-shortcut:hover {
       background: rgba(56, 189, 248, 0.15);
       border-color: var(--accent);
       color: var(--accent);
+    }
+    /* Phones: the window spans the width and its header takes two rows
+       (title, then controls) so Restart, Maximize and Close stay on screen. */
+    @media (max-width: 600px) {
+      .morfeo-terminal-window { right: 8px; width: calc(100vw - 16px); max-width: none;
+        bottom: calc(var(--fab-size) + var(--fab-offset) + 12px);
+        max-height: calc(100vh - var(--fab-size) - var(--fab-offset) - 24px); }
+      .morfeo-terminal-header { padding: 0.45rem 0.6rem; }
+      .morfeo-terminal-title { flex: 1 1 100%; min-width: 0; }
+      .morfeo-terminal-controls { flex: 1 1 100%; gap: 0.35rem; }
+      .terminal-agent-picker { flex: 1 1 auto; }
+      .terminal-agent-picker label { display: none; }
+      .terminal-agent-select { flex: 1 1 auto; width: 0; }
+      .morfeo-terminal-footer { padding: 0 0.6rem; gap: 0.5rem; }
+      .terminal-footer-info { max-width: none; }
+      #terminalQuickSelect { max-width: 6.5rem; }
     }
     /* «⟳ Actualizar tablero» report (board-refresh.js): compact, wraps on phones. */
     .board-status {
@@ -3301,7 +3421,7 @@
             <a id="linkOpenGraph" href="/api/graph/papers" target="_blank" class="btn">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
-        <iframe id="graphIframe" class="iframe-viewer" src="about:blank" title="Grafo de conocimiento" onload="syncGraphPause()"></iframe>
+        <iframe id="graphIframe" class="iframe-viewer" src="about:blank" title="Grafo de conocimiento" onload="if (typeof syncGraphPause === 'function') syncGraphPause()"></iframe>
       </div>
     </div>
 
@@ -8561,6 +8681,14 @@
     document.documentElement.setAttribute('data-theme', savedTheme);
     applyThemeChrome(savedTheme);
 
+    // The tab bar scrolls sideways on narrow screens: the active tab is brought
+    // into view (deep links, links from other panels) without moving the page
+    // more than needed.
+    function revealActiveTab(btn) {
+      if (!btn || typeof btn.scrollIntoView !== 'function') return;
+      try { btn.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } catch (_) {}
+    }
+
     function navigateTab(tabId) {
       if (tabId === 'gates') {
         tabId = 'pipeline';
@@ -8570,6 +8698,7 @@
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
         const targetBtn = Array.from(document.querySelectorAll('.tab-nav__btn')).find(b => b.getAttribute('onclick')?.includes('pipeline'));
         if (targetBtn) targetBtn.classList.add('active');
+        revealActiveTab(targetBtn);
         const targetPane = document.getElementById('pane-pipeline');
         if (targetPane) targetPane.classList.add('active');
         setTimeout(() => {
@@ -8586,6 +8715,7 @@
       
       const targetBtn = Array.from(document.querySelectorAll('.tab-nav__btn')).find(b => b.getAttribute('onclick')?.includes(tabId));
       if (targetBtn) targetBtn.classList.add('active');
+      revealActiveTab(targetBtn);
       const targetPane = document.getElementById(`pane-${tabId}`);
       if (targetPane) targetPane.classList.add('active');
       syncGraphPause();
@@ -8893,10 +9023,20 @@
     async function loadMgaResumido() {
       const box = document.getElementById('mgaContent');
       if (!box) return;
+      const showMissing = () => {
+        box.innerHTML = `<p>Aún no hay MGA resumido. La Fase 1 lo escribe en <code>${MGA_FILE}</code> a partir de los árboles aprobados en G1b, antes de redactar §3.</p>`;
+      };
+      // The status lists artefactos/*.md: when it is known and the file is not
+      // there, no request is made (a 404 would only add console noise).
+      const listed = currentStatus && Array.isArray(currentStatus.artifacts) ? currentStatus.artifacts : null;
+      if (listed && !listed.some(a => a && a.rel_path === MGA_FILE)) {
+        showMissing();
+        return;
+      }
       try {
         const res = await fetch(`/api/artifact?file=${encodeURIComponent(MGA_FILE)}`);
         if (res.status === 404) {
-          box.innerHTML = `<p>Aún no hay MGA resumido. La Fase 1 lo escribe en <code>${MGA_FILE}</code> a partir de los árboles aprobados en G1b, antes de redactar §3.</p>`;
+          showMissing();
           return;
         }
         if (!res.ok) {
@@ -11367,6 +11507,15 @@
       }
     }
 
+    // Escape closes the open dialog: the phase execution modal or the CLI tools modal.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const phase = document.getElementById('phaseExecModal');
+      if (phase && phase.classList.contains('is-open')) { closePhaseExecModal(); return; }
+      const tools = document.getElementById('morfeoToolsRequiredModal');
+      if (tools && tools.classList.contains('is-open') && typeof closeToolsRequiredModal === 'function') closeToolsRequiredModal();
+    });
+
     // Cancelar modo pin con tecla Esc
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && isCommentPinPlacementMode) {
@@ -12520,7 +12669,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'requisitos', 'anexo2', 'convocatorias', 'estilo', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'trees', 'mga', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'requisitos', 'anexo2', 'convocatorias', 'estilo', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');

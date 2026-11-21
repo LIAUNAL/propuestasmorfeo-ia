@@ -420,7 +420,8 @@
         select.className = 'btn-term-shortcut';
         select.setAttribute('aria-label', 'Comandos rápidos');
         select.title = 'Comandos rápidos del workspace';
-        select.style.cssText = 'max-width:11rem;min-width:0;cursor:pointer;';
+        // Width limits live in index.html (#terminalQuickSelect) so phones can shrink it.
+        select.style.cssText = 'min-width:0;cursor:pointer;';
         select.addEventListener('change', () => {
           const cmd = select.value;
           select.value = '';

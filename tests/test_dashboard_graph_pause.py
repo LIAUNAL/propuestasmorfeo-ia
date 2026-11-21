@@ -71,7 +71,9 @@ class GraphPauseWiringTest(unittest.TestCase):
         tag = re.search(r'<iframe id="graphIframe"[^>]*>', HTML).group(0)
         self.assertIn('src="about:blank"', tag)
         # A page loaded while its tab is hidden is told to pause right away.
-        self.assertIn('onload="syncGraphPause()"', tag)
+        # The handler is guarded: the iframe loads about:blank while the page is
+        # still parsed, before the main script defines the function.
+        self.assertIn("onload=\"if (typeof syncGraphPause === 'function') syncGraphPause()\"", tag)
         nav = _slice("function navigateTab(", "let currentGraphKind")
         atlas = nav[nav.index("tabId === 'atlas'"):]
         self.assertIn("iframe.src = `/api/graph/${currentGraphKind}`;", atlas)
