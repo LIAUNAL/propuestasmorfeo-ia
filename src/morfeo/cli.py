@@ -67,10 +67,39 @@ def build_parser() -> argparse.ArgumentParser:
     p_compile.add_argument("--run", default=None, help="ID de la corrida a compilar (default: activa)")
 
     # --- ui ---
-    p_ui = sub.add_parser("ui", help="Inicia el Command Center / Tablero de monitoreo visual en el navegador.")
+    p_ui = sub.add_parser(
+        "ui",
+        help="Inicia el Command Center / Tablero de monitoreo visual en el navegador.",
+        description="Inicia el tablero en http://127.0.0.1:PUERTO/ (solo local), imprime la dirección del "
+        "tablero y el enlace de activación del CLI embebido y abre ese enlace en el navegador. En Linux sin "
+        "pantalla, o en WSL, abre el navegador del escritorio o de Windows si lo encuentra; si no, solo "
+        "imprime el enlace.",
+    )
     p_ui.add_argument("dir", nargs="?", type=Path, default=Path("."), help="Directorio del proyecto (default: actual)")
     p_ui.add_argument("--port", type=int, default=None, help="Puerto HTTP (default: 8080 o siguiente libre)")
-    p_ui.add_argument("--no-open", action="store_true", help="No abrir automáticamente el navegador")
+    p_ui.add_argument(
+        "--no-open",
+        action="store_true",
+        help="No abrir el navegador; el enlace de activación del CLI se imprime igual",
+    )
+    p_ui.add_argument(
+        "--no-refresh",
+        action="store_true",
+        help="No regenerar los grafos ni releer el estado del tablero al iniciar",
+    )
+    p_ui.add_argument(
+        "--no-terminal",
+        action="store_true",
+        help="Desactivar el CLI embebido del tablero (no se imprime enlace de activación)",
+    )
+    p_ui.add_argument(
+        "--allowed-host",
+        action="append",
+        default=[],
+        metavar="HOST[:PUERTO]",
+        help="Aceptar también este encabezado Host (repetible), p. ej. al reenviar el puerto; "
+        "sin puerto se usa el del tablero. El servidor sigue escuchando solo en 127.0.0.1",
+    )
 
     # --- export ---
     p_export = sub.add_parser("export", help="Empaqueta y exporta un proyecto o corrida para compartir con sus artefactos.")
@@ -118,7 +147,14 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "compile":
             return compile_proposal(target_dir=args.dir, docx=args.docx, run_id=args.run)
         elif args.command == "ui":
-            return start_ui(target_dir=args.dir, port=args.port, no_open=args.no_open)
+            return start_ui(
+                target_dir=args.dir,
+                port=args.port,
+                no_open=args.no_open,
+                refresh=not args.no_refresh,
+                terminal=not args.no_terminal,
+                allowed_hosts=args.allowed_host,
+            )
         elif args.command == "export":
             export_project(
                 target_dir=args.dir,

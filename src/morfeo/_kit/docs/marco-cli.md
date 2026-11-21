@@ -256,6 +256,42 @@ Lista en consola todos los presets de modelos incorporados (`claude`, `gpt`, `op
 
 ### 2.6 `morfeo ui` — Activar el CLI del tablero
 
+```
+morfeo ui [<dir>] [--port PUERTO] [--no-open] [--no-refresh] [--no-terminal]
+          [--allowed-host HOST[:PUERTO]]...
+```
+
+| Opción | Efecto |
+|--------|--------|
+| `--port PUERTO` | Puerto HTTP (por defecto 8080 o el siguiente libre). |
+| `--no-open` | No abre el navegador; las dos líneas de abajo se imprimen igual. |
+| `--no-refresh` | No corre la actualización del tablero (grafos y estado) al iniciar. |
+| `--no-terminal` | Desactiva el CLI embebido: no imprime enlace de activación y abre el tablero sin él. |
+| `--allowed-host HOST[:PUERTO]` | Acepta también ese encabezado `Host` (repetible), p. ej. al reenviar el puerto por un túnel. Sin puerto se usa el del tablero. No cambia la dirección de escucha. |
+
+Al arrancar, `morfeo ui` primero abre el puerto y después imprime:
+
+```
+==> Morfeo Command Center UI activo.
+    Abre el tablero: http://127.0.0.1:8080/
+    Activa el CLI: http://127.0.0.1:8080/api/terminal/login?token=…
+    Presiona Ctrl+C para detener el servidor.
+```
+
+y abre en el navegador el enlace de activación (no la dirección pelada), así
+la pestaña recibe la cookie del CLI y la terminal embebida funciona de
+inmediato. Si el navegador no se abre, copia ese enlace.
+
+**Cómo se abre el navegador.** En WSL usa `wslview` y, si falta,
+`explorer.exe`, que abren el navegador de Windows. En Linux sin `DISPLAY` ni
+`WAYLAND_DISPLAY` (por ejemplo dentro de `tmux` o Zellij iniciados fuera del
+escritorio) busca las pantallas del propio usuario por su socket
+(`$XDG_RUNTIME_DIR/wayland-N` o `/tmp/.X11-unix/X<N>`) y se la indica a
+`xdg-open`; un archivo `.lock`, un archivo común o el socket de otro usuario
+no cuentan. Si no encuentra ninguna, nunca arranca un navegador de texto: solo
+imprime el enlace. macOS, Windows y Linux con escritorio usan el navegador
+predeterminado.
+
 El tablero (`morfeo ui`) escucha solo en `127.0.0.1` e incluye un CLI embebido
 (una terminal real del workspace). Como esa terminal da una shell, el servidor
 protege todas sus rutas:
