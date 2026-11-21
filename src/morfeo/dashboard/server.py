@@ -447,32 +447,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
     # --- «⟳ Actualizar tablero» ---------------------------------------------
 
-    def _same_origin(self) -> bool:
-        """Whether an action request came from this server's own page.
-
-        A bodyless cross-origin POST is a simple request browsers send without
-        a preflight, so any page open in the browser could trigger it. A request
-        without `Origin` (curl, tests, same-origin navigations) is allowed; a
-        present one must name this server's port and a loopback or bound host.
-        """
-        origin = self.headers.get("Origin")
-        if not origin:
-            return True
-        import urllib.parse
-
-        try:
-            parsed = urllib.parse.urlparse(origin)
-            port = parsed.port or {"http": 80, "https": 443}.get(parsed.scheme)
-        except ValueError:
-            return False
-        bound_host, bound_port = self.server.server_address[:2]
-        return (parsed.scheme in ("http", "https") and port == bound_port
-                and parsed.hostname in (_LOOPBACK_HOSTS | {str(bound_host)}))
-
     def handle_board_refresh(self) -> None:
-        if not self._same_origin():
-            self._send_json(403, {"ok": False, "error": "Solicitud de otro origen rechazada"})
-            return
+        # Same-origin is enforced for every POST by terminal_routes.dispatch.
         result = board.refresher_for(self.workspace_dir).run()
         if result is None:
             self._send_json(409, {"ok": False, "busy": True,
@@ -1290,28 +1266,44 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(content)
 
 
-def run_server(workspace_dir: Path, port: int = 8080, host: str = "127.0.0.1",
-               refresh: bool = True) -> None:
-    """Serve the dashboard. `refresh` runs the board refresh once in the
-    background when the server starts, so the first visit shows the project as
-    it stands."""
+def bind_dashboard(workspace_dir: Path, port: int, host: str = "127.0.0.1",
+                   server_cls: type = ThreadingHTTPServer):
+    """Bind the dashboard for `workspace_dir`; None, with the reason printed,
+    when the port is already taken."""
     handler = type("ConfiguredHandler", (MorfeoDashboardHandler,), {"workspace_dir": workspace_dir})
     try:
-        server = ThreadingHTTPServer((host, port), handler)
+        return server_cls((host, port), handler)
     except OSError as err:
         if err.errno in (48, 98):
             print(f"Error: El puerto {port} ya está en uso por otro proceso o tablero Morfeo.")
             print("Puedes especificar otro puerto usando: morfeo ui --port <nuevo_puerto>")
-            return
+            return None
         raise
+
+
+def start_board_refresh(workspace_dir: Path) -> None:
+    """Run the board refresh once in the background."""
+    threading.Thread(target=board.refresher_for(workspace_dir).run_quietly,
+                     name="board-refresh", daemon=True).start()
+
+
+def run_server(workspace_dir: Path, port: int = 8080, host: str = "127.0.0.1",
+               refresh: bool = True) -> None:
+    """Serve the dashboard. `refresh` runs the board refresh once in the
+    background when the server starts, so the first visit shows the project as
+    it stands. `morfeo ui` (core.ui.start_ui) uses the same two helpers and
+    adds the CLI activation link and the browser opening."""
+    server = bind_dashboard(workspace_dir, port, host)
+    if server is None:
+        return
     record_server_start()
     if refresh:
-        threading.Thread(target=board.refresher_for(workspace_dir).run_quietly,
-                         name="board-refresh", daemon=True).start()
+        start_board_refresh(workspace_dir)
     print(f"==> Morfeo Command Center UI activo en: http://{host}:{port}/")
     print("    Presiona Ctrl+C para detener el servidor.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nServidor Morfeo UI detenido.")
+    finally:
         server.server_close()

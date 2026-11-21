@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import socket
-import threading
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Iterable
 
-from . import board
 from .browser import open_browser
 from .status import record_server_start
 from ..dashboard import terminal_auth
-from ..dashboard.server import MorfeoDashboardHandler
+from ..dashboard.server import bind_dashboard, start_board_refresh
 from ..errors import UserError
 
 #: The dashboard listens on loopback only; there is no network bind option.
@@ -50,9 +48,8 @@ def normalize_allowed_hosts(hosts: Iterable[str], port: int) -> tuple[str, ...]:
 
 
 def _start_board_refresh(workspace: Path) -> None:
-    """Run the board refresh once in the background (same as `run_server`)."""
-    threading.Thread(target=board.refresher_for(workspace).run_quietly,
-                     name="board-refresh", daemon=True).start()
+    """Run the board refresh once in the background (shared with `run_server`)."""
+    start_board_refresh(workspace)
 
 
 def start_ui(
@@ -75,17 +72,9 @@ def start_ui(
 
     # Bind before anything else: the activation link carries a secret of this
     # very server, and a browser opened earlier would hit a closed port.
-    # This mirrors `dashboard.server.run_server`, which owns its server and so
-    # cannot take the attributes below or open the browser after binding.
-    handler = type("ConfiguredHandler", (MorfeoDashboardHandler,), {"workspace_dir": target_dir})
-    try:
-        server = ThreadingHTTPServer((HOST, active_port), handler)
-    except OSError as err:
-        if err.errno in (48, 98):
-            print(f"Error: El puerto {active_port} ya está en uso por otro proceso o tablero Morfeo.")
-            print("Puedes especificar otro puerto usando: morfeo ui --port <nuevo_puerto>")
-            return 0
-        raise
+    server = bind_dashboard(target_dir, active_port, HOST, server_cls=ThreadingHTTPServer)
+    if server is None:
+        return 0
     # Read by terminal_auth when it first builds the guard of this server.
     server.morfeo_allowed_hosts = normalize_allowed_hosts(allowed_hosts, active_port)
     server.morfeo_terminal_enabled = bool(terminal)
