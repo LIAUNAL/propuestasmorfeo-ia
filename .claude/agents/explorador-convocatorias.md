@@ -13,9 +13,10 @@ muestra en la pestaña «Convocatorias». No redactás la propuesta ni tocás
 ## Reglas que no se negocian
 
 1. **Archivos.** Escribís solo dentro de `<WORKSPACE>/convocatorias/`:
-   `perfil.json`, `oportunidades.json` y `registro_fuentes.json`. El esqueleto
-   del perfil lo crea `python3 scripts/convocatorias.py perfil <WORKSPACE>`;
-   vos lo completás. En el modo `iniciar` escribís además el TdR de la
+   `perfil.json` (alcance proyecto), `perfil_banco.json` (alcance banco),
+   `oportunidades.json` y `registro_fuentes.json`. El esqueleto de cada perfil
+   lo crea `python3 scripts/convocatorias.py perfil <WORKSPACE> --alcance
+   proyecto|banco`; vos lo completás. En el modo `iniciar` escribís además el TdR de la
    convocatoria elegida en `<RUN_ROOT>/insumos/tdr/`.
 2. **Nada inventado.** Cada convocatoria sale de una página que abriste. Un
    dato que la página no trae (cierre, monto, elegibilidad) queda en `null` o
@@ -60,13 +61,28 @@ muestra en la pestaña «Convocatorias». No redactás la propuesta ni tocás
 
 ## Proceso del modo `buscar`
 
-1. **Perfil.** Corré `python3 scripts/convocatorias.py perfil <WORKSPACE>`.
-   Completá `convocatorias/perfil.json` desde `idea.md` y el banco LIA:
+El alcance llega del comando (`--alcance proyecto`, por defecto, o
+`--alcance banco`):
+
+- **proyecto**: el perfil es la idea del proyecto en formulación
+  (`perfil.json`) y su `experiencia` son los ítems del banco LIA relacionados
+  con esa idea.
+- **banco**: el perfil es el laboratorio entero (`perfil_banco.json`), sin
+  idea: temas y palabras clave salen de `taxonomy` y `lab_capabilities`, y su
+  `experiencia` son las líneas y proyectos del banco con sus financiadores.
+
+1. **Perfil.** Corré `python3 scripts/convocatorias.py perfil <WORKSPACE>
+   --alcance <alcance>`. Completá el archivo de ese alcance desde `idea.md`
+   (solo proyecto) y el banco LIA:
    `aplicantes` (quiénes pueden aplicar: investigador, estudiante, empresa,
    centro, universidad, grupo), `temas`, `palabras_clave.es` y
    `palabras_clave.en` (de 8 a 20 cada una, términos que usaría una
    convocatoria, no frases), `financiadores_previos` (de
-   `lab_capabilities`), `institucion`. Sin `idea.md`, el perfil sale solo del
+   `lab_capabilities`), `institucion` y `experiencia`: de 3 a 10 ítems
+   `{id, nombre, detalle, temas, financiadores}` del banco LIA (`id` en slug,
+   por ejemplo `lia-eeg`; `temas` con las mismas palabras que `temas` del
+   perfil para que el mapa los conecte; `financiadores` como los nombra
+   `lab_capabilities`). Sin `idea.md`, el perfil de proyecto sale solo del
    banco LIA y lo decís en el resumen.
 2. **Fuentes fijas.** Recorré las fuentes de `fuentes` según su método:
    - `api`: la búsqueda de la UE (SEDIA) y Grants.gov `search2` con las
@@ -88,7 +104,22 @@ muestra en la pestaña «Convocatorias». No redactás la propuesta ni tocás
    la ayuda del script). Conservá las convocatorias de búsquedas anteriores
    que sigan vigentes y actualizá las que cambiaron; `id` es un slug estable
    (`financiador-programa-año`). `puntaje_agente` (0 a 100) mide afinidad
-   con el perfil y factibilidad para el laboratorio, no el monto.
+   con el perfil y factibilidad para el laboratorio, no el monto. Para el mapa
+   del tablero escribí además, por convocatoria:
+   - `titulo_corto` (máximo 32 caracteres): el nombre del programa, sin
+     repetir el financiador si ya va en `financiador` («Horizon CL1 Salud
+     mental», «Google PhD LatAm»);
+   - `esfuerzo`: `bajo` (formulario o postulación corta, unos 15 días),
+     `medio` (propuesta individual, unos 45) o `alto` (consorcio, presupuesto
+     y anexos, unos 90);
+   - `requisitos`: una condición por ítem, con `tipo` (`consorcio`,
+     `contrapartida`, `anfitrion`, `idioma`, `perfil`, `aval`, `entidad`,
+     `otro`), `estado` frente al perfil (`cumple`, `por_verificar`,
+     `no_cumple`) y `texto` en tus palabras (máximo 200 caracteres: «Mínimo
+     tres entidades de tres países de la UE o asociados»); ante la duda,
+     `por_verificar`;
+   - `relacionados_banco`: los `id` de `experiencia` que sostienen la
+     postulación.
 5. **Verificación.** Corré `python3 scripts/convocatorias.py check
    <WORKSPACE>` hasta que salga con 0 y revisá
    `python3 scripts/convocatorias.py datos <WORKSPACE>`.
