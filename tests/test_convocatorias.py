@@ -468,6 +468,13 @@ class ScopeProfileTest(Base):
         self.assertIn("Pérdidas de energía", data["idea"])
         self.assertFalse((self.ws.root / "convocatorias" / "perfil_banco.json").exists())
 
+    def test_view_carries_the_profile_title_of_the_scope(self):
+        self.ws.profile(titulo="IA para redes rurales")
+        self.ws.banco(titulo="Laboratorio de IA")
+        self.ws.calls([])
+        self.assertEqual(self.mod.vista(self.ws.root, hoy=HOY)["perfil"]["titulo"], "IA para redes rurales")
+        self.assertEqual(self.mod.vista(self.ws.root, hoy=HOY, alcance="banco")["perfil"]["titulo"], "Laboratorio de IA")
+
     def test_invalid_alcance_is_exit_2(self):
         for args in (("perfil", str(self.ws.root), "--alcance", "todo"),
                      ("datos", str(self.ws.root), "--alcance", "todo")):

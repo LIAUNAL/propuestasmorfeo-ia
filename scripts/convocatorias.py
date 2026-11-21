@@ -862,6 +862,7 @@ def vista(path, hoy: datetime.date | None = None, alcance: str | None = None) ->
         "perfil": {
             "existe": profile is not None,
             "alcance": profile.get("alcance") if profile and profile.get("alcance") in ALCANCES else alcance,
+            "titulo": (profile or {}).get("titulo") if isinstance((profile or {}).get("titulo"), str) else None,
             "aplicantes": _strings((profile or {}).get("aplicantes")),
             "idiomas": _strings((profile or {}).get("idiomas")),
             "ambitos": _strings((profile or {}).get("ambitos")),
