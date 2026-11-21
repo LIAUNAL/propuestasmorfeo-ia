@@ -291,6 +291,58 @@ class TestDashboardTerminalBridge(unittest.TestCase):
         self.assertEqual(rem2, b"")
 
 
+class TestTerminalControllerExtraction(unittest.TestCase):
+    """The terminal controller lives in static/cli-console.js and terminal_routes.py."""
+
+    def _serve(self):
+        workspace_dir = Path(__file__).resolve().parent.parent
+        handler_cls = type("ConfiguredHandler", (MorfeoDashboardHandler,), {"workspace_dir": workspace_dir})
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_cls)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        return server.server_address[1]
+
+    def test_cli_console_script_is_served_as_javascript(self):
+        import urllib.request
+
+        port = self._serve()
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/static/cli-console.js") as resp:
+            self.assertEqual(resp.status, 200)
+            self.assertTrue(resp.headers["Content-Type"].startswith("application/javascript"))
+            # As fresh as index.html, which used to carry this code inline.
+            self.assertEqual(resp.headers["Cache-Control"], "no-cache")
+            body = resp.read().decode("utf-8")
+        self.assertIn("function sendTerminalPrompt(", body)
+        self.assertIn("function toggleMorfeoTerminal(", body)
+
+    def test_terminal_route_answers_through_dispatch(self):
+        import urllib.error
+        import urllib.request
+        from unittest import mock
+
+        from src.morfeo.dashboard import terminal_routes
+
+        self.assertFalse(terminal_routes.dispatch(object(), "GET", "/api/status"))
+        port = self._serve()
+        with mock.patch.object(
+            terminal_routes, "serve_terminal_agents", wraps=terminal_routes.serve_terminal_agents
+        ) as spy:
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/terminal/agents") as resp:
+                self.assertEqual(resp.status, 200)
+                data = json.loads(resp.read().decode("utf-8"))
+        spy.assert_called_once()
+        self.assertTrue(data["ok"])
+        self.assertIsInstance(data["agents"], list)
+        request = urllib.request.Request(f"http://127.0.0.1:{port}/api/terminal/sessions/nope", method="DELETE")
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(request)
+        self.assertEqual(ctx.exception.code, 404)
+        self.assertEqual(json.loads(ctx.exception.read().decode("utf-8")),
+                         {"ok": False, "error": "La sesión ya no existe"})
+        ctx.exception.close()
+
+
 if __name__ == "__main__":
     unittest.main()
 

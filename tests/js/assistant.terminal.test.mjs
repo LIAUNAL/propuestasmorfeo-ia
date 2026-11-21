@@ -4,15 +4,11 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import { readDashboardHtml } from './harness.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const HTML_PATH = resolve(__dirname, '../../src/morfeo/dashboard/static/index.html');
-const htmlSource = readFileSync(HTML_PATH, 'utf-8');
+// index.html with its local /static scripts inlined, as the browser runs it.
+const htmlSource = readDashboardHtml();
 
 test('el botón flotante (FAB) y la ventana del terminal existen en el DOM', () => {
   const dom = new JSDOM(htmlSource);

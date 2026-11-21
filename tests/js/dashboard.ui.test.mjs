@@ -6,14 +6,11 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import { readDashboardHtml } from './harness.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const HTML_PATH = resolve(__dirname, '../../src/morfeo/dashboard/static/index.html');
-const htmlSource = readFileSync(HTML_PATH, 'utf-8');
+// index.html with its local /static scripts inlined, as the browser runs it.
+const htmlSource = readDashboardHtml();
 const css = (htmlSource.match(/<style>([\s\S]*?)<\/style>/) || [, ''])[1];
 
 function load(t) {

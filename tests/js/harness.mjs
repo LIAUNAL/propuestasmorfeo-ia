@@ -24,6 +24,7 @@
  * el doblez de `page.render()` resuelve la promesa, no pinta.
  */
 
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -63,6 +64,26 @@ export function extractInlineScript(html) {
     );
   }
   return inline[0];
+}
+
+// The dashboard's own scripts that the page loads with `<script src>`. jsdom
+// fetches no resources, so the harness inlines them at the same place in the
+// document: they run in the same order as in the browser, before the main
+// inline script, and share their globals with it.
+export const DASHBOARD_STATIC = path.dirname(DASHBOARD_INDEX);
+const LOCAL_SCRIPT_TAG = /<script\s+src="\/static\/(cli-console\.js)"\s*><\/script>/g;
+
+/** The dashboard HTML with its local scripts (`/static/*.js`) inlined. */
+export function inlineLocalScripts(html, staticDir = DASHBOARD_STATIC) {
+  return html.replace(LOCAL_SCRIPT_TAG, (_tag, name) => {
+    const code = readFileSync(path.join(staticDir, name), 'utf8');
+    return `<script>${code}</script>`;
+  });
+}
+
+/** Reads `index.html` as the browser runs it, with its local scripts inlined. */
+export function readDashboardHtml() {
+  return inlineLocalScripts(readFileSync(DASHBOARD_INDEX, 'utf8'));
 }
 
 /** Promesa que solo se asienta cuando alguien lo pide. */
@@ -561,7 +582,7 @@ export async function createViewerHarness(options = {}) {
   const clock = createClock();
   boundary.clock = clock;
 
-  const dom = new JSDOM(html, {
+  const dom = new JSDOM(inlineLocalScripts(html), {
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     url: 'http://localhost:8000/',

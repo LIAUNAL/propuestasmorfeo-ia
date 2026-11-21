@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import { readDashboardHtml } from './harness.mjs';
 
 const REPO = fileURLToPath(new URL('../../', import.meta.url)).replace(/\/$/, '');
 
@@ -21,7 +22,7 @@ test('la tabla de secciones incluye la columna Estructura en el encabezado y el 
 });
 
 test('openSectionStructure renderiza principio, mini-grafo de conexiones, párrafos y reglas', () => {
-  const indexHtml = fs.readFileSync(path.resolve(REPO, 'src/morfeo/dashboard/static/index.html'), 'utf8');
+  const indexHtml = readDashboardHtml();
   const dom = new JSDOM(indexHtml, {
     runScripts: 'dangerously',
     pretendToBeVisual: true,

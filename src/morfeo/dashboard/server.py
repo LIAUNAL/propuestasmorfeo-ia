@@ -40,6 +40,7 @@ from ..core.requirements import (
     load_requirements,
     update_item as update_requirement,
 )
+from . import terminal_routes
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -119,6 +120,9 @@ def flatten_idea(markdown: str) -> str:
 
 
 BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
+# Page code moved out of index.html: it must stay as fresh as the page that
+# loads it, so a cached copy never runs against a newer index.html.
+PAGE_SCRIPTS = frozenset({"cli-console.js"})
 
 
 # build.sh escribe en la misma carpeta: dos compilaciones a la vez se pisan.
@@ -133,6 +137,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = self.path.split("?")[0]
+        if terminal_routes.dispatch(self, "GET", path):
+            return
 
         if path in ("/", "/index.html"):
             self.serve_dashboard()
@@ -144,14 +150,6 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_api_status()
         elif path == "/api/idea":
             self.serve_idea()
-        elif path == "/api/terminal/agents":
-            self.serve_terminal_agents()
-        elif path == "/api/terminal/tools":
-            self.serve_terminal_tools()
-        elif path == "/ws/terminal":
-            self.handle_terminal_ws()
-        elif path.startswith("/api/terminal/sessions/"):
-            self.handle_terminal_session("GET", path)
         elif path == "/api/flow":
             self.serve_flow()
         elif path == "/api/pdf":
@@ -203,6 +201,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = self.path.split("?")[0]
+        if terminal_routes.dispatch(self, "POST", path):
+            return
         if path == "/api/run/select":
             self.handle_run_select()
         elif path == "/api/pdf/execute":
@@ -211,10 +211,6 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_pdf_compile()
         elif path == "/api/graph/build":
             self.handle_graph_build()
-        elif path == "/api/terminal/launch-external":
-            self.handle_launch_external_terminal()
-        elif path.startswith("/api/terminal/sessions/"):
-            self.handle_terminal_session("POST", path)
         elif path == "/api/trees/feedback":
             self.handle_trees_feedback()
         elif path == "/api/trees/approve":
@@ -260,31 +256,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         path = self.path.split("?")[0]
-        if path.startswith("/api/terminal/sessions/"):
-            self.handle_terminal_session("DELETE", path)
-        else:
+        if not terminal_routes.dispatch(self, "DELETE", path):
             self.send_error(404, "Not Found")
-
-    def handle_terminal_session(self, method: str, path: str) -> None:
-        """GET describes, POST …/interrupt stops the agent's turn, DELETE closes the session."""
-        from .terminal import SESSIONS
-
-        parts = path[len("/api/terminal/sessions/"):].strip("/").split("/")
-        session = SESSIONS.get(parts[0])
-        action = parts[1] if len(parts) > 1 else ""
-        if session is None or not session.alive:
-            self._send_json(404, {"ok": False, "error": "La sesión ya no existe"})
-            return
-        if method == "GET" and not action:
-            self._send_json(200, session.describe())
-        elif method == "POST" and action == "interrupt":
-            key = session.interrupt()
-            self._send_json(200, {"ok": True, "id": session.id, "key": "esc" if key == b"\x1b" else "ctrl-c"})
-        elif method == "DELETE" and not action:
-            SESSIONS.remove(session.id)
-            self._send_json(200, {"ok": True, "id": session.id})
-        else:
-            self._send_json(404, {"ok": False, "error": "Operación desconocida"})
 
     def serve_static_asset(self, req_path: str) -> None:
         rel_path = req_path.replace("/static/", "", 1)
@@ -319,7 +292,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         # The brand images share paths with other local dashboards; revalidate
         # them so a port reused by another tool never shows its cached icon.
-        if target.name in BRAND_ASSETS:
+        if target.name in BRAND_ASSETS or target.name in PAGE_SCRIPTS:
             self.send_header("Cache-Control", "no-cache")
         else:
             self.send_header("Cache-Control", "public, max-age=3600")
@@ -1107,86 +1080,6 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
-
-    def serve_terminal_agents(self) -> None:
-        from .terminal import get_available_agents
-        agents = get_available_agents()
-        body = json.dumps({"ok": True, "agents": agents}, ensure_ascii=False).encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def serve_terminal_tools(self) -> None:
-        from .terminal import detect_terminal_tools, get_current_agent_pane_id
-        tools = detect_terminal_tools(self.workspace_dir)
-        tools["monitored_path"] = str(self.workspace_dir.resolve())
-        tools["active_pane"] = get_current_agent_pane_id(self.workspace_dir)
-        body = json.dumps({"ok": True, "tools": tools}, ensure_ascii=False).encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def handle_launch_external_terminal(self) -> None:
-        from .terminal import launch_external_terminal
-        res = launch_external_terminal(self.workspace_dir)
-        body = json.dumps(res, ensure_ascii=False).encode("utf-8")
-        self.send_response(200 if res.get("ok") else 400)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def handle_terminal_ws(self) -> None:
-        upgrade = self.headers.get("Upgrade", "").strip().lower()
-        if upgrade != "websocket":
-            self.send_error(400, "WebSocket Upgrade required")
-            return
-
-        key = self.headers.get("Sec-WebSocket-Key", "")
-        if not key:
-            self.send_error(400, "Missing Sec-WebSocket-Key")
-            return
-
-        from .terminal import run_pty_session, ws_handshake_accept
-
-        accept_token = ws_handshake_accept(key)
-        response = (
-            "HTTP/1.1 101 Switching Protocols\r\n"
-            "Upgrade: websocket\r\n"
-            "Connection: Upgrade\r\n"
-            f"Sec-WebSocket-Accept: {accept_token}\r\n\r\n"
-        )
-        self.wfile.write(response.encode("ascii"))
-        self.wfile.flush()
-
-        import urllib.parse
-        parsed = urllib.parse.urlparse(self.path)
-        qs = urllib.parse.parse_qs(parsed.query)
-        agent = qs.get("agent", ["herdr"])[0]
-        session_id = qs.get("session", [None])[0]
-        try:
-            cols = int(qs.get("cols", [80])[0])
-        except (ValueError, TypeError):
-            cols = 80
-        try:
-            rows = int(qs.get("rows", [24])[0])
-        except (ValueError, TypeError):
-            rows = 24
-
-        self.close_connection = True
-
-        run_pty_session(
-            sock=self.request,
-            workspace_dir=self.workspace_dir,
-            agent_id=agent,
-            init_rows=rows,
-            init_cols=cols,
-            session_id=session_id,
-        )
 
     def serve_presentation(self) -> None:
         run_dir = self._active_run_dir()

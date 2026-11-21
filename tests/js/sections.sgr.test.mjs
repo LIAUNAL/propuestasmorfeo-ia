@@ -6,13 +6,11 @@
 
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import { readDashboardHtml } from './harness.mjs';
 
-const REPO = fileURLToPath(new URL('../../', import.meta.url)).replace(/\/$/, '');
-const INDEX = fs.readFileSync(path.resolve(REPO, 'src/morfeo/dashboard/static/index.html'), 'utf8');
+// index.html with its local /static scripts inlined, as the browser runs it.
+const INDEX = readDashboardHtml();
 
 const BLOCKS = {
   '§3': 'Además de las reglas de la guía base:\n\n* **Estructura de §3.** Tres subsecciones:\n  1. `\\subsection{Problema central}`: el tronco.\n  2. Situación existente.\n\n  La sección cierra con la pregunta.\n* **Localización.** El problema central nombra el territorio.',
