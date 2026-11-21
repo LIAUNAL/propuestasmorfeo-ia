@@ -35,7 +35,6 @@ import secrets
 import threading
 import time
 from collections import OrderedDict
-from http.cookies import CookieError, SimpleCookie
 from typing import Any, Iterable
 from urllib.parse import quote, urlsplit
 
@@ -208,16 +207,19 @@ def same_origin(handler: Any) -> bool:
 
 def presented_cookie(handler: Any) -> str | None:
     """The value of this server's terminal cookie in the request, if any."""
-    raw = "; ".join(handler.headers.get_all("Cookie") or [])
-    if not raw:
-        return None
-    jar = SimpleCookie()
-    try:
-        jar.load(raw)
-    except CookieError:
-        return None
-    morsel = jar.get(auth_for(handler.server).cookie_name)
-    return morsel.value if morsel is not None else None
+    # Parsed by hand: cookies ignore the port, so other dev servers on the same
+    # loopback host add their own cookies, and SimpleCookie drops the whole
+    # header when one of them (a JSON value, `x[0]`, a space) breaks its rules.
+    name = auth_for(handler.server).cookie_name
+    for header in handler.headers.get_all("Cookie") or []:
+        for part in header.split(";"):
+            key, sep, value = part.partition("=")
+            if sep and key.strip() == name:
+                value = value.strip()
+                if len(value) >= 2 and value[0] == value[-1] == '"':
+                    value = value[1:-1]
+                return value
+    return None
 
 
 def has_session(handler: Any) -> bool:

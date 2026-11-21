@@ -10,6 +10,7 @@ WebSocket upgrade requires, the throttled activation and the agents endpoint.
 from __future__ import annotations
 
 import http.client
+import io
 import json
 import shutil
 import socket
@@ -102,6 +103,35 @@ class DashboardAccessTest(unittest.TestCase):
             return resp.split(b"\r\n", 1)[0]
         finally:
             sock.close()
+
+    # -- Verifier probes (independent review of 7b5769f) --------------------
+    def test_session_cookie_survives_other_apps_cookies(self) -> None:
+        # Cookies ignore the port: any other dev server on 127.0.0.1 can add
+        # cookies that SimpleCookie rejects as a whole header.
+        token = self.auth.issue_session()
+        for other in ['pref={"a":1,"b":2}', 'x[0]=1', 'x=a b', 'q="ab']:
+            with self.subTest(other=other):
+                status, _, _ = self.request("GET", "/api/terminal/tools", {
+                    "Origin": self.origin, "Cookie": f"{other}; {self.auth.cookie_name}={token}"})
+                self.assertEqual(status, 200)
+
+    def test_terminal_post_refuses_a_referer_without_origin(self) -> None:
+        status, _, _ = self.request("POST", "/api/terminal/activate",
+                                    {"Referer": f"{self.origin}/", "Cookie": self.cookie()}, b"{}")
+        self.assertEqual(status, 403)
+        status, _, _ = self.request("DELETE", "/api/terminal/sessions/nope",
+                                    {"Referer": f"{self.origin}/", "Cookie": self.cookie()})
+        self.assertEqual(status, 403)
+
+    def test_login_secret_never_reaches_the_log_on_refused_requests(self) -> None:
+        secret = self.auth.login_secret
+        captured = io.StringIO()
+        with mock.patch("sys.stderr", captured):
+            self.request("GET", f"/api/terminal/login?token={secret}", {"Host": f"evil.example:{self.port}"})
+            self.request("GET", f"/api/terminal/login/?token={secret}")
+            self.request("POST", f"/api/terminal/login?token={secret}", {"Origin": "http://evil.example"}, b"{}")
+        self.assertIn("token=***", captured.getvalue())
+        self.assertNotIn(secret, captured.getvalue())
 
     # -- WebSocket ---------------------------------------------------------
     def test_websocket_upgrade_without_cookie_is_refused(self) -> None:

@@ -35,14 +35,19 @@ def dispatch(handler: Any, method: str, path: str) -> bool:
     Returns True when this function answered (a refusal or a terminal route),
     False when the server should route `path` itself.
     """
+    # Redact the login secret before any response, so a request refused by the
+    # guards below never writes it to the access log either.
+    handler.requestline = re.sub(r"token=[^&\s]*", "token=***", getattr(handler, "requestline", ""))
     if not terminal_auth.host_allowed(handler):
         _refuse(handler, 421, "Host no permitido: abre el tablero en 127.0.0.1 o localhost")
         return True
     if method in terminal_auth.MUTATING_METHODS:
         # Any route refuses a foreign (or `null`) Origin or Referer; the
-        # terminal's routes, which reach a shell, also refuse a missing one.
+        # terminal's routes, which reach a shell, require the Origin itself
+        # (a Referer does not stand in for it).
+        terminal = path.startswith("/api/terminal/")
         reason = terminal_auth.origin_refusal(
-            handler, require_origin=path.startswith("/api/terminal/"))
+            handler, allow_referer=not terminal, require_origin=terminal)
         if reason is not None:
             _refuse(handler, 403, f"Solicitud rechazada: {reason}")
             return True
