@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 import threading
+import urllib.parse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -33,7 +34,7 @@ from ..core.budget import approve as approve_budget, build_adjust_prompt as buil
 from ..core.components import approve as approve_components, build_adjust_prompt as build_components_prompt, load_components
 from ..core.products import approve as approve_products, build_adjust_prompt as build_products_prompt, load_products
 from ..core.annex2 import load_annex2
-from ..core.opportunities import SEARCH_COMMAND as OPPORTUNITIES_COMMAND, build_start_prompt, load_opportunities
+from ..core.opportunities import build_search_prompt, build_start_prompt, load_opportunities
 from ..core.requirements import (
     MAX_BODY_BYTES as REQUIREMENTS_MAX_BODY,
     approve as approve_requirements,
@@ -123,7 +124,7 @@ def flatten_idea(markdown: str) -> str:
 BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 # Page code moved out of index.html: it must stay as fresh as the page that
 # loads it, so a cached copy never runs against a newer index.html.
-PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js"})
+PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js"})
 
 # Origins a loopback server answers from: the browser may name it either way.
 _LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -1006,11 +1007,30 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
     # Convocatorias (ambos flujos, nivel de espacio de trabajo, solo lectura): no
     # necesita corrida activa. Los botones devuelven el prompt y el tablero lo
     # entrega a la terminal con sendTerminalPrompt, como el juez.
+    # `?alcance=proyecto|banco` elige el perfil; sin él decide el script.
     def serve_opportunities(self) -> None:
-        self._send_json(200, {"ok": True, **load_opportunities(self.workspace_dir)})
+        values = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query, keep_blank_values=True).get("alcance")
+        if values is not None and len(values) != 1:
+            self._send_json(400, {"ok": False, "error": "El alcance debe ser «proyecto» o «banco»."})
+            return
+        try:
+            data = load_opportunities(self.workspace_dir, values[0] if values else None)
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, **data})
 
     def handle_opportunities_search(self) -> None:
-        self._send_json(200, {"ok": True, "prompt": OPPORTUNITIES_COMMAND})
+        payload = self._read_json_body()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        try:
+            prompt = build_search_prompt(payload.get("alcance"))
+        except ValueError as err:
+            self._send_json(400, {"ok": False, "error": str(err)})
+            return
+        self._send_json(200, {"ok": True, "prompt": prompt})
 
     def handle_opportunities_start(self) -> None:
         payload = self._read_json_body()

@@ -71,7 +71,7 @@ export function extractInlineScript(html) {
 // document: they run in the same order as in the browser, before the main
 // inline script, and share their globals with it.
 export const DASHBOARD_STATIC = path.dirname(DASHBOARD_INDEX);
-const LOCAL_SCRIPT_TAG = /<script\s+src="\/static\/(cli-console\.js)"\s*><\/script>/g;
+const LOCAL_SCRIPT_TAG = /<script\s+src="\/static\/(cli-console\.js|convocatorias-map\.js)"\s*><\/script>/g;
 
 /** The dashboard HTML with its local scripts (`/static/*.js`) inlined. */
 export function inlineLocalScripts(html, staticDir = DASHBOARD_STATIC) {

@@ -5,7 +5,8 @@
  * `/api/convocatorias` se sustituyen por dobles con la forma del contrato
  * `morfeo.convocatorias-vista/v1`. La pestaña existe en ambos flujos, justo
  * después de «Flujo general», es de solo lectura y sus botones solo piden el
- * prompt al servidor y lo entregan a la terminal.
+ * prompt al servidor y lo entregan a la terminal. Las tarjetas viven en la
+ * vista «Lista» del selector de vistas (odd/tasks/convocatorias-mapa.md, S4).
  */
 
 import test from 'node:test';
@@ -115,6 +116,7 @@ async function harness(t, { flujo = 'base', body = payload(), calls = [] } = {})
 
 async function loaded(t, opts) {
   const viewer = await harness(t, opts);
+  viewer.viewer('setOpportunityView', 'lista');
   await viewer.viewer('loadOpportunities');
   await flush();
   return viewer;
@@ -152,6 +154,7 @@ for (const flujo of ['base', 'sgr']) {
 test('abrir la pestaña lee la vista con GET y nunca escribe', async (t) => {
   const calls = [];
   const viewer = await harness(t, { calls });
+  viewer.viewer('setOpportunityView', 'lista');
   viewer.viewer('navigateTab', 'convocatorias');
   await flush();
   const own = calls.filter(c => c.url.includes('/api/convocatorias'));
@@ -252,7 +255,7 @@ test('las fuentes consultadas se listan con su resultado', async (t) => {
   assert.match(items[1].textContent, /Bloqueada/);
 });
 
-test('sin convocatorias se explica cómo correr «Buscar convocatorias»', async (t) => {
+test('sin convocatorias se explica cómo correr la búsqueda', async (t) => {
   const empty = vista({
     oportunidades: [], fuentes_consultadas: [],
     resumen: { total: 0, vigentes: 0, por_ambito: { colombia: 0, latam: 0, internacional: 0 }, por_rol: {}, por_idioma: {} },
@@ -261,7 +264,7 @@ test('sin convocatorias se explica cómo correr «Buscar convocatorias»', async
   const viewer = await loaded(t, { body: payload({ vista: empty }) });
   const content = viewer.document.getElementById('cvContent');
   assert.match(content.textContent, /Todavía no hay convocatorias/);
-  assert.match(content.textContent, /Buscar convocatorias/);
+  assert.match(content.textContent, /Buscar para el proyecto/);
   assert.equal(content.querySelector('#cvLista [data-id]'), null);
 });
 
@@ -270,10 +273,10 @@ test('un script ausente o roto se muestra como error sin insertar HTML', async (
   const content = viewer.document.getElementById('cvContent');
   assert.match(content.textContent, /convocatorias\.py no pudo calcular la vista: <b>roto<\/b>/);
   assert.equal(content.querySelector('b'), null);
-  assert.match(content.textContent, /Buscar convocatorias/);
+  assert.match(content.textContent, /Buscar para el proyecto/);
 });
 
-test('«Buscar convocatorias» pide el prompt al servidor y lo entrega a la terminal', async (t) => {
+test('«Buscar para el proyecto» pide el prompt al servidor y lo entrega a la terminal', async (t) => {
   const calls = [];
   const viewer = await loaded(t, { calls });
   viewer.document.getElementById('cvSearchBtn').click();

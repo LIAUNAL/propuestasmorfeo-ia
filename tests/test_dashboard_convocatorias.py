@@ -26,17 +26,19 @@ from morfeo.core import value_chain
 from morfeo.core.opportunities import (
     OPPORTUNITIES_SCHEMA,
     SEARCH_COMMAND,
+    build_search_prompt,
     build_start_prompt,
     load_opportunities,
 )
 
 # Doble del script con el contrato `morfeo.convocatorias-vista/v1`: `vista(dir)`
-# devuelve la vista y anota la carpeta que recibió.
+# devuelve la vista y anota la carpeta y los argumentos de palabra que recibió
+# (`alcance` solo llega cuando la petición lo trae).
 OPPORTUNITIES_STUB = '''
 from pathlib import Path
 
 
-def vista(workspace):
+def vista(workspace, **kwargs):
     workspace = Path(workspace)
     if (workspace / "fallar").exists():
         raise RuntimeError("oportunidades.json ilegible")
@@ -44,6 +46,7 @@ def vista(workspace):
         raise SystemExit(2)
     return {
         "schema": "morfeo.convocatorias-vista/v1", "hoy": "2026-11-20", "workspace": str(workspace),
+        "kwargs": sorted(kwargs), "alcance": kwargs.get("alcance", "proyecto"),
         "perfil": {"existe": True, "aplicantes": ["investigador"], "idiomas": ["es", "en"],
                    "ambitos": ["colombia"], "n_palabras_clave": 3},
         "resumen": {"total": 1, "vigentes": 1, "por_ambito": {"colombia": 1, "latam": 0, "internacional": 0},
@@ -109,6 +112,25 @@ class TestLoadOpportunities(StubScripts):
         self.assertFalse(data["disponible"])
         self.assertIn("convocatorias.py", data["error"])
 
+    def test_alcance_is_passed_to_the_script_only_when_given(self):
+        data = load_opportunities(self.ws)
+        self.assertEqual(data["vista"]["kwargs"], [])
+        for alcance in ("proyecto", "banco"):
+            data = load_opportunities(self.ws, alcance=alcance)
+            self.assertEqual(data["vista"]["kwargs"], ["alcance"])
+            self.assertEqual(data["vista"]["alcance"], alcance)
+
+    def test_a_script_without_alcance_still_answers_without_it(self):
+        (self.scripts / "convocatorias.py").write_text(
+            "def vista(ws):\n    return {'schema': 'morfeo.convocatorias-vista/v1', 'oportunidades': []}\n",
+            encoding="utf-8")
+        self.assertTrue(load_opportunities(self.ws)["disponible"])
+
+    def test_invalid_alcance_is_rejected(self):
+        for bad in ("", "todo", "Banco", "banco ", 3):
+            with self.assertRaises(ValueError, msg=repr(bad)):
+                load_opportunities(self.ws, alcance=bad)
+
     def test_foreign_view_is_rejected(self):
         (self.scripts / "convocatorias.py").write_text("def vista(ws):\n    return {'schema': 'otro/v1'}\n",
                                                        encoding="utf-8")
@@ -125,6 +147,20 @@ class TestStartPrompt(unittest.TestCase):
         for bad in ("", "  ", "Horizon", "a b", "x;rm -rf", "a/b", "ñandú", None):
             with self.assertRaises(ValueError, msg=repr(bad)):
                 build_start_prompt(bad)
+
+
+class TestSearchPrompt(unittest.TestCase):
+    def test_without_alcance_keeps_the_plain_command(self):
+        self.assertEqual(build_search_prompt(None), SEARCH_COMMAND)
+
+    def test_alcance_builds_the_buscar_command(self):
+        self.assertEqual(build_search_prompt("proyecto"), f"{SEARCH_COMMAND} buscar --alcance proyecto")
+        self.assertEqual(build_search_prompt("banco"), f"{SEARCH_COMMAND} buscar --alcance banco")
+
+    def test_invalid_alcance_is_rejected(self):
+        for bad in ("", "todo", "banco; rm -rf", "x\n/clear", 1, ["banco"]):
+            with self.assertRaises(ValueError, msg=repr(bad)):
+                build_search_prompt(bad)
 
 
 class TestOpportunitiesHttpApi(StubScripts):
@@ -187,6 +223,55 @@ class TestOpportunitiesHttpApi(StubScripts):
         self.assertEqual(code, 200)
         self.assertEqual(data, {"ok": True, "prompt": "/propuesta-convocatorias"})
         self.assertEqual(snapshot(self.ws), before)
+
+    def test_get_passes_the_alcance_query_to_the_script(self):
+        base = self._serve(self.ws)
+        code, data = self._request(base + "/api/convocatorias")
+        self.assertEqual((code, data["vista"]["kwargs"]), (200, []))
+        for alcance in ("proyecto", "banco"):
+            code, data = self._request(base + f"/api/convocatorias?alcance={alcance}")
+            self.assertEqual(code, 200)
+            self.assertEqual(data["vista"]["kwargs"], ["alcance"])
+            self.assertEqual(data["vista"]["alcance"], alcance)
+
+    def test_get_rejects_an_invalid_alcance_with_400_json(self):
+        base = self._serve(self.ws)
+        for query in ("alcance=todo", "alcance=", "alcance=BANCO", "alcance=banco&alcance=proyecto"):
+            code, data = self._request(base + f"/api/convocatorias?{query}")
+            self.assertEqual(code, 400, query)
+            self.assertFalse(data["ok"])
+            self.assertIn("alcance", data["error"])
+            self.assertNotIn("vista", data)
+
+    def test_post_buscar_with_alcance_returns_the_buscar_command(self):
+        base = self._serve(self.ws)
+        before = snapshot(self.ws)
+        for alcance in ("proyecto", "banco"):
+            code, data = self._request(base + "/api/convocatorias/buscar", {"alcance": alcance})
+            self.assertEqual(code, 200)
+            self.assertEqual(data, {"ok": True, "prompt": f"/propuesta-convocatorias buscar --alcance {alcance}"})
+        code, data = self._request(base + "/api/convocatorias/buscar", {"alcance": None})
+        self.assertEqual(data, {"ok": True, "prompt": "/propuesta-convocatorias"})
+        self.assertEqual(snapshot(self.ws), before)
+
+    def test_post_buscar_rejects_an_invalid_alcance(self):
+        base = self._serve(self.ws)
+        for payload in ({"alcance": "todo"}, {"alcance": ""}, {"alcance": "banco\n/clear"}, {"alcance": 2}):
+            code, data = self._request(base + "/api/convocatorias/buscar", payload)
+            self.assertEqual(code, 400, payload)
+            self.assertFalse(data["ok"])
+            self.assertNotIn("prompt", data)
+        req = urllib.request.Request(base + "/api/convocatorias/buscar", data=b"{no",
+                                     headers={"Content-Type": "application/json"}, method="POST")
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(req)
+        self.assertEqual(ctx.exception.code, 400)
+
+    def test_the_map_script_is_served_without_cache(self):
+        with urllib.request.urlopen(self._serve(self.ws) + "/static/convocatorias-map.js") as resp:
+            self.assertEqual(resp.status, 200)
+            self.assertEqual(resp.headers["Cache-Control"], "no-cache")
+            self.assertIn("javascript", resp.headers["Content-Type"])
 
     def test_post_iniciar_with_a_valid_id_returns_the_start_command(self):
         before = snapshot(self.ws)

@@ -634,6 +634,182 @@
     .cv-evidencia ul, .cv-sources { margin: 0.2rem 0 0; padding-left: 1rem; font-size: 0.78rem; overflow-wrap: anywhere; }
     .cv-evidencia a, .cv-sources a { color: var(--accent); overflow-wrap: anywhere; }
     .cv-card__actions { margin-top: 0.5rem; }
+    /* «Convocatorias» views (static/convocatorias-map.js): tree, constellation,
+       side by side, requirements matrix, timeline and the detail panel, which
+       becomes a bottom sheet under 1080 px. Every class carries the cvm- prefix. */
+    .cvm-panel { --cvm-info: #818cf8; --cvm-violet: #a78bfa; --cvm-surface-3: #2b3647; }
+    [data-theme="light"] .cvm-panel { --cvm-info: #4f46e5; --cvm-violet: #6d28d9; --cvm-surface-3: #dbe2ea; }
+    .cvm-controls { margin-bottom: 0; }
+    .cvm-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+    .cvm-seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .cvm-seg button { font: inherit; font-size: 0.78rem; border: 0; background: var(--surface-2); color: var(--text); padding: 0.3rem 0.65rem; cursor: pointer; }
+    .cvm-seg button + button { border-left: 1px solid var(--border); }
+    .cvm-seg button.is-on { background: var(--accent); color: var(--bg); font-weight: 600; }
+    .cvm-seg button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .cvm-seg button:focus-visible, .cvm-tabs button:focus-visible, .cvm-card:focus-visible, .cvm-node:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .cvm-search { font: inherit; font-size: 0.8rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.25rem 0.5rem; min-width: 0; flex: 1 1 200px; max-width: 320px; }
+    .cvm-stats { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.7rem; }
+    .cvm-stat { background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: 0.35rem 0.75rem; min-width: 112px; flex: 0 1 auto; }
+    .cvm-stat b { display: block; font-size: 1.1rem; }
+    .cvm-stat span { font-size: 0.72rem; color: var(--text-muted); }
+    .cvm-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.2rem 0 0.7rem; border-bottom: 1px solid var(--border); }
+    .cvm-tabs button { font: inherit; font-size: 0.82rem; border: 0; background: transparent; color: var(--text-muted); padding: 0.45rem 0.7rem; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .cvm-tabs button.is-on { color: var(--text); border-bottom-color: var(--accent); }
+    .cvm-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 0.9rem; align-items: start; }
+    .cvm-layout.is-list { grid-template-columns: minmax(0, 1fr); }
+    .cvm-view { min-width: 0; }
+    .cvm-detail { position: sticky; top: 0.75rem; max-height: calc(100vh - 1.5rem); overflow: auto; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 0.75rem; font-size: 0.82rem; }
+    .cvm-detail h2 { font-size: 1rem; line-height: 1.3; margin-bottom: 0.15rem; overflow-wrap: anywhere; }
+    .cvm-detail h4, .cvm-detail__title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-dim); margin: 0.85rem 0 0.35rem; }
+    .cvm-detail__title { margin-top: 0; }
+    .cvm-detail .cvm-card { margin-bottom: 0.4rem; }
+    .cvm-sheet-close { display: none; }
+    .cvm-muted { color: var(--text-muted); }
+    .cvm-dim { color: var(--text-dim); }
+    .cvm-small { font-size: 0.8rem; }
+    .cvm-hint { font-size: 0.8rem; color: var(--text-muted); text-align: center; }
+    .cvm-empty { padding: 1.8rem; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+    .cvm-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; font-size: 0.74rem; color: var(--text-muted); margin-top: 0.5rem; }
+    .cvm-legend .cvm-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+    .cvm-pill { display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: 999px; font-size: 0.7rem; border: 1px solid var(--border); white-space: nowrap; }
+    .cvm-pill--bad { color: var(--bad); border-color: var(--bad); }
+    .cvm-pill--warn { color: var(--warn); border-color: var(--warn); }
+    .cvm-pill--ok { color: var(--ok); border-color: var(--ok); }
+    .cvm-pill--info { color: var(--cvm-info); border-color: var(--cvm-info); }
+    .cvm-pill--dim { color: var(--text-dim); }
+    .cvm-pill--accent { color: var(--accent); border-color: var(--accent); }
+    .cvm-pill--violet { color: var(--cvm-violet); border-color: var(--cvm-violet); }
+    .cvm-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.75rem; }
+    @media (max-width: 1500px) { .cvm-side { grid-template-columns: minmax(0, 1fr); } }
+    .cvm-view-title { font-weight: 600; font-size: 0.85rem; margin-bottom: 0.4rem; }
+    /* Tree: fruits (calls), branches (profile temas), trunk (scope), roots (experiencia). */
+    .cvm-tree { position: relative; display: flex; flex-direction: column; }
+    .cvm-tree svg.cvm-links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 0; }
+    .cvm-tree > *:not(svg) { position: relative; z-index: 1; }
+    .cvm-tree svg .lk { fill: none; stroke: var(--accent); stroke-width: 2; opacity: 0.75; }
+    .cvm-tree svg .lk--root { stroke: var(--cvm-violet); }
+    .cvm-tier { text-align: center; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin: 0.4rem 0 0.25rem; }
+    .cvm-tree-link { height: 18px; }
+    .cvm-groups { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: stretch; padding: 2px 2px 6px; }
+    .cvm-group { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 0.4rem; padding: 0.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); background: var(--surface); transition: opacity .15s; }
+    .cvm-group__head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.3rem; font-weight: 600; font-size: 0.82rem; }
+    .cvm-group__head small { font-weight: 400; color: var(--text-muted); }
+    .cvm-card { font: inherit; color: var(--text); min-width: 0; text-align: left; width: 100%; border: 1px solid var(--border); border-left: 4px solid var(--c, var(--border)); background: var(--surface-2); border-radius: var(--radius); padding: 0.45rem 0.55rem; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 8px; align-items: center; transition: opacity .15s, box-shadow .12s; }
+    .cvm-card:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); }
+    .cvm-card.is-sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+    .cvm-score { grid-row: span 2; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 0.88rem; background: conic-gradient(var(--accent) calc(var(--m) * 1%), var(--cvm-surface-3) 0); position: relative; }
+    .cvm-score::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--surface-2); }
+    .cvm-score span { position: relative; }
+    .cvm-card__t { font-size: 0.8rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+    .cvm-card__meta { font-size: 0.72rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+    .cvm-more { font: inherit; border: 1px dashed var(--border); background: transparent; border-radius: var(--radius); padding: 4px; cursor: pointer; color: var(--text-muted); font-size: 0.76rem; }
+    .cvm-row { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
+    .cvm-node { font: inherit; color: var(--text); border: 1px solid var(--border); background: var(--surface-2); border-radius: var(--radius); padding: 0.45rem 0.6rem; font-size: 0.78rem; cursor: pointer; transition: opacity .15s, box-shadow .12s; max-width: 260px; min-width: 0; text-align: center; overflow-wrap: anywhere; }
+    .cvm-node strong { display: block; font-size: 0.8rem; }
+    .cvm-node small { display: block; color: var(--text-muted); }
+    .cvm-node--theme { border-radius: 999px; padding: 0.3rem 0.75rem; }
+    .cvm-bar { display: block; height: 3px; background: var(--cvm-surface-3); border-radius: 2px; margin-top: 4px; }
+    .cvm-bar > span { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+    .cvm-node--trunk { max-width: 640px; font-size: 0.86rem; padding: 0.6rem 1rem; border-color: var(--accent); background: var(--accent-dim); cursor: default; }
+    .cvm-node--root { border-bottom: 3px solid var(--cvm-violet); }
+    .cvm-view .is-dim { opacity: var(--cvm-dim, 0.22); }
+    .cvm-view .is-hl { box-shadow: 0 0 0 2px var(--accent); }
+    /* Constellation. */
+    .cvm-constwrap { position: relative; }
+    .cvm-constscroll { overflow: auto; -webkit-overflow-scrolling: touch; }
+    .cvm-zoombar { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; z-index: 2; }
+    .cvm-const { width: 100%; height: auto; display: block; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+    .cvm-const.is-dragging { cursor: grabbing; }
+    .cvm-const .ring { fill: none; stroke: var(--border); stroke-dasharray: 3 5; }
+    .cvm-const .ringlbl { fill: var(--text-dim); }
+    .cvm-const .sector { stroke: var(--border-subtle); }
+    .cvm-const .seclbl { fill: var(--text-muted); font-weight: 600; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; pointer-events: none; }
+    .cvm-const .center { fill: var(--accent-dim); stroke: var(--accent); stroke-width: 2; }
+    .cvm-const .centerlbl { fill: var(--text); font-size: 12px; font-weight: 600; }
+    .cvm-const .lbl { fill: var(--text); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; cursor: pointer; }
+    .cvm-const .hit { fill: transparent; }
+    .cvm-const .leader { fill: none; stroke: var(--text-dim); stroke-width: 1; opacity: 0.5; pointer-events: none; }
+    .cvm-const .n { cursor: pointer; transition: opacity .15s; }
+    .cvm-const .n:focus { outline: none; }
+    .cvm-const .n.is-hl .leader, .cvm-const .n.is-sel .leader { stroke: var(--accent); stroke-width: 2; opacity: 1; }
+    .cvm-const .n.is-hl .lbl, .cvm-const .n.is-sel .lbl { font-weight: 700; fill: var(--accent); }
+    .cvm-const .n.u-bad { --u: var(--bad); } .cvm-const .n.u-warn { --u: var(--warn); } .cvm-const .n.u-ok { --u: var(--ok); }
+    .cvm-const .n.u-info { --u: var(--cvm-info); } .cvm-const .n.u-dim { --u: var(--text-dim); }
+    .cvm-const .sh-fill { fill: var(--u); stroke: var(--bg); stroke-width: 2; }
+    .cvm-const .sh-ring { fill: var(--surface); stroke: var(--u); stroke-width: 3; }
+    .cvm-const .sh-thin { stroke-width: 2; }
+    .cvm-const .sh-half { fill: var(--u); }
+    .cvm-const .sh-x { stroke: var(--u); stroke-width: 3; }
+    .cvm-const .n:focus .sh-sel, .cvm-const .n.is-sel .sh-sel { stroke: var(--text); stroke-width: 3; }
+    .cvm-const .root { cursor: pointer; transition: opacity .15s; }
+    .cvm-const .root rect { fill: var(--surface-2); stroke: var(--cvm-violet); stroke-width: 2; }
+    .cvm-const .root text { fill: var(--text); font-size: 10px; font-weight: 700; pointer-events: none; }
+    .cvm-const .edge { stroke: var(--cvm-violet); stroke-width: 1.6; opacity: 0.8; fill: none; }
+    .cvm-const .edge--theme { stroke: var(--accent); stroke-dasharray: 4 4; }
+    .cvm-tip { position: fixed; z-index: 99996; pointer-events: none; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem 0.6rem; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35); font-size: 0.76rem; max-width: 280px; display: none; }
+    .cvm-tip strong { display: block; font-size: 0.82rem; margin-bottom: 2px; }
+    /* Requirements matrix and timeline. */
+    .cvm-tablewrap { overflow-x: auto; }
+    table.cvm-matrix { border-collapse: collapse; width: 100%; font-size: 0.78rem; }
+    table.cvm-matrix th, table.cvm-matrix td { border-bottom: 1px solid var(--border-subtle); padding: 0.35rem 0.5rem; text-align: center; white-space: nowrap; }
+    table.cvm-matrix th { background: var(--surface); color: var(--text-muted); font-weight: 600; font-size: 0.72rem; }
+    table.cvm-matrix .l { text-align: left; white-space: normal; min-width: 220px; }
+    table.cvm-matrix tbody tr { cursor: pointer; }
+    table.cvm-matrix tbody tr:hover td { background: var(--surface-2); }
+    table.cvm-matrix tr.is-sel td { background: var(--accent-dim); }
+    .m-ok { color: var(--ok); font-weight: 700; } .m-warn { color: var(--warn); font-weight: 700; }
+    .m-no { color: var(--bad); font-weight: 700; } .m-na { color: var(--text-dim); }
+    .cvm-tlscroll { overflow-x: auto; }
+    .cvm-timeline { width: 100%; height: auto; display: block; }
+    .cvm-timeline text { font-size: 11.5px; fill: var(--text); }
+    .cvm-timeline .axis text { fill: var(--text-muted); font-size: 11px; }
+    .cvm-timeline .grid { stroke: var(--border-subtle); }
+    .cvm-timeline .today { stroke: var(--bad); stroke-width: 2; }
+    .cvm-timeline .todaylbl, .cvm-timeline .tl-none { fill: var(--text-dim); }
+    .cvm-timeline .todaylbl { fill: var(--bad); }
+    .cvm-timeline .tl-row { cursor: pointer; }
+    .cvm-timeline .tl-bg { fill: transparent; }
+    .cvm-timeline .tl-row:hover .tl-bg, .cvm-timeline .tl-row.is-sel .tl-bg { fill: var(--surface-2); }
+    .cvm-timeline .tl-row.is-sel .tl-name { font-weight: 700; }
+    .cvm-timeline .tl-bar { fill: var(--accent); }
+    .cvm-timeline .tl-prep { stroke: var(--warn); stroke-width: 2; stroke-dasharray: 3 2; }
+    .cvm-timeline .tl-prep.is-late { stroke: var(--bad); }
+    /* Detail panel. */
+    .cvm-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 0.35rem; }
+    .cvm-bigscore { display: flex; align-items: center; gap: 0.75rem; margin: 0.6rem 0 0.3rem; }
+    .cvm-ring { width: 64px; height: 64px; flex: none; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--accent) calc(var(--m) * 1%), var(--cvm-surface-3) 0); position: relative; font-size: 1.25rem; font-weight: 700; }
+    .cvm-ring::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--surface); }
+    .cvm-ring span { position: relative; }
+    .cvm-bars { display: grid; grid-template-columns: 92px minmax(0, 1fr) 30px; gap: 4px 8px; align-items: center; font-size: 0.76rem; }
+    .cvm-b { height: 7px; background: var(--cvm-surface-3); border-radius: 4px; overflow: hidden; }
+    .cvm-b > span { display: block; height: 100%; background: var(--accent); }
+    .cvm-notice { border-left: 3px solid var(--cvm-info); background: var(--surface-2); padding: 0.35rem 0.6rem; border-radius: 0 var(--radius) var(--radius) 0; margin-top: 0.5rem; }
+    ul.cvm-alerts { list-style: none; display: grid; gap: 5px; }
+    ul.cvm-alerts li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 6px; overflow-wrap: anywhere; }
+    .cvm-late { color: var(--bad); }
+    .cvm-why { display: grid; gap: 4px; font-size: 0.78rem; }
+    .cvm-why div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .cvm-arrow { color: var(--text-dim); }
+    .cvm-evidence { padding-left: 1rem; font-size: 0.78rem; overflow-wrap: anywhere; }
+    .cvm-evidence a { color: var(--accent); }
+    .cvm-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.85rem; }
+    @media (max-width: 1080px) {
+      .cvm-layout { grid-template-columns: minmax(0, 1fr); }
+      .cvm-detail { position: static; max-height: none; }
+      /* A selected call opens as a bottom sheet over the view, so a tap always
+         shows its detail without scrolling past the whole map. */
+      .cvm-detail.is-sheet { position: fixed; top: auto; left: 0; right: 0; bottom: 0; max-height: 72vh; z-index: 99995;
+        border-radius: 16px 16px 0 0; box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.35);
+        padding-bottom: calc(var(--fab-size) + var(--fab-offset)); }
+      .cvm-detail.is-sheet .cvm-sheet-close { display: block; position: sticky; top: 0; margin: 0 0 0.4rem auto; z-index: 1; }
+      body.cvm-has-sheet { padding-bottom: 72vh; }
+    }
+    @media (max-width: 700px) {
+      .cvm-const { min-width: 620px; }
+      .cvm-timeline { min-width: 640px; }
+      .cvm-stat { min-width: 0; flex: 1 1 calc(50% - 0.25rem); }
+      .cvm-search { max-width: none; flex-basis: 100%; }
+    }
     .rq-table td { min-width: 6rem; }
     .rq-input { width: 100%; min-width: 6rem; font: inherit; font-size: 0.74rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.2rem 0.3rem; margin-top: 0.2rem; }
     .rq-input--num { min-width: 8rem; }
@@ -3260,13 +3436,19 @@
           <div class="panel__title">Convocatorias afines a la idea del proyecto y al banco LIA</div>
           <span class="panel__meta" id="cvMeta">—</span>
         </div>
-        <p class="judge-intro">Convocatorias de Colombia, América Latina e internacionales, en español e inglés, ordenadas por afinidad con la idea del proyecto y el banco LIA, con el rol que puede tener un aplicante colombiano y la cuenta regresiva del cierre. Es una vista de solo lectura: «Buscar convocatorias» pide al agente una búsqueda nueva y «Iniciar propuesta con esta» baja el TdR de la convocatoria a la corrida activa.</p>
-        <div class="cv-toolbar">
-          <button class="btn btn--sm btn--primary" id="cvSearchBtn" onclick="searchOpportunities()">🔎 Buscar convocatorias</button>
+        <p class="judge-intro">Convocatorias de Colombia, América Latina e internacionales, en español e inglés, con su match frente al proyecto en formulación o al banco LIA, el rol que puede tener un aplicante colombiano, los tiempos y las alertas de requisitos. Es una vista de solo lectura: los botones de búsqueda piden al agente una búsqueda nueva para cada alcance e «Iniciar propuesta con esta» baja el TdR de la convocatoria a la corrida activa.</p>
+        <div class="cv-toolbar cvm-controls">
+          <span class="cvm-label">Alcance</span>
+          <div class="cvm-seg" id="cvAlcance" role="group" aria-label="Alcance del match">
+            <button type="button" data-alcance="proyecto" class="is-on" aria-pressed="true" onclick="setOpportunityScope('proyecto')">Proyecto en formulación</button>
+            <button type="button" data-alcance="banco" aria-pressed="false" onclick="setOpportunityScope('banco')">Banco LIA</button>
+          </div>
+          <button class="btn btn--sm btn--primary" id="cvSearchBtn" onclick="searchOpportunities('proyecto')">🔎 Buscar para el proyecto</button>
+          <button class="btn btn--sm" id="cvSearchBancoBtn" onclick="searchOpportunities('banco')">🔎 Buscar para el banco LIA</button>
         </div>
         <p class="tree-message" id="cvMessage" role="status"></p>
       </div>
-      <div class="panel">
+      <div class="panel cvm-panel">
         <div id="cvContent"></div>
       </div>
     </div>
@@ -3923,6 +4105,7 @@
 
   <script src="/static/cli-console.js"></script>
   <script src="/static/board-refresh.js"></script>
+  <script src="/static/convocatorias-map.js"></script>
   <script>
     // El inventario de unidades llega en el sobre de estado (`pipeline_units`).
     // Antes esta lista estaba escrita aquí con trece entradas que inventaban
@@ -8285,10 +8468,20 @@
     // ── Convocatorias ───────────────────────────────────────────────────────
     // Lee /api/convocatorias: la vista morfeo.convocatorias-vista/v1 que arma
     // scripts/convocatorias.py a nivel de espacio de trabajo (no necesita una
-    // corrida activa). Existe en ambos flujos. Es de solo lectura: «Buscar
-    // convocatorias» e «Iniciar propuesta con esta» piden el prompt al servidor
-    // y lo entregan a la terminal con sendTerminalPrompt, como el juez.
-    const CV_STATE = { data: null, sig: null, timer: null, filters: { ambito: '', idioma: '', aplicante: '', soloVigentes: false } };
+    // corrida activa). Existe en ambos flujos. Es de solo lectura: los botones
+    // de búsqueda e «Iniciar propuesta con esta» piden el prompt al servidor y
+    // lo entregan a la terminal con sendTerminalPrompt, como el juez.
+    // Here live the data, the scope, the filters, the view switcher and the
+    // «Lista» view; the other views and the detail panel are drawn by
+    // static/convocatorias-map.js (window.cvMap).
+    const CV_STATE = {
+      data: null, sig: null, timer: null, alcance: null, vista: 'arbol', agrupar: 'tema',
+      filters: { ambito: '', idioma: '', aplicante: '', soloVigentes: false, soloElegibles: false, q: '' },
+    };
+    const CV_ALCANCES = [['proyecto', 'Proyecto en formulación', 'Buscar para el proyecto'], ['banco', 'Banco LIA', 'Buscar para el banco LIA']];
+    const CV_VIEWS = [['arbol', '🌳 Árbol de oportunidades'], ['constelacion', '✦ Constelación de afinidad'], ['lado', '⇆ Lado a lado'],
+      ['requisitos', '☑ Matriz de requisitos'], ['tiempo', '⏱ Línea de tiempo'], ['lista', '☰ Lista']];
+    const CV_AGRUPAR = [['tema', 'Tema'], ['ambito', 'Ámbito'], ['rol', 'Rol de Colombia']];
     const CV_AMBITOS = [['colombia', 'Colombia'], ['latam', 'América Latina'], ['internacional', 'Internacional']];
     const CV_IDIOMAS = [['es', 'Español'], ['en', 'Inglés'], ['pt', 'Portugués'], ['fr', 'Francés']];
     const CV_APLICANTES = [['investigador', 'Investigador'], ['estudiante', 'Estudiante'], ['grupo', 'Grupo de investigación'],
@@ -8309,7 +8502,8 @@
     async function loadOpportunities() {
       let data = null;
       try {
-        const res = await fetch('/api/convocatorias', { cache: 'no-store' });
+        const query = CV_STATE.alcance ? `?alcance=${encodeURIComponent(CV_STATE.alcance)}` : '';
+        const res = await fetch(`/api/convocatorias${query}`, { cache: 'no-store' });
         data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
       } catch (err) {
@@ -8320,6 +8514,15 @@
         return;
       }
       CV_STATE.data = data;
+      // A search for a scope whose profile did not exist yet: follow it as soon
+      // as the agent writes that profile, so the results show up here.
+      const pending = CV_STATE.pendingAlcance;
+      if (pending && data.vista && cvPerfiles(data.vista)[pending] && CV_STATE.alcance !== pending) {
+        CV_STATE.pendingAlcance = null;
+        CV_STATE.alcance = pending;
+        if (window.cvMap) window.cvMap.reset();
+        return loadOpportunities();
+      }
       const sig = JSON.stringify(data);
       if (sig !== CV_STATE.sig) {
         CV_STATE.sig = sig;
@@ -8339,6 +8542,7 @@
     function stopOpportunitiesPolling() {
       if (CV_STATE.timer) clearInterval(CV_STATE.timer);
       CV_STATE.timer = null;
+      if (window.cvMap) window.cvMap.closeSheet();
     }
 
     function cvLabel(pairs, key) {
@@ -8405,20 +8609,73 @@
     }
 
     function cvFiltersHtml() {
+      const f = CV_STATE.filters;
       return `<div class="cv-toolbar" id="cvFiltros">
+          <span class="cvm-label">Agrupar por</span>
+          <div class="cvm-seg" id="cvAgrupar" role="group" aria-label="Agrupar por">
+            ${CV_AGRUPAR.map(([key, label]) => `<button type="button" data-agrupar="${key}" onclick="setOpportunityGroup('${key}')">${escapeHtml(label)}</button>`).join('')}
+          </div>
           <label>Ámbito ${cvSelect('cvAmbito', 'ambito', CV_AMBITOS, 'Todos los ámbitos')}</label>
           <label>Idioma ${cvSelect('cvIdioma', 'idioma', CV_IDIOMAS, 'Todos los idiomas')}</label>
           <label>Aplicante ${cvSelect('cvAplicante', 'aplicante', CV_APLICANTES, 'Todos los aplicantes')}</label>
-          <label class="a2-filter"><input type="checkbox" id="cvSoloVigentes"${CV_STATE.filters.soloVigentes ? ' checked' : ''} onchange="setOpportunityFilter('soloVigentes', this.checked)"> Solo vigentes</label>
+          <label class="a2-filter"><input type="checkbox" id="cvSoloVigentes"${f.soloVigentes ? ' checked' : ''} onchange="setOpportunityFilter('soloVigentes', this.checked)"> Solo vigentes</label>
+          <label class="a2-filter"><input type="checkbox" id="cvSoloElegibles"${f.soloElegibles ? ' checked' : ''} onchange="setOpportunityFilter('soloElegibles', this.checked)"> Solo elegibles</label>
+          <input type="search" class="cvm-search" id="cvBuscar" placeholder="Buscar por título o financiador" aria-label="Buscar convocatorias por título o financiador" value="${escapeHtml(f.q)}" oninput="setOpportunityFilter('q', this.value)">
         </div>`;
     }
 
+    const cvFold = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
     function cvVisible(list) {
       const f = CV_STATE.filters;
+      const q = cvFold(f.q).trim();
       return list.filter(o => (!f.ambito || o.ambito === f.ambito)
         && (!f.idioma || o.idioma === f.idioma)
         && (!f.aplicante || (Array.isArray(o.aplicantes) && o.aplicantes.includes(f.aplicante)))
-        && (!f.soloVigentes || o.vigente === true));
+        && (!f.soloVigentes || o.vigente === true)
+        && (!f.soloElegibles || o.rol_colombia !== 'no_elegible')
+        && (!q || cvFold([o.titulo, o.titulo_corto, o.financiador, o.programa].filter(Boolean).join(' ')).includes(q)));
+    }
+
+    // Summary of the calls left by the filters (the «Lista» view keeps the
+    // server's count by ámbito and rol in #cvResumen).
+    function cvStatsHtml(items) {
+      const vigentes = items.filter(o => o.vigente === true);
+      const urgentes = vigentes.filter(o => { const d = vcNumber(o.dias_restantes); return d !== null && d >= 0 && d <= 30; });
+      const lider = vigentes.filter(o => o.rol_colombia === 'lider');
+      const alertas = items.reduce((n, o) => n + vcList(o.alertas).filter(a => a.severidad !== 'info').length, 0);
+      const stat = (key, n, label, title) => `<div class="cvm-stat" data-stat="${key}"${title ? ` title="${escapeHtml(title)}"` : ''}><b>${n}</b><span>${escapeHtml(label)}</span></div>`;
+      return stat('total', items.length, items.length === 1 ? 'convocatoria' : 'convocatorias')
+        + stat('vigentes', vigentes.length, 'vigentes')
+        + stat('urgentes', urgentes.length, 'cierran en ≤30 días')
+        + stat('lider', lider.length, 'Colombia puede liderar')
+        + stat('alertas', alertas, 'alertas de requisitos', 'Alertas de error o por verificar; no cuenta las informativas');
+    }
+
+    function cvPerfiles(v) {
+      const p = v && v.perfiles && typeof v.perfiles === 'object' ? v.perfiles : null;
+      // Older views do not say which profiles exist: only the project one is usable.
+      return p ? { proyecto: p.proyecto === true, banco: p.banco === true } : { proyecto: true, banco: false };
+    }
+
+    function cvScope(v) {
+      const a = (v && (v.alcance || (v.perfil && v.perfil.alcance))) || CV_STATE.alcance || 'proyecto';
+      return a === 'banco' ? 'banco' : 'proyecto';
+    }
+
+    function cvSyncScope(v) {
+      const perfiles = cvPerfiles(v);
+      const current = cvScope(v);
+      document.querySelectorAll('#cvAlcance [data-alcance]').forEach(btn => {
+        const key = btn.getAttribute('data-alcance');
+        const entry = CV_ALCANCES.find(([k]) => k === key);
+        const missing = !perfiles[key] && key !== current;
+        btn.disabled = missing;
+        btn.classList.toggle('is-on', key === current);
+        btn.setAttribute('aria-pressed', String(key === current));
+        if (missing) btn.title = `Todavía no hay perfil «${entry[1]}»: pulsa «${entry[2]}» para crearlo.`;
+        else btn.removeAttribute('title');
+      });
     }
 
     function cvCardHtml(o) {
@@ -8467,7 +8724,7 @@
       }).join('')}</ul>`;
     }
 
-    const CV_HOWTO = '<small>Pulsa «Buscar convocatorias»: el agente arma el perfil de búsqueda con la idea del proyecto y el banco LIA, consulta las fuentes fijas y la web, y deja aquí las convocatorias ordenadas por afinidad. También puedes escribir <code>/propuesta-convocatorias</code> en la terminal.</small>';
+    const CV_HOWTO = '<small>Pulsa «Buscar para el proyecto» o «Buscar para el banco LIA»: el agente arma el perfil de búsqueda con la idea del proyecto o con el banco LIA, consulta las fuentes fijas y la web, y deja aquí las convocatorias ordenadas por match. También puedes escribir <code>/propuesta-convocatorias buscar</code> en la terminal.</small>';
 
     function renderOpportunities() {
       const d = CV_STATE.data;
@@ -8484,30 +8741,103 @@
         return;
       }
       const v = cpObj(d.vista);
+      cvSyncScope(v);
       if (meta) meta.textContent = v.hoy ? `Al ${v.hoy}` : '—';
       const all = vcList(v.oportunidades);
       if (!all.length) {
+        if (window.cvMap) window.cvMap.closeSheet();
         el.innerHTML = `<div class="tree-empty"><p>Todavía no hay convocatorias para este espacio de trabajo.</p>${CV_HOWTO}</div>
           ${cvSourcesHtml(v.fuentes_consultadas)}`;
         return;
       }
+      el.innerHTML = `<div class="cvm-stats" id="cvStats"></div>
+        ${cvFiltersHtml()}
+        <nav class="cvm-tabs" id="cvVistas" aria-label="Vistas de convocatorias">
+          ${CV_VIEWS.map(([key, label]) => `<button type="button" data-vista="${key}" onclick="setOpportunityView('${key}')">${escapeHtml(label)}</button>`).join('')}
+        </nav>
+        <div class="cvm-layout" id="cvLayout">
+          <div class="cvm-view" id="cvView" aria-live="polite"></div>
+          <aside class="cvm-detail" id="cvDetail" aria-label="Detalle de la convocatoria"></aside>
+        </div>
+        ${cvSourcesHtml(v.fuentes_consultadas)}`;
+      cvRenderBody();
+    }
+
+    function cvListHtml(v, items) {
       const perfil = cpObj(v.perfil);
       const perfilLine = perfil.existe
         ? `Perfil de búsqueda: ${a2Plural(a2Int(perfil.n_palabras_clave), 'palabra clave', 'palabras clave')}`
         : 'Todavía no hay perfil de búsqueda: la afinidad usa solo el puntaje del agente.';
-      const visibles = cvVisible(all);
-      el.innerHTML = `${cvSummaryHtml(v.resumen)}
+      return `${cvSummaryHtml(v.resumen)}
         <p class="judge-empty">${perfilLine}</p>
-        ${cvFiltersHtml()}
-        <div id="cvLista">${visibles.length ? visibles.map(cvCardHtml).join('')
-          : '<p class="judge-empty">Ninguna convocatoria cumple los filtros.</p>'}</div>
-        ${cvSourcesHtml(v.fuentes_consultadas)}`;
+        <div id="cvLista">${items.length ? items.map(cvCardHtml).join('')
+          : '<p class="judge-empty">Ninguna convocatoria cumple los filtros.</p>'}</div>`;
+    }
+
+    // Repaints what the filters, the grouping and the view change, never the
+    // toolbar: the search box keeps its focus while typing.
+    function cvRenderBody() {
+      const d = CV_STATE.data;
+      const view = document.getElementById('cvView');
+      const detail = document.getElementById('cvDetail');
+      if (!d || !d.vista || !view || !detail) return;
+      const v = cpObj(d.vista);
+      const items = cvVisible(vcList(v.oportunidades));
+      const map = window.cvMap && typeof window.cvMap.render === 'function' ? window.cvMap : null;
+      const vista = map ? CV_STATE.vista : 'lista';
+      const stats = document.getElementById('cvStats');
+      if (stats) stats.innerHTML = cvStatsHtml(items);
+      document.querySelectorAll('#cvVistas [data-vista]').forEach(btn => {
+        const on = btn.getAttribute('data-vista') === vista;
+        btn.classList.toggle('is-on', on);
+        btn.setAttribute('aria-pressed', String(on));
+      });
+      document.querySelectorAll('#cvAgrupar [data-agrupar]').forEach(btn => {
+        const on = btn.getAttribute('data-agrupar') === CV_STATE.agrupar;
+        btn.classList.toggle('is-on', on);
+        btn.setAttribute('aria-pressed', String(on));
+      });
+      const isList = vista === 'lista';
+      const layout = document.getElementById('cvLayout');
+      if (layout) layout.classList.toggle('is-list', isList);
+      detail.hidden = isList;
+      if (isList) {
+        if (map) map.closeSheet();
+        view.innerHTML = cvListHtml(v, items);
+        return;
+      }
+      map.render(view, detail, items, { vista: v, view: vista, agrupar: CV_STATE.agrupar, alcance: cvScope(v) });
     }
 
     function setOpportunityFilter(field, value) {
       if (!(field in CV_STATE.filters)) return;
-      CV_STATE.filters[field] = field === 'soloVigentes' ? !!value : String(value || '');
-      renderOpportunities();
+      CV_STATE.filters[field] = field === 'soloVigentes' || field === 'soloElegibles' ? !!value : String(value || '');
+      cvRenderBody();
+    }
+
+    function setOpportunityView(key) {
+      if (!CV_VIEWS.some(([k]) => k === key)) return;
+      CV_STATE.vista = key;
+      cvRenderBody();
+    }
+
+    function setOpportunityGroup(key) {
+      if (!CV_AGRUPAR.some(([k]) => k === key)) return;
+      CV_STATE.agrupar = key;
+      cvRenderBody();
+    }
+
+    // The scope picks the profile the server scores against; a scope without
+    // its profile stays disabled until a search creates it.
+    function setOpportunityScope(key) {
+      if (!CV_ALCANCES.some(([k]) => k === key)) return;
+      const btn = document.querySelector(`#cvAlcance [data-alcance="${key}"]`);
+      if (btn && btn.disabled) return;
+      const v = CV_STATE.data && CV_STATE.data.vista;
+      if (v && cvScope(v) === key && CV_STATE.alcance) return;
+      CV_STATE.alcance = key;
+      if (window.cvMap) window.cvMap.reset();
+      return loadOpportunities();
     }
 
     function cvMessage(text, tone) {
@@ -8538,8 +8868,14 @@
       return true;
     }
 
-    function searchOpportunities() {
-      return deliverOpportunityPrompt('/api/convocatorias/buscar', {}, 'La búsqueda de convocatorias');
+    function searchOpportunities(alcance) {
+      const scope = CV_ALCANCES.find(([k]) => k === alcance);
+      if (!scope) return deliverOpportunityPrompt('/api/convocatorias/buscar', {}, 'La búsqueda de convocatorias');
+      // Follow the searched scope once its profile exists, so the results show up here.
+      const v = CV_STATE.data && CV_STATE.data.vista;
+      if (v && cvPerfiles(v)[alcance]) CV_STATE.alcance = alcance;
+      else CV_STATE.pendingAlcance = alcance;
+      return deliverOpportunityPrompt('/api/convocatorias/buscar', { alcance }, `La búsqueda para el ${alcance === 'banco' ? 'banco LIA' : 'proyecto'}`);
     }
 
     function startOpportunity(id) {
