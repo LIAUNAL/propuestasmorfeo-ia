@@ -1,0 +1,43 @@
+# Convocatorias: opportunity tree and affinity constellation in the dashboard panel
+
+Objective: bring the two views validated in the prototype (https://liaunal.github.io/propuestasmorfeo-ia/prototipos/convocatorias/, gh-pages db771e0) into the real «Convocatorias» tab, with real data: scope (proyecto / banco LIA), lab experience, per-call requirements, effort, short names and a weighted match.
+Branch `feat/convocatorias-mapa` (stacked on `feat/ui-smith-responsive`), delivery `single-pr`, no push unless asked. Tests: `uv run python -m unittest discover tests -p "test_*.py"` and `node --import <jsdom hook> --test tests/js/*.test.mjs`.
+
+## Specs
+
+S1. Pedido textual (L1): «integra arbol y constelacion al panel de convocaotiras». The views and interactions are those of the prototype (source: /tmp/claude-1000/-home-andresmarino-Documents-RedaccionPropuestas/c6263f9b-618f-454e-9aba-80decf0c7725/scratchpad/proto-conv/index.html, same as gh-pages `prototipos/convocatorias/index.html`), as the user asked earlier (verbatim, 2026-11-20): «en este panel se debe poder dar boton de busqueda de convoctorias sea para banco lia en general o para el proeycto, mostrar score de afinidad, tienpos, alertas de requisitos, score del match y lo que consideres pertiennete y relevante» and «asegurate de que cada nodo muestre los nombres o nombre resumido. y al dar clic en nodos se queda sin funcionalidad y no se permite iterar en otros nodos» (fixed in the prototype; the integration must keep those fixes).
+
+S2. Data (script `scripts/convocatorias.py`, additive; every new field optional so existing files stay valid):
+- Two profiles: `convocatorias/perfil.json` (alcance `proyecto`, from idea.md) and `convocatorias/perfil_banco.json` (alcance `banco`, from banco-lia only). Both schema `morfeo.perfil-convocatorias/v1`, new optional fields `alcance: "proyecto"|"banco"` and `experiencia: [{id, nombre, detalle:str|null, temas:[str], financiadores:[str]}]` (lab lines/items from banco-lia; ids slug).
+- `perfil DIR [--alcance proyecto|banco]` creates the matching file (banco: no idea text, title from config).
+- Call fields (optional): `titulo_corto: str ≤ 32 chars`, `esfuerzo: "bajo"|"medio"|"alto"`, `requisitos: [{tipo: "consorcio"|"contrapartida"|"anfitrion"|"idioma"|"perfil"|"aval"|"entidad"|"otro", estado: "cumple"|"por_verificar"|"no_cumple", texto: str ≤ 200}]`, `relacionados_banco: [experiencia ids]`. `check` validates them (enums, lengths, unknown experiencia ids → warning).
+- `datos DIR [--alcance proyecto|banco] [--json] [--hoy]` scores against the chosen profile (default proyecto; banco when only perfil_banco exists).
+
+S3. Scores and map in the view (`morfeo.convocatorias-vista/v1`, additive keys):
+- per call: `titulo_corto` (given, else derived: title cut at a word boundary ≤ 28 chars with «…»); `temas_match: [{tema, peso}]` = profile `temas` found in the call text (accent-insensitive token overlap; peso 0..1 = share of the tema's tokens present; keep peso ≥ 0.5); `experiencia: [ids]` = profile experiencia items whose `temas` overlap the call's `temas_match`, plus `relacionados_banco`; `historial: bool` = funder matches any `financiadores_previos` or experiencia `financiadores` (accent/case-insensitive substring); `componentes: {tematica, experiencia, elegibilidad, tiempo}` with tematica = the existing `puntaje` (0.5 agent + 0.5 lexical, or lexical alone); experiencia = min(100, 30 × experiencia count + 25 if historial); elegibilidad by final role: lider 100, socio 70, coaplicante 70, anfitrion_exterior 40, desconocido 50, no_elegible 0; tiempo: cerrada 0, pausada 10, no cierre 50, else clamp(round(100 × (dias / need) / 1.5), 0, 100) with need = 15/45/90 days for bajo/medio/alto (medio when absent); `match` = round_half_up(0.35 tematica + 0.25 experiencia + 0.25 elegibilidad + 0.15 tiempo), capped at 20 when no_elegible or not vigente; `esfuerzo` (default medio), `preparar_desde` = cierre − need (null without cierre); `alertas: [{severidad: error|warning|info, texto}]` from requisitos not `cumple` (no_cumple → error, por_verificar → warning), «Cierra en N días y el esfuerzo estimado es <e> (unos <need> días)» (error) when vigente and dias < need, «Cierre estimado» (info), «Sin fecha de cierre publicada» (info) for vigente without cierre, «Programa pausado» (error), and the rule aviso is NOT repeated here (it stays in `aviso`).
+- top level: `alcance`, `perfil.alcance`, `perfiles: {proyecto: bool, banco: bool}` (which files exist), and `mapa: {temas: [{tema, n}] (profile temas with how many calls match), experiencia: [profile experiencia items with n calls]}`.
+- Ordering (replaces S4 of convocatorias-explorador for the view): vigentes first; within each, rol ≠ no_elegible first; then `match` desc, then nearest cierre. `puntaje` stays in the payload unchanged.
+
+S4. Dashboard «Convocatorias» tab (both flows):
+- Controls: scope toggle «Proyecto en formulación» / «Banco LIA» (disabled option when its profile is missing, with a tooltip); buttons «Buscar para el proyecto» and «Buscar para el banco LIA» (POST, send `/propuesta-convocatorias buscar --alcance proyecto|banco` to the terminal); group by Tema / Ámbito / Rol; the existing filters (ámbito, idioma, aplicante, solo vigentes) plus «Solo elegibles» and text search; summary stats (total, vigentes, ≤30 días, Colombia puede liderar, alertas).
+- Views: «Árbol de oportunidades» (frutos = calls grouped and sorted by match, «+ N más»; ramas = profile temas with bar = calls share; tronco = scope with its title; raíces = experiencia), «Constelación de afinidad» (radial SVG, distance = match scaled to the present range, sector = group, color = urgency, shape = role, every node labelled with `titulo_corto · match` in side columns with leader lines, wider hit ring, labels clickable, drag after 4 px, background click clears, zoom ＋/－/⟲, hover lights the connected temas and experiencia), «Lado a lado», «Matriz de requisitos» (rows = calls, columns = requisito tipos, ✓/⚠/✕/—, cell tooltip = texto), «Línea de tiempo» (bar from apertura/hoy to cierre, intensity by match, dashed marker at `preparar_desde`, red when already late), «Lista» (the existing cards).
+- Detail panel on click: title, funder · programa, chips (ámbito, idioma, role notice, countdown), match ring, the four component bars, `aviso`, alertas, tiempos (apertura, cierre, esfuerzo, «empezar a más tardar» or «ya es tarde»), «Por qué encaja» (scope → temas_match with weights; experiencia items, «financiador previo ✓»), resumen, monto, aplicantes, evidence links, «Iniciar propuesta con esta». Under 1080 px it opens as a bottom sheet with «✕ Cerrar».
+- `GET /api/convocatorias?alcance=proyecto|banco` passes the scope to `vista`; invalid alcance → 400. Keep every responsive guarantee of feat/ui-smith-responsive (0 px page overflow 360-1920, no console errors).
+
+S5. Agent and command: `/propuesta-convocatorias buscar [--alcance proyecto|banco]` (default proyecto); `explorador-convocatorias` builds `perfil_banco.json` from banco-lia (`lab_capabilities`, `taxonomy`, `search_bank`) with `experiencia`, fills `experiencia` in `perfil.json` with the banco-lia items related to the idea, and writes per call `titulo_corto`, `esfuerzo`, `requisitos` and `relacionados_banco`. Writing patterns for `titulo_corto` (program name, no funder repetition, ≤ 32 chars) and `requisitos.texto` (one condition per item, own words, ≤ 200 chars).
+
+## Tasks
+
+| ID | Specs | Route | Status | Commit |
+|----|-------|-------|--------|--------|
+| T1 | S2, S3 | delegated writer (parallel, disjoint: scripts/convocatorias.py, tests/test_convocatorias.py) | pending | |
+| T2 | S1, S4 | delegated writer (parallel, disjoint: dashboard static, core/opportunities.py, server.py route, tests) | pending | |
+| T3 | S5 + integration | inline (parent): agent, command, docs, kit, ports, suites, browser seam check, commits | pending | |
+
+Route evidence: two independent units with disjoint surfaces, each several files and well over 100 lines, launched together; the S2/S3 contract is the seam. Writers also justified by the parent context backstop.
+
+## Log
+
+L1 (2026-11-20, user, verbatim): «integra arbol y constelacion al panel de convocaotiras»
+
+L2 (2026-11-20, parent decisions): fields are optional and additive; `puntaje` kept, `match` added and used for ordering in the view (approved design of the prototype: 35/25/25/15); two profile files instead of a mode flag so a banco search never overwrites the project profile; the front end lives in a new `static/convocatorias-map.js` (no-cache, inlined by the jsdom harness) to keep index.html manageable.
