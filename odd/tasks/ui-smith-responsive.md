@@ -16,12 +16,12 @@ S3. Smith CLI features (L1, verbatim): «y revisa que tambien apliques los ajust
 | ID | Specs | Route | Status | Commit |
 |----|-------|-------|--------|--------|
 | T1 | S1 | inline (parent), gh-pages | done | gh-pages db771e0 (Playwright: 0 label overlaps or clipping at 360-1920, consecutive clicks and background clear work, mobile sheet, no page overflow, no console errors) |
-| T2 | S3 (U0) | delegated writer, alone (touches index.html and server.py, which every later unit needs) | pending | |
-| T3 | S3 (U1) | delegated writer, parallel with T4 and T5 | pending | |
-| T4 | S3 (U2), high risk item 2 (security) | delegated writer, parallel; independent verifier after | pending | |
-| T5 | S3 (U3) | delegated writer, parallel | pending | |
-| T6 | S2 | delegated writer, parallel with T7 (index.html styles and small JS fixes from L3) | pending | |
-| T7 | S3 (U4) | delegated writer, parallel with T6; depends on T3 and T4 | pending | |
+| T2 | S3 (U0) | delegated writer, alone (touches index.html and server.py, which every later unit needs) | done | 6b910b1 (Python 1562, only env failures; JS 276/276; differential HTTP 13 cases identical) |
+| T3 | S3 (U1) | delegated writer, parallel with T4 and T5 | done | 5aa2f4c (23 py + 10 js + 1 CLI tests RED→GREEN) |
+| T4 | S3 (U2), high risk item 2 (security) | delegated writer, parallel; independent verifier after | done, verifier running | 7b5769f (29 py + 14 js tests RED→GREEN; differential curl table in the writer report) |
+| T5 | S3 (U3) | delegated writer, parallel | done | 934e2ec (14 tests RED→GREEN) |
+| T6 | S2 | delegated writer, parallel with T7 (index.html styles and small JS fixes from L3) | in progress | |
+| T7 | S3 (U4) | delegated writer, parallel with T6; depends on T3 and T4 | in progress | |
 | T8 | all | inline (parent): kit, ports, docs, full suites, seam check in a browser, commits | pending | |
 
 Route evidence: index.html (13k lines) and server.py are shared hotspots, so T2 extracts the terminal controller and routes first; afterwards T3/T4/T5 have disjoint files and run in parallel, then T6/T7. Writers are also justified by the parent context backstop. Interpretation assumptions (L2): «actualización» = Smith's «Actualizar tablero» plus the stale-server warning, no PyPI self-upgrade; «sockets» = activation from the bound socket, Origin/Host guard on the WebSocket, display-socket browser opening and bind options.
@@ -48,3 +48,5 @@ L3 (2026-11-20, audit at 360/390/768/1024/1366/1920, base and SGR workspaces; li
 - Degraded: `.panel__header` (l.309) no wrap, titles crushed; `.pipeline-grid` minmax(330px) (l.330) overflows at 360; `navigateTab()` (l.8545) never scrolls the active tab into view (deep links hide it); sticky 169 px header on phones (l.76, ≤900px block l.1089, `.meta-strip` l.207); phase modal ignores Escape and `.btn-secondary` (l.3681, l.3698) has no CSS; `.cv-evidencia a` default blue (1.6:1 contrast); FAB z-index 99999 above the maximized terminal 99998 (l.2234, l.2330) and covers table corners.
 - Cosmetic: `syncGraphPause` ReferenceError on every load (iframe onload l.3250 before definition l.8655); MGA 404 console noise (l.8878); `.vc-activities th` breaks words (l.469/478); `.flujo-subtitle` clipped (l.1237); terminal footer label cut at 360.
 - Works: no page overflow elsewhere; wide tables scroll inside containers; iframes size; Convocatorias stacks; tab clicks, phase modal, tree selection, artefact loading work.
+
+L4 (2026-11-20, T3-T5): design correction during T4: a POST without Origin and Referer is allowed on non-terminal routes (browsers always send Origin, or `null`, cross-site; a local process can forge headers anyway; refusing it broke 40 tests); terminal routes and the WebSocket still require the cookie, and the WebSocket a same-origin Origin. T3's `_same_origin` in server.py duplicates the dispatch guard: unify in T8. docs/marco-cli.md was in both T3 and T4 surfaces; committed once with T4 (7b5769f) with the kit rebuilt. Harness LOCAL_SCRIPT_TAG inlines only cli-console.js; board-refresh.js is evaluated in its own test (widen at T8 if the test is adapted).
