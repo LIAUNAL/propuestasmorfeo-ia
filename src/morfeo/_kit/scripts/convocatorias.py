@@ -1,31 +1,42 @@
 #!/usr/bin/env python3
-"""Funding calls: search profile, validation, Colombian eligibility rules and ranking (both flows).
+"""Funding calls: search profiles, validation, Colombian eligibility rules and ranking (both flows).
 
-The `explorador-convocatorias` agent writes two workspace-level files under
+The `explorador-convocatorias` agent writes workspace-level files under
 `convocatorias/` (the workspace is the folder holding `.morfeo/config.json`,
 else `.marco/config.json`; a run folder inside it works too):
 
-  perfil.json (schema `morfeo.perfil-convocatorias/v1`)
-      {schema, actualizado, titulo, idea, aplicantes:[...], temas:[str],
-       palabras_clave:{es:[str], en:[str]}, financiadores_previos:[str],
-       idiomas:[...], ambitos:[...], institucion:{nombre, pais:"CO", tipo}}
+  perfil.json and perfil_banco.json (schema `morfeo.perfil-convocatorias/v1`)
+      {schema, alcance:"proyecto"|"banco", actualizado, titulo, idea, aplicantes:[...],
+       temas:[str], palabras_clave:{es:[str], en:[str]}, financiadores_previos:[str],
+       idiomas:[...], ambitos:[...], institucion:{nombre, pais:"CO", tipo},
+       experiencia:[{id (slug), nombre, detalle:str|null, temas:[str], financiadores:[str]}]}
+      perfil.json is the project profile (alcance proyecto, from idea.md);
+      perfil_banco.json is the banco LIA profile (alcance banco, from banco-lia only).
+      `alcance` and `experiencia` are optional.
   oportunidades.json (schema `morfeo.oportunidades/v1`)
       {schema, actualizado, fuentes_consultadas:[{fuente, url, fecha, resultado, n}],
        oportunidades:[{id, titulo, financiador, programa, url, fuente, ambito, idioma,
                        aplicantes, rol_colombia, estado, apertura, cierre, cierre_tipo,
                        monto, temas, resumen, elegibilidad, puntaje_agente, evidencia,
-                       encontrada}]}
+                       encontrada, titulo_corto, esfuerzo, requisitos, relacionados_banco}]}
+      Optional: titulo_corto (≤ 32 chars), esfuerzo ("bajo"|"medio"|"alto"),
+      requisitos [{tipo: consorcio|contrapartida|anfitrion|idioma|perfil|aval|entidad|otro,
+      estado: cumple|por_verificar|no_cumple, texto ≤ 200 chars}], relacionados_banco
+      [experiencia ids].
 
 Commands:
-  perfil DIR
-      Create convocatorias/perfil.json when missing (title from the workspace
-      config, idea text from idea.md or the active run's insumos/ideas/idea.md);
-      never overwrites; prints the path. The only command that writes.
+  perfil DIR [--alcance proyecto|banco]
+      Create convocatorias/perfil.json (proyecto, the default: title from the
+      workspace config, idea text from idea.md or the active run's
+      insumos/ideas/idea.md) or convocatorias/perfil_banco.json (banco: title from
+      the config, no idea text) when missing; never overwrites; prints the path.
+      The only command that writes.
   check DIR [--json]
-      Validate both files; one line per finding `severidad código mensaje`.
-  datos DIR [--json] [--hoy YYYY-MM-DD]
-      The ranked view (schema `morfeo.convocatorias-vista/v1`); text output is
-      one line per call: puntaje, estado, días, rol, título.
+      Validate both profiles and the calls; one line per finding `severidad código mensaje`.
+  datos DIR [--alcance proyecto|banco] [--json] [--hoy YYYY-MM-DD]
+      The ranked view (schema `morfeo.convocatorias-vista/v1`) scored against the
+      chosen profile (default proyecto; banco when only perfil_banco.json exists);
+      text output is one line per call: puntaje, estado, días, rol, título.
   fuentes [--json]
       The fixed source catalogue scripts/convocatorias/fuentes.json.
 
@@ -33,26 +44,45 @@ Eligibility rules (scripts/convocatorias/reglas_co.json): the first rule whose
 regex matches financiador + programa + titulo (accent- and case-insensitive)
 sets the final `rol_colombia` and its `aviso`; a rule never turns an agent
 `no_elegible` into a more permissive role, and `estado: pausada` in a rule
-marks the call paused. Ranking: `lexico` is the share (0-100) of the profile
+marks the call paused. Affinity: `lexico` is the share (0-100) of the profile
 tokens (temas + palabras_clave.es + palabras_clave.en, stopwords dropped,
 accents folded, a trailing plural «s» dropped from tokens over three letters)
 found in titulo + temas + resumen + elegibilidad; `puntaje` is
 round-half-up(0.5 * puntaje_agente + 0.5 * lexico), or `lexico` alone without an
-agent score. Order: vigentes (estado abierta/proxima and cierre not past)
-first; then rol_colombia other than no_elegible; then puntaje desc; then
-nearest cierre. A call whose cierre is before hoy is `cerrada`.
+agent score. A call whose cierre is before hoy is `cerrada`.
+
+Map and match (per call, view only): `titulo_corto` (given, else the title cut
+at a word boundary within 28 chars plus «…»); `temas_match` [{tema, peso}] (the
+profile temas whose tokens appear in the call, peso = share present, kept when
+≥ 0.5); `experiencia` (ids of profile experiencia items sharing a matched tema,
+plus the known relacionados_banco); `historial` (financiador + programa contains
+a financiadores_previos or experiencia financiadores entry); `componentes`
+{tematica = puntaje, experiencia = min(100, 30 × items + 25 with historial),
+elegibilidad by final role (lider 100, socio 70, coaplicante 70,
+anfitrion_exterior 40, desconocido 50, no_elegible 0), tiempo (cerrada 0,
+pausada 10, no cierre 50, else clamp(round(100 × días / need / 1.5), 0, 100),
+need = 15/45/90 days for esfuerzo bajo/medio/alto, medio by default)};
+`match` = round-half-up(0.35 tematica + 0.25 experiencia + 0.25 elegibilidad +
+0.15 tiempo), at most 20 when no_elegible or not vigente; `esfuerzo`;
+`preparar_desde` = cierre − need; `alertas` [{severidad, texto}] from requisitos
+not met, a deadline shorter than the effort, «Cierre estimado», «Sin fecha de
+cierre publicada» and «Programa pausado» (the rule notice stays in `aviso`).
+Top level: `alcance`, `perfil.alcance`, `perfiles` {proyecto, banco} (which
+files exist) and `mapa` {temas: [{tema, n}], experiencia: [items with n]}.
+Order: vigentes (estado abierta/proxima and cierre not past) first; then
+rol_colombia other than no_elegible; then match desc; then nearest cierre.
 
 Codes: esquema, json-invalido, valor-invalido, fecha-invalida, id-invalido,
 id-repetido, campo-faltante, texto-largo, puntaje-fuera-de-rango,
 cierre-antes-de-apertura (errors); sin-evidencia, rol-desconocido,
-abierta-sin-cierre (warnings); sin-perfil, sin-oportunidades,
-regla-rol-distinto (info, the last one from `datos` only).
+abierta-sin-cierre, experiencia-desconocida (warnings); sin-perfil,
+sin-oportunidades, regla-rol-distinto (info, the last one from `datos` only).
 
-Library (the dashboard): find_workspace(path), vista(dir, hoy=None),
-check(dir), init_profile(dir), load_sources(), load_rules().
+Library (the dashboard): find_workspace(path), vista(dir, hoy=None, alcance=None),
+check(dir), init_profile(dir, alcance="proyecto"), load_sources(), load_rules().
 
 Exit codes: 0 ok, 1 error findings (check), 2 bad input (no workspace, bad
-date, unreadable catalogue). Standard library only; no network access.
+date, invalid alcance, unreadable catalogue). Standard library only; no network access.
 """
 
 from __future__ import annotations
@@ -79,6 +109,7 @@ RULES_FILE = DATA_DIR / "reglas_co.json"
 SOURCES_FILE = DATA_DIR / "fuentes.json"
 FOLDER = Path("convocatorias")
 PROFILE_FILE = FOLDER / "perfil.json"
+PROFILE_BANK_FILE = FOLDER / "perfil_banco.json"
 CALLS_FILE = FOLDER / "oportunidades.json"
 CONFIG_MARKERS = (Path(".morfeo") / "config.json", Path(".marco") / "config.json")
 
@@ -91,6 +122,19 @@ DEADLINE_TYPES = ("fijo", "estimado", "continuo", "desconocido")
 SOURCE_RESULTS = ("ok", "sin_resultados", "bloqueado", "error")
 CURRENT_STATES = ("abierta", "proxima")
 REQUIRED_CALL_FIELDS = ("titulo", "financiador", "url", "ambito")
+ALCANCES = ("proyecto", "banco")
+PROFILE_FILES = {"proyecto": PROFILE_FILE, "banco": PROFILE_BANK_FILE}
+EFFORT_DAYS = {"bajo": 15, "medio": 45, "alto": 90}
+DEFAULT_EFFORT = "medio"
+REQUIREMENT_TYPES = ("consorcio", "contrapartida", "anfitrion", "idioma", "perfil", "aval", "entidad", "otro")
+REQUIREMENT_STATES = ("cumple", "por_verificar", "no_cumple")
+REQUIREMENT_SEVERITY = {"no_cumple": "error", "por_verificar": "warning"}
+ELIGIBILITY_SCORE = {"lider": 100, "socio": 70, "coaplicante": 70, "anfitrion_exterior": 40,
+                     "desconocido": 50, "no_elegible": 0}
+SHORT_TITLE_LIMIT = 32
+SHORT_TITLE_CUT = 28
+TOPIC_MIN_WEIGHT = 0.5
+MATCH_CAP = 20
 TEXT_LIMIT = 600
 QUOTE_LIMIT = 200
 IDEA_LIMIT = 2000
@@ -233,19 +277,31 @@ def _idea(workspace: Path) -> str | None:
     return None
 
 
-def init_profile(path) -> tuple[Path, bool]:
-    """Create convocatorias/perfil.json when missing; (path, created). Never overwrites."""
+def _check_alcance(alcance) -> str:
+    if alcance not in ALCANCES:
+        raise InputError(f"alcance inválido {alcance!r}; use «proyecto» o «banco»")
+    return alcance
+
+
+def init_profile(path, alcance: str = "proyecto") -> tuple[Path, bool]:
+    """Create the profile of `alcance` when missing; (path, created). Never overwrites.
+
+    `proyecto` writes convocatorias/perfil.json with the idea text; `banco` writes
+    convocatorias/perfil_banco.json without it (the agent fills it from banco-lia).
+    """
     workspace = find_workspace(path)
-    target = workspace / PROFILE_FILE
+    _check_alcance(alcance)
+    target = workspace / PROFILE_FILES[alcance]
     if target.exists():
         return target, False
     config = _config(workspace)
     title = config.get("title") or config.get("titulo")
     _write_atomic(target, {
         "schema": PROFILE_SCHEMA,
+        "alcance": alcance,
         "actualizado": None,
         "titulo": title.strip() if isinstance(title, str) and title.strip() else None,
-        "idea": _idea(workspace),
+        "idea": _idea(workspace) if alcance == "proyecto" else None,
         "aplicantes": [],
         "temas": [],
         "palabras_clave": {"es": [], "en": []},
@@ -253,6 +309,7 @@ def init_profile(path) -> tuple[Path, bool]:
         "idiomas": ["es", "en"],
         "ambitos": list(SCOPES),
         "institucion": {"nombre": None, "pais": "CO", "tipo": None},
+        "experiencia": [],
     })
     return target, True
 
@@ -304,13 +361,53 @@ def _check_date(findings, value, field, call_id=None, nullable=True):
                                  f"«{field}» debe ser una fecha AAAA-MM-DD: {value!r}", call_id))
 
 
-def _check_profile(data) -> list[dict]:
+def _is_text_list(value) -> bool:
+    return isinstance(value, list) and len(_strings(value)) == len(value)
+
+
+def _check_experience(findings: list[dict], value) -> None:
+    """Validate the optional profile field `experiencia` (lab lines and items from banco-lia)."""
+    if value is None:
+        return
+    if not isinstance(value, list):
+        findings.append(_finding("error", "valor-invalido", "«experiencia» debe ser una lista"))
+        return
+    seen: set[str] = set()
+    for item in value:
+        if not isinstance(item, dict):
+            findings.append(_finding("error", "valor-invalido", "un elemento de «experiencia» no es un objeto"))
+            continue
+        raw_id = item.get("id")
+        item_id = raw_id if isinstance(raw_id, str) and raw_id else None
+        label = f"experiencia {item_id or '(sin id)'}"
+        if item_id is None:
+            findings.append(_finding("error", "campo-faltante", "un elemento de «experiencia» no tiene «id»"))
+        elif not SLUG_RE.match(item_id):
+            findings.append(_finding("error", "id-invalido", f"{label}: «id» debe ser un slug [a-z0-9-]+"))
+        elif item_id in seen:
+            findings.append(_finding("error", "id-repetido", f"{label}: el id está repetido"))
+        if item_id:
+            seen.add(item_id)
+        name = item.get("nombre")
+        if not isinstance(name, str) or not name.strip():
+            findings.append(_finding("error", "campo-faltante", f"{label}: falta «nombre»"))
+        detail = item.get("detalle")
+        if detail is not None and not isinstance(detail, str):
+            findings.append(_finding("error", "valor-invalido", f"{label}: «detalle» debe ser texto o null"))
+        for field in ("temas", "financiadores"):
+            if item.get(field) is not None and not _is_text_list(item.get(field)):
+                findings.append(_finding("error", "valor-invalido", f"{label}: «{field}» debe ser una lista de textos"))
+
+
+def _check_profile(data, name: str = PROFILE_FILE.as_posix()) -> list[dict]:
     findings: list[dict] = []
-    name = PROFILE_FILE.as_posix()
     if not isinstance(data, dict) or data.get("schema") != PROFILE_SCHEMA:
         findings.append(_finding("error", "esquema", f"{name} no declara el esquema {PROFILE_SCHEMA}"))
         if not isinstance(data, dict):
             return findings
+    if data.get("alcance") is not None and data.get("alcance") not in ALCANCES:
+        findings.append(_finding("error", "valor-invalido", f"«alcance» no admite {data.get('alcance')!r}"))
+    _check_experience(findings, data.get("experiencia"))
     _check_date(findings, data.get("actualizado"), "actualizado")
     _check_enum_list(findings, data.get("aplicantes"), APPLICANTS, "aplicantes")
     _check_enum_list(findings, data.get("idiomas"), LANGUAGES, "idiomas")
@@ -332,7 +429,55 @@ def _check_profile(data) -> list[dict]:
     return findings
 
 
-def _check_call(findings: list[dict], call: dict, seen: set[str]) -> None:
+def _check_map_fields(findings: list[dict], call: dict, label: str, call_id, known_ids) -> None:
+    """Validate the optional fields of the opportunity map: titulo_corto, esfuerzo, requisitos, relacionados_banco."""
+    short = call.get("titulo_corto")
+    if short is not None:
+        if not isinstance(short, str) or not short.strip():
+            findings.append(_finding("error", "valor-invalido", f"{label}: «titulo_corto» debe ser un texto", call_id))
+        elif len(short) > SHORT_TITLE_LIMIT:
+            findings.append(_finding("error", "texto-largo",
+                                     f"{label}: «titulo_corto» tiene {len(short)} caracteres "
+                                     f"(máximo {SHORT_TITLE_LIMIT})", call_id))
+    effort = call.get("esfuerzo")
+    if effort is not None and effort not in EFFORT_DAYS:
+        findings.append(_finding("error", "valor-invalido", f"{label}: «esfuerzo» no admite {effort!r}", call_id))
+    requirements = call.get("requisitos")
+    if requirements is not None and not isinstance(requirements, list):
+        findings.append(_finding("error", "valor-invalido", f"{label}: «requisitos» debe ser una lista", call_id))
+    for req in requirements if isinstance(requirements, list) else []:
+        if not isinstance(req, dict):
+            findings.append(_finding("error", "valor-invalido", f"{label}: un requisito no es un objeto", call_id))
+            continue
+        for field, allowed in (("tipo", REQUIREMENT_TYPES), ("estado", REQUIREMENT_STATES)):
+            if req.get(field) not in allowed:
+                findings.append(_finding("error", "valor-invalido",
+                                         f"{label}: «requisitos.{field}» no admite {req.get(field)!r}", call_id))
+        text = req.get("texto")
+        if text is None or (isinstance(text, str) and not text.strip()):
+            findings.append(_finding("error", "campo-faltante", f"{label}: un requisito no tiene «texto»", call_id))
+        elif not isinstance(text, str):
+            findings.append(_finding("error", "valor-invalido", f"{label}: «requisitos.texto» debe ser texto",
+                                     call_id))
+        elif len(text) > QUOTE_LIMIT:
+            findings.append(_finding("error", "texto-largo",
+                                     f"{label}: un requisito tiene {len(text)} caracteres (máximo {QUOTE_LIMIT})",
+                                     call_id))
+    related = call.get("relacionados_banco")
+    if related is None:
+        return
+    if not _is_text_list(related):
+        findings.append(_finding("error", "valor-invalido", f"{label}: «relacionados_banco» debe ser una lista de ids",
+                                 call_id))
+        return
+    for exp_id in related:
+        if known_ids is not None and exp_id not in known_ids:
+            findings.append(_finding("warning", "experiencia-desconocida",
+                                     f"{label}: «relacionados_banco» cita {exp_id!r}, que no está en la "
+                                     "«experiencia» de ningún perfil", call_id))
+
+
+def _check_call(findings: list[dict], call: dict, seen: set[str], known_ids: set[str] | None = None) -> None:
     raw_id = call.get("id")
     call_id = raw_id if isinstance(raw_id, str) and raw_id else None
     label = call_id or "(sin id)"
@@ -398,9 +543,10 @@ def _check_call(findings: list[dict], call: dict, seen: set[str]) -> None:
     if call.get("estado") == "abierta" and call.get("cierre") is None:
         findings.append(_finding("warning", "abierta-sin-cierre", f"{label}: está abierta y no tiene cierre",
                                  call_id))
+    _check_map_fields(findings, call, label, call_id, known_ids)
 
 
-def _check_calls(data) -> list[dict]:
+def _check_calls(data, known_ids: set[str] | None = None) -> list[dict]:
     findings: list[dict] = []
     name = CALLS_FILE.as_posix()
     if not isinstance(data, dict) or data.get("schema") != CALLS_SCHEMA:
@@ -432,21 +578,44 @@ def _check_calls(data) -> list[dict]:
         if not isinstance(call, dict):
             findings.append(_finding("error", "valor-invalido", "una oportunidad no es un objeto"))
             continue
-        _check_call(findings, call, seen)
+        _check_call(findings, call, seen, known_ids)
     return findings
 
 
-def _check_workspace(workspace: Path) -> tuple[list[dict], dict | None, dict | None]:
-    """(findings, profile data, calls data) of a workspace; data is None when missing or unreadable."""
+def _experience_items(profile: dict | None) -> list[dict]:
+    """The profile's `experiencia` items that carry a text id, first occurrence of each id."""
+    items, seen = [], set()
+    raw = (profile or {}).get("experiencia")
+    for item in raw if isinstance(raw, list) else []:
+        if isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"] and item["id"] not in seen:
+            seen.add(item["id"])
+            items.append(item)
+    return items
+
+
+def _check_workspace(workspace: Path) -> tuple[list[dict], dict[str, dict | None], dict | None]:
+    """(findings, {alcance: profile data}, calls data) of a workspace; data is None when missing or unreadable."""
     findings: list[dict] = []
-    profile, error = _read_json(workspace / PROFILE_FILE)
-    if error:
-        findings.append(_finding("error", "json-invalido", f"{PROFILE_FILE.as_posix()}: {error}"))
-    elif profile is None:
+    profiles: dict[str, dict | None] = {}
+    for scope in ALCANCES:
+        name = PROFILE_FILES[scope].as_posix()
+        profile, error = _read_json(workspace / PROFILE_FILES[scope])
+        if error:
+            findings.append(_finding("error", "json-invalido", f"{name}: {error}"))
+        elif profile is not None:
+            scoped = _check_profile(profile, name)
+            if scope != "proyecto":
+                # The project profile keeps its historical messages; the others name their file.
+                for f in scoped:
+                    if not f["mensaje"].startswith(name):
+                        f["mensaje"] = f"{name}: {f['mensaje']}"
+            findings.extend(scoped)
+        profiles[scope] = profile if isinstance(profile, dict) else None
+    if not any((workspace / PROFILE_FILES[scope]).is_file() for scope in ALCANCES):
         findings.append(_finding("info", "sin-perfil",
-                                 f"no existe {PROFILE_FILE.as_posix()}; créelo con «convocatorias.py perfil»"))
-    else:
-        findings.extend(_check_profile(profile))
+                                 f"no existe {PROFILE_FILE.as_posix()} ni {PROFILE_BANK_FILE.as_posix()}; "
+                                 "créelos con «convocatorias.py perfil [--alcance banco]»"))
+    known_ids = {item["id"] for scope in ALCANCES for item in _experience_items(profiles[scope])}
     calls, error = _read_json(workspace / CALLS_FILE)
     if error:
         findings.append(_finding("error", "json-invalido", f"{CALLS_FILE.as_posix()}: {error}"))
@@ -454,8 +623,8 @@ def _check_workspace(workspace: Path) -> tuple[list[dict], dict | None, dict | N
         findings.append(_finding("info", "sin-oportunidades",
                                  f"no existe {CALLS_FILE.as_posix()}; ejecute /propuesta-convocatorias"))
     else:
-        findings.extend(_check_calls(calls))
-    return findings, profile if isinstance(profile, dict) else None, calls if isinstance(calls, dict) else None
+        findings.extend(_check_calls(calls, known_ids))
+    return findings, profiles, calls if isinstance(calls, dict) else None
 
 
 def check(path) -> list[dict]:
@@ -476,12 +645,93 @@ def _profile_tokens(profile: dict | None) -> tuple[set[str], int]:
     return tokens, len(phrases)
 
 
-def _lexical(call: dict, profile_tokens: set[str]) -> int:
+def _call_tokens(call: dict) -> set[str]:
+    parts = [call.get("titulo"), call.get("resumen"), call.get("elegibilidad"), *_strings(call.get("temas"))]
+    return _tokens(" ".join(p for p in parts if isinstance(p, str)))
+
+
+def _lexical(call_tokens: set[str], profile_tokens: set[str]) -> int:
     if not profile_tokens:
         return 0
-    parts = [call.get("titulo"), call.get("resumen"), call.get("elegibilidad"), *_strings(call.get("temas"))]
-    call_tokens = _tokens(" ".join(p for p in parts if isinstance(p, str)))
     return _round_half_up(100 * len(profile_tokens & call_tokens) / len(profile_tokens))
+
+
+def _short_title(call: dict) -> str:
+    """`titulo_corto` when given, else the title cut at a word boundary within 28 characters plus «…»."""
+    given = call.get("titulo_corto")
+    if isinstance(given, str) and given.strip():
+        return given.strip()
+    title = call.get("titulo") if isinstance(call.get("titulo"), str) else str(call.get("id") or "")
+    title = " ".join(title.split())
+    if len(title) <= SHORT_TITLE_CUT:
+        return title
+    space = title.rfind(" ", 0, SHORT_TITLE_CUT + 1)
+    head = title[:space] if space > 0 else title[:SHORT_TITLE_CUT]
+    return head.rstrip(" ,;:.-–·") + "…"
+
+
+def _topic_matches(call_tokens: set[str], topics: list[str]) -> list[dict]:
+    """Profile temas found in the call: peso = share of the tema's tokens present, kept when ≥ 0.5."""
+    found = []
+    for index, topic in enumerate(topics):
+        topic_tokens = _tokens(topic)
+        if not topic_tokens:
+            continue
+        share = len(topic_tokens & call_tokens) / len(topic_tokens)
+        if share >= TOPIC_MIN_WEIGHT:
+            found.append((-share, index, {"tema": topic, "peso": round(share, 2)}))
+    return [entry for _, _, entry in sorted(found, key=lambda f: (f[0], f[1]))]
+
+
+def _call_experience(call: dict, topic_matches: list[dict], experience: list[dict]) -> list[str]:
+    """Ids of the profile experiencia items sharing a matched tema, plus the call's known relacionados_banco."""
+    matched = {frozenset(_tokens(m["tema"])) for m in topic_matches}
+    related = set(_strings(call.get("relacionados_banco")))
+    return [item["id"] for item in experience
+            if item["id"] in related or any(frozenset(_tokens(t)) in matched for t in _strings(item.get("temas")))]
+
+
+def _has_history(call: dict, profile: dict | None, experience: list[dict]) -> bool:
+    """The funder (financiador + programa) contains a previous funder of the profile or of its experiencia."""
+    funder = " ".join(_fold(" ".join(str(call.get(k)) for k in ("financiador", "programa")
+                                     if isinstance(call.get(k), str))).split())
+    names = _strings((profile or {}).get("financiadores_previos"))
+    for item in experience:
+        names += _strings(item.get("financiadores"))
+    return any(key and key in funder for key in (" ".join(_fold(n).split()) for n in names))
+
+
+def _time_score(state: str, days: int | None, need: int) -> int:
+    if state == "cerrada":
+        return 0
+    if state == "pausada":
+        return 10
+    if days is None:
+        return 50
+    # round_half_up(100 * (days / need) / 1.5) in integer arithmetic.
+    return max(0, min(100, (400 * days + 3 * need) // (6 * need)))
+
+
+def _alerts(call: dict, state: str, vigente: bool, days: int | None, effort: str, need: int,
+            deadline: datetime.date | None) -> list[dict]:
+    """Requirement and time alerts; the rule notice stays in `aviso` and is not repeated here."""
+    alerts = []
+    if state == "pausada":
+        alerts.append({"severidad": "error", "texto": "Programa pausado"})
+    if vigente and days is not None and days < need:
+        alerts.append({"severidad": "error",
+                       "texto": f"Cierra en {days} días y el esfuerzo estimado es {effort} (unos {need} días)"})
+    requirements = call.get("requisitos")
+    for req in requirements if isinstance(requirements, list) else []:
+        if isinstance(req, dict) and req.get("estado") in REQUIREMENT_SEVERITY:
+            text = req.get("texto")
+            text = text.strip() if isinstance(text, str) and text.strip() else f"Requisito: {req.get('tipo')}"
+            alerts.append({"severidad": REQUIREMENT_SEVERITY[req["estado"]], "texto": text})
+    if call.get("cierre_tipo") == "estimado":
+        alerts.append({"severidad": "info", "texto": "Cierre estimado"})
+    if vigente and deadline is None:
+        alerts.append({"severidad": "info", "texto": "Sin fecha de cierre publicada"})
+    return alerts
 
 
 def _match_rule(rules: list[dict], call: dict) -> dict | None:
@@ -490,8 +740,8 @@ def _match_rule(rules: list[dict], call: dict) -> dict | None:
     return next((rule for rule in rules if rule["_re"].search(text)), None)
 
 
-def _view_call(call: dict, rules: list[dict], profile_tokens: set[str], hoy: datetime.date,
-               findings: list[dict]) -> dict:
+def _view_call(call: dict, rules: list[dict], profile: dict | None, profile_tokens: set[str],
+               hoy: datetime.date, findings: list[dict]) -> dict:
     out = dict(call)
     agent_role = call.get("rol_colombia") if call.get("rol_colombia") in ROLES else "desconocido"
     role, notice, rule_ref = agent_role, None, None
@@ -515,40 +765,89 @@ def _view_call(call: dict, rules: list[dict], profile_tokens: set[str], hoy: dat
         state = "cerrada"
     elif rule is not None and rule.get("estado") == "pausada":
         state = "pausada"
-    lexico = _lexical(call, profile_tokens)
+    call_tokens = _call_tokens(call)
+    lexico = _lexical(call_tokens, profile_tokens)
     score = call.get("puntaje_agente")
     has_score = isinstance(score, (int, float)) and not isinstance(score, bool)
+    puntaje = _round_half_up(0.5 * score + 0.5 * lexico) if has_score else lexico
+    days = (deadline - hoy).days if deadline is not None else None
+    vigente = state in CURRENT_STATES
+    experience_items = _experience_items(profile)
+    topic_matches = _topic_matches(call_tokens, _strings((profile or {}).get("temas")))
+    experience = _call_experience(call, topic_matches, experience_items)
+    history = _has_history(call, profile, experience_items)
+    effort = call.get("esfuerzo") if call.get("esfuerzo") in EFFORT_DAYS else DEFAULT_EFFORT
+    need = EFFORT_DAYS[effort]
+    components = {
+        "tematica": puntaje,
+        "experiencia": min(100, 30 * len(experience) + (25 if history else 0)),
+        "elegibilidad": ELIGIBILITY_SCORE.get(role, ELIGIBILITY_SCORE["desconocido"]),
+        "tiempo": _time_score(state, days, need),
+    }
+    # round_half_up(0.35 tematica + 0.25 experiencia + 0.25 elegibilidad + 0.15 tiempo), exact on integers.
+    match = (35 * components["tematica"] + 25 * components["experiencia"] + 25 * components["elegibilidad"]
+             + 15 * components["tiempo"] + 50) // 100
+    if role == "no_elegible" or not vigente:
+        match = min(match, MATCH_CAP)
     out.update({
         "estado": state,
-        "dias_restantes": (deadline - hoy).days if deadline is not None else None,
-        "vigente": state in CURRENT_STATES,
+        "dias_restantes": days,
+        "vigente": vigente,
         "rol_colombia": role,
         "rol_agente": agent_role,
         "regla": rule_ref,
         "aviso": notice,
         "lexico": lexico,
-        "puntaje": _round_half_up(0.5 * score + 0.5 * lexico) if has_score else lexico,
+        "puntaje": puntaje,
+        "titulo_corto": _short_title(call),
+        "temas_match": topic_matches,
+        "experiencia": experience,
+        "historial": history,
+        "componentes": components,
+        "match": int(match),
+        "esfuerzo": effort,
+        "preparar_desde": (deadline - datetime.timedelta(days=need)).isoformat() if deadline is not None else None,
+        "alertas": _alerts(call, state, vigente, days, effort, need, deadline),
     })
     return out
 
 
 def _sort_key(call: dict):
     deadline = _date(call.get("cierre"))
-    return (not call["vigente"], call["rol_colombia"] == "no_elegible", -call["puntaje"],
+    return (not call["vigente"], call["rol_colombia"] == "no_elegible", -call["match"],
             deadline is None, deadline or datetime.date.max, str(call.get("id")))
 
 
-def vista(path, hoy: datetime.date | None = None) -> dict:
-    """The ranked view of the workspace's calls (schema morfeo.convocatorias-vista/v1)."""
+def _default_alcance(workspace: Path) -> str:
+    """`proyecto`, or `banco` when only convocatorias/perfil_banco.json exists."""
+    if not (workspace / PROFILE_FILE).is_file() and (workspace / PROFILE_BANK_FILE).is_file():
+        return "banco"
+    return "proyecto"
+
+
+def vista(path, hoy: datetime.date | None = None, alcance: str | None = None) -> dict:
+    """The ranked view of the workspace's calls (schema morfeo.convocatorias-vista/v1).
+
+    `alcance` picks the profile the calls are scored against: `proyecto` (perfil.json)
+    or `banco` (perfil_banco.json); None means proyecto, or banco when only it exists.
+    """
     workspace = find_workspace(path)
+    alcance = _default_alcance(workspace) if alcance is None else _check_alcance(alcance)
     hoy = hoy or datetime.date.today()
-    findings, profile, data = _check_workspace(workspace)
+    findings, profiles, data = _check_workspace(workspace)
+    profile = profiles[alcance]
+    exists = {scope: (workspace / PROFILE_FILES[scope]).is_file() for scope in ALCANCES}
+    if not exists[alcance] and any(exists.values()):
+        findings.append(_finding("info", "sin-perfil",
+                                 f"no existe {PROFILE_FILES[alcance].as_posix()}; créelo con "
+                                 f"«convocatorias.py perfil --alcance {alcance}»"))
     rules = load_rules()
     profile_tokens, n_keywords = _profile_tokens(profile)
     raw_calls = data.get("oportunidades") if data is not None else None
-    calls = [_view_call(c, rules, profile_tokens, hoy, findings)
+    calls = [_view_call(c, rules, profile, profile_tokens, hoy, findings)
              for c in (raw_calls if isinstance(raw_calls, list) else []) if isinstance(c, dict)]
     calls.sort(key=_sort_key)
+    topics = _strings((profile or {}).get("temas"))
     sources = data.get("fuentes_consultadas") if data is not None else None
 
     def count(field, keys):
@@ -558,8 +857,11 @@ def vista(path, hoy: datetime.date | None = None) -> dict:
         "schema": VIEW_SCHEMA,
         "hoy": hoy.isoformat(),
         "workspace": str(workspace),
+        "alcance": alcance,
+        "perfiles": exists,
         "perfil": {
             "existe": profile is not None,
+            "alcance": profile.get("alcance") if profile and profile.get("alcance") in ALCANCES else alcance,
             "aplicantes": _strings((profile or {}).get("aplicantes")),
             "idiomas": _strings((profile or {}).get("idiomas")),
             "ambitos": _strings((profile or {}).get("ambitos")),
@@ -574,6 +876,12 @@ def vista(path, hoy: datetime.date | None = None) -> dict:
         },
         "fuentes_consultadas": [s for s in sources if isinstance(s, dict)] if isinstance(sources, list) else [],
         "oportunidades": calls,
+        "mapa": {
+            "temas": [{"tema": topic, "n": sum(1 for c in calls if any(m["tema"] == topic for m in c["temas_match"]))}
+                      for topic in topics],
+            "experiencia": [dict(item, n=sum(1 for c in calls if item["id"] in c["experiencia"]))
+                            for item in _experience_items(profile)],
+        },
         "hallazgos": findings,
     }
 
@@ -600,8 +908,10 @@ def _print_json(data) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    p = sub.add_parser("perfil", help="crea convocatorias/perfil.json si no existe")
+    p = sub.add_parser("perfil", help="crea convocatorias/perfil.json (o perfil_banco.json) si no existe")
     p.add_argument("dir", type=Path)
+    p.add_argument("--alcance", choices=ALCANCES, default="proyecto",
+                   help="proyecto: perfil.json con la idea (por defecto); banco: perfil_banco.json")
     p = sub.add_parser("check", help="valida perfil.json y oportunidades.json")
     p.add_argument("dir", type=Path)
     p.add_argument("--json", action="store_true", help="imprime los hallazgos en JSON")
@@ -609,12 +919,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("dir", type=Path)
     p.add_argument("--json", action="store_true", help="imprime la vista en JSON")
     p.add_argument("--hoy", type=_hoy_arg, help="fecha de referencia AAAA-MM-DD (por defecto, hoy)")
+    p.add_argument("--alcance", choices=ALCANCES,
+                   help="perfil con el que se puntúa: proyecto (por defecto) o banco (por defecto si es el único)")
     p = sub.add_parser("fuentes", help="catálogo de fuentes fijas")
     p.add_argument("--json", action="store_true", help="imprime el catálogo en JSON")
     args = parser.parse_args(argv)
     try:
         if args.command == "perfil":
-            path, created = init_profile(args.dir)
+            path, created = init_profile(args.dir, alcance=args.alcance)
             if not created:
                 print("ya existe; no se sobrescribe", file=sys.stderr)
             print(path)
@@ -630,7 +942,7 @@ def main(argv: list[str] | None = None) -> int:
                     print("sin hallazgos")
             return 1 if any(f["severidad"] == "error" for f in findings) else 0
         if args.command == "datos":
-            view = vista(args.dir, hoy=args.hoy)
+            view = vista(args.dir, hoy=args.hoy, alcance=args.alcance)
             if args.json:
                 _print_json(view)
             elif view["oportunidades"]:
