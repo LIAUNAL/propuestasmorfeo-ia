@@ -982,31 +982,53 @@
       cursor: pointer;
     }
 
-    /* Estilo y redundancia: hallazgos a la izquierda, PDF a la derecha. */
-    .estilo-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
-    @media (max-width: 1100px) { .estilo-layout { grid-template-columns: minmax(0, 1fr); } }
-    .estilo-findings { min-width: 0; }
-    .estilo-more { display: flex; justify-content: center; padding: 0.5rem 0; }
+    /* Previsualización PDF: pliegue «Juez final» sobre el visor (papersmith
+       paperReviewDetails) y cajón lateral «Estilo y redundancia» (papersmith
+       openStyleRedundancyPanel). El cajón no es modal: el visor y el panel de
+       control de cambios siguen activos mientras está abierto. */
+    .pdf-main-column > .exp-fold { margin-bottom: 0; }
+    .preview-judge .panel { margin-bottom: 0.75rem; }
+    .preview-judge .judge-intro { margin-bottom: 0.75rem; }
+    .preview-judge [hidden] { display: none !important; }
+    .style-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 190;
+      width: min(460px, 100vw); display: flex; flex-direction: column;
+      background: var(--surface); color: var(--text);
+      border-left: 1px solid var(--border); box-shadow: -12px 0 32px rgba(0, 0, 0, 0.35);
+    }
+    .style-drawer[hidden] { display: none; }
+    .style-drawer__header { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); }
+    .style-drawer__header h3 { font-size: 1.05rem; margin: 0; }
+    .style-drawer__actions { display: flex; gap: 0.5rem; align-items: center; }
+    .style-drawer__body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.9rem 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; overflow-wrap: anywhere; }
+    .style-drawer__body h4 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin: 0.25rem 0 0; }
+    .style-drawer__summary { font-size: 0.85rem; line-height: 1.5; }
+    .style-drawer__status { font-size: 0.8rem; color: var(--text-muted); min-height: 1.2em; }
+    .style-drawer__status[data-tone="ok"] { color: var(--ok); }
+    .style-drawer__status[data-tone="warn"] { color: var(--warn); }
+    .style-drawer__status[data-tone="bad"] { color: var(--bad); }
+    .style-drawer .table { font-size: 0.78rem; }
+    .style-drawer__body > * { flex-shrink: 0; }
+    .style-drawer .table-responsive { max-height: 40vh; overflow: auto; }
+    .style-bar { display: block; height: 6px; min-width: 60px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-subtle); margin-top: 0.2rem; }
+    .style-bar__fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+    .style-bar__fill.is-ok { background: var(--ok); }
+    .style-bar__fill.is-warn { background: var(--warn); }
+    .style-bar__fill.is-bad { background: var(--bad); }
+    .style-findings { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; margin: 0; padding: 0; }
+    .style-finding { border: 1px solid var(--border-subtle); border-left: 3px solid var(--warn); border-radius: var(--radius); background: var(--surface-2); padding: 0.5rem 0.65rem; display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; line-height: 1.45; min-width: 0; }
+    .style-finding.is-located { background: var(--accent-dim); border-left-color: var(--accent); }
+    .style-finding__head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; color: var(--text-muted); font-size: 0.74rem; }
+    .style-finding__text { color: var(--text); }
+    .style-finding__hint { color: var(--text-muted); }
+    .estilo-more { display: flex; justify-content: center; padding: 0.25rem 0; }
     .estilo-locate { padding: 0.2rem 0.55rem; font-size: 0.75rem; white-space: nowrap; }
-    #estiloHallazgos tr.is-located td { background: var(--accent-dim); }
-    .estilo-pdf { min-width: 0; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--surface-2); overflow: hidden; }
-    @media (min-width: 1101px) { .estilo-pdf { position: sticky; top: 1rem; } }
-    .estilo-pdf__bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.25rem 0.75rem; padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.85rem; }
-    .estilo-pdf__status { font-size: 0.78rem; color: var(--text-muted); padding: 0 0.8rem; min-height: 0; overflow-wrap: anywhere; }
-    .estilo-pdf__status:not(:empty) { padding: 0.4rem 0.8rem; border-bottom: 1px solid var(--border-subtle); }
-    .estilo-pdf__status[data-tone="ok"] { color: var(--ok); }
-    .estilo-pdf__status[data-tone="warn"] { color: var(--warn); }
-    .estilo-pdf__status[data-tone="bad"] { color: var(--bad); }
-    .estilo-pdf__viewport { position: relative; height: min(80vh, 900px); overflow: auto; padding: 8px; }
-    .estilo-pdf__pages { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .estilo-pdf-page { position: relative; flex: none; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
-    .estilo-pdf-page canvas { display: block; }
-    .estilo-pdf-hl-layer { position: absolute; inset: 0; pointer-events: none; }
-    .estilo-pdf-hl { position: absolute; background: var(--warn-dim); outline: 2px solid var(--warn); border-radius: 2px; animation: estilo-pdf-pulse 4s ease-out forwards; }
-    @keyframes estilo-pdf-pulse { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
-    .estilo-pdf__empty { color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 1rem; text-align: center; }
-    .estilo-pdf__frame { display: block; width: 100%; height: 100%; border: 0; background: var(--surface); }
-    .estilo-pdf__frame[hidden], .estilo-pdf__pages[hidden], .estilo-pdf__empty[hidden] { display: none; }
+    .pdf-locate-layer { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+    .pdf-locate-hl { position: absolute; background: var(--warn-dim); outline: 2px solid var(--warn); border-radius: 2px; animation: pdf-locate-pulse 4s ease-out forwards; }
+    @keyframes pdf-locate-pulse { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+    @media (max-width: 720px) {
+      .style-drawer { left: 0; right: 0; top: auto; width: 100%; height: 70vh; border-left: 0; border-top: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.35); }
+    }
 
     /* Estilos del Modal de Estructura Canónica de Secciones */
     .sec-structure-block {
@@ -3019,9 +3041,7 @@
     <button class="tab-nav__btn" onclick="navigateTab('trees')">Árbol de problemas y objetivos</button>
     <button class="tab-nav__btn" onclick="navigateTab('novedad')">Novedad e hipótesis</button>
     <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
-      <button class="tab-nav__btn" onclick="navigateTab('judge')">Juez final</button>
     <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
-    <button class="tab-nav__btn" onclick="navigateTab('estilo')">Estilo y redundancia</button>
     <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
     <button class="tab-nav__btn" onclick="navigateTab('artifacts')">Artefactos</button>
     <button class="tab-nav__btn" onclick="navigateTab('telemetria')">Telemetría y Costos</button>
@@ -3589,67 +3609,6 @@
       </div>
     </div>
 
-    <!-- TAB: JUEZ FINAL -->
-    <div id="pane-judge" class="tab-pane">
-      <div class="panel">
-        <div class="panel__header">
-          <div class="panel__title">Juez final: puntaje estimado de la propuesta</div>
-          <span class="panel__meta" id="judgeRunMeta">—</span>
-        </div>
-        <p class="judge-intro">El juez estima el puntaje que darían los pares evaluadores con la rúbrica oficial de la convocatoria, señala inconsistencias y propone acciones de mejora para los agentes de Morfeo. Es asesor: no cambia el veredicto del revisor.</p>
-      </div>
-      <div class="judge-feedback">
-        <p class="tree-message" id="judgeMessage" role="status"></p>
-        <button class="btn btn--sm" id="judgeRetryBtn" onclick="retryJudgePrompt()" style="display: none;">↻ Reintentar envío</button>
-      </div>
-      <div id="judgeContent"></div>
-    </div>
-
-    <!-- TAB 6: ATLAS & GRAFOS -->
-    <div id="pane-estilo" class="tab-pane">
-      <div class="panel">
-        <div class="panel__header">
-          <div class="panel__title">Estilo y redundancia</div>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <span class="panel__meta" id="estiloMeta">—</span>
-            <button id="btnEstiloAuditar" class="btn" onclick="runStyleAudit()">Auditar el documento</button>
-          </div>
-        </div>
-        <div class="estilo-layout">
-          <div class="estilo-findings">
-            <div id="estiloResumen" style="padding: 0.75rem 1rem;"></div>
-            <div class="table-responsive">
-              <table class="table">
-                <thead><tr><th>Sección</th><th>Índice</th><th>Palabras</th></tr></thead>
-                <tbody id="estiloSecciones"></tbody>
-              </table>
-            </div>
-            <div class="table-responsive">
-              <table class="table">
-                <thead><tr><th>Sección</th><th>Categoría</th><th>Texto</th><th>Orientación</th><th>PDF</th></tr></thead>
-                <tbody id="estiloHallazgos"></tbody>
-              </table>
-            </div>
-            <div class="estilo-more">
-              <button type="button" id="btnEstiloVerTodos" class="btn" hidden onclick="toggleStyleFindings()"></button>
-            </div>
-          </div>
-          <aside class="estilo-pdf" id="estiloPdfPanel" aria-label="Vista previa del PDF">
-            <div class="estilo-pdf__bar">
-              <strong>Vista previa del PDF</strong>
-              <span class="panel__meta" id="estiloPdfPageInfo">—</span>
-            </div>
-            <div class="estilo-pdf__status" id="estiloPdfStatus" role="status" aria-live="polite"></div>
-            <div class="estilo-pdf__viewport" id="estiloPdfViewport">
-              <p class="estilo-pdf__empty" id="estiloPdfEmpty" hidden>Todavía no hay un PDF compilado.</p>
-              <div class="estilo-pdf__pages" id="estiloPdfPages" hidden></div>
-              <iframe id="estiloPdfFrame" class="estilo-pdf__frame" title="PDF de la propuesta" src="about:blank" hidden></iframe>
-            </div>
-          </aside>
-        </div>
-      </div>
-    </div>
-
     <div id="pane-atlas" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
@@ -3674,6 +3633,26 @@
       <div class="pdf-workspace-layout">
         <!-- Columna Izquierda: Visor PDF con Controles de Navegación -->
         <div class="pdf-main-column">
+          <!-- Juez final (papersmith paperReviewDetails): in the SGR flow the rubric
+               judge (/api/judge, /propuesta-juez); in the base flow the stage judge
+               `final` (judge-avance.js, /propuesta-juez-avance final). -->
+          <section class="panel preview-judge" id="previewJudgeFold" data-fold="juez-final" data-fold-title="Juez final" data-fold-open>
+            <div class="panel__header">
+              <div class="panel__title">Juez final</div>
+              <span class="panel__meta" id="judgeRunMeta">—</span>
+            </div>
+            <p class="judge-intro" id="judgeLoading">Cargando el juez final…</p>
+            <div id="judgeSgr" hidden>
+              <p class="judge-intro">El juez estima el puntaje que darían los pares evaluadores con la rúbrica oficial de la convocatoria, señala inconsistencias y propone acciones de mejora para los agentes de Morfeo. Es asesor: no cambia el veredicto del revisor.</p>
+              <div class="judge-feedback">
+                <p class="tree-message" id="judgeMessage" role="status"></p>
+                <button class="btn btn--sm" id="judgeRetryBtn" onclick="retryJudgePrompt()" style="display: none;">↻ Reintentar envío</button>
+              </div>
+              <div id="judgeContent"></div>
+            </div>
+            <div id="judgeFinalAvance" hidden></div>
+          </section>
+
           <div class="pdf-viewer-topbar">
             <div class="pdf-topbar__left">
               <strong class="pdf-doc-title">📄 main.pdf</strong>
@@ -3699,6 +3678,7 @@
 
             <div class="pdf-topbar__right">
               <span id="pdfRenderStatus" class="badge badge--warn" style="font-size: 0.72rem; display: none;">⚡ Renderizando...</span>
+              <button class="btn btn--sm" onclick="toggleStyleDrawer()" id="btnStyleDrawer" aria-controls="styleDrawer" aria-expanded="false" title="Índice de legibilidad, secciones y hallazgos de estilo y redundancia, cada uno ubicable en el PDF">Estilo y redundancia</button>
               <button class="btn btn--sm" onclick="window.open('/presentacion', '_blank')" id="btnPresentacion" title="Abrir la presentación de la propuesta (convocatoria, alianza, árboles y metodología) con el estilo de AgentPt">🎞 Presentación</button>
               <button class="btn btn--sm" onclick="recompilePdf()" id="btnRecompilePdf" title="Compilar de nuevo main.pdf con build.sh y recargar la previsualización">⟳ Recompilar</button>
               <button class="btn btn--sm" onclick="toggleNativeViewer()" id="btnToggleNative" title="Alternar entre PDF.js y visor nativo del navegador">Visor Nativo</button>
@@ -3944,6 +3924,36 @@
     </div>
   </div>
 
+  <!-- «Estilo y redundancia» side drawer of the PDF preview (not modal: the viewer
+       and the change-control panel stay usable). «Ubicar» searches the finding in
+       the main viewer through pdf-locate.js. -->
+  <aside class="style-drawer" id="styleDrawer" role="dialog" aria-modal="false" aria-labelledby="styleDrawerTitle" hidden>
+    <div class="style-drawer__header">
+      <h3 id="styleDrawerTitle">Estilo y redundancia</h3>
+      <div class="style-drawer__actions">
+        <button id="btnEstiloAuditar" class="btn btn--sm" onclick="runStyleAudit()">Auditar el documento</button>
+        <button class="drawer__close style-drawer__close" type="button" onclick="closeStyleDrawer()" aria-label="Cerrar el panel de estilo y redundancia">&times;</button>
+      </div>
+    </div>
+    <div class="style-drawer__body">
+      <span class="panel__meta" id="estiloMeta">—</span>
+      <div class="style-drawer__summary" id="estiloResumen"></div>
+      <p class="style-drawer__status" id="estiloLocateStatus" role="status" aria-live="polite"></p>
+      <h4>Secciones</h4>
+      <div class="table-responsive">
+        <table class="table">
+          <thead><tr><th>Sección</th><th>Índice</th><th>Palabras</th></tr></thead>
+          <tbody id="estiloSecciones"></tbody>
+        </table>
+      </div>
+      <h4>Hallazgos</h4>
+      <ul class="style-findings" id="estiloHallazgos"></ul>
+      <div class="estilo-more">
+        <button type="button" id="btnEstiloVerTodos" class="btn btn--sm" hidden onclick="toggleStyleFindings()"></button>
+      </div>
+    </div>
+  </aside>
+
   <!-- Modal de Estructura Canónica de Sección -->
   <div class="drawer-overlay" id="sectionStructureModal" onclick="closeSectionStructureModal(event)">
     <div class="drawer" style="max-width: 900px; width: 95%; max-height: 90vh;" onclick="event.stopPropagation()">
@@ -4166,13 +4176,13 @@
   </div>
 
   <script src="/static/cli-console.js"></script>
-  <script src="/static/estilo-pdf.js"></script>
   <script src="/static/board-refresh.js"></script>
   <script src="/static/section-folds.js"></script>
   <script src="/static/judge-avance.js"></script>
   <script src="/static/novedad-panel.js"></script>
   <script src="/static/convocatorias-map.js"></script>
   <script src="/static/convocatorias-progress.js"></script>
+  <script src="/static/pdf-locate.js"></script>
   <script>
     // El inventario de unidades llega en el sobre de estado (`pipeline_units`).
     // Antes esta lista estaba escrita aquí con trece entradas que inventaban
@@ -5618,8 +5628,11 @@
     }
 
     // ── Juez final ──────────────────────────────────────────────────────────
-    // Lee /api/judge (evaluacion.json consolidada por scripts/juez_sgr.py y la
-    // rúbrica de la corrida). Las acciones y «Volver a evaluar» piden el prompt
+    // Pliegue «Juez final» de la previsualización PDF (papersmith
+    // paperReviewDetails). Lee /api/judge (evaluacion.json consolidada por
+    // scripts/juez_sgr.py y la rúbrica de la corrida). En el flujo SGR muestra
+    // ese juez de rúbrica; en el base monta el juez de avance con la etapa
+    // `final` (judge-avance.js). Las acciones y «Volver a evaluar» piden el prompt
     // al servidor y lo entregan con sendTerminalPrompt, igual que los árboles.
     const JUDGE_STATE = { data: null, sig: null, timer: null, pendingPrompt: null };
     const JUDGE_SEVERITIES = [
@@ -5657,7 +5670,14 @@
       el.className = `tree-message${tone ? ' is-' + tone : ''}`;
     }
 
-    async function loadJudge() {
+    // Opening the fold and opening the preview can ask at the same time: one read.
+    let JUDGE_IN_FLIGHT = null;
+    function loadJudge() {
+      if (!JUDGE_IN_FLIGHT) JUDGE_IN_FLIGHT = loadJudgeNow().finally(() => { JUDGE_IN_FLIGHT = null; });
+      return JUDGE_IN_FLIGHT;
+    }
+
+    async function loadJudgeNow() {
       let data = null;
       try {
         const res = await fetch('/api/judge', { cache: 'no-store' });
@@ -5666,6 +5686,7 @@
       } catch (err) {
         JUDGE_STATE.data = null;
         JUDGE_STATE.sig = null;
+        showJudgeBlock('sgr');
         const el = document.getElementById('judgeContent');
         if (el) el.innerHTML = `<div class="panel"><div class="tree-empty"><p>No se pudo leer la evaluación del juez de la corrida activa.</p><small>${escapeHtml(err.message || String(err))}</small></div></div>`;
         return;
@@ -5676,14 +5697,59 @@
         JUDGE_STATE.sig = sig;
         renderJudge();
       }
+      if (data.flujo !== 'sgr') refreshFinalJudge();
+    }
+
+    // The fold is read when the preview opens with it open and when it opens; it
+    // polls every 5 s only while the preview is active and the fold stays open.
+    const JUDGE_FOLD = 'juez-final';
+    function judgeFoldOpen() {
+      const wrapped = document.querySelector(`details.exp-fold[data-fold-name="${JUDGE_FOLD}"]`);
+      return wrapped ? wrapped.open : true;
     }
 
     function startJudgePolling() {
-      loadJudge();
+      if (judgeFoldOpen()) loadJudge();
       if (JUDGE_STATE.timer) return;
       JUDGE_STATE.timer = setInterval(() => {
-        if (activeTab === 'judge' && !document.hidden) loadJudge();
+        if (activeTab === 'preview' && judgeFoldOpen() && !document.hidden) loadJudge();
       }, 5000);
+    }
+
+    document.addEventListener('toggle', (event) => {
+      const item = event.target;
+      if (!item || !item.getAttribute || item.getAttribute('data-fold-name') !== JUDGE_FOLD) return;
+      if (item.open && activeTab === 'preview') loadJudge();
+    }, true);
+
+    // `sgr` shows the rubric judge; `final` the stage judge of the base flow.
+    function showJudgeBlock(which) {
+      const loading = document.getElementById('judgeLoading');
+      if (loading) loading.hidden = true;
+      const sgr = document.getElementById('judgeSgr');
+      const final = document.getElementById('judgeFinalAvance');
+      if (sgr) sgr.hidden = which !== 'sgr';
+      if (final) final.hidden = which !== 'final';
+    }
+
+    // The stage judge `final` (judge-avance.js), mounted on first use. Its rounds
+    // are refreshed by the fold's own polling, so its timer never starts.
+    let FINAL_JUDGE = null;
+    function ensureFinalJudge() {
+      if (FINAL_JUDGE) return FINAL_JUDGE;
+      const root = document.getElementById('judgeFinalAvance');
+      if (!root) return null;
+      if (!window.JudgeAvance) {
+        root.innerHTML = '<p class="judge-intro">No se pudo cargar el juez final: falta judge-avance.js. Recarga el tablero.</p>';
+        return null;
+      }
+      FINAL_JUDGE = window.JudgeAvance.mount(root, { etapa: 'final' });
+      return FINAL_JUDGE;
+    }
+
+    function refreshFinalJudge() {
+      const judge = ensureFinalJudge();
+      if (judge) judge.refresh();
     }
 
     function stopJudgePolling() {
@@ -5850,12 +5916,12 @@
       if (!d || !el) return;
       document.getElementById('judgeRunMeta').textContent = `Corrida ${d.run || '—'}`;
       if (d.flujo !== 'sgr') {
-        el.innerHTML = `<div class="panel"><div class="tree-empty">
-          <p>El juez final de las propuestas de investigación llega en una entrega posterior.</p>
-          <small>En el flujo SGR esta pestaña estima el puntaje con la rúbrica de la convocatoria, lista alertas y acciones de mejora y guarda el historial de rondas.</small>
-        </div></div>`;
+        showJudgeBlock('final');
+        el.innerHTML = '';
+        ensureFinalJudge();
         return;
       }
+      showJudgeBlock('sgr');
       const ev = d.evaluacion;
       if (!ev) {
         el.innerHTML = `${judgeErrorsHtml(d.errores)}<div class="panel"><div class="tree-empty">
@@ -9151,7 +9217,25 @@
         navigateTab('trees');
         return;
       }
+      // «Juez final» and «Estilo y redundancia» were tabs; they now live in the PDF
+      // preview (papersmith layout): old #judge links open the preview with the
+      // «Juez final» fold open, and old #estilo links with the style drawer open.
+      if (tabId === 'judge') {
+        if (window.SectionFolds) window.SectionFolds.open(JUDGE_FOLD);
+        else {
+          const fold = document.querySelector(`details.exp-fold[data-fold-name="${JUDGE_FOLD}"]`);
+          if (fold) fold.open = true;
+        }
+        navigateTab('preview');
+        return;
+      }
+      if (tabId === 'estilo') {
+        navigateTab('preview');
+        openStyleDrawer();
+        return;
+      }
       if (tabId === 'gates') {
+        closeStyleDrawer();
         tabId = 'pipeline';
         activeTab = 'pipeline';
         window.location.hash = '#pipeline';
@@ -9188,8 +9272,11 @@
       if (tabId === 'novedad') startNovedadPanel();
       else stopNovedadPanel();
 
-      if (tabId === 'judge') startJudgePolling();
-      else stopJudgePolling();
+      if (tabId === 'preview') startJudgePolling();
+      else {
+        stopJudgePolling();
+        closeStyleDrawer();
+      }
 
       if (tabId === 'cadena') startValueChainPolling();
       else stopValueChainPolling();
@@ -9220,13 +9307,6 @@
       if (tabId === 'trees' && mgaFoldOpen()) loadMgaResumido();
 
       if (tabId === 'sections') loadTdrChapters();
-
-      if (tabId === 'estilo') {
-        loadStyleReport();
-        if (window.EstiloPdf) window.EstiloPdf.open();
-      } else if (window.EstiloPdf) {
-        window.EstiloPdf.hide();
-      }
 
       if (tabId === 'flow') ensureFlowLoaded();
 
@@ -10882,7 +10962,44 @@
       }).join('');
     }
 
-    // Reporte de scripts/estilo_es.py: legibilidad y redundancia, nunca autoría.
+    // ── Estilo y redundancia ────────────────────────────────────────────────
+    // Cajón lateral de la previsualización PDF (papersmith
+    // openStyleRedundancyPanel), abierto con el botón de la barra del visor.
+    // Muestra el reporte de scripts/estilo_es.py (legibilidad y redundancia,
+    // nunca autoría): índice, secciones y todos los hallazgos. «Ubicar» busca la
+    // oración del hallazgo en el visor principal con pdf-locate.js, salta a su
+    // página y la resalta. No es modal: el visor y el control de cambios siguen.
+    function styleDrawerOpen() {
+      const drawer = document.getElementById('styleDrawer');
+      return !!(drawer && !drawer.hidden);
+    }
+
+    function openStyleDrawer() {
+      const drawer = document.getElementById('styleDrawer');
+      if (!drawer) return;
+      drawer.hidden = false;
+      const button = document.getElementById('btnStyleDrawer');
+      if (button) button.setAttribute('aria-expanded', 'true');
+      loadStyleReport();
+    }
+
+    function closeStyleDrawer() {
+      const drawer = document.getElementById('styleDrawer');
+      if (!drawer || drawer.hidden) return;
+      drawer.hidden = true;
+      const button = document.getElementById('btnStyleDrawer');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleStyleDrawer() {
+      if (styleDrawerOpen()) closeStyleDrawer();
+      else openStyleDrawer();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && styleDrawerOpen()) closeStyleDrawer();
+    });
+
     async function loadStyleReport() {
       let report = { disponible: false };
       try {
@@ -10894,11 +11011,18 @@
       renderStyleReport(report);
     }
 
+    function styleTone(indice) {
+      const n = Number(indice);
+      if (!Number.isFinite(n)) return 'bad';
+      return n >= 75 ? 'ok' : n >= 50 ? 'warn' : 'bad';
+    }
+
     function renderStyleReport(report) {
       const summary = document.getElementById('estiloResumen');
       const sections = document.getElementById('estiloSecciones');
       const findings = document.getElementById('estiloHallazgos');
       if (!summary || !sections || !findings) return;
+      setStyleLocateStatus('');
       if (!report.disponible) {
         summary.textContent = 'Aún no hay reporte. Usa «Auditar el documento» para generarlo.';
         document.getElementById('estiloMeta').textContent = '—';
@@ -10910,15 +11034,18 @@
       document.getElementById('estiloMeta').textContent = `${(report.exentos || []).length} términos exentos`;
       summary.innerHTML = `<strong>Índice ${escapeHtml(String(report.indice ?? '—'))} de 100</strong>`
         + ` (${escapeHtml(report.veredicto || '')})<br><span>${escapeHtml(report.aviso || '')}</span>`;
-      sections.innerHTML = (report.secciones || []).map(item =>
-        `<tr><td>${escapeHtml(item.seccion || '')}</td><td>${escapeHtml(String(item.indice ?? ''))}</td>`
-        + `<td>${escapeHtml(String(item.palabras ?? ''))}</td></tr>`).join('');
+      sections.innerHTML = (report.secciones || []).map(item => {
+        const pct = Math.max(0, Math.min(100, Number(item.indice) || 0));
+        return `<tr><td>${escapeHtml(item.seccion || '')}</td>`
+          + `<td>${escapeHtml(String(item.indice ?? ''))}<span class="style-bar" role="img" aria-label="Índice ${pct} de 100"><span class="style-bar__fill is-${styleTone(item.indice)}" style="width: ${pct}%"></span></span></td>`
+          + `<td>${escapeHtml(String(item.palabras ?? ''))}</td></tr>`;
+      }).join('');
       styleFindings = Array.isArray(report.hallazgos) ? report.hallazgos : [];
       renderStyleFindings();
     }
 
     // Hallazgos del reporte: los primeros 12 a la vista, el resto tras «Ver los N
-    // hallazgos». Cada fila lleva «Ubicar», que busca su oración en el PDF.
+    // hallazgos». Cada uno lleva «Ubicar», que busca su oración en el PDF.
     const STYLE_FINDINGS_PREVIEW = 12;
     let styleFindings = [];
     let styleShowAllFindings = false;
@@ -10929,9 +11056,12 @@
       if (!findings) return;
       const visible = styleShowAllFindings ? styleFindings : styleFindings.slice(0, STYLE_FINDINGS_PREVIEW);
       findings.innerHTML = visible.map((item, index) =>
-        `<tr data-finding="${index}"><td>${escapeHtml(item.seccion || '')}</td><td>${escapeHtml(item.categoria || '')}</td>`
-        + `<td>${escapeHtml(item.fragmento || '')}</td><td>${escapeHtml(item.orientacion || '')}</td>`
-        + `<td><button type="button" class="btn estilo-locate" data-locate="${index}" title="Ubicar el hallazgo en el PDF">Ubicar</button></td></tr>`).join('');
+        `<li class="style-finding" data-finding="${index}">`
+        + `<div class="style-finding__head"><span>${escapeHtml(item.seccion || '')} · ${escapeHtml(item.categoria || '')}</span>`
+        + `<button type="button" class="btn estilo-locate" data-locate="${index}" title="Ubicar el hallazgo en el PDF">Ubicar</button></div>`
+        + `<span class="style-finding__text">${escapeHtml(item.fragmento || '')}</span>`
+        + (item.orientacion ? `<span class="style-finding__hint">${escapeHtml(item.orientacion)}</span>` : '')
+        + `</li>`).join('');
       if (more) {
         more.hidden = styleFindings.length <= STYLE_FINDINGS_PREVIEW;
         more.textContent = styleShowAllFindings
@@ -10945,13 +11075,26 @@
       renderStyleFindings();
     }
 
+    function setStyleLocateStatus(text, tone) {
+      const el = document.getElementById('estiloLocateStatus');
+      if (!el) return;
+      el.textContent = text || '';
+      el.dataset.tone = tone || '';
+    }
+
     async function locateStyleFinding(index) {
       const finding = styleFindings[Number(index)];
-      if (!finding || !window.EstiloPdf) return null;
-      document.querySelectorAll('#estiloHallazgos tr.is-located').forEach(row => row.classList.remove('is-located'));
-      const row = document.querySelector(`#estiloHallazgos tr[data-finding="${Number(index)}"]`);
-      if (row) row.classList.add('is-located');
-      return window.EstiloPdf.locate(finding);
+      if (!finding || !window.PdfLocate) return null;
+      document.querySelectorAll('#estiloHallazgos .is-located').forEach(item => item.classList.remove('is-located'));
+      const item = document.querySelector(`#estiloHallazgos [data-finding="${Number(index)}"]`);
+      if (item) item.classList.add('is-located');
+      setStyleLocateStatus(window.PdfLocate.MESSAGES.searching);
+      const result = await window.PdfLocate.locate(finding, previewLocateAdapter());
+      const tone = result.found ? 'ok' : (result.reason === 'not-found' ? 'bad' : 'warn');
+      setStyleLocateStatus(window.PdfLocate.message(result), tone);
+      // A bottom sheet covers the page: on narrow screens it steps aside.
+      if (result.found && window.matchMedia && window.matchMedia('(max-width: 720px)').matches) closeStyleDrawer();
+      return result;
     }
 
     document.getElementById('estiloHallazgos')?.addEventListener('click', (event) => {
@@ -11719,6 +11862,48 @@
       updatePageIndicator(target);
     }
 
+    // «Ubicar» of the style drawer searches this viewer (pdf-locate.js): the text
+    // content comes from the same caches, the page jump reuses its scroll and the
+    // marks go over the page container, so they follow its zoom.
+    function previewLocateAdapter() {
+      const identity = pdfDocIdentity;
+      return {
+        mode: isNativePdfViewer ? 'native' : (pdfDoc ? 'pdfjs' : 'none'),
+        numPages: pdfDoc ? pdfTotalPages : 0,
+        pageItems: async (n) => {
+          let content = pdfTextContentCache.get(n);
+          if (!content) {
+            const page = await getPageObject(n);
+            content = await page.getTextContent();
+            if (identity === pdfDocIdentity) pdfTextContentCache.set(n, content);
+          }
+          return (content && content.items) || [];
+        },
+        viewport: async (n) => (await getPageObject(n)).getViewport({ scale: 1 }),
+        reveal: async (page, boxes) => revealLocatedText(page, boxes),
+        isCurrent: () => !!pdfDoc && identity === pdfDocIdentity,
+      };
+    }
+
+    function revealLocatedText(n, boxes) {
+      const strip = document.getElementById('pdfPagesStrip');
+      const container = getPageEl(n);
+      if (!strip || !container) return;
+      renderPageInto(n);
+      const fraction = boxes && boxes.length ? boxes[0].top : 0;
+      const box = container.getBoundingClientRect();
+      const delta = box.top - strip.getBoundingClientRect().top + fraction * box.height - strip.clientHeight / 3;
+      strip.scrollTo({ top: Math.max(0, strip.scrollTop + delta), behavior: 'smooth' });
+      // The «Juez final» fold can push the viewer below the window: bring it up.
+      const view = document.getElementById('pdfViewportContainer') || strip;
+      const viewTop = view.getBoundingClientRect().top;
+      if (viewTop < 0 || viewTop > window.innerHeight / 2) {
+        try { window.scrollBy({ top: viewTop - 90, behavior: 'smooth' }); } catch (_) {}
+      }
+      updatePageIndicator(n);
+      if (window.PdfLocate) window.PdfLocate.highlight(container, boxes);
+    }
+
     function changePdfPage(delta) {
       const target = pdfCurrentPage + delta;
       if (target >= 1 && target <= pdfTotalPages) scrollToPdfPage(target);
@@ -11869,6 +12054,7 @@
           node.closest('.topbar') ||
           node.closest('#pdfControlPanel') ||
           node.closest('.drawer-overlay') ||
+          node.closest('.style-drawer') ||
           node.closest('.pdf-toolbar') ||
           node.closest('.tabs') ||
           node.closest('#pdfInteractionBar')

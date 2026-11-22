@@ -1,9 +1,11 @@
-"""«Estilo y redundancia» panel: the report endpoint and its PDF preview.
+"""«Estilo y redundancia»: the report endpoint and its drawer in the PDF preview.
 
 `GET /api/estilo` serves `artefactos/estilo/reporte.json` as before and attaches
-to each finding the text of its sentence (`oracion_texto`), so the panel can
+to each finding the text of its sentence (`oracion_texto`), so «Ubicar» can
 look the finding up in the compiled PDF (odd/tasks/tablero-juez-novedad.md, S5).
-The sentence is attached only while the fragment still sits in it.
+The sentence is attached only while the fragment still sits in it. Since S8 the
+report lives in a side drawer of the PDF preview and «Ubicar» searches the main
+viewer through static/pdf-locate.js; the second viewer (estilo-pdf.js) is gone.
 """
 
 from __future__ import annotations
@@ -131,37 +133,47 @@ class StyleEndpointTest(unittest.TestCase):
         self.assertTrue(data["disponible"])
         self.assertTrue(all("oracion_texto" not in item for item in data["hallazgos"]))
 
-    def test_the_viewer_script_is_served_without_cache(self) -> None:
-        status, headers, body = self._get("/static/estilo-pdf.js")
+    def test_the_locate_script_is_served_without_cache(self) -> None:
+        status, headers, body = self._get("/static/pdf-locate.js")
         self.assertEqual(status, 200)
         self.assertEqual(headers["Cache-Control"], "no-cache")
         self.assertIn("javascript", headers["Content-Type"])
-        self.assertIn(b"window.EstiloPdf", body)
+        self.assertIn(b"window.PdfLocate", body)
 
 
-class StylePaneMarkupTest(unittest.TestCase):
+class StyleDrawerMarkupTest(unittest.TestCase):
     def setUp(self) -> None:
         self.html = (STATIC / "index.html").read_text(encoding="utf-8")
 
-    def test_the_viewer_script_loads_right_after_the_cli_console(self) -> None:
-        self.assertRegex(self.html, r'<script src="/static/cli-console.js"></script>\s*<script src="/static/estilo-pdf.js"></script>')
+    def test_the_locate_script_loads_after_the_page_scripts(self) -> None:
+        self.assertRegex(self.html, r'<script src="/static/convocatorias-progress.js"></script>\s*<script src="/static/pdf-locate.js"></script>')
 
-    def test_the_pane_holds_findings_and_the_pdf_preview(self) -> None:
-        pane = re.search(r'<div id="pane-estilo" class="tab-pane">(.*?)<div id="pane-atlas"', self.html, re.S).group(1)
-        for element in ("estiloHallazgos", "btnEstiloVerTodos", "estiloPdfViewport", "estiloPdfPages",
-                        "estiloPdfPageInfo", "estiloPdfStatus", "estiloPdfEmpty", "estiloPdfFrame"):
-            self.assertIn(f'id="{element}"', pane, element)
-        self.assertIn('class="estilo-layout"', pane)
+    def test_the_duplicate_viewer_is_gone(self) -> None:
+        self.assertFalse((STATIC / "estilo-pdf.js").exists())
+        self.assertNotIn("estilo-pdf", self.html)
+        self.assertNotIn('id="pane-estilo"', self.html)
+        self.assertNotIn("navigateTab('estilo')", self.html.split("<main>")[0])
 
-    def test_the_layout_stacks_on_narrow_screens(self) -> None:
-        self.assertIn(".estilo-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);", self.html)
-        self.assertIn("@media (max-width: 1100px) { .estilo-layout { grid-template-columns: minmax(0, 1fr); } }", self.html)
+    def test_the_drawer_holds_the_report_and_the_toolbar_opens_it(self) -> None:
+        drawer = re.search(r'<aside class="style-drawer" id="styleDrawer"(.*?)</aside>', self.html, re.S).group(1)
+        self.assertIn('aria-modal="false"', drawer)
+        for element in ("btnEstiloAuditar", "estiloMeta", "estiloResumen", "estiloLocateStatus", "estiloSecciones",
+                        "estiloHallazgos", "btnEstiloVerTodos"):
+            self.assertIn(f'id="{element}"', drawer, element)
+        preview = re.search(r'<div id="pane-preview" class="tab-pane">(.*?)<!-- Columna Derecha', self.html, re.S).group(1)
+        self.assertIn('id="btnStyleDrawer"', preview)
+        self.assertIn('onclick="toggleStyleDrawer()"', preview)
+
+    def test_the_drawer_becomes_a_bottom_sheet_on_narrow_screens(self) -> None:
+        self.assertRegex(self.html, r"@media \(max-width: 720px\) \{\s*\.style-drawer \{ left: 0; right: 0; top: auto; width: 100%;")
 
     def test_ui_copy_has_no_em_dash_or_double_hyphen(self) -> None:
-        script = (STATIC / "estilo-pdf.js").read_text(encoding="utf-8")
+        script = (STATIC / "pdf-locate.js").read_text(encoding="utf-8")
         messages = re.search(r"const MESSAGES = \{(.*?)\n  \};", script, re.S).group(1)
         self.assertNotIn("—", messages)
         self.assertNotIn("--", messages)
+        drawer = re.search(r'<aside class="style-drawer" id="styleDrawer"(.*?)</aside>', self.html, re.S).group(1)
+        self.assertNotIn("—", re.sub(r'id="estiloMeta">—<', "", drawer))
 
 
 if __name__ == "__main__":

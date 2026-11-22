@@ -129,13 +129,17 @@ test('SGR sin estructura del TDR: el panel de capítulos no aparece', async () =
   assert.ok(doc.getElementById('tdrChaptersPanel').hidden);
 });
 
+// odd/tasks/tablero-juez-novedad.md, T8 (S8): the style report lives in the
+// drawer of the PDF preview, opened from its toolbar in both flows.
 test('Estilo: muestra índice, aviso y hallazgos en ambos flujos, sin inyectar HTML', async () => {
   for (const flujo of ['base', 'sgr']) {
     const { window, doc } = await boot(flujo);
-    assert.ok(!btn(doc, 'estilo').hidden);
-    window.navigateTab('estilo');
+    assert.ok(!doc.getElementById('btnStyleDrawer').hidden);
+    window.navigateTab('preview');
+    doc.getElementById('btnStyleDrawer').click();
     for (let i = 0; i < 10; i++) await tick();
-    const pane = doc.getElementById('pane-estilo');
+    const pane = doc.getElementById('styleDrawer');
+    assert.equal(pane.hidden, false);
     assert.match(pane.textContent, /72/);
     assert.match(pane.textContent, /Mide legibilidad/);
     assert.match(pane.textContent, /Usar un verbo directo/);
@@ -148,7 +152,7 @@ test('Estilo: sin reporte invita a generarlo', async () => {
   const { window, doc } = await boot('sgr', { estilo: { ok: true, disponible: false } });
   window.navigateTab('estilo');
   for (let i = 0; i < 10; i++) await tick();
-  assert.match(doc.getElementById('pane-estilo').textContent, /Aún no hay reporte/);
+  assert.match(doc.getElementById('styleDrawer').textContent, /Aún no hay reporte/);
 });
 
 // odd/tasks/tablero-juez-novedad.md, T5 (S4): «Novedad e hipótesis» follows the
