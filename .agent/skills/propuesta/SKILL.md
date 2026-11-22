@@ -2073,7 +2073,8 @@ Fase 7  ──→ [NUEVO] DISPATCHER: aplica el procedimiento de "Refresh del í
         0. Al cerrar la compuerta G7 le mostrás al usuario, desde
         `artefactos/juez/evaluacion.json`, el total frente al umbral, la
         elegibilidad y las tres acciones de mayor prioridad, y le decís cómo
-        iterar (pestaña «Juez final» del tablero o `/propuesta-juez AC<n>`).
+        iterar (desplegable «Juez final» de la previsualización PDF del tablero
+        o `/propuesta-juez AC<n>`).
         Igual que pixelshot, este paso NUNCA altera el VEREDICTO PASS/FAIL del
         `revisor` ni bloquea el cierre de la Fase 7. Si el juez falla (rúbrica
         no detectada, `calificar` sin salir con 0 tras los reintentos del

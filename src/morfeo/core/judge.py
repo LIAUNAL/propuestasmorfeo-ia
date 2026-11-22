@@ -3,7 +3,7 @@
 `scripts/juez_sgr.py calificar` escribe `artefactos/juez/evaluacion.json`
 (esquema `morfeo.evaluacion-sgr-consolidada/v1`) y la copia de la rúbrica
 `artefactos/juez/rubrica.json` (`morfeo.rubrica-sgr/v1`). Este módulo solo los
-lee para la pestaña «Juez final»: nunca lanza una excepción hacia la capa HTTP,
+lee para el desplegable «Juez final» de la previsualización PDF: nunca lanza una excepción hacia la capa HTTP,
 un archivo ausente o corrupto se informa en `errores`.
 """
 
