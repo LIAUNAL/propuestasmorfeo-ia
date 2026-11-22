@@ -14,6 +14,8 @@
   <script src="/static/text-size.js"></script>
   <script src="/static/i18n/es/core.js"></script>
   <script src="/static/i18n/en/core.js"></script>
+  <script src="/static/i18n/es/traduccion.js"></script>
+  <script src="/static/i18n/en/traduccion.js"></script>
   <script src="/static/i18n.js"></script>
   <style>
     :root {
@@ -3701,6 +3703,17 @@
             <div id="judgeFinalAvance" hidden></div>
           </section>
 
+          <!-- Versión del documento (papersmith translationDetails): the derived
+               translation of the manuscript (traduccion-panel.js, /api/traducciones,
+               /propuesta-traducir); «Ver traducción» switches the viewer source. -->
+          <section class="panel preview-translation" id="previewTranslationFold" data-fold="version-documento" data-fold-title="Versión del documento">
+            <div class="panel__header">
+              <div class="panel__title" data-i18n="panel.traduccion.title">Versión del documento</div>
+              <span class="panel__meta" id="translationMeta">—</span>
+            </div>
+            <div id="translationPanel"></div>
+          </section>
+
           <div class="pdf-viewer-topbar">
             <div class="pdf-topbar__left">
               <strong class="pdf-doc-title">📄 main.pdf</strong>
@@ -4228,6 +4241,7 @@
   <script src="/static/section-folds.js"></script>
   <script src="/static/judge-avance.js"></script>
   <script src="/static/novedad-panel.js"></script>
+  <script src="/static/traduccion-panel.js"></script>
   <script src="/static/convocatorias-map.js"></script>
   <script src="/static/convocatorias-progress.js"></script>
   <script src="/static/pdf-locate.js"></script>
@@ -9394,6 +9408,9 @@
 
       if (tabId === 'flow') ensureFlowLoaded();
 
+      if (tabId === 'preview') startTranslationPanel();
+      else stopTranslationPanel();
+
       if (tabId === 'preview') {
         if (pdfDoc) {
           refreshPdfIfChanged();
@@ -11398,6 +11415,15 @@
     // Versión de main.pdf (mtime_ns-tamaño) que muestra el visor: permite
     // recargar al volver a la pestaña solo si el archivo cambió en disco.
     let pdfLoadedVersion = null;
+    // Fuente del visor: null para main.pdf; 'en' o 'es' para la traducción
+    // (redaccion/traducciones/<lang>/main.pdf), que elige «Versión del documento».
+    let pdfSourceLang = null;
+    function pdfSourceUrl(path, extra) {
+      const params = [];
+      if (pdfSourceLang) params.push(`traduccion=${encodeURIComponent(pdfSourceLang)}`);
+      if (extra) params.push(extra);
+      return params.length ? `${path}?${params.join('&')}` : path;
+    }
     let pdfCurrentPage = 1;
     let pdfTotalPages = 1;
     // Default zoom: the label, the reset button and resetZoomPdf all derive from it.
@@ -11545,7 +11571,7 @@
           }
         }
 
-        const url = `/api/pdf?t=${forceReload ? Date.now() : 'doc'}`;
+        const url = pdfSourceUrl('/api/pdf', `t=${forceReload ? Date.now() : 'doc'}`);
         const loadingTask = pdfjsLib.getDocument({
           url: url,
           cMapUrl: '/static/vendor/cmaps/',
@@ -11572,7 +11598,7 @@
         if (strip) strip.style.display = 'none';
         const nativeFrame = document.getElementById('pdfNativeIframe');
         // El visor nativo solo se carga cuando hace falta: si PDF.js no pudo.
-        nativeFrame.src = `/api/pdf?t=${Date.now()}`;
+        nativeFrame.src = pdfSourceUrl('/api/pdf', `t=${Date.now()}`);
         nativeFrame.style.display = 'block';
       } finally {
         // El sello se baja recién cuando la tira nueva quedó construida (o el
@@ -11585,7 +11611,7 @@
 
     async function fetchPdfVersion() {
       try {
-        const res = await fetch('/api/pdf/version', { cache: 'no-store' });
+        const res = await fetch(pdfSourceUrl('/api/pdf/version'), { cache: 'no-store' });
         if (!res.ok) return null;
         const data = await res.json();
         return data && data.exists ? data.version : null;
@@ -11612,6 +11638,37 @@
         pdfLoadedVersion = version;
         await initPdfViewer(true);
       }
+    }
+
+    // «Ver traducción / Ver original» (traduccion-panel.js): cambia la fuente del
+    // visor y lo recarga; mientras se ve la traducción, el título y la descarga
+    // apuntan a ella y el panel oculta las herramientas de anotación.
+    window.setPdfSource = async function setPdfSource(lang) {
+      pdfSourceLang = lang === 'en' || lang === 'es' ? lang : null;
+      pdfLoadedVersion = null;
+      const title = document.querySelector('.pdf-doc-title');
+      if (title) title.textContent = pdfSourceLang ? t('panel.traduccion.viewerTitle', { lang: pdfSourceLang }) : '📄 main.pdf';
+      const download = document.querySelector('a.btn[download][href^="/api/pdf"]');
+      if (download) download.setAttribute('href', pdfSourceUrl('/api/pdf'));
+      if (isNativePdfViewer) {
+        const iframe = document.getElementById('pdfNativeIframe');
+        if (iframe) iframe.src = pdfSourceUrl('/api/pdf', `t=${Date.now()}`);
+      } else {
+        await initPdfViewer(true);
+      }
+      recordPdfVersion();
+      return pdfSourceLang;
+    };
+
+    let TRANSLATION_PANEL = null;
+    function startTranslationPanel() {
+      const root = document.getElementById('translationPanel');
+      if (!root || !window.TraduccionPanel) return;
+      if (!TRANSLATION_PANEL) TRANSLATION_PANEL = window.TraduccionPanel.mount(root, {});
+      TRANSLATION_PANEL.start();
+    }
+    function stopTranslationPanel() {
+      if (TRANSLATION_PANEL) TRANSLATION_PANEL.stop();
     }
 
     async function recompilePdf() {
@@ -12141,7 +12198,7 @@
         if (strip) strip.style.display = 'none';
         if (bar) bar.style.display = 'none';
         iframe.style.display = 'block';
-        iframe.src = `/api/pdf?t=${Date.now()}`;
+        iframe.src = pdfSourceUrl('/api/pdf', `t=${Date.now()}`);
         btn.textContent = t('toggleNativeViewer.pdfJsViewer');
       } else {
         iframe.style.display = 'none';

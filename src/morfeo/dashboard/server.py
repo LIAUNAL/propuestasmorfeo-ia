@@ -32,6 +32,7 @@ from ..core.judge_avance import ETAPAS as JUDGE_AVANCE_ETAPAS, ETAPAS_TEXTO as J
 from ..core.novedad import build_run_command as build_novedad_command, load_novedad
 from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
 from ..core.style_sgr import load_style
+from ..core import translation as manuscript_translation
 from ..core.value_chain import approve as approve_value_chain, build_adjust_prompt, load_value_chain
 from ..core.alliance import approve as approve_alliance, build_adjust_prompt as build_alliance_prompt, load_alliance
 from ..core.budget import approve as approve_budget, build_adjust_prompt as build_budget_prompt, load_budget
@@ -212,6 +213,8 @@ _LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 # build.sh escribe en la misma carpeta: dos compilaciones a la vez se pisan.
 _COMPILE_LOCK = threading.Lock()
+# La traducción compila en redaccion/traducciones/<lang>/, aparte del original.
+_TRANSLATION_COMPILE_LOCK = threading.Lock()
 
 
 class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
@@ -291,6 +294,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_opportunities_atlas()
         elif path == "/api/board/summary":
             self.serve_board_summary()
+        elif path == "/api/traducciones":
+            self.serve_translations()
         else:
             self.send_error(404, "Not Found")
 
@@ -304,6 +309,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_pdf_execute()
         elif path == "/api/pdf/compile":
             self.handle_pdf_compile()
+        elif path == "/api/traduccion/compilar":
+            self.handle_translation_compile()
         elif path == "/api/graph/build":
             self.handle_graph_build()
         elif path == "/api/trees/feedback":
@@ -1336,13 +1343,64 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _translation_target(self) -> str | None:
+        """`traduccion=<lang>` of the query: the translated PDF instead of the
+        original. `lang` is the interface language and never selects a PDF."""
+        values = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("traduccion")
+        return values[0].strip() if values and values[0].strip() else None
+
     def serve_pdf_version(self) -> None:
         run_dir = self._active_run_dir()
         if run_dir is None:
             self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
             return
-        version = pdf_version(run_dir / "redaccion" / "main.pdf")
+        target = self._translation_target()
+        if target is None:
+            pdf_path = run_dir / "redaccion" / "main.pdf"
+        else:
+            pdf_path = manuscript_translation.translated_pdf(run_dir, target)
+            if pdf_path is None:
+                self._send_json(400, {"ok": False, "error": f"Idioma de traducción desconocido {target!r}: usa es o en."})
+                return
+        version = pdf_version(pdf_path)
         self._send_json(200, {"ok": True, "exists": version is not None, "version": version})
+
+    # --- «Versión del documento»: traducción del manuscrito --------------------
+
+    def serve_translations(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            payload = manuscript_translation.load_translation(run_dir, self._resolve_scripts_dir(),
+                                                              self._translation_target())
+        except ValueError as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
+            return
+        self._send_json(200 if payload.get("ok") else 400, payload)
+
+    def handle_translation_compile(self) -> None:
+        """Compila la traducción construida; una compilación de traducción a la vez."""
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        if not _TRANSLATION_COMPILE_LOCK.acquire(blocking=False):
+            self._send_json(409, {"ok": False, "error": "Ya hay una compilación de la traducción en curso"})
+            return
+        try:
+            result = manuscript_translation.compile_translation(run_dir, self._resolve_scripts_dir(),
+                                                                self._translation_target())
+        except ValueError as exc:
+            result = {"ok": False, "error": str(exc)}
+        finally:
+            _TRANSLATION_COMPILE_LOCK.release()
+        if result.get("ok"):
+            self._send_json(200, result)
+        else:
+            unknown = result.get("code") in ("TRANSLATION_LANGUAGE_UNSUPPORTED", "TRANSLATION_SAME_LANGUAGE")
+            self._send_json(400 if unknown else 409 if result.get("code") == "TRANSLATION_NOT_BUILT" else 500, result)
 
     def handle_pdf_compile(self) -> None:
         """Recompila main.pdf con build.sh; una compilación a la vez por servidor."""
@@ -1370,11 +1428,23 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(404, "No active run")
             return
 
-        pdf_path = self.workspace_dir / "proposals" / active_run / "redaccion" / "main.pdf"
-        if not pdf_path.is_file():
-            self.send_error(404, "main.pdf not found")
-            return
+        target = self._translation_target()
+        if target is None:
+            pdf_path = self.workspace_dir / "proposals" / active_run / "redaccion" / "main.pdf"
+            if not pdf_path.is_file():
+                self.send_error(404, "main.pdf not found")
+                return
+        else:
+            pdf_path = manuscript_translation.translated_pdf(self.workspace_dir / "proposals" / active_run, target)
+            if pdf_path is None:
+                self.send_error(400, "Unknown translation language")
+                return
+            if not pdf_path.is_file():
+                self.send_error(404, "translated main.pdf not found")
+                return
+        self._send_pdf_file(pdf_path)
 
+    def _send_pdf_file(self, pdf_path: Path) -> None:
         file_size = pdf_path.stat().st_size
         etag = f'"{pdf_version(pdf_path)}"'
 
