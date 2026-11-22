@@ -199,6 +199,44 @@ class ServingTests(unittest.TestCase):
         self.assertEqual(en["objectives"]["tree"]["crown"]["label"], "ULTIMATE END")
         self.assertEqual(en["run"], es["run"])
 
+    def test_the_presentation_is_written_in_the_requested_language(self) -> None:
+        es = self.server.get("/presentacion").decode("utf-8")
+        en = self.server.get("/presentacion?lang=en").decode("utf-8")
+        self.assertEqual(es, self.server.get("/presentacion?lang=es").decode("utf-8"))
+        self.assertIn('<html lang="es">', es)
+        self.assertIn('<html lang="en">', en)
+        self.assertIn('aria-label="Diapositiva anterior"', es)
+        self.assertIn('aria-label="Previous slide"', en)
+        self.assertIn("2. Alliance</button>", en)
+        self.assertIn("[Title to be defined]", en)
+        self.assertNotIn("Metodología", en)
+
+    def test_the_papers_graph_is_drawn_again_with_english_chrome(self) -> None:
+        fixtures = Path(__file__).resolve().parent / "fixtures" / "constelacion"
+        run = self.workspace / "proposals" / "2026-01-demo"
+        scoping = run / "artefactos" / "scoping"
+        scoping.mkdir(parents=True)
+        (scoping / "atlas.json").write_bytes((fixtures / "atlas.json").read_bytes())
+        (scoping / "papers").mkdir()
+        for paper in (fixtures / "papers").glob("*.md"):
+            (scoping / "papers" / paper.name).write_bytes(paper.read_bytes())
+        (run / "grafos").mkdir()
+        spanish = "<!DOCTYPE html>\n<html lang=\"es\"><title>Constelación SOTA</title></html>\n".encode("utf-8")
+        (run / "grafos" / "papers-graph.html").write_bytes(spanish)
+        self.assertEqual(self.server.get("/api/graph/papers"), spanish, "Spanish serves the page on disk")
+        en = self.server.get("/api/graph/papers?lang=en").decode("utf-8")
+        self.assertIn('<html lang="en">', en)
+        self.assertIn("<title>SOTA constellation</title>", en)
+        self.assertIn('id="atlas-data"', en)
+        # Without an atlas the English request still gets the page on disk.
+        (scoping / "atlas.json").unlink()
+        self.assertEqual(self.server.get("/api/graph/papers?lang=en"), spanish)
+
+    def test_a_missing_graph_says_so_in_english(self) -> None:
+        en = self.server.get("/api/graph/nope?lang=en").decode("utf-8")
+        self.assertIn("Graph unavailable for this run", en)
+        self.assertIn("Grafo no disponible para esta corrida", self.server.get("/api/graph/nope").decode("utf-8"))
+
     def test_errors_in_english(self) -> None:
         req = urllib.request.Request(self.server.base + "/api/trees/feedback?lang=en", data=b"{nope",
                                      method="POST", headers={"Content-Type": "application/json",

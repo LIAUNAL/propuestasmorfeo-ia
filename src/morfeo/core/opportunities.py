@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import datetime
 import html
+import inspect
 import json
 import math
 import re
@@ -62,6 +63,54 @@ ATLAS_PROFILE = "convocatorias"
 ATLAS_GROUPINGS = ("tema", "ambito", "rol")
 ATLAS_TITLE = "Constelación de convocatorias"
 SCOPE_NAMES = {"proyecto": "Proyecto en formulación", "banco": "Banco LIA"}
+#: The constellation page in English (``?lang=en`` from the dashboard): its
+#: title, scope names and the messages of its empty and error pages. The
+#: calls themselves are drawn as the search recorded them.
+ATLAS_LANGUAGES = ("es", "en")
+_ATLAS_EN = {
+    ATLAS_TITLE: "Constellation of calls",
+    "Proyecto en formulación": "Project being drafted",
+    "Banco LIA": "LIA bank",
+    "Constelación no disponible": "Constellation unavailable",
+    "Todavía no hay convocatorias": "No calls yet",
+    "Petición inválida": "Invalid request",
+    "Todavía no hay convocatorias para este espacio de trabajo. Pulsa «Buscar para el proyecto» o «Buscar para el "
+    "banco LIA» y la constelación aparece aquí.":
+        "There are no calls for this workspace yet. Press «Search for the project» or «Search for the LIA bank» "
+        "and the constellation appears here.",
+}
+_ATLAS_EN_TEMPLATES = (
+    (re.compile(r"No se encontró scripts/(?P<script>\S+) con la función (?P<fn>\w+) en el kit\."),
+     "scripts/{script} with the {fn} function was not found in the kit."),
+    (re.compile(r"(?P<script>\S+) terminó con el código (?P<code>.*?) al armar la constelación\."),
+     "{script} exited with code {code} while building the constellation."),
+    (re.compile(r"(?P<script>\S+) no pudo armar la constelación: (?P<detail>.*)", re.S),
+     "{script} could not build the constellation: {detail}"),
+    (re.compile(r"(?P<script>\S+) no pudo dibujar la constelación: (?P<detail>.*)", re.S),
+     "{script} could not draw the constellation: {detail}"),
+)
+
+
+def atlas_text(text: str, lang: str | None = None) -> str:
+    """A text of the constellation page (title, scope, message) in ``lang``; Spanish as is."""
+    if lang != "en":
+        return text
+    if text in _ATLAS_EN:
+        return _ATLAS_EN[text]
+    for pattern, english in _ATLAS_EN_TEMPLATES:
+        match = pattern.fullmatch(text)
+        if match:
+            return english.format(**match.groupdict())
+    return text
+
+
+def validate_language(lang: Any) -> str | None:
+    """None when absent; the page language otherwise. ValueError for anything else."""
+    if lang is None:
+        return None
+    if not isinstance(lang, str) or lang not in ATLAS_LANGUAGES:
+        raise ValueError("El idioma debe ser «es» o «en».")
+    return lang
 OPPORTUNITIES_SCHEMA = "morfeo.convocatorias-vista/v1"
 SEARCH_COMMAND = "/propuesta-convocatorias"
 _ID_RE = re.compile(r"[a-z0-9-]+")
@@ -155,10 +204,13 @@ def _validate_atlas_query(agrupar: Any, ids: Any) -> tuple[str, list[str] | None
     return agrupar, values
 
 
-def message_page(title: str, text: str) -> str:
-    """A small dark page for the constellation frame: an empty state or an error, as text."""
+def message_page(title: str, text: str, lang: str | None = None) -> str:
+    """A small dark page for the constellation frame: an empty state or an error, as text.
+
+    ``lang="en"`` writes it in English (:func:`atlas_text`); Spanish otherwise."""
+    title, text = atlas_text(title, lang), atlas_text(text, lang)
     return f"""<!DOCTYPE html>
-<html lang="es">
+<html lang="{'en' if lang == 'en' else 'es'}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{html.escape(title)}</title></head>
 <body style="background:#0a0a10;color:#9aa3bd;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px;box-sizing:border-box;text-align:center">
   <div style="background:#11131f;padding:2rem;border-radius:12px;border:1px solid #2a3350;max-width:520px;overflow-wrap:anywhere">
@@ -169,52 +221,59 @@ def message_page(title: str, text: str) -> str:
 </html>"""
 
 
-def atlas_page(built: dict[str, Any]) -> str:
+def atlas_page(built: dict[str, Any], lang: str | None = None) -> str:
     """The constellation page of a built scene (`convocatorias.py` `atlas_de_vista`).
 
-    LookupError when render_atlas.py is missing from the kit.
+    ``lang="en"`` asks render_atlas.py for its English chrome. LookupError when
+    render_atlas.py is missing from the kit.
     """
     module = load_kit_script(ATLAS_SCRIPT, ("render",))
     render = getattr(module, "render", None) if module is not None else None
     if not callable(render):
         raise LookupError(f"No se encontró scripts/{ATLAS_SCRIPT} con la función render en el kit.")
-    scope = SCOPE_NAMES.get(built.get("alcance"), SCOPE_NAMES["proyecto"])
-    return render(built["atlas"], title=ATLAS_TITLE, heading=f"{ATLAS_TITLE} · {scope}",
-                  papers=built.get("fichas") or {}, profile=ATLAS_PROFILE)
+    scope = atlas_text(SCOPE_NAMES.get(built.get("alcance"), SCOPE_NAMES["proyecto"]), lang)
+    title = atlas_text(ATLAS_TITLE, lang)
+    # A kit render_atlas.py older than the page languages draws its Spanish chrome.
+    options = {"lang": "en"} if lang == "en" and "lang" in inspect.signature(render).parameters else {}
+    return render(built["atlas"], title=title, heading=f"{title} · {scope}",
+                  papers=built.get("fichas") or {}, profile=ATLAS_PROFILE, **options)
 
 
 def render_opportunities_atlas(workspace_dir: Path | str, alcance: Any = None, agrupar: Any = None,
-                               ids: Any = None) -> str:
+                               ids: Any = None, lang: Any = None) -> str:
     """HTML of the «Convocatorias» constellation; never writes.
 
     Invalid parameters raise ValueError (the HTTP layer answers 400); a missing
     or failing script becomes an error page, and a view without calls an empty
-    state page.
+    state page. ``lang`` ("es" or "en", absent means Spanish) is the language
+    of the page's own chrome and messages.
     """
     scope = validate_alcance(alcance)
     grouping, wanted = _validate_atlas_query(agrupar, ids)
+    lang = validate_language(lang)
     module = load_kit_script(OPPORTUNITIES_SCRIPT, ("constelacion",))
     fn = getattr(module, "constelacion", None) if module is not None else None
     if not callable(fn):
         return message_page("Constelación no disponible",
-                            f"No se encontró scripts/{OPPORTUNITIES_SCRIPT} con la función constelacion en el kit.")
+                            f"No se encontró scripts/{OPPORTUNITIES_SCRIPT} con la función constelacion en el kit.", lang)
     try:
         built = fn(Path(workspace_dir), alcance=scope, agrupar=grouping, ids=wanted)
     except SystemExit as err:
         return message_page("Constelación no disponible",
-                            f"{OPPORTUNITIES_SCRIPT} terminó con el código {err.code} al armar la constelación.")
+                            f"{OPPORTUNITIES_SCRIPT} terminó con el código {err.code} al armar la constelación.", lang)
     except Exception as err:
-        return message_page("Constelación no disponible", f"{OPPORTUNITIES_SCRIPT} no pudo armar la constelación: {err}")
+        return message_page("Constelación no disponible", f"{OPPORTUNITIES_SCRIPT} no pudo armar la constelación: {err}",
+                            lang)
     if not isinstance(built, dict) or not built.get("total"):
         return message_page("Todavía no hay convocatorias",
                             "Todavía no hay convocatorias para este espacio de trabajo. Pulsa «Buscar para el "
-                            "proyecto» o «Buscar para el banco LIA» y la constelación aparece aquí.")
+                            "proyecto» o «Buscar para el banco LIA» y la constelación aparece aquí.", lang)
     try:
-        return atlas_page(built)
+        return atlas_page(built, lang)
     except LookupError as err:
-        return message_page("Constelación no disponible", str(err))
+        return message_page("Constelación no disponible", str(err), lang)
     except (OSError, ValueError) as err:
-        return message_page("Constelación no disponible", f"{ATLAS_SCRIPT} no pudo dibujar la constelación: {err}")
+        return message_page("Constelación no disponible", f"{ATLAS_SCRIPT} no pudo dibujar la constelación: {err}", lang)
 
 
 # --- Search progress ----------------------------------------------------------

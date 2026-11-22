@@ -3756,7 +3756,7 @@
             <div class="pdf-topbar__right">
               <span id="pdfRenderStatus" class="badge badge--warn" style="font-size: 0.72rem; display: none;" data-i18n="recompilePdf.rendering">⚡ Renderizando...</span>
               <button class="btn btn--sm" onclick="toggleStyleDrawer()" id="btnStyleDrawer" aria-controls="styleDrawer" aria-expanded="false" title="Índice de legibilidad, secciones y hallazgos de estilo y redundancia, cada uno ubicable en el PDF" data-i18n="page.styleRedundancy" data-i18n-attr="title:page.readabilityIndexSectionsStyleRedundancy">Estilo y redundancia</button>
-              <button class="btn btn--sm" onclick="window.open('/presentacion', '_blank')" id="btnPresentacion" title="Abrir la presentación de la propuesta (convocatoria, alianza, árboles y metodología) con el estilo de AgentPt" data-i18n="page.presentation" data-i18n-attr="title:page.openProposalPresentationFundingCall">🎞 Presentación</button>
+              <button class="btn btn--sm" onclick="window.open(i18n.withLanguage('/presentacion'), '_blank')" id="btnPresentacion" title="Abrir la presentación de la propuesta (convocatoria, alianza, árboles y metodología) con el estilo de AgentPt" data-i18n="page.presentation" data-i18n-attr="title:page.openProposalPresentationFundingCall">🎞 Presentación</button>
               <button class="btn btn--sm" onclick="recompilePdf()" id="btnRecompilePdf" title="Compilar de nuevo main.pdf con build.sh y recargar la previsualización" data-i18n="page.rebuild" data-i18n-attr="title:page.rebuildMainPdfWithBuild">⟳ Recompilar</button>
               <button class="btn btn--sm" onclick="toggleNativeViewer()" id="btnToggleNative" title="Alternar entre PDF.js y visor nativo del navegador" data-i18n="toggleNativeViewer.nativeViewer" data-i18n-attr="title:page.switchBetweenPdfJsBrowser">Visor Nativo</button>
               <a href="/api/pdf" download class="btn btn--sm" title="Descargar main.pdf compilado" data-i18n="page.download" data-i18n-attr="title:page.downloadBuiltMainPdf">⬇ Descargar</a>
@@ -9925,6 +9925,11 @@
       }
       applyThemeChrome(document.documentElement.getAttribute('data-theme') || 'dark');
       if (typeof rerenderForLanguage === 'function') rerenderForLanguage();
+      // A loaded graph page carries its own labels: it is asked for again
+      // (iframe.src adds ?lang=, i18n.js).
+      const graphFrame = document.getElementById('graphIframe');
+      const graphSrc = graphFrame && graphFrame.getAttribute('src');
+      if (graphSrc && graphSrc !== 'about:blank') graphFrame.src = `/api/graph/${currentGraphKind}?t=${Date.now()}`;
       loadStatus({ fresh: true });
     });
 

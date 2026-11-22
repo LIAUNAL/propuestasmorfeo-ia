@@ -158,3 +158,36 @@ test('an unknown saved language falls back to Spanish', () => {
     dom.window.close();
   }
 });
+
+test('embedded pages are asked for in the active language: iframes and the presentation', async (t) => {
+  const viewer = await dashboard(t);
+  const frame = viewer.document.createElement('iframe');
+  frame.src = '/api/graph/papers?t=1';
+  assert.equal(frame.getAttribute('src'), '/api/graph/papers?t=1', 'Spanish keeps the URL as it is');
+  viewer.window.i18n.setLanguage('en');
+  await flush(6);
+  frame.src = '/api/graph/papers?t=2';
+  assert.equal(frame.getAttribute('src'), '/api/graph/papers?t=2&lang=en');
+  frame.src = 'about:blank';
+  assert.equal(frame.getAttribute('src'), 'about:blank');
+  assert.equal(viewer.window.i18n.withLanguage('/presentacion'), '/presentacion?lang=en');
+  assert.equal(viewer.window.i18n.withLanguage('/static/x.js'), '/static/x.js');
+  const opened = [];
+  viewer.window.open = (url) => { opened.push(String(url)); return null; };
+  $(viewer, 'btnPresentacion').click();
+  assert.deepEqual(opened, ['/presentacion?lang=en']);
+  viewer.window.i18n.setLanguage('es');
+  await flush(6);
+});
+
+test('a loaded graph is asked for again in the new language', async (t) => {
+  const viewer = await dashboard(t);
+  const graph = $(viewer, 'graphIframe');
+  graph.setAttribute('src', '/api/graph/papers');
+  viewer.window.i18n.setLanguage('en');
+  await flush(6);
+  assert.match(graph.getAttribute('src'), /^\/api\/graph\/papers\?t=\d+&lang=en$/);
+  viewer.window.i18n.setLanguage('es');
+  await flush(6);
+  assert.match(graph.getAttribute('src'), /^\/api\/graph\/papers\?t=\d+$/);
+});

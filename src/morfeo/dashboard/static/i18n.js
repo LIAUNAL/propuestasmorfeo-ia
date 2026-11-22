@@ -51,9 +51,11 @@
 //
 // Server labels
 // -------------
-// Same-origin /api/ requests made through fetch() carry ?lang=<lang> when the
-// language is not Spanish; the server may then localize its display labels
-// (never a machine value). Spanish requests are sent unchanged, byte for byte.
+// Same-origin /api/ requests made through fetch() or loaded with iframe.src
+// carry ?lang=<lang> when the language is not Spanish; the server then
+// localizes its display labels (localize.py, never a machine value) and the
+// pages it renders write their chrome in that language. Spanish requests are
+// sent unchanged, byte for byte.
 (function () {
   'use strict';
 
@@ -214,7 +216,8 @@
     return next;
   }
 
-  // Same-origin /api/ URLs get ?lang=<lang> unless they already name one.
+  // Same-origin /api/ URLs (and the /presentacion page) get ?lang=<lang>
+  // unless they already name one.
   function withLanguage(url) {
     if (current === DEFAULT_LANGUAGE || typeof url !== 'string') return url;
     let parsed;
@@ -223,7 +226,8 @@
     } catch (_) {
       return url;
     }
-    if (parsed.origin !== window.location.origin || !parsed.pathname.startsWith('/api/')) return url;
+    const served = parsed.pathname.startsWith('/api/') || parsed.pathname === '/presentacion';
+    if (parsed.origin !== window.location.origin || !served) return url;
     if (parsed.searchParams.has('lang')) return url;
     parsed.searchParams.set('lang', current);
     return parsed.pathname + parsed.search + parsed.hash;
@@ -232,6 +236,19 @@
   if (typeof window.fetch === 'function') {
     const nativeFetch = window.fetch.bind(window);
     window.fetch = (input, init) => nativeFetch(typeof input === 'string' ? withLanguage(input) : input, init);
+  }
+
+  // Iframes too: a page the dashboard embeds through iframe.src (the graphs,
+  // the constellations) is asked for in the active language, as fetch is.
+  const Frame = window.HTMLIFrameElement;
+  const frameSrc = Frame && Object.getOwnPropertyDescriptor(Frame.prototype, 'src');
+  if (frameSrc && frameSrc.set && frameSrc.configurable) {
+    Object.defineProperty(Frame.prototype, 'src', {
+      configurable: true,
+      enumerable: frameSrc.enumerable,
+      get: frameSrc.get,
+      set(value) { frameSrc.set.call(this, typeof value === 'string' ? withLanguage(value) : value); },
+    });
   }
 
   // A non-default language hides the page until the markup is translated, so

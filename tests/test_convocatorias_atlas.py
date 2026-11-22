@@ -415,6 +415,48 @@ class TestAtlasRoute(unittest.TestCase):
         self.assertIn("convocatorias.py", page)
         self.assertNotIn('id="atlas-data"', page)
 
+    # --- ?lang=en: the dashboard's English view (S2 of odd/tasks/idioma-tablero-traduccion.md)
+
+    def test_english_page_writes_its_chrome_in_english_and_keeps_the_data(self):
+        self.write_calls([{"id": "c1", "titulo": "Salud digital", "financiador": "F", "url": "https://f.org",
+                           "ambito": "colombia", "temas": ["salud"], "estado": "abierta"}])
+        base = self.serve() + "/api/convocatorias/atlas?alcance=proyecto"
+        code, body, _ = self.get(base + "&lang=en")
+        self.assertEqual(code, 200)
+        self.assertIn('<html lang="en">', body)
+        self.assertIn("<title>Constellation of calls</title>", body)
+        self.assertIn("<h1>Constellation of calls · Project being drafted</h1>", body)
+        for english in ("<em>Groups:</em>", "topic shared with the profile", 'aria-label="Node card"',
+                        "'Cited evidence'", ">zoom in +<", "Constellation study", "'🚀 Start a proposal with this one'"):
+            self.assertTrue(english in body, english)
+        for spanish in ("<em>Grupos:</em>", "Ficha del nodo", ">acercar +<", "Estudio de constelaciones</button>"):
+            self.assertFalse(spanish in body, spanish)
+        self.assertEqual(scene_of(body), scene_of(self.get(base)[1]), "the scene is the same in both languages")
+
+    def test_spanish_page_is_the_same_with_or_without_lang(self):
+        self.write_calls([{"id": "c1", "titulo": "Salud digital", "financiador": "F", "url": "https://f.org",
+                           "ambito": "colombia", "temas": ["salud"], "estado": "abierta"}])
+        base = self.serve() + "/api/convocatorias/atlas?alcance=proyecto"
+        self.assertEqual(self.get(base)[1], self.get(base + "&lang=es")[1])
+        self.assertIn('<html lang="es">', self.get(base)[1])
+
+    def test_english_empty_state_and_error_pages(self):
+        base = self.serve() + "/api/convocatorias/atlas"
+        code, body, _ = self.get(base + "?lang=en")
+        self.assertEqual(code, 200)
+        self.assertIn('<html lang="en">', body)
+        self.assertIn("No calls yet", body)
+        self.assertIn("Press «Search for the project» or «Search for the LIA bank»", body)
+        code, body, _ = self.get(base + "?agrupar=color&lang=en")
+        self.assertEqual(code, 400)
+        self.assertIn("<title>Invalid request</title>", body)
+        code, body, _ = self.get(base + "?lang=fr")
+        self.assertEqual(code, 400, "an unknown page language is refused")
+        with mock.patch.object(value_chain, "_script_candidates", lambda name: []):
+            page = render_opportunities_atlas(self.ws, lang="en")
+        self.assertIn("Constellation unavailable", page)
+        self.assertIn("scripts/convocatorias.py with the constelacion function was not found in the kit.", page)
+
 
 if __name__ == "__main__":
     unittest.main()

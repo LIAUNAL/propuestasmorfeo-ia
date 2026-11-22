@@ -6,6 +6,7 @@ Uses Python's standard library (http.server) to guarantee zero external dependen
 
 from __future__ import annotations
 
+import html
 import importlib.util
 import json
 import mimetypes
@@ -55,7 +56,7 @@ from ..core.requirements import (
     update_item as update_requirement,
 )
 from . import terminal_routes
-from .localize import localize_response
+from .localize import localize_response, requested_language
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -1178,18 +1179,19 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
     # SOTA para el iframe de la vista «Constelación de afinidad». Se arma en cada
     # petición, sin caché. `?alcance=`, `?agrupar=tema|ambito|rol` e `?ids=`
     # (slugs separados por comas: los filtros del panel) son opcionales.
+    # `?lang=en` escribe en inglés el marco de la página (no los datos).
     def serve_opportunities_atlas(self) -> None:
         query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query, keep_blank_values=True)
         try:
             params = {}
-            for key in ("alcance", "agrupar", "ids"):
+            for key in ("alcance", "agrupar", "ids", "lang"):
                 values = query.get(key)
                 if values is not None and len(values) != 1:
                     raise ValueError(f"El parámetro «{key}» va una sola vez.")
                 params[key] = values[0] if values else None
             status, page = 200, render_opportunities_atlas(self.workspace_dir, **params)
         except ValueError as err:
-            status, page = 400, message_page("Petición inválida", str(err))
+            status, page = 400, message_page("Petición inválida", str(err), requested_language(self.path))
         body = page.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -1318,7 +1320,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         if run_dir is None:
             self.send_error(404, "No active run")
             return
-        body = build_presentation(run_dir).encode("utf-8")
+        # `?lang=en`: the deck's own words in English (the dashboard opens it in its language).
+        body = build_presentation(run_dir, requested_language(self.path)).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -1512,6 +1515,27 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             except Exception:
                 pass
 
+        english = requested_language(self.path) == "en"
+        if not graph_path.is_file() and english:
+            fallback = f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Graph unavailable</title></head>
+<body style="background:#0f172a;color:#94a3b8;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;">
+  <div style="background:#1e293b;padding:2.5rem;border-radius:12px;border:1px solid #334155;max-width:520px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+    <div style="font-size:2.5rem;margin-bottom:0.75rem;">🌌</div>
+    <h3 style="color:#38bdf8;margin:0 0 0.5rem 0;font-size:1.25rem;">Graph unavailable for this run</h3>
+    <p style="font-size:0.9rem;line-height:1.5;margin:0 0 1rem 0;">The report <code>{html.escape(filename)}</code> has not been generated yet in the <code>grafos/</code> folder of the active run.</p>
+    <p style="font-size:0.8rem;color:#64748b;margin:0;">Press <strong>⚡ Rebuild graph</strong> at the top right to build it.</p>
+  </div>
+</body>
+</html>""".encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+            self.send_header("Content-Length", str(len(fallback)))
+            self.end_headers()
+            self.wfile.write(fallback)
+            return
         if not graph_path.is_file():
             fallback = f"""<!DOCTYPE html>
 <html lang="es">
@@ -1533,13 +1557,38 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.wfile.write(fallback)
             return
 
-        content = graph_path.read_bytes()
+        content = (self._english_sota_page(run_dir) if english and filename == "papers-graph.html" else None) \
+            or graph_path.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
+
+    # The papers graph is the SOTA constellation that render_atlas.py wrote in
+    # Spanish. In English it is drawn again from the run's atlas with the
+    # English chrome (render_atlas.render(lang="en")); the atlas, the quotes and
+    # the paper metadata are the same. None (the file on disk is served) when
+    # the run has no readable atlas or the kit's renderer predates the languages.
+    def _english_sota_page(self, run_dir: Path) -> bytes | None:
+        import inspect
+
+        from ..core.value_chain import load_kit_script
+
+        atlas_path = run_dir / "artefactos" / "scoping" / "atlas.json"
+        module = load_kit_script("render_atlas.py", ("render",))
+        render = getattr(module, "render", None) if module is not None else None
+        if not atlas_path.is_file() or not callable(render) or "lang" not in inspect.signature(render).parameters:
+            return None
+        try:
+            atlas = json.loads(atlas_path.read_text(encoding="utf-8"))
+            if module._readable_shape(atlas) is not None:
+                return None
+            papers = module.papers_meta(atlas, atlas_path.parent / "papers")
+            return render(atlas, papers=papers, lang="en").encode("utf-8")
+        except Exception:  # the Spanish page on disk is still there
+            return None
 
 
 def bind_dashboard(workspace_dir: Path, port: int, host: str = "127.0.0.1",
