@@ -27,10 +27,25 @@ other agents can build on.
    (Investigador, Redactor, Bibliografo-Propuesta) can consume it without re-reading
    raw files.
 
+## Writing language (`LANG`)
+
+The dispatcher passes `LANG=es` or `LANG=en` in the prompt: the run's writing
+language (`python3 scripts/language.py run <RUN_ROOT>`; `es` when absent, and
+always `es` in the SGR flow). With `LANG=es` everything below applies as
+written. With `LANG=en`, every deliverable this prompt calls Spanish is written
+in English: apply `estilo-natural-en` and `depuracion-redundancias-en` wherever
+this prompt names `estilo-natural-es` and `depuracion-redundancias-es`, and run
+`scripts/estilo_en.py audit`/`verify` (same arguments) wherever it names
+`scripts/estilo_es.py auditar`/`verificar`. The guide
+`guiaProyectosIA_Agente.md` stays in Spanish: follow its instructions and write
+in the run's language. What this prompt marks as verbatim (headings, JSON keys,
+labels, BibTeX keys, file names, gate tokens such as PASS/FAIL) never changes
+with the language.
+
 ## Output language
 
-Your digest is in **Spanish** (to match proposal output), but you may quote
-English source text where relevant.
+Your digest is in the run's writing language (Spanish by default, to match proposal
+output), but you may quote source text in its own language where relevant.
 
 ## Caché de extracción por hash (Fase 0 — antes de clasificar)
 
@@ -264,7 +279,7 @@ a section:
 
 **Fuentes:** <paths relative to insumos/>
 
-<structured summary in Spanish: problema, enfoque, beneficiarios,
+<structured summary in the run's language: problema, enfoque, beneficiarios,
 restricciones mencionadas, preguntas abiertas — quote key phrases; do not
 invent facts not in the files>
 

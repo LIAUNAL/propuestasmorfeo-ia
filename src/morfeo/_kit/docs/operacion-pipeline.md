@@ -272,3 +272,31 @@ IA. Sus umbrales son provisionales y nunca reprueban una unidad; solo
 `verificar` bloquea, cuando el pulido movió una cifra, una cita, una etiqueta o
 un párrafo. Una lista de términos protegidos, armada en cada corrida, evita
 penalizar el vocabulario MGA y las copias literales que la guía exige.
+
+En una corrida en inglés, `scripts/estilo_en.py` cumple el mismo papel con el
+mismo motor, los mismos umbrales y el mismo esquema de reporte
+(`artefactos/estilo/reporte.json`, más la clave `idioma`), y acepta los nombres
+de comando del español (`auditar`, `verificar`, `--seccion`, `--todo`).
+
+## Idioma de redacción
+
+El idioma lo fija el proyecto (`"lang"` en `.morfeo/config.json`, `es` por
+defecto; `morfeo init --lang` y `morfeo config lang`) y cada corrida guarda el
+suyo al crearse: `scripts/init-run.sh` escribe `| idioma | en |` en el `_run.md`
+de una corrida en inglés y no escribe nada en una en español, así que una
+corrida nunca mezcla dos idiomas. El dispatcher lo lee con
+`python3 scripts/language.py run <RUN_ROOT>` y pasa `LANG=<es|en>` en cada
+despacho. Con `en`:
+
+| Pieza | Comportamiento |
+|---|---|
+| Agentes | Redactan en inglés; la guía sigue en español y la leen igual |
+| Estilo | `estilo-natural-en`, `depuracion-redundancias-en` y `scripts/estilo_en.py` |
+| Plantilla | `main.tex` con `babel` en inglés, «Table» y nombres de `cleveref` en inglés; portada con `[To be defined: ...]` |
+| DOCX | `prep_docx.py` toma los sustantivos de referencia del `babel` de `main.tex` |
+| `check_run.py` | Detecta el idioma (o `--lang`); reglas de TRL, portada, nombre de tablas en el PDF y árboles en inglés; `--json` agrega `"lang": "en"` |
+
+El flujo SGR se redacta solo en español (metodología MGA del DNP): `morfeo
+config lang en` lo rechaza y las herramientas lo tratan como `es`. Los tokens
+de compuerta (`PASS`, `FAIL`, `APROBADA`) y las claves de los JSON no se
+traducen. El idioma del tablero es otro ajuste, propio de cada persona.

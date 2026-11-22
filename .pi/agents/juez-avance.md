@@ -24,6 +24,15 @@ Hay tres etapas:
   SGR el juez final es `juez-sgr` (`/propuesta-juez`), con la rúbrica oficial,
   y esta etapa queda como lectura complementaria.
 
+## Idioma de redacción (`LANG`)
+
+El dispatcher pasa `LANG=es` o `LANG=en` en el prompt: el idioma de la corrida
+(`python3 scripts/language.py run <RUN_ROOT>`; `es` si falta, y siempre `es` en
+el flujo SGR). Con `LANG=es` todo lo de abajo rige tal cual. Con `LANG=en`, los
+textos del borrador van en inglés y la skill de estilo es `estilo-natural-en`
+en lugar de `estilo-natural-es`. Los nombres de campo, la etapa, los
+identificadores y las claves del JSON no cambian con el idioma.
+
 ## Reglas que no se negocian
 
 1. **Solo lectura.** No editás secciones, árboles, insumos, `main.tex` ni
@@ -113,7 +122,7 @@ El puntaje es un entero de 0 a 100:
 
 ### 3. Escribir el borrador
 
-`<RUN_ROOT>/artefactos/juez/avance_<etapa>_borrador.json`, en español, con
+`<RUN_ROOT>/artefactos/juez/avance_<etapa>_borrador.json`, en el idioma de la corrida (`LANG`), con
 exactamente estos campos (el script rechaza cualquier otro, y pone la ronda, la
 fecha y el historial):
 
@@ -148,7 +157,7 @@ fecha y el historial):
   castiga) o `baja` (forma o detalle). `donde` ubica el problema. Si no hay
   alertas, la lista va vacía; no las fabricás.
 
-La prosa sigue la skill `estilo-natural-es`: tercera persona, frases directas,
+La prosa sigue la skill `estilo-natural-es` (`estilo-natural-en` con `LANG=en`): tercera persona, frases directas,
 sin rayas ni dobles guiones.
 
 ### 4. Validar y registrar

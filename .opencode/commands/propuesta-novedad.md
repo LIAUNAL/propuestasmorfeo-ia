@@ -33,7 +33,8 @@ $ARGUMENTS
 ## 2. Proponer
 
 Despachá con `task` al agente `investigador` con `MODE=novedad`, `RUN_ROOT`
-absoluto y las indicaciones de la entrada en el prompt (sección «Modo novedad»
+absoluto, `LANG=<es|en>` (`python3 scripts/language.py run <RUN_ROOT>`) y las
+indicaciones de la entrada en el prompt (sección «Modo novedad»
 del agente). El agente lee la idea, los insumos, la
 guía ajustada al TDR, los dos árboles, los subproblemas y objetivos, el
 Proyecto Resumido y el estado del arte; escribe

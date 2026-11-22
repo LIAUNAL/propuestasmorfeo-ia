@@ -29,9 +29,24 @@ entire directory or pipeline run is missing/stale). When the dispatcher's
 prompt already gives you exact absolute paths, `Read` them directly instead of
 using `Glob` to rediscover them.
 
+## Writing language (`LANG`)
+
+The dispatcher passes `LANG=es` or `LANG=en` in the prompt: the run's writing
+language (`python3 scripts/language.py run <RUN_ROOT>`; `es` when absent, and
+always `es` in the SGR flow). With `LANG=es` everything below applies as
+written. With `LANG=en`, every deliverable this prompt calls Spanish is written
+in English: apply `estilo-natural-en` and `depuracion-redundancias-en` wherever
+this prompt names `estilo-natural-es` and `depuracion-redundancias-es`, and run
+`scripts/estilo_en.py audit`/`verify` (same arguments) wherever it names
+`scripts/estilo_es.py auditar`/`verificar`. The guide
+`guiaProyectosIA_Agente.md` stays in Spanish: follow its instructions and write
+in the run's language. What this prompt marks as verbatim (headings, JSON keys,
+labels, BibTeX keys, file names, gate tokens such as PASS/FAIL) never changes
+with the language.
+
 ## Output language
 
-Your prose and table (§13) are in **Spanish**. Your reasoning with the
+Your prose and table (§13) are in the run's writing language (**`LANG`**, Spanish by default). Your reasoning with the
 Orchestrator may be in English.
 
 ## Modos de operación

@@ -91,8 +91,11 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
 
 ## Reglas globales
 
-1. **Idioma:** Los *system prompts* de los agentes están en inglés, pero toda
-   la **salida del documento (propuesta) debe redactarse en español**.
+1. **Idioma:** Los *system prompts* de los agentes están en inglés; la
+   **salida del documento (propuesta) se redacta en el idioma de la corrida**,
+   `LANG`: `es` por defecto o `en` (`morfeo config lang`; el SGR, solo `es`). El
+   dispatcher pasa `LANG` a cada agente; en inglés rigen las skills `-en` y
+   `scripts/estilo_en.py`.
 2. **Insumos:** La propuesta se construye desde un prompt/idea del usuario más
    PDFs, papers, enlaces o información relevante que este aporte. Los archivos
    fuente (PDFs, papers, propuestas previas, documentos de referencia) se
@@ -174,9 +177,7 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
    **dentro de `RUN_ROOT`**, nunca en la raíz del repo; las únicas rutas
    relativas a la raíz son las del framework (`.claude/`, `.opencode/`,
    `.pi/`, `scripts/`, `guiaProyectosIA_Agente.md`, `AGENTS.md`,
-   `plantilla/`, `proposals/`). Ninguno de los cuatro nombres de subcarpeta
-   colisiona con un directorio del repo, así que una ruta de corrida nunca es
-   ambigua. Archivar una corrida es solo un cambio de estado en su `_run.md` y en el
+   `plantilla/`, `proposals/`). Archivar una corrida es solo un cambio de estado en su `_run.md` y en el
    registro local `proposals/registry.md`: la carpeta ya **es** el archivo, no
    se copia ni se borra contenido. **Nada bajo `proposals/` se versiona**
    —corridas, registro y puntero incluidos—, así que ni crear ni cerrar una
@@ -289,7 +290,8 @@ y a los generadores, y se regeneran los ports con su `--check`.
 **Alcance.** Pasa por ella cualquier prosa en español que el marco produzca. Eso
 incluye las secciones de la propuesta (§1–§18 y el front-matter) y también los
 artefactos que el asistente primario redacta por su cuenta: `LEEME`, documentos
-de `odd/tasks/`, guías, reportes y notas de corrida.
+de `odd/tasks/`, guías, reportes y notas de corrida. En una corrida en inglés
+(`LANG=en`) la misma regla rige con `estilo-natural-en`.
 
 **Mecánica, según quién escriba.**
 
@@ -310,9 +312,6 @@ cifra, una fecha ni una clave de cita.
 - **Prohibición de rayas anglosajonas y dobles guiones:** Queda terminantemente prohibido el uso de `--` o ` — ` en la prosa narrativa. Los incisos se resuelven con comas, punto y coma o paréntesis.
 - **Formato de citación:** el de la regla 6.
 - **Estructura fija:** Los párrafos requeridos por la guía (ej. los 6 de §2) y el mapeo 1:1 (3 subproblemas ↔ 3 objetivos específicos) son inalterables.
-
-**Por qué vive aquí.** Como paso del pipeline solo cubría las secciones y dejaba
-fuera el resto de la prosa en español.
 
 ## Operación del pipeline (solo para quien despacha)
 

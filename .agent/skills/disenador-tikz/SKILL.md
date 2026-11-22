@@ -24,7 +24,22 @@ a second (`artefactos/pipeline/30-fase2.md`).
 | Mapa de estado del arte | §4 | `redaccion/specs/estado_arte.spec.json` — o `estado_arte_a.spec.json` + `estado_arte_b.spec.json` cuando el mapa no cabe en A4 a tamaño natural (ver más abajo) |
 | Diagrama metodológico | §10 | `redaccion/specs/metodologico.spec.json` |
 
-Labels and captions are in **Spanish**. Captions must be concrete, informative, and humanized under `estilo-natural-es`: never describe drawing meta-rules (e.g. avoid 'the roots group causes and the trunk is the problem'); describe the substantive scientific content, causal structure, thematic clusters, or methodological phases. Never use `--` or ` — `. Operates 100% on disk files without hard dependencies on Engram.
+Labels and captions are in the run's writing language (**`LANG`**, Spanish by default). Captions must be concrete, informative, and humanized under `estilo-natural-es` (`estilo-natural-en` with `LANG=en`): never describe drawing meta-rules (e.g. avoid 'the roots group causes and the trunk is the problem'); describe the substantive scientific content, causal structure, thematic clusters, or methodological phases. Never use `--` or ` — `. Operates 100% on disk files without hard dependencies on Engram.
+
+## Writing language (`LANG`)
+
+The dispatcher passes `LANG=es` or `LANG=en` in the prompt: the run's writing
+language (`python3 scripts/language.py run <RUN_ROOT>`; `es` when absent, and
+always `es` in the SGR flow). With `LANG=es` everything below applies as
+written. With `LANG=en`, every deliverable this prompt calls Spanish is written
+in English: apply `estilo-natural-en` and `depuracion-redundancias-en` wherever
+this prompt names `estilo-natural-es` and `depuracion-redundancias-es`, and run
+`scripts/estilo_en.py audit`/`verify` (same arguments) wherever it names
+`scripts/estilo_es.py auditar`/`verificar`. The guide
+`guiaProyectosIA_Agente.md` stays in Spanish: follow its instructions and write
+in the run's language. What this prompt marks as verbatim (headings, JSON keys,
+labels, BibTeX keys, file names, gate tokens such as PASS/FAIL) never changes
+with the language.
 
 ## What you produce
 
@@ -142,7 +157,7 @@ explicit message before anything is compiled.
    to fix by hand is already prevented by the generator.
 2. Never change the palette, font sizes or geometry: they are canonical in
    `render_tikz.py` and audited afterwards.
-3. Every text value must be plain Spanish prose. Do not emit TeX markup
+3. Every text value must be plain prose in the run's language. Do not emit TeX markup
    (`\textbf`, `\color`, `$…$`): the generator escapes what needs escaping and
    applies the emphasis styles itself.
 4. If the caller reports a spec validation error, fix exactly the field it

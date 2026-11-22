@@ -101,6 +101,13 @@ lugar (mismo momento: antes del `revisor`). El flujo base sigue con
 `grant-flow-auditor`. El inventario de `pipeline_units.py` aplica el mismo
 reemplazo (`AGENT_REPLACEMENTS_FLUJO`) solo al flujo SGR.
 
+**Idioma de redacción (`LANG`).** Cada fila despacha sus agentes con
+`LANG=<es|en>` en el prompt (`python3 scripts/language.py run <RUN_ROOT>`; el
+flujo SGR es siempre `es`). Con `en`, el auditor y los autores aplican
+`estilo-natural-en` y `depuracion-redundancias-en` y el puntaje lo da
+`scripts/estilo_en.py`; la regla completa está en `## Raíz de corrida` de
+`propuesta.md`.
+
 **Pre-intake units** (only in analizar / start of auto, not as `next_step` after
 intake):
 

@@ -225,5 +225,70 @@ class InitLanguageTest(unittest.TestCase):
         self.assertEqual(get_project_status(target, force_refresh=True)["lang"], "es")
 
 
+class AgentsCarryLanguageTest(unittest.TestCase):
+    """The dispatcher passes LANG to every agent that writes or judges prose, and
+    each of those agents maps its Spanish rules to the English ones."""
+
+    WRITERS = ("bibliografo-propuesta", "coordinador-propuesta", "disenador-tikz", "grant-flow-auditor",
+               "insumos-observador", "investigador", "juez-avance", "presupuestador", "redactor", "revisor",
+               "revisor-redundancia")
+    SPANISH_ONLY = ("juez-sgr", "revisor-estilo-sgr")
+    STALE = ("always in Spanish", "deliverables are in **Spanish**", "is in **Spanish**", "are in **Spanish**",
+             "plain Spanish prose", "Your prose for §4 is in **Spanish**")
+
+    @staticmethod
+    def read(rel: str) -> str:
+        return (REPO / rel).read_text(encoding="utf-8")
+
+    def test_every_writing_agent_reads_lang_and_the_english_skill(self) -> None:
+        for agent in self.WRITERS:
+            text = self.read(f".claude/agents/{agent}.md")
+            with self.subTest(agent=agent):
+                self.assertIn("LANG", text)
+                self.assertIn("estilo-natural-en", text)
+                self.assertIn("scripts/language.py run", text)
+                for stale in self.STALE:
+                    self.assertNotIn(stale, text)
+
+    def test_the_spanish_rules_stay_for_spanish_runs(self) -> None:
+        for agent in self.WRITERS:
+            with self.subTest(agent=agent):
+                self.assertRegex(self.read(f".claude/agents/{agent}.md"), r"LANG=es")
+
+    def test_the_sgr_agents_stay_spanish_only(self) -> None:
+        for agent in self.SPANISH_ONLY:
+            with self.subTest(agent=agent):
+                self.assertNotIn("LANG=en", self.read(f".claude/agents/{agent}.md"))
+
+    def test_the_auditor_and_the_redundancy_reviewer_pick_the_english_check(self) -> None:
+        self.assertIn("scripts/estilo_en.py", self.read(".claude/agents/grant-flow-auditor.md"))
+        self.assertIn("estilo_en.py audit <RUN_ROOT> --all", self.read(".claude/agents/revisor-redundancia.md"))
+
+    def test_the_dispatcher_passes_lang_in_every_dispatch(self) -> None:
+        pipeline = self.read(".claude/commands/propuesta.md")
+        start = pipeline.index("## Raíz de corrida")
+        root_section = pipeline[start:pipeline.index("\n## ", start + 1)]
+        self.assertIn("python3 scripts/language.py run <RUN_ROOT>", root_section)
+        self.assertIn("`LANG=<es|en>`", root_section)
+        for name in ("estilo-natural-en", "depuracion-redundancias-en", "scripts/estilo_en.py"):
+            self.assertIn(name, root_section)
+        for command in ("_propuesta-steps.md", "propuesta-continuar.md", "propuesta-analizar.md",
+                        "propuesta-juez-avance.md", "propuesta-novedad.md"):
+            with self.subTest(command=command):
+                self.assertIn("LANG=<es|en>", self.read(f".claude/commands/{command}"))
+
+    def test_agents_md_states_the_language_rule(self) -> None:
+        agents_md = self.read("AGENTS.md")
+        rule = agents_md[agents_md.index("1. **Idioma:**"):agents_md.index("2. **Insumos:**")]
+        for needle in ("LANG", "`es`", "`en`", "morfeo config lang", "SGR", "scripts/estilo_en.py"):
+            self.assertIn(needle, rule)
+
+    def test_the_ports_carry_the_language_rule(self) -> None:
+        for path in (".pi/agents/redactor.md", ".opencode/agents/redactor.md", ".agent/skills/redactor/SKILL.md",
+                     "src/morfeo/_kit/.claude/agents/redactor.md"):
+            with self.subTest(path=path):
+                self.assertIn("LANG=en", self.read(path))
+
+
 if __name__ == "__main__":
     unittest.main()
