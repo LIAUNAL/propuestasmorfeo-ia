@@ -21,10 +21,10 @@ S6. Atlas summary panel (L1, verbatim): «ajsuta el panel grafos atlas, para que
 
 | ID | Specs | Route | Status | Commit |
 |----|-------|-------|--------|--------|
-| T1 | S1 | delegated writer, isolated worktree, parallel with T2, T3, T4 | pending | |
-| T2 | S2, S3 | delegated writer, isolated worktree, parallel | pending | |
-| T3 | S5 | delegated writer, isolated worktree, parallel | pending | |
-| T4 | S6 | delegated writer, isolated worktree, parallel | pending | |
+| T1 | S1 | delegated writer, isolated worktree, parallel with T2, T3, T4 | done | 79747de (py import RED, 7 writer + 3 HTTP + 8 js tests GREEN; full py 1721 OK, js 332/332; differential identical; no browser check at 360 px yet; PAGE_SCRIPTS merge conflict resolved by the parent) |
+| T2 | S2, S3 | delegated writer, isolated worktree, parallel | done | 27ca670, 4e7ad08, aaafcd3, 9276ef0 (writer RED→GREEN on script, routes, UI, folds, mga redirect; roster/port follow-up patch applied by the parent) |
+| T3 | S5 | delegated writer, isolated worktree, parallel | done | 46e2876 (14 js + 11 py RED→GREEN; full py 1707 OK, js 338/338; Chrome: 340/340 findings located on the sample run, no overflow at 360 px; adds optional `oracion_texto` to `/api/estilo`) |
+| T4 | S6 | delegated writer, isolated worktree, parallel | done | 4b16e96 (11 py + 5 js RED→GREEN; full py 1707 OK, js 329/329; headless Chrome click → panel at 1440/390/360 px) |
 | T5 | S4 | delegated writer after T2 merges (reuses the judge and folds) | pending | |
 | T6 | all | inline (parent): merge, regenerate kit and ports, docs, full suites, seam check, commits | pending | |
 
@@ -37,3 +37,5 @@ L1 (2026-11-22, user, verbatim): «ahora, vamos a hacer alugnos cambios: 1) en e
 L2 (2026-11-22, exploration): no Morfeo panel runs an LLM; the server returns a slash command, `sendTerminalPrompt` (`static/cli-console.js:53`) types it into the PTY terminal and panels poll result files. Convocatorias has no progress signal today (agent `explorador-convocatorias`, 5 phases). Papersmith's judge (`paper-reviewer`) stores only `contribution_type` and a prose `report`, so S2 needs a new structured schema. Papersmith folds: `section-folds.js` (`data-fold` → `<details class="exp-fold">`, `localStorage['papersmith.folds']`). Novelty tree: `model-panel.js` `noveltyTree()`/`drawNoveltyArrows()` (pillars, hypotheses, SVG Bézier arrows, hover focus). Papersmith matrices are the candidate matrix (`table.matrix-table`) and the hypotheses vs evidence table; neither is a value-chain matrix. PDF locate: `findTextInPdf` + `jumpToPdfPage`. Atlas side panel: `render_atlas.py` `#side`/`showSide`/`SIDE_SECTIONS`; Morfeo's `render_atlas.py` already posts `atlas-planet-selected` but opens a modal (`showPlanet`).
 
 L3 (2026-11-22, decisions, assumptions): new agent `juez-avance` with command `/propuesta-juez-avance <arbol|novedad>` and validator `scripts/juez_avance.py`, output `artefactos/juez/avance_<etapa>.json`; generation of S4 through a new command `/propuesta-novedad` with validator `scripts/novedad.py`; the novelty artifact is advisory and does not rewrite §5/§7/§10 (not requested). Progress priors per phase are estimates refined from recorded durations of earlier runs. Single feature branch with work-unit commits; PR slicing asked before any PR.
+
+L4 (2026-11-22, integration): T4, T3, T1 and T2 cherry-picked onto the feature branch; one conflict in `PAGE_SCRIPTS` (server.py) merged by the parent; T2's out-of-surface follow-up (roster in `.claude/commands/propuesta.md`, `scripts/gen-*.rules.json`, `.pi/README.md`, three JS tests asserting the old MGA tab) applied and the kit and ports regenerated (all four `--check` exit 0). Seam check: Python 1766 tests, 1 failure only from the writer worktrees under `.claude/worktrees` (scanned by `test_figure_pipeline`), green after removing them; JS 376/376. AGENTS.md sits at the 24000-character budget (`tests/test_token_budget.py`). Native assess over 857acec..HEAD: risk high, review due.
