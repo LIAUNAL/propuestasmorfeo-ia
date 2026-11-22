@@ -136,7 +136,7 @@ BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 # Page code moved out of index.html: it must stay as fresh as the page that
 # loads it, so a cached copy never runs against a newer index.html.
 PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js", "convocatorias-progress.js",
-                          "pdf-locate.js", "novedad-panel.js", "text-size.js"})
+                          "pdf-locate.js", "novedad-panel.js", "text-size.js", "i18n.js"})
 
 
 # --- Sentence text of the style findings --------------------------------------
@@ -393,7 +393,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         # The brand images share paths with other local dashboards; revalidate
         # them so a port reused by another tool never shows its cached icon.
-        if target.name in BRAND_ASSETS or target.name in PAGE_SCRIPTS:
+        # The language catalogues (static/i18n/<lang>/*.js) change with the page too.
+        if target.name in BRAND_ASSETS or target.name in PAGE_SCRIPTS or (static_dir / "i18n") in target.parents:
             self.send_header("Cache-Control", "no-cache")
         else:
             self.send_header("Cache-Control", "public, max-age=3600")

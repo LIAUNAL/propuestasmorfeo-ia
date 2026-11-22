@@ -12,6 +12,9 @@
   <script src="/static/vendor/xterm.js"></script>
   <script src="/static/vendor/xterm-addon-fit.js"></script>
   <script src="/static/text-size.js"></script>
+  <script src="/static/i18n/es/core.js"></script>
+  <script src="/static/i18n/en/core.js"></script>
+  <script src="/static/i18n.js"></script>
   <style>
     :root {
       --bg: #0b0f19;
@@ -65,6 +68,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     /* text-size.js scales the root, and every rem with it. */
     html { font-size: calc(100% * var(--text-scale, 1)); }
+    /* i18n.js: a saved non-default language hides the page until the markup is translated. */
+    html[data-i18n-pending] body { visibility: hidden; }
     body {
       background: var(--bg);
       color: var(--text);
@@ -3028,28 +3033,32 @@
   <!-- Top bar -->
   <header class="topbar">
     <div class="topbar__brand">
-      <div class="topbar__avatar-wrap" title="Morfeo IA: Orquestador de Formulación Científica en IA">
+      <div class="topbar__avatar-wrap" title="Morfeo IA: Orquestador de Formulación Científica en IA" data-i18n-attr="title:page.morfeoIaAiResearchProposal">
         <img src="/static/morfeo-logo.png?app=morfeo" alt="Morfeo IA" class="topbar__avatar">
       </div>
       <div class="topbar__title">
         <h1 id="topbarProjectTitle" title="Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo">Morfeo IA: Sistema de inteligencia artificial portable para la identificación de patrones de depresión asociados a estrés postraumático en estudiantes universitarios afectados por el sismo</h1>
-        <p>Laboratorio de Inteligencia Artificial · Universidad Nacional de Colombia</p>
+        <p data-i18n="page.artificialIntelligenceLaboratoryUniversidadNacional">Laboratorio de Inteligencia Artificial · Universidad Nacional de Colombia</p>
       </div>
     </div>
     <div class="topbar__actions">
       <span class="badge badge--live">LIVE</span>
-      <span class="badge badge--info" id="flujoBadge" title="Flujo de redacción del proyecto">Flujo base</span>
+      <span class="badge badge--info" id="flujoBadge" title="Flujo de redacción del proyecto" data-i18n="renderFlujoBadge.baseFlow" data-i18n-attr="title:page.writingFlowProject">Flujo base</span>
       <select id="runSelector" class="btn" onchange="changeActiveRun(this.value)">
-        <option value="">Cargando corridas...</option>
+        <option value="" data-i18n="page.loadingRuns">Cargando corridas...</option>
       </select>
-      <button class="btn" onclick="toggleTheme()" id="themeBtn" title="Cambiar tema" aria-label="Cambiar tema">☀️ <span class="btn__label">Claro</span></button>
-      <select id="textSizeSelect" class="btn" aria-label="Tamaño del texto" title="Tamaño del texto">
+      <button class="btn" onclick="toggleTheme()" id="themeBtn" title="Cambiar tema" aria-label="Cambiar tema" data-i18n-attr="title:page.switchTheme;aria-label:page.switchTheme">☀️ <span class="btn__label" data-i18n="applyThemeChrome.light">Claro</span></button>
+      <select id="textSizeSelect" class="btn" aria-label="Tamaño del texto" title="Tamaño del texto" data-i18n-attr="aria-label:page.textSize;title:page.textSize">
         <option value="1">A ×1</option>
         <option value="1.25">A ×1.25</option>
         <option value="1.5">A ×1.5</option>
         <option value="2">A ×2</option>
       </select>
-      <button class="btn btn--primary" id="boardRefreshBtn" onclick="refreshBoard()" title="Regenera los grafos de la corrida e informa el estado actual y lo que falta" aria-label="Actualizar tablero">⟳ <span class="btn__label">Actualizar tablero</span></button>
+      <select id="langSelect" class="btn" data-lang-select aria-label="Idioma · Language" title="Idioma · Language">
+        <option value="es" lang="es">ES</option>
+        <option value="en" lang="en">EN</option>
+      </select>
+      <button class="btn btn--primary" id="boardRefreshBtn" onclick="refreshBoard()" title="Regenera los grafos de la corrida e informa el estado actual y lo que falta" aria-label="Actualizar tablero" data-i18n-attr="title:page.rebuildsRunSGraphsReports;aria-label:page.refreshBoard">⟳ <span class="btn__label" data-i18n="page.refreshBoard">Actualizar tablero</span></button>
     </div>
   </header>
 
@@ -3057,8 +3066,8 @@
   <div class="meta-strip">
     <div class="meta-strip__left">
       <div class="meta-strip__item">
-        <strong>Propuesta:</strong>
-        <span id="metaProposalTitle">Cargando...</span>
+        <span data-i18n-html="page.proposal"><strong>Propuesta:</strong></span>
+        <span id="metaProposalTitle" data-i18n="page.loading">Cargando...</span>
       </div>
     </div>
     <div class="totals-bar" id="totalsContainer">
@@ -3067,17 +3076,17 @@
   </div>
 
   <!-- Navigation tabs -->
-  <nav class="tabs-nav" aria-label="Navegación del tablero">
-    <button class="tab-nav__btn active" onclick="navigateTab('flow')">Flujo general</button>
-    <button class="tab-nav__btn" onclick="navigateTab('convocatorias')">Convocatorias</button>
-    <button class="tab-nav__btn" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
-    <button class="tab-nav__btn" onclick="navigateTab('trees')">Árbol de problemas y objetivos</button>
-    <button class="tab-nav__btn" onclick="navigateTab('novedad')">Novedad e hipótesis</button>
-    <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
-    <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
-    <button class="tab-nav__btn" onclick="navigateTab('preview')">Previsualización PDF</button>
-    <button class="tab-nav__btn" onclick="navigateTab('artifacts')">Artefactos</button>
-    <button class="tab-nav__btn" onclick="navigateTab('telemetria')">Telemetría y Costos</button>
+  <nav class="tabs-nav" aria-label="Navegación del tablero" data-i18n-attr="aria-label:page.boardNavigation">
+    <button class="tab-nav__btn active" onclick="navigateTab('flow')" data-i18n="page.overview">Flujo general</button>
+    <button class="tab-nav__btn" onclick="navigateTab('convocatorias')" data-i18n="page.fundingCalls">Convocatorias</button>
+    <button class="tab-nav__btn" onclick="navigateTab('pipeline')" data-i18n="page.pipelineProgress">Pipeline y Avance</button>
+    <button class="tab-nav__btn" onclick="navigateTab('trees')" data-i18n="page.problemObjectiveTrees">Árbol de problemas y objetivos</button>
+    <button class="tab-nav__btn" onclick="navigateTab('novedad')" data-i18n="page.noveltyHypothesis">Novedad e hipótesis</button>
+    <button class="tab-nav__btn" onclick="navigateTab('sections')" data-i18n="page.sections">Secciones</button>
+    <button class="tab-nav__btn" onclick="navigateTab('atlas')" data-i18n="page.projectGraphs">Grafos Proyecto</button>
+    <button class="tab-nav__btn" onclick="navigateTab('preview')" data-i18n="page.pdfPreview">Previsualización PDF</button>
+    <button class="tab-nav__btn" onclick="navigateTab('artifacts')" data-i18n="page.artifacts">Artefactos</button>
+    <button class="tab-nav__btn" onclick="navigateTab('telemetria')" data-i18n="page.telemetryCosts">Telemetría y Costos</button>
   </nav>
 
   <!-- Main content area -->
@@ -3088,13 +3097,13 @@
     <div id="pane-flow" class="tab-pane active">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Diagrama Interactivo de Arquitectura y Flujo (Archify)</div>
+          <div class="panel__title" data-i18n="page.interactiveArchitectureFlowDiagramArchify">Diagrama Interactivo de Arquitectura y Flujo (Archify)</div>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
             <span class="badge badge--ok">SHOWCASE · PASSED</span>
-            <a href="/api/flow" target="_blank" class="btn btn--primary">Abrir en pestaña nueva ↗</a>
+            <a href="/api/flow" target="_blank" class="btn btn--primary" data-i18n="page.openNewTab">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
-        <iframe id="flowIframe" class="iframe-viewer" src="about:blank" data-src="/api/flow?theme=dark" title="Flujo Archify"></iframe>
+        <iframe id="flowIframe" class="iframe-viewer" src="about:blank" data-src="/api/flow?theme=dark" title="Flujo Archify" data-i18n-attr="title:page.archifyFlow"></iframe>
       </div>
 
       <!-- Panel de Propósito de la Etapa Seleccionada en el Diagrama Archify -->
@@ -3103,13 +3112,13 @@
           <div>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span class="badge badge--info" id="archifyStageBadge">ETAPA</span>
-              <strong id="archifyStageTitle" style="font-size: 0.95rem; color: #f8fafc;">Nombre de la etapa</strong>
+              <strong id="archifyStageTitle" style="font-size: 0.95rem; color: #f8fafc;"><span data-i18n="page.stageName">Nombre de la etapa</span></strong>
             </div>
             <div id="archifyStagePurpose" style="margin-top: 0.35rem; font-size: 0.85rem; line-height: 1.45; color: #cbd5e1;">
               <!-- Descripción corta de dos líneas del propósito de la etapa y caja seleccionada -->
             </div>
           </div>
-          <button type="button" class="btn btn--subtle btn--sm" onclick="document.getElementById('archifyStagePurposePanel').style.display='none'" title="Cerrar descripción">✕</button>
+          <button type="button" class="btn btn--subtle btn--sm" onclick="document.getElementById('archifyStagePurposePanel').style.display='none'" title="Cerrar descripción" data-i18n-attr="title:page.closeDescription">✕</button>
         </div>
       </div>
     </div>
@@ -3118,22 +3127,22 @@
     <div id="pane-pipeline" class="tab-pane">
       <div class="metrics-grid">
         <div class="metric-card">
-          <div class="metric-card__label">Corrida Activa</div>
+          <div class="metric-card__label" data-i18n="page.activeRun">Corrida Activa</div>
           <div id="statRunId" class="metric-card__val">—</div>
           <div id="statRunDir" class="metric-card__sub">—</div>
         </div>
         <div class="metric-card">
-          <div class="metric-card__label">Compuertas Aprobadas</div>
+          <div class="metric-card__label" data-i18n="page.approvedGates">Compuertas Aprobadas</div>
           <div id="statGatesPassed" class="metric-card__val">—</div>
-          <div id="statGatesSub" class="metric-card__sub">Control de ejecución verificado</div>
+          <div id="statGatesSub" class="metric-card__sub" data-i18n="page.verifiedRunControl">Control de ejecución verificado</div>
         </div>
         <div class="metric-card">
-          <div class="metric-card__label">Documento PDF</div>
+          <div class="metric-card__label" data-i18n="page.pdfDocument">Documento PDF</div>
           <div id="statPdfStatus" class="metric-card__val">—</div>
           <div id="statPdfSub" class="metric-card__sub">—</div>
         </div>
         <div class="metric-card">
-          <div class="metric-card__label">Exportación Word</div>
+          <div class="metric-card__label" data-i18n="page.wordExport">Exportación Word</div>
           <div id="statDocxStatus" class="metric-card__val">—</div>
           <div id="statDocxSub" class="metric-card__sub">—</div>
         </div>
@@ -3143,11 +3152,11 @@
       <div class="panel flujo-general-card">
         <div class="panel__header">
           <div class="panel__title">
-            <span>⚡ Flujo General del Pipeline: Estado de Etapas</span>
+            <span data-i18n="page.pipelineOverviewStageStatus">⚡ Flujo General del Pipeline: Estado de Etapas</span>
           </div>
           <div class="flujo-meta-summary">
-            <span class="badge badge--lit" id="flujoLitBadge">💡 0 Superadas (Iluminadas)</span>
-            <span class="badge badge--unlit" id="flujoUnlitBadge">⚫ 0 Pendientes (Sin Luz)</span>
+            <span class="badge badge--lit" id="flujoLitBadge" data-i18n="page.n0PassedLit">💡 0 Superadas (Iluminadas)</span>
+            <span class="badge badge--unlit" id="flujoUnlitBadge" data-i18n="page.n0PendingUnlit">⚫ 0 Pendientes (Sin Luz)</span>
           </div>
         </div>
         <div class="flujo-track-container">
@@ -3159,8 +3168,8 @@
 
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Fases del Pipeline Metodológico de Redacción</div>
-          <span class="panel__meta">Haz clic en cualquier fase para inspeccionar detalles y dependencias</span>
+          <div class="panel__title" data-i18n="page.phasesWritingMethodologyPipeline">Fases del Pipeline Metodológico de Redacción</div>
+          <span class="panel__meta" data-i18n="page.clickAnyPhaseInspectIts">Haz clic en cualquier fase para inspeccionar detalles y dependencias</span>
         </div>
         <div class="phase-run" id="phaseRunTracker" hidden aria-live="polite"></div>
         <div class="pipeline-grid" id="pipelineGrid">
@@ -3171,8 +3180,8 @@
       <!-- Compuertas de Revisión y Validación Formal (Gates) inmersas en el flujo general -->
       <div class="panel" id="pipelineGatesPanel" style="margin-top: 1.25rem;">
         <div class="panel__header">
-          <div class="panel__title">Compuertas de Revisión y Validación Formal (Gates)</div>
-          <span class="panel__meta">Revisión de calidad, consistencia y dependencias cruzadas en cada compuerta</span>
+          <div class="panel__title" data-i18n="page.reviewFormalValidationGates">Compuertas de Revisión y Validación Formal (Gates)</div>
+          <span class="panel__meta" data-i18n="page.qualityConsistencyCrossDependencyReview">Revisión de calidad, consistencia y dependencias cruzadas en cada compuerta</span>
         </div>
         <div class="pipeline-grid" id="gatesGrid">
           <!-- Rendered by JS -->
@@ -3184,63 +3193,63 @@
     <div id="pane-trees" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Árbol de problemas y objetivos</div>
+          <div class="panel__title" data-i18n="page.problemObjectiveTrees">Árbol de problemas y objetivos</div>
           <span class="panel__meta" id="treeRunMeta">—</span>
         </div>
         <div class="tree-stepper" id="treeStepper"></div>
         <div class="tree-toolbar">
           <div class="tree-switch" role="tablist">
-            <button class="btn btn--sm" id="treeViewProblemas" onclick="setTreeView('problemas')">🌳 Árbol de problemas</button>
-            <button class="btn btn--sm" id="treeViewObjetivos" onclick="setTreeView('objetivos')">🎯 Árbol de objetivos</button>
-            <button class="btn btn--sm" id="treeViewRelaciones" onclick="setTreeView('relaciones')">🔗 Relaciones entre las causas y objetivos</button>
+            <button class="btn btn--sm" id="treeViewProblemas" onclick="setTreeView('problemas')" data-i18n="page.problemTree">🌳 Árbol de problemas</button>
+            <button class="btn btn--sm" id="treeViewObjetivos" onclick="setTreeView('objetivos')" data-i18n="page.objectiveTree">🎯 Árbol de objetivos</button>
+            <button class="btn btn--sm" id="treeViewRelaciones" onclick="setTreeView('relaciones')" data-i18n="page.linksBetweenCausesObjectives">🔗 Relaciones entre las causas y objetivos</button>
           </div>
           <span class="tree-legend" id="treeLegend"></span>
         </div>
         <details class="tree-rules" id="treeRules">
-          <summary>Reglas de la guía SGR</summary>
-          <h3 class="tree-rules__tree tree-rules__tree--problemas"><span aria-hidden="true">🌳</span> Árbol de problemas</h3>
+          <summary data-i18n="page.sgrGuideRules">Reglas de la guía SGR</summary>
+          <h3 class="tree-rules__tree tree-rules__tree--problemas"><span aria-hidden="true">🌳</span> <span data-i18n="sectionsStructureData.problemTree">Árbol de problemas</span></h3>
           <ul>
-            <li>El problema central es un estado negativo que existe hoy: calificativo, variable medible y población o lugar (por ejemplo, «Bajo aprovechamiento de los residuos sólidos domiciliarios de la zona urbana»). Un problema central correcto: «Limitados ambientes de aprendizaje innovadores...».</li>
-            <li>Es el efecto visible principal, no una causa raíz ni una consecuencia lejana.</li>
-            <li>Un problema bien planteado permite pensar en diversas alternativas de solución y se define en torno a las necesidades de la población.</li>
-            <li>Empieza con un calificativo negativo que no indique carencia: poco, escaso, limitado, insuficiente, deficiente, bajo, alto.</li>
-            <li>Un problema no es la ausencia de su solución: evita «falta de», «no existe» o «se requiere».</li>
-            <li>Cada causa directa es un subproblema; sus causas indirectas van debajo.</li>
-            <li>Los efectos directos cuelgan del problema central y la copa es el efecto final, no la solución.</li>
-            <li>La magnitud del problema (indicador, valor y fuente) queda como línea base.</li>
+            <li data-i18n="page.centralProblemNegativeStateThat">El problema central es un estado negativo que existe hoy: calificativo, variable medible y población o lugar (por ejemplo, «Bajo aprovechamiento de los residuos sólidos domiciliarios de la zona urbana»). Un problema central correcto: «Limitados ambientes de aprendizaje innovadores...».</li>
+            <li data-i18n="page.mainVisibleEffectNotRoot">Es el efecto visible principal, no una causa raíz ni una consecuencia lejana.</li>
+            <li data-i18n="page.wellStatedProblemAllowsThinking">Un problema bien planteado permite pensar en diversas alternativas de solución y se define en torno a las necesidades de la población.</li>
+            <li data-i18n="page.startsWithNegativeQualifierThat">Empieza con un calificativo negativo que no indique carencia: poco, escaso, limitado, insuficiente, deficiente, bajo, alto.</li>
+            <li data-i18n="page.problemNotAbsenceItsSolution">Un problema no es la ausencia de su solución: evita «falta de», «no existe» o «se requiere».</li>
+            <li data-i18n="page.eachDirectCauseSubproblemIts">Cada causa directa es un subproblema; sus causas indirectas van debajo.</li>
+            <li data-i18n="page.directEffectsHangFromCentral">Los efectos directos cuelgan del problema central y la copa es el efecto final, no la solución.</li>
+            <li data-i18n="page.magnitudeProblemIndicatorValueSource">La magnitud del problema (indicador, valor y fuente) queda como línea base.</li>
           </ul>
-          <h4>Preguntas orientadoras del problema central</h4>
+          <h4 data-i18n="page.guidingQuestionsCentralProblem">Preguntas orientadoras del problema central</h4>
           <ul>
-            <li>¿Qué está pasando?</li>
-            <li>¿Por qué es un problema?</li>
-            <li>¿Es el punto de partida lógico para buscar soluciones?</li>
-            <li>¿Afecta a una población significativa?</li>
-            <li>¿Es una prioridad para la política pública o el plan de desarrollo?</li>
-            <li>¿Es abordable con los recursos y capacidades disponibles?</li>
+            <li data-i18n="page.whatHappening">¿Qué está pasando?</li>
+            <li data-i18n="page.whyProblem">¿Por qué es un problema?</li>
+            <li data-i18n="page.logicalStartingPointLookSolutions">¿Es el punto de partida lógico para buscar soluciones?</li>
+            <li data-i18n="page.doesAffectSignificantPopulation">¿Afecta a una población significativa?</li>
+            <li data-i18n="page.priorityPublicPolicyDevelopmentPlan">¿Es una prioridad para la política pública o el plan de desarrollo?</li>
+            <li data-i18n="page.canBeTackledWithAvailable">¿Es abordable con los recursos y capacidades disponibles?</li>
           </ul>
-          <h4>Causas del problema</h4>
-          <p class="tree-rules__intro">¿Qué está causando el problema?</p>
+          <h4 data-i18n="page.causesProblem">Causas del problema</h4>
+          <p class="tree-rules__intro" data-i18n="page.whatCausingProblem">¿Qué está causando el problema?</p>
           <ul>
-            <li><strong>Causas directas:</strong> son los factores que tienen una relación inmediata con el problema central. Son visibles y afectan directamente su aparición. Ejemplo: «Insuficientes docentes capacitados».</li>
-            <li><strong>Causas indirectas:</strong> son las raíces más profundas o estructurales que originan las causas directas. Ejemplo: «Escasa inversión en formación docente».</li>
+            <li data-i18n-html="page.directCausesFactorsWithImmediate"><strong>Causas directas:</strong> son los factores que tienen una relación inmediata con el problema central. Son visibles y afectan directamente su aparición. Ejemplo: «Insuficientes docentes capacitados».</li>
+            <li data-i18n-html="page.indirectCausesDeeperStructuralRoots"><strong>Causas indirectas:</strong> son las raíces más profundas o estructurales que originan las causas directas. Ejemplo: «Escasa inversión en formación docente».</li>
           </ul>
-          <h4>Efectos del problema</h4>
-          <p class="tree-rules__intro">¿Qué pasa como consecuencia de este problema?</p>
+          <h4 data-i18n="page.effectsProblem">Efectos del problema</h4>
+          <p class="tree-rules__intro" data-i18n="page.whatHappensAsConsequenceThis">¿Qué pasa como consecuencia de este problema?</p>
           <ul>
-            <li><strong>Efectos directos:</strong> consecuencia inmediata del problema.</li>
-            <li><strong>Efectos secundarios:</strong> se derivan de los efectos directos.</li>
+            <li data-i18n-html="page.directEffectsImmediateConsequenceProblem"><strong>Efectos directos:</strong> consecuencia inmediata del problema.</li>
+            <li data-i18n-html="page.secondaryEffectsTheyDeriveFrom"><strong>Efectos secundarios:</strong> se derivan de los efectos directos.</li>
           </ul>
-          <h3 class="tree-rules__tree tree-rules__tree--objetivos"><span aria-hidden="true">🎯</span> Árbol de objetivos</h3>
+          <h3 class="tree-rules__tree tree-rules__tree--objetivos"><span aria-hidden="true">🎯</span> <span data-i18n="page.objectiveTree2">Árbol de objetivos</span></h3>
           <ul>
-            <li>Es el espejo positivo del árbol de problemas y conserva su variable.</li>
-            <li>El problema central da el objetivo general: verbo en infinitivo, objeto y elementos descriptivos, sin el medio («mediante», «a través de»), los fines («para mejorar…») ni las metas.</li>
-            <li>Cada causa directa da un objetivo específico; cada causa indirecta, un medio que dice el qué y no el cómo.</li>
-            <li>Cada efecto da un fin, y el efecto final da el fin último.</li>
-            <li>En el flujo SGR, el título es el objetivo general con su primer verbo como sustantivo (Fortalecer… → Fortalecimiento de…).</li>
-            <li>Los objetivos deben seguir el método SMART (Specific, Measurable, Achievable, Relevant and Time-bound). Es decir, deben ser claros y definidos, debe ser posible cuantificar el progreso o resultado, deben ser realistas y posibles de lograr, deben ser importantes y alineados con otras metas y deben tener un plazo definido para su cumplimiento.</li>
-            <li>Lo medible y el plazo se expresan en los indicadores y en el cronograma, no dentro del enunciado del objetivo (sin porcentajes, metas ni fechas).</li>
+            <li data-i18n="page.positiveMirrorProblemTreeKeeps">Es el espejo positivo del árbol de problemas y conserva su variable.</li>
+            <li data-i18n="page.centralProblemGivesGeneralObjective">El problema central da el objetivo general: verbo en infinitivo, objeto y elementos descriptivos, sin el medio («mediante», «a través de»), los fines («para mejorar…») ni las metas.</li>
+            <li data-i18n="page.eachDirectCauseGivesSpecific">Cada causa directa da un objetivo específico; cada causa indirecta, un medio que dice el qué y no el cómo.</li>
+            <li data-i18n="page.eachEffectGivesEndFinal">Cada efecto da un fin, y el efecto final da el fin último.</li>
+            <li data-i18n="page.sgrFlowTitleGeneralObjective">En el flujo SGR, el título es el objetivo general con su primer verbo como sustantivo (Fortalecer… → Fortalecimiento de…).</li>
+            <li data-i18n="page.objectivesMustFollowSmartMethod">Los objetivos deben seguir el método SMART (Specific, Measurable, Achievable, Relevant and Time-bound). Es decir, deben ser claros y definidos, debe ser posible cuantificar el progreso o resultado, deben ser realistas y posibles de lograr, deben ser importantes y alineados con otras metas y deben tener un plazo definido para su cumplimiento.</li>
+            <li data-i18n="page.whatMeasurableDeadlineAreExpressed">Lo medible y el plazo se expresan en los indicadores y en el cronograma, no dentro del enunciado del objetivo (sin porcentajes, metas ni fechas).</li>
           </ul>
-          <p class="tree-rules__source">Fuentes: Instructivo MGA 2023 (p. 122) y Manual conceptual MGA 2015, Departamento Nacional de Planeación.</p>
+          <p class="tree-rules__source" data-i18n="page.sourcesMgaInstructions2023P">Fuentes: Instructivo MGA 2023 (p. 122) y Manual conceptual MGA 2015, Departamento Nacional de Planeación.</p>
         </details>
       </div>
 
@@ -3253,24 +3262,24 @@
 
         <aside class="panel tree-review" id="treeReviewPanel">
           <div class="panel__header">
-            <div class="panel__title">Revisión con el agente</div>
+            <div class="panel__title" data-i18n="page.reviewWithAgent">Revisión con el agente</div>
             <span class="badge" id="treeStatusBadge">—</span>
           </div>
           <div class="tree-review__body">
-            <div class="tree-selected" id="treeSelected">Haz clic en un nodo del árbol para comentarlo.</div>
-            <textarea id="treeCommentInput" class="tree-textarea" rows="3" placeholder="Qué cambiar en el nodo seleccionado…"></textarea>
-            <button class="btn btn--sm" id="treeAddCommentBtn" onclick="addTreeComment()">＋ Agregar comentario</button>
+            <div class="tree-selected" id="treeSelected" data-i18n="renderTreeReview.clickNodeTreeCommentOn">Haz clic en un nodo del árbol para comentarlo.</div>
+            <textarea id="treeCommentInput" class="tree-textarea" rows="3" placeholder="Qué cambiar en el nodo seleccionado…" data-i18n-attr="placeholder:page.whatChangeSelectedNode"></textarea>
+            <button class="btn btn--sm" id="treeAddCommentBtn" onclick="addTreeComment()" data-i18n="page.addComment">＋ Agregar comentario</button>
             <ul class="tree-comments" id="treeCommentList"></ul>
-            <label class="tree-label" for="treeGeneralInput">Indicación general</label>
-            <textarea id="treeGeneralInput" class="tree-textarea" rows="2" placeholder="Ej.: equilibrar el número de causas por subproblema"></textarea>
+            <label class="tree-label" for="treeGeneralInput" data-i18n="page.generalInstruction">Indicación general</label>
+            <textarea id="treeGeneralInput" class="tree-textarea" rows="2" placeholder="Ej.: equilibrar el número de causas por subproblema" data-i18n-attr="placeholder:page.eGBalanceNumberCauses"></textarea>
             <p class="tree-gate-note" id="treeGateNote"></p>
             <div class="tree-actions">
-              <button class="btn btn--sm btn--primary" id="treeSendBtn" onclick="submitTreeFeedback()">🤖 Enviar ajuste al agente</button>
-              <button class="btn btn--sm tree-approve" id="treeApproveBtn" onclick="approveCurrentTree()">✅ Aprobar árbol</button>
-              <button class="btn btn--sm" id="treeRetryBtn" onclick="retryTreePrompt()" style="display: none;">↻ Reintentar envío</button>
+              <button class="btn btn--sm btn--primary" id="treeSendBtn" onclick="submitTreeFeedback()" data-i18n="page.sendAdjustmentAgent">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="treeApproveBtn" onclick="approveCurrentTree()" data-i18n="page.approveTree">✅ Aprobar árbol</button>
+              <button class="btn btn--sm" id="treeRetryBtn" onclick="retryTreePrompt()" style="display: none;" data-i18n="page.retrySending">↻ Reintentar envío</button>
             </div>
             <p class="tree-message" id="treeMessage" role="status"></p>
-            <h4 class="tree-label">Iteraciones</h4>
+            <h4 class="tree-label" data-i18n="page.iterations">Iteraciones</h4>
             <ol class="tree-history" id="treeHistory"></ol>
           </div>
         </aside>
@@ -3280,35 +3289,35 @@
            it was the «MGA resumido» tab, and #mga still lands here. -->
       <section class="panel" id="mgaFold" data-fold="proyecto-resumido" data-fold-title="Proyecto Resumido">
         <div class="fold-toolbar">
-          <span class="fold-toolbar__note">Planteamiento del problema que la Fase 1 deriva de los dos árboles aprobados.</span>
-          <button class="btn btn--sm" type="button" onclick="loadMgaResumido()">Recargar</button>
+          <span class="fold-toolbar__note" data-i18n="page.problemStatementThatPhase1">Planteamiento del problema que la Fase 1 deriva de los dos árboles aprobados.</span>
+          <button class="btn btn--sm" type="button" onclick="loadMgaResumido()" data-i18n="page.reload">Recargar</button>
         </div>
         <details class="tree-rules" id="mgaRules">
-          <summary>Reglas para construir el Proyecto Resumido</summary>
-          <p class="tree-rules__intro">La Fase 1 lo escribe a partir de los dos árboles aprobados en G1b y después deriva §3 de este documento, con la misma variable, las mismas causas y la misma magnitud.</p>
-          <h4>Planteamiento del problema</h4>
+          <summary data-i18n="page.rulesBuildSummarizedProject">Reglas para construir el Proyecto Resumido</summary>
+          <p class="tree-rules__intro" data-i18n="page.phase1WritesFromTwo">La Fase 1 lo escribe a partir de los dos árboles aprobados en G1b y después deriva §3 de este documento, con la misma variable, las mismas causas y la misma magnitud.</p>
+          <h4 data-i18n="page.problemStatement">Planteamiento del problema</h4>
           <ul>
-            <li><strong>Problema central:</strong> el tronco del árbol de problemas, copiado textual, sin reescribirlo.</li>
-            <li><strong>Descripción de la situación existente:</strong> presenta el problema desde los antecedentes y el sector de aplicación con sus desafíos operativos, económicos o sociales, lo describe mejor y delimita la ubicación (departamentos o regiones). Cierra declarando las causas directas del árbol.
-              <blockquote class="mga-rules__example"><strong>Ejemplo:</strong> En los 12 municipios no certificados del departamento de Risaralda, las instituciones educativas de básica y media técnica enfrentan múltiples desafíos en la implementación efectiva de estrategias pedagógicas orientadas al desarrollo de competencias en Ciencia, Tecnología, Ingeniería y Matemáticas (STEM). A pesar de los esfuerzos realizados por las secretarías de educación y otras entidades, persisten brechas significativas en términos de ambientes de aprendizaje (entendidos como: infraestructura, acceso a tecnologías, formación docente y metodologías activas). Actualmente, dichos ambientes de aprendizaje carecen de recursos didácticos actualizados, laboratorios adecuados, herramientas tecnológicas y conectividad que permitan una enseñanza innovadora y contextualizada en las áreas STEM. Esta situación limita las oportunidades de los estudiantes para desarrollar habilidades del siglo XXI, como el pensamiento crítico, la solución de problemas, la creatividad y la alfabetización digital, aspectos esenciales para su inserción en una sociedad cada vez más tecnológica y competitiva. Además, se ha identificado que gran parte del cuerpo docente no cuenta con la formación específica ni con acompañamiento continuo para aplicar estrategias pedagógicas activas e interdisciplinarias propias del enfoque STEM. Esto genera un rezago en la calidad educativa y afecta los resultados académicos y la motivación de los estudiantes en estas áreas.</blockquote>
+            <li data-i18n-html="page.centralProblemTrunkProblemTree"><strong>Problema central:</strong> el tronco del árbol de problemas, copiado textual, sin reescribirlo.</li>
+            <li><span data-i18n-html="page.descriptionCurrentSituationPresentsProblem"><strong>Descripción de la situación existente:</strong> presenta el problema desde los antecedentes y el sector de aplicación con sus desafíos operativos, económicos o sociales, lo describe mejor y delimita la ubicación (departamentos o regiones). Cierra declarando las causas directas del árbol.</span>
+              <blockquote class="mga-rules__example" data-i18n-html="page.example12NonCertifiedMunicipalities"><strong>Ejemplo:</strong> En los 12 municipios no certificados del departamento de Risaralda, las instituciones educativas de básica y media técnica enfrentan múltiples desafíos en la implementación efectiva de estrategias pedagógicas orientadas al desarrollo de competencias en Ciencia, Tecnología, Ingeniería y Matemáticas (STEM). A pesar de los esfuerzos realizados por las secretarías de educación y otras entidades, persisten brechas significativas en términos de ambientes de aprendizaje (entendidos como: infraestructura, acceso a tecnologías, formación docente y metodologías activas). Actualmente, dichos ambientes de aprendizaje carecen de recursos didácticos actualizados, laboratorios adecuados, herramientas tecnológicas y conectividad que permitan una enseñanza innovadora y contextualizada en las áreas STEM. Esta situación limita las oportunidades de los estudiantes para desarrollar habilidades del siglo XXI, como el pensamiento crítico, la solución de problemas, la creatividad y la alfabetización digital, aspectos esenciales para su inserción en una sociedad cada vez más tecnológica y competitiva. Además, se ha identificado que gran parte del cuerpo docente no cuenta con la formación específica ni con acompañamiento continuo para aplicar estrategias pedagógicas activas e interdisciplinarias propias del enfoque STEM. Esto genera un rezago en la calidad educativa y afecta los resultados académicos y la motivación de los estudiantes en estas áreas.</blockquote>
             </li>
-            <li><strong>Causa directa 1:</strong> en proyectos de IA aplicada, se relaciona con el levantamiento de datos: sensores, baterías de pruebas, levantamiento de información y construcción de bases de datos (sin infraestructura, con especialistas y con apoyo de las comunidades), calidad de los datos y datos descentralizados.</li>
-            <li><strong>Causa directa 2:</strong> se relaciona con la necesidad de una plataforma interoperable que se alimente de los datos de la causa 1, con buena conectividad, accesible y de buena interacción con el usuario, y con modelos de IA generativa y predictiva, agentes de IA, procesamiento de datos multimodal, de bajo costo, desplegables y de muchas variables.</li>
-            <li><strong>Causa directa 3:</strong> se alinea con la apropiación social y la transferencia de la tecnología: pocos estudios (ninguno en Colombia), barreras con las comunidades, apropiación por parte de ellas e impacto en ellas.</li>
-            <li>Los párrafos de las causas siguen las reglas del árbol de problemas: cada uno expande su causa directa y sus causas indirectas como un estado negativo, nunca como la ausencia de la solución.</li>
+            <li data-i18n-html="page.directCause1AppliedAi"><strong>Causa directa 1:</strong> en proyectos de IA aplicada, se relaciona con el levantamiento de datos: sensores, baterías de pruebas, levantamiento de información y construcción de bases de datos (sin infraestructura, con especialistas y con apoyo de las comunidades), calidad de los datos y datos descentralizados.</li>
+            <li data-i18n-html="page.directCause2RelatesNeed"><strong>Causa directa 2:</strong> se relaciona con la necesidad de una plataforma interoperable que se alimente de los datos de la causa 1, con buena conectividad, accesible y de buena interacción con el usuario, y con modelos de IA generativa y predictiva, agentes de IA, procesamiento de datos multimodal, de bajo costo, desplegables y de muchas variables.</li>
+            <li data-i18n-html="page.directCause3AlignsWith"><strong>Causa directa 3:</strong> se alinea con la apropiación social y la transferencia de la tecnología: pocos estudios (ninguno en Colombia), barreras con las comunidades, apropiación por parte de ellas e impacto en ellas.</li>
+            <li data-i18n="page.paragraphsCausesFollowRulesProblem">Los párrafos de las causas siguen las reglas del árbol de problemas: cada uno expande su causa directa y sus causas indirectas como un estado negativo, nunca como la ausencia de la solución.</li>
           </ul>
-          <h4>Magnitud del problema</h4>
+          <h4 data-i18n="sectionsStructureData.magnitudeProblem">Magnitud del problema</h4>
           <ul>
-            <li>Cifras que sustentan cada causa directa, con su fuente (autor o entidad, año y enlace o documento de <code>insumos/</code>). Sin fuente verificable, la cifra se marca «[cifra por confirmar]» y nunca se inventa.
-              <blockquote class="mga-rules__example"><strong>Ejemplo:</strong> En Risaralda, según el Sistema de Información Nacional de Educación Básica y Media - SINEB (2022), de 2.248 docentes registrados, solo el 55% cuenta con estudios de posgrado, lo que deja a un número considerable de maestros sin acceso a formación avanzada en pedagogía y tecnología educativa. Esta falta de formación y la escasa apropiación de herramientas tecnológicas limita su capacidad para implementar enfoques pedagógicos innovadores y relevantes (UNICEF, 2020), y genera desinterés y apatía entre los estudiantes, especialmente en el aprendizaje de conceptos STEM. La desconexión entre las expectativas de los estudiantes y las oportunidades educativas disponibles en su contexto social, educativo, productivo y cultural se convierte en un factor intrínseco que agrava esta problemática (Zambrano &amp; Barzaga, 2023), especialmente en Colombia (SINEB, 2022). De acuerdo con las cifras de deserción del Ministerio de Educación Nacional (septiembre, 2024), en Risaralda se registró una tasa de deserción de 4,64% en primaria y 4,26% en media durante el 2023, cifras que, aunque han mostrado una leve disminución respecto a 2022, siguen reflejando una tendencia ascendente desde 2020. Esto reduce las posibilidades de un futuro profesional prometedor y conectado con las demandas territoriales. Estas cifras reflejan un desafío estructural particularmente en las zonas rurales, donde los estudiantes enfrentan una calidad educativa desigual. Según el Ministerio de Educación Nacional, los estudiantes rurales obtienen un rendimiento de 5 a 10 puntos por debajo de sus pares urbanos en las pruebas SABER (ICFES, 2021). Además, solo el 30% de los estudiantes alcanzan niveles altos de competencias en matemáticas, mientras que más del 50% no logran el nivel esperado en ciencias naturales y matemáticas, áreas fundamentales para el desarrollo de competencias STEM. Esta es una realidad para 76.545 estudiantes de la básica primaria y media técnica, 4.235 docentes y 1.103 sedes del departamento.</blockquote>
+            <li><span data-i18n-html="page.figuresThatSupportEachDirect">Cifras que sustentan cada causa directa, con su fuente (autor o entidad, año y enlace o documento de <code>insumos/</code>). Sin fuente verificable, la cifra se marca «[cifra por confirmar]» y nunca se inventa.</span>
+              <blockquote class="mga-rules__example" data-i18n-html="page.exampleRisaraldaAccordingNationalInformation"><strong>Ejemplo:</strong> En Risaralda, según el Sistema de Información Nacional de Educación Básica y Media - SINEB (2022), de 2.248 docentes registrados, solo el 55% cuenta con estudios de posgrado, lo que deja a un número considerable de maestros sin acceso a formación avanzada en pedagogía y tecnología educativa. Esta falta de formación y la escasa apropiación de herramientas tecnológicas limita su capacidad para implementar enfoques pedagógicos innovadores y relevantes (UNICEF, 2020), y genera desinterés y apatía entre los estudiantes, especialmente en el aprendizaje de conceptos STEM. La desconexión entre las expectativas de los estudiantes y las oportunidades educativas disponibles en su contexto social, educativo, productivo y cultural se convierte en un factor intrínseco que agrava esta problemática (Zambrano &amp; Barzaga, 2023), especialmente en Colombia (SINEB, 2022). De acuerdo con las cifras de deserción del Ministerio de Educación Nacional (septiembre, 2024), en Risaralda se registró una tasa de deserción de 4,64% en primaria y 4,26% en media durante el 2023, cifras que, aunque han mostrado una leve disminución respecto a 2022, siguen reflejando una tendencia ascendente desde 2020. Esto reduce las posibilidades de un futuro profesional prometedor y conectado con las demandas territoriales. Estas cifras reflejan un desafío estructural particularmente en las zonas rurales, donde los estudiantes enfrentan una calidad educativa desigual. Según el Ministerio de Educación Nacional, los estudiantes rurales obtienen un rendimiento de 5 a 10 puntos por debajo de sus pares urbanos en las pruebas SABER (ICFES, 2021). Además, solo el 30% de los estudiantes alcanzan niveles altos de competencias en matemáticas, mientras que más del 50% no logran el nivel esperado en ciencias naturales y matemáticas, áreas fundamentales para el desarrollo de competencias STEM. Esta es una realidad para 76.545 estudiantes de la básica primaria y media técnica, 4.235 docentes y 1.103 sedes del departamento.</blockquote>
             </li>
-            <li>El indicador de línea base es el más flexible y fácil de cuantificar según el árbol y las causas; en proyectos de IA aplicada se alinea con la plataforma. Se desarrolla en 2 o 3 párrafos.</li>
-            <li>Una tabla reúne los indicadores (indicador, causa, valor, fuente y año) y resalta en negrilla el que el proyecto busca mover, marcado como «línea base del proyecto».</li>
-            <li>Ese indicador coincide con la magnitud del tronco del árbol de problemas; si cambia, se actualiza el árbol y se vuelve a aprobar.</li>
+            <li data-i18n="page.baselineIndicatorMostFlexibleEasiest">El indicador de línea base es el más flexible y fácil de cuantificar según el árbol y las causas; en proyectos de IA aplicada se alinea con la plataforma. Se desarrolla en 2 o 3 párrafos.</li>
+            <li data-i18n="page.tableGathersIndicatorsIndicatorCause">Una tabla reúne los indicadores (indicador, causa, valor, fuente y año) y resalta en negrilla el que el proyecto busca mover, marcado como «línea base del proyecto».</li>
+            <li data-i18n="page.thatIndicatorMatchesMagnitudeProblem">Ese indicador coincide con la magnitud del tronco del árbol de problemas; si cambia, se actualiza el árbol y se vuelve a aprobar.</li>
           </ul>
-          <p class="tree-rules__source">Fuente: estructura del Proyecto Resumido acordada para Morfeo (investigador, regla 15) y reglas MGA del árbol de problemas (guía, §3).</p>
+          <p class="tree-rules__source" data-i18n="page.sourceStructureSummarizedProjectAgreed">Fuente: estructura del Proyecto Resumido acordada para Morfeo (investigador, regla 15) y reglas MGA del árbol de problemas (guía, §3).</p>
         </details>
-        <div id="mgaContent" class="artifact-viewer is-markdown">Cargando…</div>
+        <div id="mgaContent" class="artifact-viewer is-markdown" data-i18n="page.loading2">Cargando…</div>
       </section>
 
       <!-- Juez de avance, stage `arbol` (judge-avance.js; agent juez-avance). -->
@@ -3321,7 +3330,7 @@
     <div id="pane-novedad" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Novedad e hipótesis</div>
+          <div class="panel__title" data-i18n="page.noveltyHypothesis">Novedad e hipótesis</div>
           <span class="panel__meta" data-nov-slot="meta">—</span>
         </div>
         <div data-nov-slot="head"></div>
@@ -3342,10 +3351,10 @@
     <div id="pane-cadena" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Cadena de valor: objetivos, productos y actividades</div>
+          <div class="panel__title" data-i18n="page.valueChainObjectivesProductsActivities">Cadena de valor: objetivos, productos y actividades</div>
           <span class="panel__meta" id="vcRunMeta">—</span>
         </div>
-        <p class="judge-intro">Cada objetivo específico del árbol aprobado se desagrega en productos del catálogo DNP, con su indicador y meta, y cada producto en actividades con la clave OE.Producto.Actividad que comparten la metodología, el cronograma y el presupuesto SGR.</p>
+        <p class="judge-intro" data-i18n="page.eachSpecificObjectiveApprovedTree">Cada objetivo específico del árbol aprobado se desagrega en productos del catálogo DNP, con su indicador y meta, y cada producto en actividades con la clave OE.Producto.Actividad que comparten la metodología, el cronograma y el presupuesto SGR.</p>
       </div>
       <div class="tree-layout">
         <div class="panel tree-stage">
@@ -3353,18 +3362,18 @@
         </div>
         <aside class="panel tree-review" id="vcReviewPanel">
           <div class="panel__header">
-            <div class="panel__title">Revisión con el agente</div>
+            <div class="panel__title" data-i18n="page.reviewWithAgent">Revisión con el agente</div>
             <span class="badge" id="vcStatusBadge">—</span>
           </div>
           <div class="tree-review__body">
             <p class="vc-review-note" id="vcHashNote"></p>
-            <label class="tree-label" for="vcNoteInput">Ajuste solicitado</label>
-            <textarea id="vcNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: dividir el producto 1.2 en dos o mover la actividad 2.1.3 al mes 6"></textarea>
+            <label class="tree-label" for="vcNoteInput" data-i18n="page.requestedAdjustment">Ajuste solicitado</label>
+            <textarea id="vcNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: dividir el producto 1.2 en dos o mover la actividad 2.1.3 al mes 6" data-i18n-attr="placeholder:page.eGSplitProduct1"></textarea>
             <p class="tree-gate-note" id="vcGateNote"></p>
             <div class="tree-actions">
-              <button class="btn btn--sm btn--primary" id="vcSendBtn" onclick="sendValueChainAdjust()">🤖 Enviar ajuste al agente</button>
-              <button class="btn btn--sm tree-approve" id="vcApproveBtn" onclick="approveValueChain()">✅ Aprobar cadena</button>
-              <button class="btn btn--sm" id="vcRetryBtn" onclick="retryValueChainPrompt()" style="display: none;">↻ Reintentar envío</button>
+              <button class="btn btn--sm btn--primary" id="vcSendBtn" onclick="sendValueChainAdjust()" data-i18n="page.sendAdjustmentAgent">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="vcApproveBtn" onclick="approveValueChain()" data-i18n="page.approveChain">✅ Aprobar cadena</button>
+              <button class="btn btn--sm" id="vcRetryBtn" onclick="retryValueChainPrompt()" style="display: none;" data-i18n="page.retrySending">↻ Reintentar envío</button>
             </div>
             <p class="tree-message" id="vcMessage" role="status"></p>
           </div>
@@ -3376,10 +3385,10 @@
     <div id="pane-alianza" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Alianza y territorio: entidades, demandas y configuración regional</div>
+          <div class="panel__title" data-i18n="page.allianceTerritoryEntitiesDemandsRegional">Alianza y territorio: entidades, demandas y configuración regional</div>
           <span class="panel__meta" id="alRunMeta">—</span>
         </div>
-        <p class="judge-intro">Las entidades de la alianza con su tipo, rol, posición, departamento y aportes; las demandas territoriales del TdR ligadas a causas, objetivos, actividades y productos; y la estimación en vivo de los subcriterios de la rúbrica que se calculan contando (alcance regional, composición de la alianza, arraigo, aliado internacional y cofinanciación).</p>
+        <p class="judge-intro" data-i18n="page.allianceEntitiesWithTheirType">Las entidades de la alianza con su tipo, rol, posición, departamento y aportes; las demandas territoriales del TdR ligadas a causas, objetivos, actividades y productos; y la estimación en vivo de los subcriterios de la rúbrica que se calculan contando (alcance regional, composición de la alianza, arraigo, aliado internacional y cofinanciación).</p>
       </div>
       <div class="tree-layout">
         <div class="panel tree-stage">
@@ -3387,18 +3396,18 @@
         </div>
         <aside class="panel tree-review" id="alReviewPanel">
           <div class="panel__header">
-            <div class="panel__title">Revisión con el agente</div>
+            <div class="panel__title" data-i18n="page.reviewWithAgent">Revisión con el agente</div>
             <span class="badge" id="alStatusBadge">—</span>
           </div>
           <div class="tree-review__body">
             <p class="vc-review-note" id="alHashNote"></p>
-            <label class="tree-label" for="alNoteInput">Ajuste solicitado</label>
-            <textarea id="alNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar la Alcaldía de Manizales como entidad territorial o ligar la demanda D2 al OE2"></textarea>
+            <label class="tree-label" for="alNoteInput" data-i18n="page.requestedAdjustment">Ajuste solicitado</label>
+            <textarea id="alNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar la Alcaldía de Manizales como entidad territorial o ligar la demanda D2 al OE2" data-i18n-attr="placeholder:page.eGAddManizalesMayor"></textarea>
             <p class="tree-gate-note" id="alGateNote"></p>
             <div class="tree-actions">
-              <button class="btn btn--sm btn--primary" id="alSendBtn" onclick="sendAllianceAdjust()">🤖 Enviar ajuste al agente</button>
-              <button class="btn btn--sm tree-approve" id="alApproveBtn" onclick="approveAlliance()">✅ Aprobar alianza y territorio</button>
-              <button class="btn btn--sm" id="alRetryBtn" onclick="retryAlliancePrompt()" style="display: none;">↻ Reintentar envío</button>
+              <button class="btn btn--sm btn--primary" id="alSendBtn" onclick="sendAllianceAdjust()" data-i18n="page.sendAdjustmentAgent">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="alApproveBtn" onclick="approveAlliance()" data-i18n="page.approveAllianceTerritory">✅ Aprobar alianza y territorio</button>
+              <button class="btn btn--sm" id="alRetryBtn" onclick="retryAlliancePrompt()" style="display: none;" data-i18n="page.retrySending">↻ Reintentar envío</button>
             </div>
             <p class="tree-message" id="alMessage" role="status"></p>
           </div>
@@ -3410,10 +3419,10 @@
     <div id="pane-presupuesto" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Presupuesto y cronograma: rubros, fuentes, controles y Gantt</div>
+          <div class="panel__title" data-i18n="page.budgetScheduleItemsSourcesControls">Presupuesto y cronograma: rubros, fuentes, controles y Gantt</div>
           <span class="panel__meta" id="pgRunMeta">—</span>
         </div>
-        <p class="judge-intro">El presupuesto SGR como datos: cada ítem con su rubro de Minciencias, su insumo MGA, la entidad, la fuente (SGR, especie o efectivo) y las actividades de la cadena de valor que financia; los controles de la convocatoria (tope SGR, cofinanciación, transferencia de al menos el 1 %, movilidad de máximo el 2 %, Seguimiento y cotizaciones); la proyección anual; y el cronograma por código de actividad con su etapa, la ruta crítica y los hitos verificables.</p>
+        <p class="judge-intro" data-i18n="page.sgrBudgetAsDataEach">El presupuesto SGR como datos: cada ítem con su rubro de Minciencias, su insumo MGA, la entidad, la fuente (SGR, especie o efectivo) y las actividades de la cadena de valor que financia; los controles de la convocatoria (tope SGR, cofinanciación, transferencia de al menos el 1 %, movilidad de máximo el 2 %, Seguimiento y cotizaciones); la proyección anual; y el cronograma por código de actividad con su etapa, la ruta crítica y los hitos verificables.</p>
       </div>
       <div class="tree-layout">
         <div class="panel tree-stage">
@@ -3421,18 +3430,18 @@
         </div>
         <aside class="panel tree-review" id="pgReviewPanel">
           <div class="panel__header">
-            <div class="panel__title">Revisión con el agente</div>
+            <div class="panel__title" data-i18n="page.reviewWithAgent">Revisión con el agente</div>
             <span class="badge" id="pgStatusBadge">—</span>
           </div>
           <div class="tree-review__body">
             <p class="vc-review-note" id="pgHashNote"></p>
-            <label class="tree-label" for="pgNoteInput">Ajuste solicitado</label>
-            <textarea id="pgNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar una segunda cotización al servidor GPU o mover el hito H2 al mes 9"></textarea>
+            <label class="tree-label" for="pgNoteInput" data-i18n="page.requestedAdjustment">Ajuste solicitado</label>
+            <textarea id="pgNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar una segunda cotización al servidor GPU o mover el hito H2 al mes 9" data-i18n-attr="placeholder:page.eGAddSecondQuote"></textarea>
             <p class="tree-gate-note" id="pgGateNote"></p>
             <div class="tree-actions">
-              <button class="btn btn--sm btn--primary" id="pgSendBtn" onclick="sendBudgetAdjust()">🤖 Enviar ajuste al agente</button>
-              <button class="btn btn--sm tree-approve" id="pgApproveBtn" onclick="approveBudget()">✅ Aprobar presupuesto y cronograma</button>
-              <button class="btn btn--sm" id="pgRetryBtn" onclick="retryBudgetPrompt()" style="display: none;">↻ Reintentar envío</button>
+              <button class="btn btn--sm btn--primary" id="pgSendBtn" onclick="sendBudgetAdjust()" data-i18n="page.sendAdjustmentAgent">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="pgApproveBtn" onclick="approveBudget()" data-i18n="page.approveBudgetSchedule">✅ Aprobar presupuesto y cronograma</button>
+              <button class="btn btn--sm" id="pgRetryBtn" onclick="retryBudgetPrompt()" style="display: none;" data-i18n="page.retrySending">↻ Reintentar envío</button>
             </div>
             <p class="tree-message" id="pgMessage" role="status"></p>
           </div>
@@ -3440,18 +3449,18 @@
       </div>
       <div class="panel" id="pgCalcPanel" hidden>
         <div class="panel__header">
-          <div class="panel__title">Calculadora de horas de contrapartida</div>
-          <span class="panel__meta">Se calcula en el navegador; no se guarda</span>
+          <div class="panel__title" data-i18n="page.counterpartHoursCalculator">Calculadora de horas de contrapartida</div>
+          <span class="panel__meta" data-i18n="page.computedBrowserNotSaved">Se calcula en el navegador; no se guarda</span>
         </div>
-        <p class="judge-intro">Valor del tiempo que una entidad aporta en especie: horas por semana × valor hora × meses × semanas por mes × factor prestacional.</p>
+        <p class="judge-intro" data-i18n="page.valueTimeEntityContributesKind">Valor del tiempo que una entidad aporta en especie: horas por semana × valor hora × meses × semanas por mes × factor prestacional.</p>
         <div class="pg-calc">
-          <label for="pgCalcHoras">Horas por semana<input id="pgCalcHoras" type="number" min="0" step="any" inputmode="decimal" oninput="updateBudgetCalc()"></label>
-          <label for="pgCalcValorHora">Valor hora (COP)<input id="pgCalcValorHora" type="number" min="0" step="any" inputmode="decimal" oninput="updateBudgetCalc()"></label>
-          <label for="pgCalcMeses">Meses<input id="pgCalcMeses" type="number" min="0" step="any" inputmode="decimal" oninput="updateBudgetCalc()"></label>
-          <label for="pgCalcSemanas">Semanas por mes<input id="pgCalcSemanas" type="number" min="0" step="any" value="4" inputmode="decimal" oninput="updateBudgetCalc()"></label>
-          <label for="pgCalcFactor">Factor prestacional<input id="pgCalcFactor" type="number" min="0" step="any" value="1" inputmode="decimal" oninput="updateBudgetCalc()"></label>
+          <label for="pgCalcHoras"><span data-i18n="page.hoursPerWeek">Horas por semana</span><input id="pgCalcHoras" type="number" min="0" step="any" inputmode="decimal" oninput="updateBudgetCalc()"></label>
+          <label for="pgCalcValorHora"><span data-i18n="page.hourlyRateCop">Valor hora (COP)</span><input id="pgCalcValorHora" type="number" min="0" step="any" inputmode="decimal" oninput="updateBudgetCalc()"></label>
+          <label for="pgCalcMeses"><span data-i18n="vcProductHtml.months">Meses</span><input id="pgCalcMeses" type="number" min="0" step="any" inputmode="decimal" oninput="updateBudgetCalc()"></label>
+          <label for="pgCalcSemanas"><span data-i18n="page.weeksPerMonth">Semanas por mes</span><input id="pgCalcSemanas" type="number" min="0" step="any" value="4" inputmode="decimal" oninput="updateBudgetCalc()"></label>
+          <label for="pgCalcFactor"><span data-i18n="page.benefitsFactor">Factor prestacional</span><input id="pgCalcFactor" type="number" min="0" step="any" value="1" inputmode="decimal" oninput="updateBudgetCalc()"></label>
         </div>
-        <p class="pg-calc__result" aria-live="polite">Valor de la contrapartida: <strong id="pgCalcResult">—</strong></p>
+        <p class="pg-calc__result" aria-live="polite"><span data-i18n="page.counterpartValue">Valor de la contrapartida:</span> <strong id="pgCalcResult">—</strong></p>
       </div>
     </div>
 
@@ -3459,10 +3468,10 @@
     <div id="pane-componentes" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">TRL y componentes transversales: ruta, transferencia, apropiación social y sostenibilidad</div>
+          <div class="panel__title" data-i18n="page.trlCrossCuttingComponentsRoute">TRL y componentes transversales: ruta, transferencia, apropiación social y sostenibilidad</div>
           <span class="panel__meta" id="cpRunMeta">—</span>
         </div>
-        <p class="judge-intro">La ruta del TRL desde el nivel de entrada hasta el de salida, con sus hitos y el plan de verificación; la transferencia con sus resultados, usuarios, barreras y el porcentaje del presupuesto frente a la línea del 1 %; la ruta de apropiación social del conocimiento con sus siete elementos, actividades y productos; la sostenibilidad social y ambiental; el uso posterior de los bienes; y las medidas diferenciales.</p>
+        <p class="judge-intro" data-i18n="page.trlRouteFromEntryLevel">La ruta del TRL desde el nivel de entrada hasta el de salida, con sus hitos y el plan de verificación; la transferencia con sus resultados, usuarios, barreras y el porcentaje del presupuesto frente a la línea del 1 %; la ruta de apropiación social del conocimiento con sus siete elementos, actividades y productos; la sostenibilidad social y ambiental; el uso posterior de los bienes; y las medidas diferenciales.</p>
       </div>
       <div class="tree-layout">
         <div class="panel tree-stage">
@@ -3470,18 +3479,18 @@
         </div>
         <aside class="panel tree-review" id="cpReviewPanel">
           <div class="panel__header">
-            <div class="panel__title">Revisión con el agente</div>
+            <div class="panel__title" data-i18n="page.reviewWithAgent">Revisión con el agente</div>
             <span class="badge" id="cpStatusBadge">—</span>
           </div>
           <div class="tree-review__body">
             <p class="vc-review-note" id="cpHashNote"></p>
-            <label class="tree-label" for="cpNoteInput">Ajuste solicitado</label>
-            <textarea id="cpNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar el elemento de resultados y sostenibilidad a la ruta ASC o subir el TRL de salida a 7"></textarea>
+            <label class="tree-label" for="cpNoteInput" data-i18n="page.requestedAdjustment">Ajuste solicitado</label>
+            <textarea id="cpNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar el elemento de resultados y sostenibilidad a la ruta ASC o subir el TRL de salida a 7" data-i18n-attr="placeholder:page.eGAddResultsSustainability"></textarea>
             <p class="tree-gate-note" id="cpGateNote"></p>
             <div class="tree-actions">
-              <button class="btn btn--sm btn--primary" id="cpSendBtn" onclick="sendComponentsAdjust()">🤖 Enviar ajuste al agente</button>
-              <button class="btn btn--sm tree-approve" id="cpApproveBtn" onclick="approveComponents()">✅ Aprobar TRL y componentes</button>
-              <button class="btn btn--sm" id="cpRetryBtn" onclick="retryComponentsPrompt()" style="display: none;">↻ Reintentar envío</button>
+              <button class="btn btn--sm btn--primary" id="cpSendBtn" onclick="sendComponentsAdjust()" data-i18n="page.sendAdjustmentAgent">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="cpApproveBtn" onclick="approveComponents()" data-i18n="page.approveTrlComponents">✅ Aprobar TRL y componentes</button>
+              <button class="btn btn--sm" id="cpRetryBtn" onclick="retryComponentsPrompt()" style="display: none;" data-i18n="page.retrySending">↻ Reintentar envío</button>
             </div>
             <p class="tree-message" id="cpMessage" role="status"></p>
           </div>
@@ -3493,10 +3502,10 @@
     <div id="pane-productos" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Productos, talento humano e indicadores: catálogo DNP, productos de CTeI, divulgación y mínimos de la convocatoria</div>
+          <div class="panel__title" data-i18n="page.productsHumanTalentIndicatorsDnp">Productos, talento humano e indicadores: catálogo DNP, productos de CTeI, divulgación y mínimos de la convocatoria</div>
           <span class="panel__meta" id="prRunMeta">—</span>
         </div>
-        <p class="judge-intro">El talento humano a vincular frente a los mínimos de la convocatoria; los productos por objetivo con su código del catálogo DNP, indicador, unidad y meta tomados de la cadena de valor; los productos de CTeI con los adicionales al mínimo y la vista previa del criterio 2.5; la estrategia de divulgación pública de la ciencia; y los indicadores de gestión y de producto.</p>
+        <p class="judge-intro" data-i18n="page.humanTalentHireAgainstCall">El talento humano a vincular frente a los mínimos de la convocatoria; los productos por objetivo con su código del catálogo DNP, indicador, unidad y meta tomados de la cadena de valor; los productos de CTeI con los adicionales al mínimo y la vista previa del criterio 2.5; la estrategia de divulgación pública de la ciencia; y los indicadores de gestión y de producto.</p>
       </div>
       <div class="tree-layout">
         <div class="panel tree-stage">
@@ -3504,18 +3513,18 @@
         </div>
         <aside class="panel tree-review" id="prReviewPanel">
           <div class="panel__header">
-            <div class="panel__title">Revisión con el agente</div>
+            <div class="panel__title" data-i18n="page.reviewWithAgent">Revisión con el agente</div>
             <span class="badge" id="prStatusBadge">—</span>
           </div>
           <div class="tree-review__body">
             <p class="vc-review-note" id="prHashNote"></p>
-            <label class="tree-label" for="prNoteInput">Ajuste solicitado</label>
-            <textarea id="prNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: comprometer un artículo TOP adicional o costear la estrategia de divulgación"></textarea>
+            <label class="tree-label" for="prNoteInput" data-i18n="page.requestedAdjustment">Ajuste solicitado</label>
+            <textarea id="prNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: comprometer un artículo TOP adicional o costear la estrategia de divulgación" data-i18n-attr="placeholder:page.eGCommitAdditionalTop"></textarea>
             <p class="tree-gate-note" id="prGateNote"></p>
             <div class="tree-actions">
-              <button class="btn btn--sm btn--primary" id="prSendBtn" onclick="sendProductsAdjust()">🤖 Enviar ajuste al agente</button>
-              <button class="btn btn--sm tree-approve" id="prApproveBtn" onclick="approveProducts()">✅ Aprobar productos e indicadores</button>
-              <button class="btn btn--sm" id="prRetryBtn" onclick="retryProductsPrompt()" style="display: none;">↻ Reintentar envío</button>
+              <button class="btn btn--sm btn--primary" id="prSendBtn" onclick="sendProductsAdjust()" data-i18n="page.sendAdjustmentAgent">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="prApproveBtn" onclick="approveProducts()" data-i18n="page.approveProductsIndicators">✅ Aprobar productos e indicadores</button>
+              <button class="btn btn--sm" id="prRetryBtn" onclick="retryProductsPrompt()" style="display: none;" data-i18n="page.retrySending">↻ Reintentar envío</button>
             </div>
             <p class="tree-message" id="prMessage" role="status"></p>
           </div>
@@ -3527,10 +3536,10 @@
     <div id="pane-requisitos" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Requisitos habilitantes y anexos: documentos del TdR, aval institucional, licencias y permisos, y coherencia de las cifras</div>
+          <div class="panel__title" data-i18n="page.eligibilityRequirementsAnnexesCallDocuments">Requisitos habilitantes y anexos: documentos del TdR, aval institucional, licencias y permisos, y coherencia de las cifras</div>
           <span class="panel__meta" id="rqRunMeta">—</span>
         </div>
-        <p class="judge-intro">Los requisitos habilitantes de la convocatoria con su condición, si aplican a este proyecto, el documento esperado y su estado; marca aquí el estado, la entidad responsable, el archivo, la fecha y la nota de cada uno. Debajo, la coherencia de las cifras entre el SIGP, el Anexo 1, el Anexo 3 y la MGA Web frente al presupuesto y la alianza, el análisis de licencias y permisos, y los documentos y plazos internos del aval institucional.</p>
+        <p class="judge-intro" data-i18n="page.callSEligibilityRequirementsWith">Los requisitos habilitantes de la convocatoria con su condición, si aplican a este proyecto, el documento esperado y su estado; marca aquí el estado, la entidad responsable, el archivo, la fecha y la nota de cada uno. Debajo, la coherencia de las cifras entre el SIGP, el Anexo 1, el Anexo 3 y la MGA Web frente al presupuesto y la alianza, el análisis de licencias y permisos, y los documentos y plazos internos del aval institucional.</p>
       </div>
       <div class="tree-layout">
         <div class="panel tree-stage">
@@ -3538,18 +3547,18 @@
         </div>
         <aside class="panel tree-review" id="rqReviewPanel">
           <div class="panel__header">
-            <div class="panel__title">Revisión con el agente</div>
+            <div class="panel__title" data-i18n="page.reviewWithAgent">Revisión con el agente</div>
             <span class="badge" id="rqStatusBadge">—</span>
           </div>
           <div class="tree-review__body">
             <p class="vc-review-note" id="rqHashNote"></p>
-            <label class="tree-label" for="rqNoteInput">Ajuste solicitado</label>
-            <textarea id="rqNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar el permiso de recolección de especímenes o corregir la justificación de la licencia ambiental"></textarea>
+            <label class="tree-label" for="rqNoteInput" data-i18n="page.requestedAdjustment">Ajuste solicitado</label>
+            <textarea id="rqNoteInput" class="tree-textarea" rows="4" placeholder="Ej.: agregar el permiso de recolección de especímenes o corregir la justificación de la licencia ambiental" data-i18n-attr="placeholder:page.eGAddSpecimenCollection"></textarea>
             <p class="tree-gate-note" id="rqGateNote"></p>
             <div class="tree-actions">
-              <button class="btn btn--sm btn--primary" id="rqSendBtn" onclick="sendRequirementsAdjust()">🤖 Enviar ajuste al agente</button>
-              <button class="btn btn--sm tree-approve" id="rqApproveBtn" onclick="approveRequirements()">✅ Aprobar requisitos y anexos</button>
-              <button class="btn btn--sm" id="rqRetryBtn" onclick="retryRequirementsPrompt()" style="display: none;">↻ Reintentar envío</button>
+              <button class="btn btn--sm btn--primary" id="rqSendBtn" onclick="sendRequirementsAdjust()" data-i18n="page.sendAdjustmentAgent">🤖 Enviar ajuste al agente</button>
+              <button class="btn btn--sm tree-approve" id="rqApproveBtn" onclick="approveRequirements()" data-i18n="page.approveRequirementsAnnexes">✅ Aprobar requisitos y anexos</button>
+              <button class="btn btn--sm" id="rqRetryBtn" onclick="retryRequirementsPrompt()" style="display: none;" data-i18n="page.retrySending">↻ Reintentar envío</button>
             </div>
             <p class="tree-message" id="rqMessage" role="status"></p>
           </div>
@@ -3561,21 +3570,21 @@
     <div id="pane-convocatorias" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Convocatorias afines a la idea del proyecto y al banco LIA</div>
+          <div class="panel__title" data-i18n="page.fundingCallsRelatedProjectIdea">Convocatorias afines a la idea del proyecto y al banco LIA</div>
           <span class="panel__meta" id="cvMeta">—</span>
         </div>
-        <p class="judge-intro">Convocatorias de Colombia, América Latina e internacionales, en español e inglés, con su match frente al proyecto en formulación o al banco LIA, el rol que puede tener un aplicante colombiano, los tiempos y las alertas de requisitos. Es una vista de solo lectura: los botones de búsqueda piden al agente una búsqueda nueva para cada alcance e «Iniciar propuesta con esta» baja el TdR de la convocatoria a la corrida activa.</p>
+        <p class="judge-intro" data-i18n="page.callsFromColombiaLatinAmerica">Convocatorias de Colombia, América Latina e internacionales, en español e inglés, con su match frente al proyecto en formulación o al banco LIA, el rol que puede tener un aplicante colombiano, los tiempos y las alertas de requisitos. Es una vista de solo lectura: los botones de búsqueda piden al agente una búsqueda nueva para cada alcance e «Iniciar propuesta con esta» baja el TdR de la convocatoria a la corrida activa.</p>
         <div class="cv-toolbar cvm-controls">
-          <span class="cvm-label">Alcance</span>
-          <div class="cvm-seg" id="cvAlcance" role="group" aria-label="Alcance del match">
-            <button type="button" data-alcance="proyecto" class="is-on" aria-pressed="true" onclick="setOpportunityScope('proyecto')">Proyecto en formulación</button>
-            <button type="button" data-alcance="banco" aria-pressed="false" onclick="setOpportunityScope('banco')">Banco LIA</button>
+          <span class="cvm-label" data-i18n="page.scope">Alcance</span>
+          <div class="cvm-seg" id="cvAlcance" role="group" aria-label="Alcance del match" data-i18n-attr="aria-label:page.matchScope">
+            <button type="button" data-alcance="proyecto" class="is-on" aria-pressed="true" onclick="setOpportunityScope('proyecto')" data-i18n="cvAlcances.projectBeingDrafted">Proyecto en formulación</button>
+            <button type="button" data-alcance="banco" aria-pressed="false" onclick="setOpportunityScope('banco')" data-i18n="cvAlcances.liaBank">Banco LIA</button>
           </div>
-          <button class="btn btn--sm btn--primary" id="cvSearchBtn" onclick="searchOpportunities('proyecto')">🔎 Buscar para el proyecto</button>
-          <button class="btn btn--sm" id="cvSearchBancoBtn" onclick="searchOpportunities('banco')">🔎 Buscar para el banco LIA</button>
+          <button class="btn btn--sm btn--primary" id="cvSearchBtn" onclick="searchOpportunities('proyecto')" data-i18n="page.searchProject">🔎 Buscar para el proyecto</button>
+          <button class="btn btn--sm" id="cvSearchBancoBtn" onclick="searchOpportunities('banco')" data-i18n="page.searchLiaBank">🔎 Buscar para el banco LIA</button>
         </div>
         <p class="tree-message" id="cvMessage" role="status"></p>
-        <div class="cv-progress" id="cvProgress" role="progressbar" aria-label="Avance de la búsqueda de convocatorias" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+        <div class="cv-progress" id="cvProgress" role="progressbar" aria-label="Avance de la búsqueda de convocatorias" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden data-i18n-attr="aria-label:page.fundingCallSearchProgress">
           <div class="cv-progress__track"><span class="cv-progress__fill" id="cvProgressFill"></span></div>
           <p class="cv-progress__label" id="cvProgressLabel"></p>
         </div>
@@ -3589,10 +3598,10 @@
     <div id="pane-anexo2" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Anexo 2: capítulos del documento técnico con su estado, sus secciones y su regla de redacción</div>
+          <div class="panel__title" data-i18n="page.annex2ChaptersTechnicalDocument">Anexo 2: capítulos del documento técnico con su estado, sus secciones y su regla de redacción</div>
           <span class="panel__meta" id="a2RunMeta">—</span>
         </div>
-        <p class="judge-intro">Cada capítulo del Anexo 2 con las secciones de Morfeo que lo llenan, su estado, sus palabras y sus hallazgos; la regla de redacción del capítulo, su léxico y los criterios de la rúbrica que lo leen. Es una vista de solo lectura: las secciones se abren en el panel «Secciones».</p>
+        <p class="judge-intro" data-i18n="page.eachChapterAnnex2With">Cada capítulo del Anexo 2 con las secciones de Morfeo que lo llenan, su estado, sus palabras y sus hallazgos; la regla de redacción del capítulo, su léxico y los criterios de la rúbrica que lo leen. Es una vista de solo lectura: las secciones se abren en el panel «Secciones».</p>
       </div>
       <div class="panel">
         <div id="a2Content"></div>
@@ -3603,13 +3612,13 @@
     <div id="pane-sections" class="tab-pane">
       <div class="panel" id="tdrChaptersPanel" hidden>
         <div class="panel__header">
-          <div class="panel__title">Capítulos de la convocatoria</div>
+          <div class="panel__title" data-i18n="page.chaptersCall">Capítulos de la convocatoria</div>
           <span class="panel__meta" id="tdrChaptersMeta">—</span>
         </div>
         <div class="table-responsive">
           <table class="table">
             <thead>
-              <tr><th>Cap.</th><th>Título del TDR</th><th>Archivos</th><th>Estado</th></tr>
+              <tr><th data-i18n="page.ch">Cap.</th><th data-i18n="page.callTermsTitle">Título del TDR</th><th data-i18n="page.files">Archivos</th><th data-i18n="rqRequirementsHtml.status">Estado</th></tr>
             </thead>
             <tbody id="tdrChaptersBody"></tbody>
           </table>
@@ -3617,21 +3626,21 @@
       </div>
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Estructura canónica: secciones numeradas y front-matter</div>
+          <div class="panel__title" data-i18n="page.canonicalStructureNumberedSectionsFront">Estructura canónica: secciones numeradas y front-matter</div>
           <span class="panel__meta" id="sectionsMetaCount">—</span>
         </div>
         <div class="table-responsive">
           <table class="table">
             <thead>
               <tr>
-                <th>Código</th>
-                <th>Sección y Título Oficial</th>
+                <th data-i18n="vcProductHtml.code">Código</th>
+                <th data-i18n="page.sectionOfficialTitle">Sección y Título Oficial</th>
                 <th>Estructura</th>
-                <th>Archivo LaTeX</th>
-                <th>Palabras</th>
-                <th>Citas APA</th>
-                <th>Figuras</th>
-                <th>Estado</th>
+                <th data-i18n="page.latexFile">Archivo LaTeX</th>
+                <th data-i18n="a2SectionsHtml.words">Palabras</th>
+                <th data-i18n="page.apaCitations">Citas APA</th>
+                <th data-i18n="page.figures">Figuras</th>
+                <th data-i18n="rqRequirementsHtml.status">Estado</th>
               </tr>
             </thead>
             <tbody id="sectionsTableBody">
@@ -3646,18 +3655,18 @@
       <div class="panel">
         <div class="panel__header">
           <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <div class="panel__title">Atlas de Conocimiento y Mapeo Conceptual (Codebase-Memory MCP)</div>
-            <span id="graphStatusBadge" class="badge badge--ok" style="font-size: 0.72rem; text-transform: none;">✓ Grafos 3D activos (Literatura · Vault · Manuscrito)</span>
+            <div class="panel__title" data-i18n="page.knowledgeAtlasConceptMappingCodebase">Atlas de Conocimiento y Mapeo Conceptual (Codebase-Memory MCP)</div>
+            <span id="graphStatusBadge" class="badge badge--ok" style="font-size: 0.72rem; text-transform: none;" data-i18n="page.n3dGraphsActiveLiteratureVault">✓ Grafos 3D activos (Literatura · Vault · Manuscrito)</span>
           </div>
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-            <button id="btnGraphPapers" class="btn btn--primary" onclick="switchGraph('papers')">Grafo de Literatura SOTA</button>
-            <button id="btnGraphVault" class="btn" onclick="switchGraph('vault')">Grafo del Vault Obsidian</button>
-            <button id="btnGraphManuscript" class="btn" onclick="switchGraph('manuscript')">Grafo del Manuscrito</button>
-            <button id="btnBuildGraph" class="btn" onclick="triggerBuildManuscriptGraph()" title="Regenerar los 3 grafos del proyecto (Literatura SOTA, Vault Obsidian y Manuscrito LaTeX)">⚡ Regenerar Grafo</button>
-            <a id="linkOpenGraph" href="/api/graph/papers" target="_blank" class="btn">Abrir en pestaña nueva ↗</a>
+            <button id="btnGraphPapers" class="btn btn--primary" onclick="switchGraph('papers')" data-i18n="page.sotaLiteratureGraph">Grafo de Literatura SOTA</button>
+            <button id="btnGraphVault" class="btn" onclick="switchGraph('vault')" data-i18n="page.obsidianVaultGraph">Grafo del Vault Obsidian</button>
+            <button id="btnGraphManuscript" class="btn" onclick="switchGraph('manuscript')" data-i18n="page.manuscriptGraph">Grafo del Manuscrito</button>
+            <button id="btnBuildGraph" class="btn" onclick="triggerBuildManuscriptGraph()" title="Regenerar los 3 grafos del proyecto (Literatura SOTA, Vault Obsidian y Manuscrito LaTeX)" data-i18n="triggerBuildManuscriptGraph.rebuildGraph" data-i18n-attr="title:page.rebuildProjectS3Graphs">⚡ Regenerar Grafo</button>
+            <a id="linkOpenGraph" href="/api/graph/papers" target="_blank" class="btn" data-i18n="page.openNewTab">Abrir en pestaña nueva ↗</a>
           </div>
         </div>
-        <iframe id="graphIframe" class="iframe-viewer" src="about:blank" title="Grafo de conocimiento" onload="if (typeof syncGraphPause === 'function') syncGraphPause()"></iframe>
+        <iframe id="graphIframe" class="iframe-viewer" src="about:blank" title="Grafo de conocimiento" onload="if (typeof syncGraphPause === 'function') syncGraphPause()" data-i18n-attr="title:page.knowledgeGraph"></iframe>
       </div>
     </div>
 
@@ -3671,15 +3680,15 @@
                `final` (judge-avance.js, /propuesta-juez-avance final). -->
           <section class="panel preview-judge" id="previewJudgeFold" data-fold="juez-final" data-fold-title="Juez final" data-fold-open>
             <div class="panel__header">
-              <div class="panel__title">Juez final</div>
+              <div class="panel__title" data-i18n="page.finalJudge">Juez final</div>
               <span class="panel__meta" id="judgeRunMeta">—</span>
             </div>
-            <p class="judge-intro" id="judgeLoading">Cargando el juez final…</p>
+            <p class="judge-intro" id="judgeLoading" data-i18n="page.loadingFinalJudge">Cargando el juez final…</p>
             <div id="judgeSgr" hidden>
-              <p class="judge-intro">El juez estima el puntaje que darían los pares evaluadores con la rúbrica oficial de la convocatoria, señala inconsistencias y propone acciones de mejora para los agentes de Morfeo. Es asesor: no cambia el veredicto del revisor.</p>
+              <p class="judge-intro" data-i18n="page.judgeEstimatesScorePeerReviewers">El juez estima el puntaje que darían los pares evaluadores con la rúbrica oficial de la convocatoria, señala inconsistencias y propone acciones de mejora para los agentes de Morfeo. Es asesor: no cambia el veredicto del revisor.</p>
               <div class="judge-feedback">
                 <p class="tree-message" id="judgeMessage" role="status"></p>
-                <button class="btn btn--sm" id="judgeRetryBtn" onclick="retryJudgePrompt()" style="display: none;">↻ Reintentar envío</button>
+                <button class="btn btn--sm" id="judgeRetryBtn" onclick="retryJudgePrompt()" style="display: none;" data-i18n="page.retrySending">↻ Reintentar envío</button>
               </div>
               <div id="judgeContent"></div>
             </div>
@@ -3689,64 +3698,64 @@
           <div class="pdf-viewer-topbar">
             <div class="pdf-topbar__left">
               <strong class="pdf-doc-title">📄 main.pdf</strong>
-              <span id="pdfInfoBadge" class="badge badge--ok" style="font-size: 0.72rem;">— páginas</span>
+              <span id="pdfInfoBadge" class="badge badge--ok" style="font-size: 0.72rem;" data-i18n="page.pages">— páginas</span>
             </div>
             
             <div class="pdf-topbar__center">
               <div class="btn-group">
-                <button class="btn btn--sm" onclick="changePdfPage(-5)" title="Retroceder 5 páginas (Shift+←)">◀◀</button>
-                <button class="btn btn--sm" id="btnPrevPage" onclick="changePdfPage(-1)" title="Página anterior (←)">◀ Anterior</button>
-                <span class="pdf-page-indicator">Pág. <input type="number" id="inputPdfPage" min="1" value="1" onchange="goToPdfPage(this.value)"> / <span id="pdfTotalPages">1</span></span>
-                <button class="btn btn--sm" id="btnNextPage" onclick="changePdfPage(1)" title="Página siguiente (→)">Siguiente ▶</button>
-                <button class="btn btn--sm" onclick="changePdfPage(5)" title="Avanzar 5 páginas (Shift+→)">▶▶</button>
+                <button class="btn btn--sm" onclick="changePdfPage(-5)" title="Retroceder 5 páginas (Shift+←)" data-i18n-attr="title:page.back5PagesShift">◀◀</button>
+                <button class="btn btn--sm" id="btnPrevPage" onclick="changePdfPage(-1)" title="Página anterior (←)" data-i18n="page.previous" data-i18n-attr="title:page.previousPage">◀ Anterior</button>
+                <span class="pdf-page-indicator"><span data-i18n="page.page">Pág.</span> <input type="number" id="inputPdfPage" min="1" value="1" onchange="goToPdfPage(this.value)"> / <span id="pdfTotalPages">1</span></span>
+                <button class="btn btn--sm" id="btnNextPage" onclick="changePdfPage(1)" title="Página siguiente (→)" data-i18n="page.next" data-i18n-attr="title:page.nextPage">Siguiente ▶</button>
+                <button class="btn btn--sm" onclick="changePdfPage(5)" title="Avanzar 5 páginas (Shift+→)" data-i18n-attr="title:page.forward5PagesShift">▶▶</button>
               </div>
 
               <div class="btn-group">
-                <button class="btn btn--sm" onclick="zoomPdf(-0.15)" title="Reducir zoom (−)">🔍−</button>
-                <span id="pdfZoomLabel" style="font-size: 0.75rem; padding: 0 0.4rem; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; min-height: 24px;" onclick="resetZoomPdf()" title="Restablecer zoom">125%</span>
-                <button class="btn btn--sm" onclick="zoomPdf(0.15)" title="Aumentar zoom (+)">🔍+</button>
-                <button class="btn btn--sm" id="btnPdfZoomReset" onclick="resetZoomPdf()" title="Ajustar zoom al 125%">125%</button>
+                <button class="btn btn--sm" onclick="zoomPdf(-0.15)" title="Reducir zoom (−)" data-i18n-attr="title:page.zoomOut">🔍−</button>
+                <span id="pdfZoomLabel" style="font-size: 0.75rem; padding: 0 0.4rem; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; min-height: 24px;" onclick="resetZoomPdf()" title="Restablecer zoom" data-i18n-attr="title:page.resetZoom">125%</span>
+                <button class="btn btn--sm" onclick="zoomPdf(0.15)" title="Aumentar zoom (+)" data-i18n-attr="title:page.zoom">🔍+</button>
+                <button class="btn btn--sm" id="btnPdfZoomReset" onclick="resetZoomPdf()" title="Ajustar zoom al 125%" data-i18n-attr="title:page.setZoom125">125%</button>
               </div>
             </div>
 
             <div class="pdf-topbar__right">
-              <span id="pdfRenderStatus" class="badge badge--warn" style="font-size: 0.72rem; display: none;">⚡ Renderizando...</span>
-              <button class="btn btn--sm" onclick="toggleStyleDrawer()" id="btnStyleDrawer" aria-controls="styleDrawer" aria-expanded="false" title="Índice de legibilidad, secciones y hallazgos de estilo y redundancia, cada uno ubicable en el PDF">Estilo y redundancia</button>
-              <button class="btn btn--sm" onclick="window.open('/presentacion', '_blank')" id="btnPresentacion" title="Abrir la presentación de la propuesta (convocatoria, alianza, árboles y metodología) con el estilo de AgentPt">🎞 Presentación</button>
-              <button class="btn btn--sm" onclick="recompilePdf()" id="btnRecompilePdf" title="Compilar de nuevo main.pdf con build.sh y recargar la previsualización">⟳ Recompilar</button>
-              <button class="btn btn--sm" onclick="toggleNativeViewer()" id="btnToggleNative" title="Alternar entre PDF.js y visor nativo del navegador">Visor Nativo</button>
-              <a href="/api/pdf" download class="btn btn--sm" title="Descargar main.pdf compilado">⬇ Descargar</a>
+              <span id="pdfRenderStatus" class="badge badge--warn" style="font-size: 0.72rem; display: none;" data-i18n="recompilePdf.rendering">⚡ Renderizando...</span>
+              <button class="btn btn--sm" onclick="toggleStyleDrawer()" id="btnStyleDrawer" aria-controls="styleDrawer" aria-expanded="false" title="Índice de legibilidad, secciones y hallazgos de estilo y redundancia, cada uno ubicable en el PDF" data-i18n="page.styleRedundancy" data-i18n-attr="title:page.readabilityIndexSectionsStyleRedundancy">Estilo y redundancia</button>
+              <button class="btn btn--sm" onclick="window.open('/presentacion', '_blank')" id="btnPresentacion" title="Abrir la presentación de la propuesta (convocatoria, alianza, árboles y metodología) con el estilo de AgentPt" data-i18n="page.presentation" data-i18n-attr="title:page.openProposalPresentationFundingCall">🎞 Presentación</button>
+              <button class="btn btn--sm" onclick="recompilePdf()" id="btnRecompilePdf" title="Compilar de nuevo main.pdf con build.sh y recargar la previsualización" data-i18n="page.rebuild" data-i18n-attr="title:page.rebuildMainPdfWithBuild">⟳ Recompilar</button>
+              <button class="btn btn--sm" onclick="toggleNativeViewer()" id="btnToggleNative" title="Alternar entre PDF.js y visor nativo del navegador" data-i18n="toggleNativeViewer.nativeViewer" data-i18n-attr="title:page.switchBetweenPdfJsBrowser">Visor Nativo</button>
+              <a href="/api/pdf" download class="btn btn--sm" title="Descargar main.pdf compilado" data-i18n="page.download" data-i18n-attr="title:page.downloadBuiltMainPdf">⬇ Descargar</a>
             </div>
           </div>
 
           <!-- Barra interactiva del visor: aviso de selección, acciones rápidas y limpieza -->
           <div class="pdf-interaction-bar" id="pdfInteractionBar">
-            <div class="pdf-interaction-hint" id="pdfSelectionInfoText">
+            <div class="pdf-interaction-hint" id="pdfSelectionInfoText" data-i18n-html="page.selectAnyTextPdfWith">
               Selecciona cualquier texto en el PDF con el mouse para aplicar <strong>Comentario</strong>, <strong>Tachar</strong>, <strong>Reemplazar</strong> o <strong>Humanizar</strong>.
             </div>
             <div class="selection-quick-actions" id="selectionActionsQuick" style="display: none;">
-              <button class="btn btn--xs btn--comment" onclick="triggerAddComment()">💬 Comentar</button>
-              <button class="btn btn--xs btn--strikethrough" onclick="triggerStrikethrough()">✂️ Tachar</button>
-              <button class="btn btn--xs btn--replace" onclick="triggerReplace()" style="background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #f59e0b;">🔁 Reemplazar</button>
-              <button class="btn btn--xs btn--humanize" onclick="triggerHumanize()">✨ Humanizar</button>
+              <button class="btn btn--xs btn--comment" onclick="triggerAddComment()" data-i18n="page.comment">💬 Comentar</button>
+              <button class="btn btn--xs btn--strikethrough" onclick="triggerStrikethrough()" data-i18n="renderAnnotationsTray.strike">✂️ Tachar</button>
+              <button class="btn btn--xs btn--replace" onclick="triggerReplace()" style="background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #f59e0b;" data-i18n="renderAnnotationsTray.replace">🔁 Reemplazar</button>
+              <button class="btn btn--xs btn--humanize" onclick="triggerHumanize()" data-i18n="renderAnnotationsTray.humanize">✨ Humanizar</button>
             </div>
             <div class="pdf-interaction-actions">
               <div class="btn-group" style="margin-right: 0.25rem;">
-                <button class="btn btn--sm" id="btnUndoAnnot" onclick="undoAnnotationAction()" title="Deshacer el último cambio realizado de forma iterativa (Ctrl+Z / Cmd+Z)" disabled style="opacity: 0.45; cursor: not-allowed;">↩️ Deshacer</button>
-                <button class="btn btn--sm" id="btnRedoAnnot" onclick="redoAnnotationAction()" title="Volver adelante / Rehacer el cambio deshecho (Ctrl+Y / Cmd+Shift+Z)" disabled style="opacity: 0.45; cursor: not-allowed;">↪️ Volver adelante</button>
+                <button class="btn btn--sm" id="btnUndoAnnot" onclick="undoAnnotationAction()" title="Deshacer el último cambio realizado de forma iterativa (Ctrl+Z / Cmd+Z)" disabled style="opacity: 0.45; cursor: not-allowed;" data-i18n="page.undo" data-i18n-attr="title:page.undoLastChangeOneStep">↩️ Deshacer</button>
+                <button class="btn btn--sm" id="btnRedoAnnot" onclick="redoAnnotationAction()" title="Volver adelante / Rehacer el cambio deshecho (Ctrl+Y / Cmd+Shift+Z)" disabled style="opacity: 0.45; cursor: not-allowed;" data-i18n="page.goForward" data-i18n-attr="title:page.goForwardRedoUndoneChange">↪️ Volver adelante</button>
               </div>
-              <button class="btn btn--sm" id="btnClearSelection" onclick="deselectPdfText()" title="Quitar la selección de texto del visor">✕ Deseleccionar</button>
-              <button class="btn btn--sm" id="btnDesmarcarTodos" onclick="clearAllAnnotations()" title="Desmarcar todos los cambios pendientes sin ejecutar">Desmarcar todos</button>
-              <button class="btn btn--sm btn--executed-marks" id="btnClearExecutedMarks" onclick="clearExecutedChangeMarks()" title="Quitar marcas de cambios aplicados en el PDF" style="display: none; background: rgba(16, 185, 129, 0.15); border-color: var(--ok); color: var(--ok);">🧹 Quitar marcas de cambios (<span id="executedMarksCount">0</span>)</button>
+              <button class="btn btn--sm" id="btnClearSelection" onclick="deselectPdfText()" title="Quitar la selección de texto del visor" data-i18n="page.deselect" data-i18n-attr="title:page.clearTextSelectionViewer">✕ Deseleccionar</button>
+              <button class="btn btn--sm" id="btnDesmarcarTodos" onclick="clearAllAnnotations()" title="Desmarcar todos los cambios pendientes sin ejecutar" data-i18n="page.unmarkAll" data-i18n-attr="title:page.unmarkEveryPendingChangeWithout">Desmarcar todos</button>
+              <button class="btn btn--sm btn--executed-marks" id="btnClearExecutedMarks" onclick="clearExecutedChangeMarks()" title="Quitar marcas de cambios aplicados en el PDF" style="display: none; background: rgba(16, 185, 129, 0.15); border-color: var(--ok); color: var(--ok);" data-i18n-attr="title:page.removeMarksChangesAppliedPdf"><span data-i18n="page.removeChangeMarks">🧹 Quitar marcas de cambios (</span><span id="executedMarksCount">0</span>)</button>
               <div class="marks-menu" id="marksMenu">
-                <button class="btn btn--sm" id="btnMarksMenu" onclick="toggleMarksMenu(event)" aria-expanded="false" title="Quitar tachados, comentarios, reemplazos o marcas de cambios del visor">🧹 Quitar marcas <span class="marks-menu__caret">▾</span></button>
+                <button class="btn btn--sm" id="btnMarksMenu" onclick="toggleMarksMenu(event)" aria-expanded="false" title="Quitar tachados, comentarios, reemplazos o marcas de cambios del visor" data-i18n-attr="title:page.removeStrikeThroughsCommentsReplacements"><span data-i18n="page.removeMarks">🧹 Quitar marcas</span> <span class="marks-menu__caret">▾</span></button>
                 <div class="marks-menu__panel" id="marksMenuPanel" style="display: none;">
-                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('strikethrough')">✂️ Quitar tachados <span class="marks-menu__count" id="marksCountStrike">0</span></button>
-                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('replace')">🔁 Quitar reemplazos <span class="marks-menu__count" id="marksCountReplace">0</span></button>
-                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('comment')">💬 Quitar comentarios <span class="marks-menu__count" id="marksCountComment">0</span></button>
-                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('humanize')">✨ Quitar humanizaciones <span class="marks-menu__count" id="marksCountHumanize">0</span></button>
-                  <button type="button" class="marks-menu__item marks-menu__item--all" onclick="clearAllAnnotations()">🧹 Desmarcar todos los cambios pendientes <span class="marks-menu__count" id="marksCountAll">0</span></button>
-                  <button type="button" class="marks-menu__item" id="menuItemClearExecuted" onclick="clearExecutedChangeMarks()" style="display: none;">✨ Quitar marcas de cambios aplicados <span class="marks-menu__count" id="marksCountExecuted">0</span></button>
+                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('strikethrough')"><span data-i18n="page.removeStrikes">✂️ Quitar tachados</span> <span class="marks-menu__count" id="marksCountStrike">0</span></button>
+                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('replace')"><span data-i18n="page.removeReplacements">🔁 Quitar reemplazos</span> <span class="marks-menu__count" id="marksCountReplace">0</span></button>
+                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('comment')"><span data-i18n="page.removeComments">💬 Quitar comentarios</span> <span class="marks-menu__count" id="marksCountComment">0</span></button>
+                  <button type="button" class="marks-menu__item" onclick="removeAnnotationsByType('humanize')"><span data-i18n="page.removeHumanizations">✨ Quitar humanizaciones</span> <span class="marks-menu__count" id="marksCountHumanize">0</span></button>
+                  <button type="button" class="marks-menu__item marks-menu__item--all" onclick="clearAllAnnotations()"><span data-i18n="page.unmarkEveryPendingChange">🧹 Desmarcar todos los cambios pendientes</span> <span class="marks-menu__count" id="marksCountAll">0</span></button>
+                  <button type="button" class="marks-menu__item" id="menuItemClearExecuted" onclick="clearExecutedChangeMarks()" style="display: none;"><span data-i18n="page.removeMarksAppliedChanges">✨ Quitar marcas de cambios aplicados</span> <span class="marks-menu__count" id="marksCountExecuted">0</span></button>
                 </div>
               </div>
             </div>
@@ -3756,7 +3765,7 @@
           <div class="pdf-viewport-container" id="pdfViewportContainer">
             <div id="pdfLoadingSpinner" class="pdf-loading-overlay">
               <div class="spinner"></div>
-              <p>Cargando documento PDF...</p>
+              <p data-i18n="page.loadingPdfDocument">Cargando documento PDF...</p>
             </div>
             <div class="pdf-pages-strip" id="pdfPagesStrip"></div>
             <iframe id="pdfNativeIframe" class="iframe-viewer" src="about:blank" style="display: none; height: 850px; width: 100%;"></iframe>
@@ -3764,12 +3773,12 @@
         </div>
 
         <!-- Columna Derecha: Panel de Control de Cambios Unificado -->
-        <aside class="pdf-control-panel" id="pdfControlPanel" aria-label="Panel de Control de Cambios">
+        <aside class="pdf-control-panel" id="pdfControlPanel" aria-label="Panel de Control de Cambios" data-i18n-attr="aria-label:page.changeControlPanel">
           <div class="control-panel__header">
             <div class="control-panel__title">
               <div>
-                <h3>Control de Cambios</h3>
-                <p>Marcado y corrección editorial</p>
+                <h3 data-i18n="page.changeControl">Control de Cambios</h3>
+                <p data-i18n="page.editorialMarkingCorrection">Marcado y corrección editorial</p>
               </div>
             </div>
             <span class="badge badge--ok" id="panelStatusBadge">ACTIVO</span>
@@ -3777,62 +3786,62 @@
 
           <!-- 1. Botones de Acción Editorial Exigidos -->
           <div class="control-panel__section">
-            <div class="section-label">Herramientas Editoriales</div>
+            <div class="section-label" data-i18n="page.editorialTools">Herramientas Editoriales</div>
             <div class="tools-buttons-stack">
-              <button class="btn--tool btn--comment" id="btnComment" onclick="triggerAddComment()" title="Comentario sobre el texto seleccionado en el PDF">
+              <button class="btn--tool btn--comment" id="btnComment" onclick="triggerAddComment()" title="Comentario sobre el texto seleccionado en el PDF" data-i18n-attr="title:page.commentOnTextSelectedPdf">
                 <span class="tool-icon">💬</span>
-                <span class="tool-text">
+                <span class="tool-text" data-i18n-html="page.commentInstructionSuggestionAgent">
                   <strong>Comentario</strong>
                   <small>Instrucción o sugerencia para el agente</small>
                 </span>
               </button>
-              <button class="btn--tool btn--strikethrough" id="btnStrikethrough" onclick="triggerStrikethrough()" title="Tachar texto seleccionado para eliminarlo del LaTeX">
+              <button class="btn--tool btn--strikethrough" id="btnStrikethrough" onclick="triggerStrikethrough()" title="Tachar texto seleccionado para eliminarlo del LaTeX" data-i18n-attr="title:page.strikeSelectedTextDeleteFrom">
                 <span class="tool-icon">✂️</span>
-                <span class="tool-text">
+                <span class="tool-text" data-i18n-html="page.strikeDeletePassageLatexSources">
                   <strong>Tachar</strong>
                   <small>Eliminar fragmento en fuentes LaTeX</small>
                 </span>
               </button>
-              <button class="btn--tool btn--humanize" id="btnHumanize" onclick="triggerHumanize()" title="Humanizar el texto seleccionado con la skill estilo-natural-es">
+              <button class="btn--tool btn--humanize" id="btnHumanize" onclick="triggerHumanize()" title="Humanizar el texto seleccionado con la skill estilo-natural-es" data-i18n-attr="title:page.humanizeSelectedTextWithEstilo">
                 <span class="tool-icon">✨</span>
-                <span class="tool-text">
+                <span class="tool-text" data-i18n-html="page.humanizeWordingRewriteWithEstilo">
                   <strong>Humanizar la redacción</strong>
                   <small>Reescribir con skill estilo-natural-es</small>
                 </span>
               </button>
-              <button class="btn--tool btn--replace" id="btnReplace" onclick="triggerReplace()" title="Reemplazar texto seleccionado por otro texto literal o borrarlo">
+              <button class="btn--tool btn--replace" id="btnReplace" onclick="triggerReplace()" title="Reemplazar texto seleccionado por otro texto literal o borrarlo" data-i18n-attr="title:page.replaceSelectedTextWithOther">
                 <span class="tool-icon">🔁</span>
-                <span class="tool-text">
+                <span class="tool-text" data-i18n-html="page.replaceSubstituteExactTextDelete">
                   <strong>Reemplazar</strong>
                   <small>Sustituir por texto exacto o borrar</small>
                 </span>
               </button>
               <div style="display: flex; gap: 0.5rem; margin-top: 0.65rem;">
-                <button class="btn btn--sm" id="btnPanelUndo" onclick="undoAnnotationAction()" style="flex: 1; opacity: 0.45; cursor: not-allowed;" title="Deshacer el último cambio de forma iterativa (Ctrl+Z)" disabled>↩️ Deshacer</button>
-                <button class="btn btn--sm" id="btnPanelRedo" onclick="redoAnnotationAction()" style="flex: 1; opacity: 0.45; cursor: not-allowed;" title="Volver adelante / Rehacer (Ctrl+Y)" disabled>↪️ Rehacer</button>
+                <button class="btn btn--sm" id="btnPanelUndo" onclick="undoAnnotationAction()" style="flex: 1; opacity: 0.45; cursor: not-allowed;" title="Deshacer el último cambio de forma iterativa (Ctrl+Z)" disabled data-i18n="page.undo" data-i18n-attr="title:page.undoLastChangeOneStep2">↩️ Deshacer</button>
+                <button class="btn btn--sm" id="btnPanelRedo" onclick="redoAnnotationAction()" style="flex: 1; opacity: 0.45; cursor: not-allowed;" title="Volver adelante / Rehacer (Ctrl+Y)" disabled data-i18n="page.redo" data-i18n-attr="title:page.goForwardRedoCtrlY">↪️ Rehacer</button>
               </div>
             </div>
           </div>
 
           <!-- 2. Tarjeta de Selección Activa en PDF -->
           <div class="control-panel__section">
-            <div class="section-label">Selección Activa</div>
+            <div class="section-label" data-i18n="page.activeSelection">Selección Activa</div>
             <div class="selection-card" id="selectionCard">
               <div class="selection-empty" id="selectionEmptyState">
                 <span style="font-size: 1.3rem;">👆</span>
-                <p>Selecciona texto en el PDF con el cursor para habilitar las acciones.</p>
+                <p data-i18n="page.selectTextPdfWithCursor">Selecciona texto en el PDF con el cursor para habilitar las acciones.</p>
               </div>
               <div class="selection-active" id="selectionActiveState" style="display: none;">
                 <div class="selection-meta">
-                  <span class="badge badge--info" id="selectedPageBadge">Pág. 1</span>
-                  <span id="selectionWordCount" style="font-size: 0.72rem; color: var(--text-dim);">0 palabras</span>
+                  <span class="badge badge--info" id="selectedPageBadge" data-i18n="page.page1">Pág. 1</span>
+                  <span id="selectionWordCount" style="font-size: 0.72rem; color: var(--text-dim);" data-i18n="page.zeroWords">0 palabras</span>
                 </div>
                 <div class="selection-quote" id="selectedQuoteText">""</div>
                 <div class="selection-quick-actions">
-                  <button class="btn btn--xs btn--comment" onclick="triggerAddComment()">💬 Comentar</button>
-                  <button class="btn btn--xs btn--strikethrough" onclick="triggerStrikethrough()">✂️ Tachar</button>
-                  <button class="btn btn--xs btn--replace" onclick="triggerReplace()" style="background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #f59e0b;">🔁 Reemplazar</button>
-                  <button class="btn btn--xs btn--humanize" onclick="triggerHumanize()">✨ Humanizar</button>
+                  <button class="btn btn--xs btn--comment" onclick="triggerAddComment()" data-i18n="page.comment">💬 Comentar</button>
+                  <button class="btn btn--xs btn--strikethrough" onclick="triggerStrikethrough()" data-i18n="renderAnnotationsTray.strike">✂️ Tachar</button>
+                  <button class="btn btn--xs btn--replace" onclick="triggerReplace()" style="background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #f59e0b;" data-i18n="renderAnnotationsTray.replace">🔁 Reemplazar</button>
+                  <button class="btn btn--xs btn--humanize" onclick="triggerHumanize()" data-i18n="renderAnnotationsTray.humanize">✨ Humanizar</button>
                 </div>
               </div>
             </div>
@@ -3841,37 +3850,37 @@
           <!-- 3. Lista de Marcas Pendientes -->
           <div class="control-panel__section">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div class="section-label">Marcas Pendientes (<span id="sidebarCount">0</span>)</div>
-              <button class="btn-link" onclick="clearAllAnnotations()" title="Descartar todas las marcas">Vaciar marcas</button>
+              <div class="section-label"><span data-i18n="page.pendingMarks">Marcas Pendientes (</span><span id="sidebarCount">0</span>)</div>
+              <button class="btn-link" onclick="clearAllAnnotations()" title="Descartar todas las marcas" data-i18n="page.clearMarks" data-i18n-attr="title:page.discardEveryMark">Vaciar marcas</button>
             </div>
             <div class="annots-list" id="annotsList">
               <div class="annots-empty">
-                <p>No hay marcas pendientes.</p>
-                <small>Selecciona texto y haz clic en Comentario, Tachar o Humanizar.</small>
+                <p data-i18n="renderAnnotationsTray.noPendingMarks">No hay marcas pendientes.</p>
+                <span data-i18n-html="page.selectTextClickCommentStrike"><small>Selecciona texto y haz clic en Comentario, Tachar o Humanizar.</small></span>
               </div>
             </div>
           </div>
 
           <!-- 4. Cola de instrucciones del redactor (cambian cuando se consumen) -->
           <div class="control-panel__section">
-            <div class="section-label">Cola de instrucciones del redactor</div>
+            <div class="section-label" data-i18n="page.writerInstructionQueue">Cola de instrucciones del redactor</div>
             <div class="pending-queue-box" id="pendingQueueBox" style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem; font-size: 0.78rem; line-height: 1.5; color: var(--text-muted);">
-              <span id="pendingQueueCount">0</span> instrucciones pendientes. No cambian el manuscrito hasta que el <code>redactor</code> las consuma.
+              <span id="pendingQueueCount">0</span> <span data-i18n-html="page.pendingInstructionsTheyDoNot">instrucciones pendientes. No cambian el manuscrito hasta que el <code>redactor</code> las consuma.</span>
             </div>
           </div>
 
           <!-- 5. Botón de Ejecutar Cambios (Exigido) -->
           <div class="control-panel__footer">
-            <button class="btn btn--primary btn--execute" id="btnExecuteChanges" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.88rem;" onclick="confirmAndExecuteChanges()" title="Ejecutar cambios en LaTeX, aplicar estilo-natural-es y recompilar PDF">
-              <span>🚀 Ejecutar Cambios (<span id="sidebarBtnCount">0</span>)</span>
+            <button class="btn btn--primary btn--execute" id="btnExecuteChanges" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.88rem;" onclick="confirmAndExecuteChanges()" title="Ejecutar cambios en LaTeX, aplicar estilo-natural-es y recompilar PDF" data-i18n-attr="title:page.runChangesLatexApplyEstilo">
+              <span><span data-i18n="page.runChanges">🚀 Ejecutar Cambios (</span><span id="sidebarBtnCount">0</span>)</span>
             </button>
-            <p class="execute-hint">Reemplaza y tacha en LaTeX, aplica <code>estilo-natural-es</code>, registra los comentarios para el redactor y recompila <code>main.pdf</code>.</p>
+            <p class="execute-hint" data-i18n-html="page.replacesStrikesLatexAppliesEstilo">Reemplaza y tacha en LaTeX, aplica <code>estilo-natural-es</code>, registra los comentarios para el redactor y recompila <code>main.pdf</code>.</p>
           </div>
 
           <!-- 6. Historial de Última Ejecución -->
           <div class="execution-history-box" id="executionHistorySection">
-            <div class="section-label" style="margin-bottom: 0.35rem;">Última Ejecución Registrada</div>
-            <div class="last-execution-content" id="lastExecutionBox">
+            <div class="section-label" style="margin-bottom: 0.35rem;" data-i18n="page.lastRecordedRun">Última Ejecución Registrada</div>
+            <div class="last-execution-content" id="lastExecutionBox" data-i18n="page.noRecordedRuns">
               Sin ejecuciones registradas.
             </div>
           </div>
@@ -3883,14 +3892,14 @@
     <div id="pane-artifacts" class="tab-pane">
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Explorador de Artefactos de la Propuesta</div>
-          <span class="panel__meta">Documentos Markdown generados durante el ciclo de formulación</span>
+          <div class="panel__title" data-i18n="page.proposalArtifactExplorer">Explorador de Artefactos de la Propuesta</div>
+          <span class="panel__meta" data-i18n="page.markdownDocumentsGeneratedDuringDrafting">Documentos Markdown generados durante el ciclo de formulación</span>
         </div>
         <div class="split-layout">
           <div class="sidebar-list" id="artifactsList">
             <!-- Rendered by JS -->
           </div>
-          <div class="artifact-viewer" id="artifactContent">
+          <div class="artifact-viewer" id="artifactContent" data-i18n="page.selectArtifactFromListInspect">
             Selecciona un artefacto de la lista para inspeccionar su contenido.
           </div>
         </div>
@@ -3901,38 +3910,38 @@
     <div id="pane-telemetria" class="tab-pane">
       <div class="metrics-grid">
         <div class="metric-card">
-          <div class="metric-card__label">Tokens Acumulados</div>
+          <div class="metric-card__label" data-i18n="page.accumulatedTokens">Tokens Acumulados</div>
           <div id="teleTotalTokens" class="metric-card__val">—</div>
-          <div class="metric-card__sub">Prompt + Completion medidos</div>
+          <div class="metric-card__sub" data-i18n="page.measuredPromptCompletion">Prompt + Completion medidos</div>
         </div>
         <div class="metric-card">
-          <div class="metric-card__label">Tool-Uses Totales</div>
+          <div class="metric-card__label" data-i18n="page.totalToolUses">Tool-Uses Totales</div>
           <div id="teleTotalTools" class="metric-card__val">—</div>
-          <div class="metric-card__sub">Llamadas a herramientas registradas</div>
+          <div class="metric-card__sub" data-i18n="page.recordedToolCalls">Llamadas a herramientas registradas</div>
         </div>
         <div class="metric-card">
-          <div class="metric-card__label">Fases Medidas</div>
+          <div class="metric-card__label" data-i18n="page.measuredPhases">Fases Medidas</div>
           <div id="telePhasesMeasured" class="metric-card__val">—</div>
-          <div class="metric-card__sub">Registro auditado en artefactos/pipeline</div>
+          <div class="metric-card__sub" data-i18n="page.auditedLogArtefactosPipeline">Registro auditado en artefactos/pipeline</div>
         </div>
       </div>
 
       <div class="panel">
         <div class="panel__header">
-          <div class="panel__title">Desglose de Costo y Duración por Fase</div>
-          <span class="panel__meta">Persistido en artefactos/pipeline/_estado.md</span>
+          <div class="panel__title" data-i18n="page.costDurationBreakdownPerPhase">Desglose de Costo y Duración por Fase</div>
+          <span class="panel__meta" data-i18n="page.persistedArtefactosPipelineEstadoMd">Persistido en artefactos/pipeline/_estado.md</span>
         </div>
         <div class="table-responsive">
           <table class="table">
             <thead>
               <tr>
-                <th>Fase</th>
-                <th>Gate</th>
-                <th>Veredicto</th>
-                <th>Fecha</th>
-                <th>Tokens</th>
+                <th data-i18n="page.phase">Fase</th>
+                <th data-i18n="page.gate">Gate</th>
+                <th data-i18n="page.verdict">Veredicto</th>
+                <th data-i18n="judgeHistoryHtml.date">Fecha</th>
+                <th data-i18n="page.tokens">Tokens</th>
                 <th>Tool-Uses</th>
-                <th>Duración</th>
+                <th data-i18n="page.duration">Duración</th>
               </tr>
             </thead>
             <tbody id="telemetryTableBody">
@@ -3948,7 +3957,7 @@
   <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer(event)">
     <div class="drawer" onclick="event.stopPropagation()">
       <div class="drawer__header">
-        <h3 id="drawerTitle" style="font-size: 1.15rem;">Detalle de Fase</h3>
+        <h3 id="drawerTitle" style="font-size: 1.15rem;" data-i18n="page.phaseDetails">Detalle de Fase</h3>
         <button class="drawer__close" onclick="closeDrawer()">&times;</button>
       </div>
       <div id="drawerBody">
@@ -3962,24 +3971,24 @@
        the main viewer through pdf-locate.js. -->
   <aside class="style-drawer" id="styleDrawer" role="dialog" aria-modal="false" aria-labelledby="styleDrawerTitle" hidden>
     <div class="style-drawer__header">
-      <h3 id="styleDrawerTitle">Estilo y redundancia</h3>
+      <h3 id="styleDrawerTitle" data-i18n="page.styleRedundancy">Estilo y redundancia</h3>
       <div class="style-drawer__actions">
-        <button id="btnEstiloAuditar" class="btn btn--sm" onclick="runStyleAudit()">Auditar el documento</button>
-        <button class="drawer__close style-drawer__close" type="button" onclick="closeStyleDrawer()" aria-label="Cerrar el panel de estilo y redundancia">&times;</button>
+        <button id="btnEstiloAuditar" class="btn btn--sm" onclick="runStyleAudit()" data-i18n="page.auditDocument">Auditar el documento</button>
+        <button class="drawer__close style-drawer__close" type="button" onclick="closeStyleDrawer()" aria-label="Cerrar el panel de estilo y redundancia" data-i18n-attr="aria-label:page.closeStyleRedundancyPanel">&times;</button>
       </div>
     </div>
     <div class="style-drawer__body">
       <span class="panel__meta" id="estiloMeta">—</span>
       <div class="style-drawer__summary" id="estiloResumen"></div>
       <p class="style-drawer__status" id="estiloLocateStatus" role="status" aria-live="polite"></p>
-      <h4>Secciones</h4>
+      <h4 data-i18n="page.sections">Secciones</h4>
       <div class="table-responsive">
         <table class="table">
-          <thead><tr><th>Sección</th><th>Índice</th><th>Palabras</th></tr></thead>
+          <thead><tr><th data-i18n="a2SectionsHtml.section">Sección</th><th data-i18n="page.index">Índice</th><th data-i18n="a2SectionsHtml.words">Palabras</th></tr></thead>
           <tbody id="estiloSecciones"></tbody>
         </table>
       </div>
-      <h4>Hallazgos</h4>
+      <h4 data-i18n="a2SectionsHtml.findings">Hallazgos</h4>
       <ul class="style-findings" id="estiloHallazgos"></ul>
       <div class="estilo-more">
         <button type="button" id="btnEstiloVerTodos" class="btn btn--sm" hidden onclick="toggleStyleFindings()"></button>
@@ -3993,9 +4002,9 @@
       <div class="drawer__header" style="position: sticky; top: -1.5rem; background: var(--surface); z-index: 10; margin: -1.5rem -1.5rem 1.25rem -1.5rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);">
         <div style="display: flex; align-items: center; gap: 0.65rem;">
           <span class="badge badge--ok" id="secModalBadge" style="font-size: 0.82rem; font-weight: 700;">§</span>
-          <h3 id="secModalTitle" style="font-size: 1.15rem; margin: 0; font-weight: 700; color: var(--text);">Estructura de la Sección</h3>
+          <h3 id="secModalTitle" style="font-size: 1.15rem; margin: 0; font-weight: 700; color: var(--text);" data-i18n="page.sectionStructure">Estructura de la Sección</h3>
         </div>
-        <button class="drawer__close" onclick="closeSectionStructureModal()" title="Cerrar modal">&times;</button>
+        <button class="drawer__close" onclick="closeSectionStructureModal()" title="Cerrar modal" data-i18n-attr="title:page.closeDialog">&times;</button>
       </div>
       <div id="secModalBody">
         <!-- Rendered by JS -->
@@ -4007,35 +4016,35 @@
   <div class="drawer-overlay" id="commentModal" onclick="closeCommentModal(event)">
     <div class="drawer" style="max-width: 540px;" onclick="event.stopPropagation()">
       <div class="drawer__header">
-        <h3 style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.4rem;">💬 Agregar Comentario de Revisión</h3>
+        <h3 style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.4rem;" data-i18n="page.addReviewComment">💬 Agregar Comentario de Revisión</h3>
         <button class="drawer__close" onclick="closeCommentModal()">&times;</button>
       </div>
       <div style="padding: 1rem 0; display: flex; flex-direction: column; gap: 0.85rem;">
         <div>
-          <label style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.35rem;">Texto Seleccionado en PDF (Pág. <span id="commentModalPage">1</span>):</label>
+          <label style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.35rem;"><span data-i18n="page.textSelectedPdfPage">Texto Seleccionado en PDF (Pág.</span> <span id="commentModalPage">1</span>):</label>
           <div id="commentModalQuote" style="background: var(--surface-2); padding: 0.65rem; border-radius: var(--radius); border: 1px solid var(--border); font-size: 0.82rem; font-style: italic; max-height: 120px; overflow-y: auto;">
             —
           </div>
         </div>
 
         <div>
-          <label style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.35rem;">Comentario / Instrucción para el agente:</label>
-          <textarea id="commentModalInput" rows="4" style="width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem; font-family: var(--font-sans); font-size: 0.85rem; resize: vertical;" placeholder="Ej: Ajustar redacción para enfatizar el alcance de la cohorte en Manizales y Pereira..."></textarea>
+          <label style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.35rem;" data-i18n="page.commentInstructionAgent">Comentario / Instrucción para el agente:</label>
+          <textarea id="commentModalInput" rows="4" style="width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem; font-family: var(--font-sans); font-size: 0.85rem; resize: vertical;" placeholder="Ej: Ajustar redacción para enfatizar el alcance de la cohorte en Manizales y Pereira..." data-i18n-attr="placeholder:page.eGAdjustWordingStress"></textarea>
         </div>
 
         <div style="border-top: 1px dashed var(--border); padding-top: 0.85rem;">
-          <label style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.35rem;">Reemplazar por (opcional, sin modelo):</label>
-          <textarea id="commentReplacementInput" rows="3" oninput="updateReplacementPreview()" style="width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem; font-family: var(--font-sans); font-size: 0.85rem; resize: vertical;" placeholder="Texto literal que sustituirá al pasaje anclado. Si lo dejas vacío, escribes una instrucción para el redactor."></textarea>
+          <label style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.35rem;" data-i18n="page.replaceWithOptionalNoModel">Reemplazar por (opcional, sin modelo):</label>
+          <textarea id="commentReplacementInput" rows="3" oninput="updateReplacementPreview()" style="width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem; font-family: var(--font-sans); font-size: 0.85rem; resize: vertical;" placeholder="Texto literal que sustituirá al pasaje anclado. Si lo dejas vacío, escribes una instrucción para el redactor." data-i18n-attr="placeholder:page.literalTextThatWillReplace"></textarea>
           <label style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.45rem; font-size: 0.78rem; color: var(--text-muted);">
             <input type="checkbox" id="commentReplacementIsDelete" onchange="updateReplacementPreview()">
-            <span>Borrar el fragmento (confirmo que el reemplazo va vacío a propósito)</span>
+            <span data-i18n="page.deletePassageIConfirmReplacement">Borrar el fragmento (confirmo que el reemplazo va vacío a propósito)</span>
           </label>
           <div id="commentReplacementPreview" style="margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.45;"></div>
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
-          <button class="btn" onclick="closeCommentModal()">Cancelar</button>
-          <button class="btn btn--primary" onclick="saveCommentAnnotation()">Guardar Marca de Comentario</button>
+          <button class="btn" onclick="closeCommentModal()" data-i18n="page.cancel">Cancelar</button>
+          <button class="btn btn--primary" onclick="saveCommentAnnotation()" data-i18n="page.saveCommentMark">Guardar Marca de Comentario</button>
         </div>
       </div>
     </div>
@@ -4045,11 +4054,11 @@
   <div class="drawer-overlay" id="executeModal" onclick="closeExecuteModal(event)">
     <div class="drawer" style="max-width: 600px;" onclick="event.stopPropagation()">
       <div class="drawer__header">
-        <h3 style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.4rem;">🚀 Ejecutar Cambios Editoriales en el Proyecto</h3>
+        <h3 style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.4rem;" data-i18n="page.runEditorialChangesOnProject">🚀 Ejecutar Cambios Editoriales en el Proyecto</h3>
         <button class="drawer__close" onclick="closeExecuteModal()">&times;</button>
       </div>
       <div style="padding: 1rem 0; display: flex; flex-direction: column; gap: 0.85rem;">
-        <p style="font-size: 0.88rem; color: var(--text); line-height: 1.5;">
+        <p style="font-size: 0.88rem; color: var(--text); line-height: 1.5;" data-i18n="page.agentWillProcessEditorialMarks">
           El agente procesará las marcas editoriales sobre el código fuente LaTeX de la corrida activa:
         </p>
 
@@ -4057,13 +4066,13 @@
           <!-- Injected dynamically -->
         </div>
 
-        <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.8rem; color: var(--text-muted);">
+        <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.8rem; color: var(--text-muted);" data-i18n-html="page.iStruckTextWillBe">
           ℹ️ Los textos tachados serán eliminados de las secciones LaTeX correspondientes. Los comentarios se insertarán como anotaciones de revisión y los textos marcados se humanizarán aplicando la skill <code>estilo-natural-es</code>. Finalmente, se ejecutará la recompilación a PDF.
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
-          <button class="btn" onclick="closeExecuteModal()">Cancelar</button>
-          <button class="btn btn--primary btn--execute" onclick="executeQueuedChanges()">Confirmar y Ejecutar Ahora</button>
+          <button class="btn" onclick="closeExecuteModal()" data-i18n="page.cancel">Cancelar</button>
+          <button class="btn btn--primary btn--execute" onclick="executeQueuedChanges()" data-i18n="page.confirmRunNow">Confirmar y Ejecutar Ahora</button>
         </div>
       </div>
     </div>
@@ -4073,8 +4082,8 @@
   <div class="drawer-overlay" id="executingProgressModal">
     <div class="drawer" style="max-width: 480px; text-align: center; padding: 2rem 1.5rem;" onclick="event.stopPropagation()">
       <div class="spinner" style="margin: 0 auto 1.25rem auto; width: 48px; height: 48px; border-width: 4px;"></div>
-      <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem;">Ejecutando Cambios Editoriales...</h3>
-      <p id="executingProgressText" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+      <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem;" data-i18n="page.runningEditorialChanges">Ejecutando Cambios Editoriales...</h3>
+      <p id="executingProgressText" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;" data-i18n="page.editingLatexSectionsApplyingHumanization">
         Modificando secciones LaTeX, aplicando humanización y recompilando el documento PDF. Por favor espera...
       </p>
     </div>
@@ -4084,14 +4093,14 @@
   <div class="drawer-overlay" id="summaryModal" onclick="closeSummaryModal(event)">
     <div class="drawer" style="max-width: 600px;" onclick="event.stopPropagation()">
       <div class="drawer__header">
-        <h3 style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.4rem;" id="summaryModalTitle">✅ Ejecución Completada Exitosamente</h3>
+        <h3 style="font-size: 1.1rem; display: flex; align-items: center; gap: 0.4rem;" id="summaryModalTitle" data-i18n="page.runCompletedSuccessfully">✅ Ejecución Completada Exitosamente</h3>
         <button class="drawer__close" onclick="closeSummaryModal()">&times;</button>
       </div>
       <div style="padding: 1rem 0; display: flex; flex-direction: column; gap: 0.85rem;" id="summaryModalBody">
         <!-- Rendered by JS -->
       </div>
       <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
-        <button class="btn btn--primary" onclick="closeSummaryModal()">Aceptar y Ver PDF Actualizado</button>
+        <button class="btn btn--primary" onclick="closeSummaryModal()" data-i18n="page.acceptViewUpdatedPdf">Aceptar y Ver PDF Actualizado</button>
       </div>
     </div>
   </div>
@@ -4100,28 +4109,28 @@
     <div class="footer__col footer__col--left">
       <strong id="footerVersion">Morfeo IA</strong>
       <span id="footerStaleServer" class="footer__stale" role="alert" hidden></span>
-      <a id="footerTelemetria" href="#telemetria" hidden>Telemetría y costos</a>
-      <span>Orquestador Multi-Agente de Formulación Científica en IA</span>
+      <a id="footerTelemetria" href="#telemetria" hidden data-i18n="page.telemetryCosts2">Telemetría y costos</a>
+      <span data-i18n="page.multiAgentOrchestratorScientificAi">Orquestador Multi-Agente de Formulación Científica en IA</span>
     </div>
 
     <div class="footer__col footer__col--center">
-      <div class="footer__lab-badge" title="Laboratorio de Inteligencia Artificial (LabIA) · Universidad Nacional de Colombia">
-        <img src="/static/logo_labIA.png" alt="Laboratorio de Inteligencia Artificial UNAL" class="footer__lab-logo">
+      <div class="footer__lab-badge" title="Laboratorio de Inteligencia Artificial (LabIA) · Universidad Nacional de Colombia" data-i18n-attr="title:page.artificialIntelligenceLaboratoryLabiaUniversidad">
+        <img src="/static/logo_labIA.png" alt="Laboratorio de Inteligencia Artificial UNAL" class="footer__lab-logo" data-i18n-attr="alt:page.unalArtificialIntelligenceLaboratory">
       </div>
       <div class="footer__lab-caption">
-        <strong>Laboratorio de Inteligencia Artificial (LabIA)</strong>
-        <span>Universidad Nacional de Colombia · Sede Manizales</span>
+        <span data-i18n-html="page.artificialIntelligenceLaboratoryLabia"><strong>Laboratorio de Inteligencia Artificial (LabIA)</strong></span>
+        <span data-i18n="page.universidadNacionalDeColombiaManizales">Universidad Nacional de Colombia · Sede Manizales</span>
       </div>
     </div>
 
     <div class="footer__col footer__col--right">
-      <span id="footerProjectInfo">Espacio de Trabajo Morfeo</span>
-      <span>Transferencia Tecnológica · TRL 6/7</span>
+      <span id="footerProjectInfo" data-i18n="loadStatusNow.morfeoWorkspace">Espacio de Trabajo Morfeo</span>
+      <span data-i18n="page.technologyTransferTrl67">Transferencia Tecnológica · TRL 6/7</span>
     </div>
   </footer>
 
   <!-- Botón Flotante Asistente Morfeo (FAB) -->
-  <div id="morfeoAssistantFab" class="morfeo-fab" onclick="toggleMorfeoTerminal()" title="Abrir Asistente CLI Morfeo">
+  <div id="morfeoAssistantFab" class="morfeo-fab" onclick="toggleMorfeoTerminal()" title="Abrir Asistente CLI Morfeo" data-i18n-attr="title:page.openMorfeoCliAssistant">
     <div class="morfeo-fab__pulse"></div>
     <img src="/static/morfeo-logo.png?app=morfeo" alt="Morfeo CLI" class="morfeo-fab__logo">
     <span class="morfeo-fab__badge" id="morfeoFabBadge">CLI</span>
@@ -4133,15 +4142,15 @@
       <div class="morfeo-tools-modal__header">
         <div class="morfeo-tools-modal__title">
           <span class="tools-modal-icon">⚠️</span>
-          <span>Herramientas CLI Requeridas</span>
+          <span data-i18n="page.requiredCliTools">Herramientas CLI Requeridas</span>
         </div>
-        <button class="morfeo-tools-modal__close" onclick="closeToolsRequiredModal()" title="Cerrar">✕</button>
+        <button class="morfeo-tools-modal__close" onclick="closeToolsRequiredModal()" title="Cerrar" data-i18n-attr="title:page.close">✕</button>
       </div>
       <div class="morfeo-tools-modal__body" id="morfeoToolsModalBody">
       </div>
       <div class="morfeo-tools-modal__footer">
-        <button class="btn-secondary" onclick="closeToolsRequiredModal()">Entendido</button>
-        <button class="btn-primary" onclick="proceedWithBasicShell()">Continuar con Shell Básico Web</button>
+        <button class="btn-secondary" onclick="closeToolsRequiredModal()" data-i18n="page.got">Entendido</button>
+        <button class="btn-primary" onclick="proceedWithBasicShell()" data-i18n="page.continueWithBasicWebShell">Continuar con Shell Básico Web</button>
       </div>
     </div>
   </div>
@@ -4151,14 +4160,14 @@
       <div class="morfeo-tools-modal__header">
         <div class="morfeo-tools-modal__title">
           <span id="phaseExecModalIcon">▶</span>
-          <span id="phaseExecModalTitle">Ejecutar etapa</span>
+          <span id="phaseExecModalTitle" data-i18n="page.runStage">Ejecutar etapa</span>
         </div>
-        <button class="morfeo-tools-modal__close" onclick="closePhaseExecModal()" title="Cerrar">✕</button>
+        <button class="morfeo-tools-modal__close" onclick="closePhaseExecModal()" title="Cerrar" data-i18n-attr="title:page.close">✕</button>
       </div>
       <div class="morfeo-tools-modal__body" id="phaseExecModalBody"></div>
       <div class="morfeo-tools-modal__footer">
-        <button class="btn-secondary" onclick="closePhaseExecModal()">Cerrar</button>
-        <button class="btn-primary" id="phaseExecConfirmBtn" onclick="confirmPhaseExecution()">▶ Ejecutar en terminal</button>
+        <button class="btn-secondary" onclick="closePhaseExecModal()" data-i18n="page.close">Cerrar</button>
+        <button class="btn-primary" id="phaseExecConfirmBtn" onclick="confirmPhaseExecution()" data-i18n="page.runTerminal">▶ Ejecutar en terminal</button>
       </div>
     </div>
   </div>
@@ -4168,15 +4177,15 @@
     <div class="morfeo-terminal-header">
       <div class="morfeo-terminal-title">
         <img src="/static/morfeo-logo.png?app=morfeo" alt="Morfeo" class="morfeo-terminal-logo">
-        <span>Asistente CLI Morfeo</span>
-        <span class="terminal-status-dot" id="terminalStatusDot" title="Desconectado"></span>
+        <span data-i18n="page.morfeoCliAssistant">Asistente CLI Morfeo</span>
+        <span class="terminal-status-dot" id="terminalStatusDot" title="Desconectado" data-i18n-attr="title:page.disconnected"></span>
       </div>
       <div class="morfeo-terminal-controls">
-        <button class="terminal-btn-icon terminal-btn-external" id="btnLaunchExternalTerm" onclick="launchExternalTerminal()" title="Abrir en Ghostty o WezTerm">🖥️ Terminal</button>
+        <button class="terminal-btn-icon terminal-btn-external" id="btnLaunchExternalTerm" onclick="launchExternalTerminal()" title="Abrir en Ghostty o WezTerm" data-i18n="page.terminal" data-i18n-attr="title:page.openGhosttyWezterm">🖥️ Terminal</button>
         <div class="terminal-agent-picker">
-          <label for="terminalAgentSelect">Agente:</label>
+          <label for="terminalAgentSelect" data-i18n="page.agent">Agente:</label>
           <select id="terminalAgentSelect" class="terminal-agent-select" onchange="onTerminalAgentChange()">
-            <option value="herdr" selected>Herdr (Workspace Manager)</option>
+            <option value="herdr" selected data-i18n="page.herdrWorkspaceManager">Herdr (Workspace Manager)</option>
             <option value="claude">Claude Code</option>
             <option value="opencode">OpenCode</option>
             <option value="pi">Pi</option>
@@ -4184,9 +4193,9 @@
             <option value="shell">Shell (Zsh / Bash)</option>
           </select>
         </div>
-        <button class="terminal-btn-icon" onclick="restartTerminalSession()" title="Reiniciar sesión">⟳</button>
-        <button class="terminal-btn-icon" onclick="toggleMaximizeTerminal()" id="terminalMaximizeBtn" title="Maximizar / Restaurar">⛶</button>
-        <button class="terminal-btn-icon" onclick="closeMorfeoTerminal()" title="Minimizar terminal">✕</button>
+        <button class="terminal-btn-icon" onclick="restartTerminalSession()" title="Reiniciar sesión" data-i18n-attr="title:page.restartSession">⟳</button>
+        <button class="terminal-btn-icon" onclick="toggleMaximizeTerminal()" id="terminalMaximizeBtn" title="Maximizar / Restaurar" data-i18n-attr="title:page.maximizeRestore">⛶</button>
+        <button class="terminal-btn-icon" onclick="closeMorfeoTerminal()" title="Minimizar terminal" data-i18n-attr="title:page.minimizeTerminal">✕</button>
       </div>
     </div>
 
@@ -4196,14 +4205,14 @@
 
     <div class="morfeo-terminal-footer">
       <div class="terminal-footer-info" id="terminalFooterInfo">
-        <strong id="terminalFooterAgent">Herdr (Espejo en Vivo)</strong>
+        <strong id="terminalFooterAgent"><span data-i18n="page.herdrLiveMirror">Herdr (Espejo en Vivo)</span></strong>
         <span>·</span>
         <span id="terminalFooterRun" class="terminal-footer-path">proposals/activa</span>
       </div>
       <div class="terminal-footer-actions">
         <button class="btn-term-shortcut" onclick="sendTerminalQuickCommand('/propuesta-continuar')">/propuesta-continuar</button>
         <button class="btn-term-shortcut" onclick="sendTerminalQuickCommand('/compilar-pdf')">/compilar-pdf</button>
-        <button class="btn-term-shortcut" onclick="clearTerminalScreen()">Limpiar</button>
+        <button class="btn-term-shortcut" onclick="clearTerminalScreen()" data-i18n="page.clear">Limpiar</button>
       </div>
     </div>
   </div>
