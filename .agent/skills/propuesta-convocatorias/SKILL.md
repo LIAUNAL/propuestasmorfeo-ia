@@ -33,6 +33,10 @@ $ARGUMENTS
 
 ## 3. Despachar
 
+En `buscar`, antes de despachar, corré
+`python3 scripts/convocatorias.py progreso <WORKSPACE> --reiniciar --alcance
+<alcance>`: deja en cero la barra de avance del tablero para esta búsqueda.
+
 Despachá con `Task` al agente `explorador-convocatorias`, con `WORKSPACE`
 absoluto, el modo, el alcance (en `buscar`), el `<id>` si lo hay y `RUN_ROOT` absoluto si hay corrida
 activa. El agente escribe solo en `convocatorias/` (y, en `iniciar`, en

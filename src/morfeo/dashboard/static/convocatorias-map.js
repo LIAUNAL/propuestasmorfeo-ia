@@ -1,6 +1,11 @@
 // «Convocatorias» views: opportunity tree, affinity constellation, side by
 // side, requirements matrix, timeline and the detail panel (bottom sheet under
-// 1080 px). Port of the validated prototype (prototipos/convocatorias) driven
+// 1080 px). The constellation is the SOTA 3D viewer: an iframe of
+// /api/convocatorias/atlas (scripts/render_atlas.py, profile "convocatorias",
+// scene from scripts/convocatorias.py `constelacion`) with the panel's
+// grouping and filters in its query; a click on any node opens its card inside
+// the frame, and the frame's «Iniciar propuesta con esta» message is honored
+// only from that frame, from this origin and for a call of the view. Port of the validated prototype (prototipos/convocatorias) driven
 // by the real view payload `morfeo.convocatorias-vista/v1`: every score, tema,
 // alert and date comes from scripts/convocatorias.py (match, componentes,
 // temas_match, experiencia, historial, alertas, preparar_desde, titulo_corto,
@@ -12,9 +17,9 @@
 // Loaded before that script: page helpers (startOpportunity, cvAmount) are
 // looked up when used, never at load time.
 //
-// Hover and selection only toggle classes and redraw the link layers: the
-// elements under the pointer are never replaced, so clicks and drags on the
-// constellation stay reliable and any node can be clicked after another.
+// Hover and selection only toggle classes and redraw the tree's link layer:
+// the elements under the pointer are never replaced, and a repaint with the
+// same query keeps the loaded constellation frame.
 //
 // Public surface: window.cvMap = { render, select, reset, closeSheet }.
 (function () {
@@ -53,7 +58,7 @@
   const EMPTY = '<div class="cvm-empty">Ninguna convocatoria cumple los filtros.</div>';
 
   const S = {
-    sel: null, focus: null, expanded: new Set(), cv: null, cpos: null,
+    sel: null, focus: null, expanded: new Set(),
     last: null, X: null, wired: false, resizeTimer: null,
   };
 
@@ -72,10 +77,6 @@
     if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v);
     return null;
   }
-  function media(query) {
-    try { return !!(window.matchMedia && window.matchMedia(query).matches); } catch (_) { return false; }
-  }
-  const coarse = () => media('(pointer: coarse)');
   const isDay = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
   const toDate = d => (isDay(d) ? new Date(`${d}T00:00:00`) : null);
   function fmtDate(d) {
@@ -85,16 +86,6 @@
   function safeUrl(url) {
     const s = str(url).trim();
     return /^https?:\/\//i.test(s) ? s : '';
-  }
-
-  // Fallback short name for payloads without `titulo_corto` (the script derives
-  // the same: cut at a word boundary, at most 28 characters with the «…»).
-  function shortTitle(title) {
-    const s = String(title || '').trim();
-    if (s.length <= 28) return s;
-    const cut = s.slice(0, 27);
-    const at = cut.lastIndexOf(' ');
-    return `${(at > 8 ? cut.slice(0, at) : cut).replace(/[\s·,;:–-]+$/, '')}…`;
   }
 
   // Two to four letters for an experiencia box: an acronym in the name when it
@@ -118,7 +109,6 @@
       raw: o,
       id: String(o.id || ''),
       titulo: String(o.titulo || o.id || 'Convocatoria sin título'),
-      corto: str(o.titulo_corto).trim() || shortTitle(o.titulo || o.id),
       match: Math.round(match),
       rol,
       dias: num(o.dias_restantes),
@@ -319,193 +309,31 @@
   }
 
   // ------------------------------------------------------- constellation view
-  // Every node carries its short name. Names sit in two side columns with leader
-  // lines, so they never overlap; the name, the node and a wider invisible ring
-  // are all clickable. Dragging starts only after the pointer moves 4 px, so a
-  // click is a click; a click on the background clears the selection.
-  function baseViewBox(k) {
-    // Wide enough for the two name columns (cx ± 400 plus the longest short name).
-    const ext = Math.round((k - 1) * 170);
-    return { x: -190 - ext, y: -40, w: 1380 + 2 * ext, h: 900 };
+  // The SOTA 3D viewer in a frame. Its query carries the scope, the grouping,
+  // the calls the filters left (only when they left out some) and a signature
+  // of the view, so a new search reloads it and a repaint does not.
+  const SLUG = /^[a-z0-9-]+$/;
+  function signature(value) {
+    const text = JSON.stringify(value) || '';
+    let h = 5381;
+    for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+    return h.toString(36);
   }
-
-  function shapeSvg(rol, nr) {
-    if (rol === 'no_elegible') {
-      const a = (nr * 0.75).toFixed(1);
-      return `<g class="shape sh-x sh-sel"><line x1="-${a}" y1="-${a}" x2="${a}" y2="${a}"/><line x1="-${a}" y1="${a}" x2="${a}" y2="-${a}"/></g>`;
-    }
-    if (rol === 'lider') return `<circle class="shape sh-fill sh-sel" r="${nr.toFixed(1)}"/>`;
-    if (rol === 'anfitrion_exterior') return `<circle class="shape sh-ring sh-sel" r="${(nr * 0.9).toFixed(1)}" stroke-dasharray="4 3"/>`;
-    if (rol === 'desconocido') return `<circle class="shape sh-ring sh-thin sh-sel" r="${(nr * 0.9).toFixed(1)}" stroke-dasharray="1 3"/>`;
-    return `<g class="shape"><circle class="sh-ring sh-sel" r="${nr.toFixed(1)}"/><path class="sh-half" d="M0,${(-nr).toFixed(1)} A${nr.toFixed(1)},${nr.toFixed(1)} 0 0 1 0,${nr.toFixed(1)} Z"/></g>`;
+  function atlasUrl(X) {
+    const q = new URLSearchParams({ alcance: X.alcance, agrupar: X.agrupar });
+    if (X.items.length < X.total) q.set('ids', X.items.map(c => c.id).filter(id => SLUG.test(id)).join(','));
+    q.set('v', signature(X.v));
+    return `/api/convocatorias/atlas?${q.toString()}`;
   }
 
   function renderConstellation(el, X) {
-    el.innerHTML = `<div class="cvm-constwrap"><div class="cvm-zoombar" role="group" aria-label="Zoom">
-        <button type="button" class="btn btn--xs" data-cvm-zoom="in" aria-label="Acercar">＋</button>
-        <button type="button" class="btn btn--xs" data-cvm-zoom="out" aria-label="Alejar">－</button>
-        <button type="button" class="btn btn--xs" data-cvm-zoom="reset" aria-label="Restablecer vista">⟲</button></div>
-        <div class="cvm-constscroll"><svg class="cvm-const" role="img" aria-label="Constelación de afinidad: más cerca del centro, mejor match"></svg></div></div>
-        ${legendHtml()}`;
-    const svg = el.querySelector('svg.cvm-const');
-    const width = Math.max(320, svg.getBoundingClientRect().width || el.clientWidth || 900);
-    // Scale text and nodes so names stay near 10-11 px on screen at any width.
-    const k = clamp(1250 / width, 1, 2.8);
-    const fs = 12.5 * k;
-    const nr = 9 * Math.min(k, 1.6);
-    const lh = fs * 1.5;
-    const vb = baseViewBox(k);
-    if (!S.cv || S.cv.k !== k) S.cv = { ...vb, k };
-    const cx = 500;
-    const cy = 410;
-    const items = X.items;
-    const ms = items.map(c => c.match);
-    const hi = ms.length ? Math.max(...ms) : 100;
-    const lo = ms.length ? Math.min(...ms) : 0;
-    const R = m => 120 + (hi - m) / Math.max(10, hi - lo) * 230;
-    const gs = groups(X);
-    const gap = 0.08;
-    const full = Math.PI * 2 - gap * Math.max(gs.length, 1);
-    const weight = gs.reduce((a, g) => a + Math.max(g.list.length, 1.5), 0) || 1;
-    let a0 = -Math.PI / 2;
-    const nodes = [];
-    const sectors = [];
-    gs.forEach(g => {
-      const span = full * Math.max(g.list.length, 1.5) / weight;
-      sectors.push({ g, a0, a1: a0 + span });
-      g.list.forEach((c, i) => {
-        const ang = a0 + span * (i + 0.5) / g.list.length;
-        const rad = R(c.match) + (i % 3 === 1 ? 14 : i % 3 === 2 ? -10 : 0);
-        nodes.push({ c, x: cx + rad * Math.cos(ang), y: cy + rad * Math.sin(ang) });
-      });
-      a0 += span + gap;
-    });
-    // The experiencia boxes ring the centre; the busiest first, at most 12.
-    const roots = X.exp.slice().sort((a, b) => b.n - a.n).slice(0, 12);
-    const rr = clamp(roots.length * 34 / (2 * Math.PI), 50, 92);
-    const rootPos = roots.map((r, i) => {
-      const ang = -Math.PI / 2 + i * 2 * Math.PI / Math.max(roots.length, 1);
-      return { r, px: cx + rr * Math.cos(ang), py: cy + rr * Math.sin(ang) };
-    });
-    S.cpos = { cx, cy, nodes, rootPos, sectors };
-
-    // Label columns: right half to the right column, left half to the left one,
-    // ordered by the node's height and pushed apart to a minimum line gap.
-    const colR = cx + 400;
-    const colL = cx - 400;
-    const top = vb.y + 20;
-    const bottom = vb.y + vb.h - 20;
-    const place = side => {
-      side.sort((a, b) => a.n.y - b.n.y);
-      side.forEach(l => { l.y = clamp(l.n.y, top, bottom); });
-      for (let i = 1; i < side.length; i++) if (side[i].y < side[i - 1].y + lh) side[i].y = side[i - 1].y + lh;
-      const over = side.length ? side[side.length - 1].y - bottom : 0;
-      if (over > 0) side.forEach(l => { l.y -= over; });
-      for (let i = side.length - 2; i >= 0; i--) if (side[i].y > side[i + 1].y - lh) side[i].y = side[i + 1].y - lh;
-    };
-    const right = nodes.filter(n => n.x >= cx).map(n => ({ n, right: true }));
-    const left = nodes.filter(n => n.x < cx).map(n => ({ n, right: false }));
-    place(right);
-    place(left);
-    const labelOf = new Map([...right, ...left].map(l => [l.n.c.id, l]));
-
-    const step = hi - lo > 40 ? 20 : 10;
-    const ringVals = [];
-    for (let m = Math.floor(hi / step) * step; m > lo; m -= step) if (m < hi) ringVals.push(m);
-    const rings = ringVals.map(m => `<circle class="ring" cx="${cx}" cy="${cy}" r="${R(m).toFixed(1)}"/><text class="ringlbl" x="${cx + 4}" y="${(cy - R(m) - 4).toFixed(1)}" font-size="${(10.5 * k).toFixed(1)}">match ${m}</text>`).join('');
-    const sectorLines = sectors.length > 1 ? sectors.map(s => {
-      const a = s.a0 - gap / 2;
-      return `<line class="sector" x1="${(cx + 70 * Math.cos(a)).toFixed(1)}" y1="${(cy + 70 * Math.sin(a)).toFixed(1)}" x2="${(cx + 370 * Math.cos(a)).toFixed(1)}" y2="${(cy + 370 * Math.sin(a)).toFixed(1)}"/>`;
-    }).join('') : '';
-    const sectorLabels = sectors.map(s => {
-      const am = (s.a0 + s.a1) / 2;
-      return `<text class="seclbl" data-ids="${esc(s.g.list.map(c => c.id).join(' '))}" x="${(cx + 372 * Math.cos(am)).toFixed(1)}" y="${(cy + 372 * Math.sin(am)).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="${(11.5 * k).toFixed(1)}">${esc(s.g.label)} · ${s.g.avg}</text>`;
-    }).join('');
-    const nodeSvg = nodes.map(n => {
-      const u = urgency(n.c);
-      const l = labelOf.get(n.c.id);
-      const colX = (l.right ? colR : colL) - n.x;
-      const ly = l.y - n.y;
-      const dir = l.right ? 1 : -1;
-      const leader = `<path class="leader" d="M${(dir * (nr + 2)).toFixed(1)},0 L${(colX - dir * 14).toFixed(1)},${ly.toFixed(1)} L${(colX - dir * 4).toFixed(1)},${ly.toFixed(1)}"/>`;
-      const label = `<text class="lbl" x="${colX.toFixed(1)}" y="${(ly + fs * 0.35).toFixed(1)}" text-anchor="${l.right ? 'start' : 'end'}" font-size="${fs.toFixed(1)}">${esc(n.c.corto)} · ${n.c.match}</text>`;
-      return `<g class="n u-${u.u}${S.sel === n.c.id ? ' is-sel' : ''}" data-call="${esc(n.c.id)}" transform="translate(${n.x.toFixed(1)},${n.y.toFixed(1)})" tabindex="0" role="button" aria-label="${esc(n.c.titulo)}, match ${n.c.match}">`
-        + `${leader}<circle class="hit" r="${(nr + 8).toFixed(1)}"/>${shapeSvg(n.c.rol, nr)}${label}</g>`;
-    }).join('');
-    const rootSvg = rootPos.map(rp => `<g class="root" data-root="${esc(rp.r.id)}" transform="translate(${rp.px.toFixed(1)},${rp.py.toFixed(1)})"><rect x="-15" y="-11" width="30" height="22" rx="5"/><text text-anchor="middle" y="4">${esc(rp.r.corto)}</text><title>${esc(rp.r.nombre)}</title></g>`).join('');
-    svg.setAttribute('viewBox', `${S.cv.x} ${S.cv.y} ${S.cv.w} ${S.cv.h}`);
-    svg.innerHTML = `${rings}${sectorLines}${sectorLabels}<g class="cvm-edges"></g>
-        <circle class="center" cx="${cx}" cy="${cy}" r="24"/>
-        <text class="centerlbl" x="${cx}" y="${cy + 4}" text-anchor="middle">${X.alcance === 'banco' ? 'LIA' : 'PRY'}</text>
-        ${rootSvg}${nodeSvg}`;
-    wireSvg(svg);
-  }
-
-  function legendHtml() {
-    return `<div class="cvm-legend">
-        <span>Más cerca del centro = mejor match</span>
-        <span><span class="cvm-dot" style="background:var(--bad)"></span>cierra en ≤30 d</span><span><span class="cvm-dot" style="background:var(--warn)"></span>31 a 90 d</span>
-        <span><span class="cvm-dot" style="background:var(--ok)"></span>más de 90 d</span><span><span class="cvm-dot" style="background:var(--cvm-info)"></span>sin fecha</span>
-        <span>● lidera · ◐ socio o coaplicante · ◌ anfitrión en el exterior · ✕ no elegible</span>
-        <span>Cuadros violeta = experiencia del banco LIA</span>
-        <span>${coarse() ? 'Toca un nodo o su nombre; usa ＋ y － para el zoom' : 'Clic en un nodo o su nombre · rueda o ＋/－: zoom · arrastrar el fondo: mover · clic en el fondo: limpiar'}</span>
-      </div>`;
-  }
-
-  const setViewBox = svg => svg.setAttribute('viewBox', `${S.cv.x} ${S.cv.y} ${S.cv.w} ${S.cv.h}`);
-  function zoomAt(svg, k, px, py) {
-    S.cv.x = px - (px - S.cv.x) * k;
-    S.cv.y = py - (py - S.cv.y) * k;
-    S.cv.w *= k;
-    S.cv.h *= k;
-    setViewBox(svg);
-  }
-
-  function zoom(kind) {
-    const svg = S.last && S.last.viewEl.querySelector('svg.cvm-const');
-    if (!svg || !S.cv) return;
-    if (kind === 'reset') { S.cv = null; rerender(); return; }
-    zoomAt(svg, kind === 'in' ? 1 / 1.25 : 1.25, S.cv.x + S.cv.w / 2, S.cv.y + S.cv.h / 2);
-  }
-
-  function wireSvg(svg) {
-    svg.addEventListener('wheel', e => {
-      if (!S.cv || typeof svg.createSVGPoint !== 'function' || typeof svg.getScreenCTM !== 'function') return;
-      const ctm = svg.getScreenCTM();
-      if (!ctm) return;
-      e.preventDefault();
-      const p = svg.createSVGPoint();
-      p.x = e.clientX;
-      p.y = e.clientY;
-      const q = p.matrixTransform(ctm.inverse());
-      zoomAt(svg, e.deltaY > 0 ? 1.12 : 1 / 1.12, q.x, q.y);
-    }, { passive: false });
-    let drag = null;
-    svg.addEventListener('pointerdown', e => {
-      if (e.button !== 0 || (e.target.closest && e.target.closest('.n, .root'))) return;
-      drag = { x: e.clientX, y: e.clientY, cx: S.cv ? S.cv.x : 0, cy: S.cv ? S.cv.y : 0, id: e.pointerId, moved: false };
-    });
-    svg.addEventListener('pointermove', e => {
-      if (!drag || !S.cv || coarse()) return;
-      const dx = e.clientX - drag.x;
-      const dy = e.clientY - drag.y;
-      if (!drag.moved) {
-        if (Math.hypot(dx, dy) < 4) return;
-        drag.moved = true;
-        try { svg.setPointerCapture(drag.id); } catch (_) { /* pointer already gone */ }
-        svg.classList.add('is-dragging');
-      }
-      const scale = S.cv.w / (svg.getBoundingClientRect().width || S.cv.w);
-      S.cv.x = drag.cx - dx * scale;
-      S.cv.y = drag.cy - dy * scale;
-      setViewBox(svg);
-    });
-    svg.addEventListener('pointerup', () => {
-      if (drag && !drag.moved && (S.sel || S.focus)) select(null);
-      drag = null;
-      svg.classList.remove('is-dragging');
-    });
-    svg.addEventListener('pointercancel', () => { drag = null; svg.classList.remove('is-dragging'); });
+    if (!X.items.length) { el.innerHTML = EMPTY; return; }
+    const src = atlasUrl(X);
+    const current = el.querySelector('iframe.cvm-atlas');
+    if (current && current.getAttribute('src') === src) return;
+    el.innerHTML = `<div class="cvm-constwrap"><iframe class="cvm-atlas" loading="lazy" title="Constelación de convocatorias" src="${esc(src)}"></iframe></div>`;
+    const frame = el.querySelector('iframe.cvm-atlas');
+    frame.addEventListener('load', () => { if (typeof window.syncOpportunitiesAtlasPause === 'function') window.syncOpportunitiesAtlasPause(); });
   }
 
   // ------------------------------------------------------ requirements matrix
@@ -680,66 +508,12 @@
       el.classList.toggle('is-hl', !!hl && hl.roots.has(el.dataset.root));
     });
     drawTreeLinks(view, X, hl);
-    const svg = view.querySelector('svg.cvm-const');
-    if (!svg || !S.cpos) return;
-    svg.querySelectorAll('g.n').forEach(g => {
-      g.classList.toggle('is-dim', off(hl ? hl.calls : null, g.dataset.call));
-      g.classList.toggle('is-hl', !!hl && hl.calls.has(g.dataset.call));
-    });
-    svg.querySelectorAll('g.root').forEach(g => g.classList.toggle('is-dim', off(hl ? hl.roots : null, g.dataset.root)));
-    svg.querySelectorAll('.seclbl').forEach(t => t.classList.toggle('is-dim', !!hl && !t.dataset.ids.split(' ').some(i => hl.calls.has(i))));
-    let edges = '';
-    if (hl) {
-      const { cx, cy, nodes, rootPos, sectors } = S.cpos;
-      nodes.filter(n => hl.calls.has(n.c.id)).forEach(n => {
-        rootPos.filter(rp => n.c.exp.includes(rp.r.id) && hl.roots.has(rp.r.id)).forEach(rp => {
-          const mx = (n.x + rp.px) / 2 + (cy - n.y) * 0.12;
-          const my = (n.y + rp.py) / 2 + (n.x - cx) * 0.12;
-          edges += `<path class="edge" d="M${n.x.toFixed(1)},${n.y.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${rp.px.toFixed(1)},${rp.py.toFixed(1)}"/>`;
-        });
-      });
-      if (hl.f.kind === 'call' && X.agrupar === 'tema') {
-        const n = nodes.find(m => m.c.id === hl.f.id);
-        if (n) {
-          sectors.filter(s => n.c.temas.some(t => t.key === s.g.k) && s.g.k !== groupOf(n.c, X)).forEach(s => {
-            const am = (s.a0 + s.a1) / 2;
-            edges += `<path class="edge edge--theme" d="M${n.x.toFixed(1)},${n.y.toFixed(1)} Q${cx},${cy} ${(cx + 372 * Math.cos(am)).toFixed(1)},${(cy + 372 * Math.sin(am)).toFixed(1)}"/>`;
-          });
-        }
-      }
-    }
-    const layer = svg.querySelector('g.cvm-edges');
-    if (layer) layer.innerHTML = edges;
   }
 
   function setFocus(f) {
     if (JSON.stringify(f) === JSON.stringify(S.focus)) return;
     S.focus = f;
     if (S.X) applyHighlight(S.X);
-  }
-
-  function tipEl() {
-    let tip = document.getElementById('cvmTip');
-    if (!tip) {
-      tip = document.createElement('div');
-      tip.id = 'cvmTip';
-      tip.className = 'cvm-tip';
-      tip.setAttribute('role', 'tooltip');
-      document.body.appendChild(tip);
-    }
-    return tip;
-  }
-  function showTip(e, c) {
-    const tip = tipEl();
-    const u = urgency(c);
-    tip.innerHTML = `<strong>${esc(c.titulo)}</strong>${esc(c.raw.financiador || '')}<br>Match ${c.match} · ${esc(u.label)} · ${esc(ROLES[c.rol][0])}${c.temas.length ? `<br><span class="cvm-muted">${c.temas.map(t => esc(cap(t.tema))).join(' · ')}</span>` : ''}`;
-    tip.style.display = 'block';
-    tip.style.left = `${Math.max(4, Math.min(e.clientX + 14, window.innerWidth - 300))}px`;
-    tip.style.top = `${Math.max(4, Math.min(e.clientY + 14, window.innerHeight - 120))}px`;
-  }
-  function hideTip() {
-    const tip = document.getElementById('cvmTip');
-    if (tip) tip.style.display = 'none';
   }
 
   // ------------------------------------------------------------- wiring
@@ -759,8 +533,6 @@
       rerender();
       return;
     }
-    const z = t.closest('[data-cvm-zoom]');
-    if (z) { zoom(z.getAttribute('data-cvm-zoom')); return; }
     if (t.closest('[data-cvm-clear]')) { select(null); return; }
     if (t.closest('[data-iniciar], a')) return;
     const call = t.closest('[data-call]');
@@ -770,34 +542,29 @@
   function onOver(e) {
     if (!S.X || !S.last || !paneActive()) return;
     const t = e.target && e.target.closest && e.target.closest('[data-call], [data-theme], [data-root]');
-    if (!t || !S.last.viewEl.contains(t)) { if (S.focus) setFocus(null); hideTip(); return; }
-    if (t.dataset.call) {
-      setFocus({ kind: 'call', id: t.dataset.call });
-      if (t.tagName.toLowerCase() === 'g') {
-        const c = S.X.items.find(x => x.id === t.dataset.call);
-        if (c) showTip(e, c);
-      }
-    } else if (t.dataset.theme) setFocus({ kind: 'theme', id: t.dataset.theme });
+    if (!t || !S.last.viewEl.contains(t)) { if (S.focus) setFocus(null); return; }
+    if (t.dataset.call) setFocus({ kind: 'call', id: t.dataset.call });
+    else if (t.dataset.theme) setFocus({ kind: 'theme', id: t.dataset.theme });
     else if (t.dataset.root) setFocus({ kind: 'root', id: t.dataset.root });
-  }
-
-  function onMove(e) {
-    if (!S.X || !S.last) return;
-    const g = e.target && e.target.closest && e.target.closest('g[data-call]');
-    if (g && S.last.viewEl.contains(g)) {
-      const c = S.X.items.find(x => x.id === g.dataset.call);
-      if (c) showTip(e, c);
-    }
   }
 
   function onKey(e) {
     if (!S.last || !paneActive()) return;
-    if (e.key === 'Escape' && (S.sel || S.focus)) { select(null); return; }
-    if (e.key === 'Enter') {
-      const a = document.activeElement;
-      const g = a && a.closest && a.closest('g[data-call]');
-      if (g && S.last.viewEl.contains(g)) select(g.dataset.call);
-    }
+    if (e.key === 'Escape' && (S.sel || S.focus)) select(null);
+  }
+
+  // «Iniciar propuesta con esta» inside the constellation frame: the frame only
+  // names a call; it counts when it comes from that frame, from this origin and
+  // names a call of the view, and then runs the page's own start flow.
+  function onMessage(e) {
+    const data = e.data;
+    if (!data || typeof data !== 'object' || data.type !== 'convocatoria-iniciar') return;
+    if (e.origin !== window.location.origin || !S.last || !S.X) return;
+    const frames = Array.from(S.last.viewEl.querySelectorAll('iframe.cvm-atlas'));
+    if (!frames.some(f => f.contentWindow && f.contentWindow === e.source)) return;
+    const id = typeof data.id === 'string' ? data.id : '';
+    if (!id || !S.X.items.some(c => c.id === id)) return;
+    if (typeof window.startOpportunity === 'function') window.startOpportunity(id);
   }
 
   function wire() {
@@ -805,12 +572,12 @@
     S.wired = true;
     document.addEventListener('click', onClick);
     document.addEventListener('pointerover', onOver);
-    document.addEventListener('pointermove', onMove);
     document.addEventListener('keydown', onKey);
+    window.addEventListener('message', onMessage);
     window.addEventListener('resize', () => {
       clearTimeout(S.resizeTimer);
       S.resizeTimer = setTimeout(() => {
-        if (S.last && paneActive() && ['arbol', 'constelacion', 'lado'].includes(S.last.ctx.view)) rerender();
+        if (S.last && paneActive() && ['arbol', 'lado'].includes(S.last.ctx.view)) rerender();
       }, 150);
     });
   }
@@ -824,12 +591,15 @@
     S.X = X;
     if (S.sel && !X.items.some(c => c.id === S.sel)) S.sel = null;
     S.focus = null;
-    S.cpos = null;
-    hideTip();
-    if (X.view === 'constelacion') renderConstellation(viewEl, X);
-    else if (X.view === 'lado') {
-      viewEl.innerHTML = `<div class="cvm-side"><div><div class="cvm-view-title">🌳 Árbol de oportunidades</div><div class="cvm-side__tree"></div></div>
+    if (X.view === 'constelacion') {
+      if (!viewEl.querySelector(':scope > .cvm-constwrap')) viewEl.innerHTML = '';
+      renderConstellation(viewEl, X);
+    } else if (X.view === 'lado') {
+      // Keep the layout (and its loaded frame) when it is already there.
+      if (!viewEl.querySelector(':scope > .cvm-side')) {
+        viewEl.innerHTML = `<div class="cvm-side"><div><div class="cvm-view-title">🌳 Árbol de oportunidades</div><div class="cvm-side__tree"></div></div>
           <div><div class="cvm-view-title">✦ Constelación de afinidad</div><div class="cvm-side__const"></div></div></div>`;
+      }
       renderTree(viewEl.querySelector('.cvm-side__tree'), X);
       renderConstellation(viewEl.querySelector('.cvm-side__const'), X);
     } else if (X.view === 'requisitos') renderMatrix(viewEl, X);
@@ -844,11 +614,10 @@
   }
 
   // Selecting toggles classes and repaints only the detail: the view's
-  // elements (and the constellation's zoom and pan) stay as they are.
+  // elements (and the constellation frame) stay as they are.
   function select(id) {
     S.sel = id || null;
     S.focus = null;
-    hideTip();
     if (!S.last || !S.X) return;
     S.last.viewEl.querySelectorAll('[data-call]').forEach(el => el.classList.toggle('is-sel', el.dataset.call === S.sel));
     renderDetail(S.X);
@@ -859,13 +628,11 @@
     S.sel = null;
     S.focus = null;
     S.expanded.clear();
-    S.cv = null;
   }
 
   function closeSheet() {
     document.body.classList.remove('cvm-has-sheet');
     if (S.last) S.last.detailEl.classList.remove('is-sheet');
-    hideTip();
   }
 
   window.cvMap = { render, select, reset, closeSheet };

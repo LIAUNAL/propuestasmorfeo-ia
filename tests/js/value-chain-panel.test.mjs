@@ -99,12 +99,13 @@ function tabLabels(doc) {
   return Array.from(doc.querySelectorAll('.tab-nav__btn')).map(b => b.textContent.trim());
 }
 
-test('SGR: la pestaña «Cadena de valor» aparece justo después del árbol', async (t) => {
+test('SGR: la pestaña «Cadena de valor» aparece justo después de la novedad, que sigue al árbol', async (t) => {
   const viewer = await harness(t);
   const labels = tabLabels(viewer.document);
   const i = labels.indexOf('Cadena de valor');
   assert.ok(i > 0, 'la pestaña existe en SGR');
-  assert.equal(labels[i - 1], 'Árbol de problemas y objetivos');
+  assert.equal(labels[i - 1], 'Novedad e hipótesis');
+  assert.equal(labels[i - 2], 'Árbol de problemas y objetivos');
   assert.equal(labels[i + 1], 'Alianza y territorio');
 });
 

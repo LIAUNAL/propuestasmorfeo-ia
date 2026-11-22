@@ -61,15 +61,16 @@ test('the «gates» alias also reveals the Pipeline tab', async (t) => {
   assert.ok(calls.some(c => c.el === btn && c.options && c.options.inline === 'nearest'));
 });
 
-test('a deep link to the MGA or trees tab opens and reveals it on load', async (t) => {
-  for (const tabId of ['mga', 'trees']) {
+test('a deep link to the trees tab, or the old #mga, opens and reveals the trees tab on load', async (t) => {
+  for (const link of ['mga', 'trees']) {
+    const tabId = 'trees';
     const { viewer } = await harness(t);
     const calls = spyScrollIntoView(viewer);
-    viewer.window.history.replaceState(null, '', `#${tabId}`);
+    viewer.window.history.replaceState(null, '', `#${link}`);
     viewer.window.dispatchEvent(new viewer.window.Event('load'));
     await flush();
-    assert.ok(viewer.document.getElementById(`pane-${tabId}`).classList.contains('active'), `#${tabId} opens its pane`);
-    assert.ok(calls.some(c => c.el === tabButton(viewer, tabId)), `#${tabId} reveals its tab`);
+    assert.ok(viewer.document.getElementById(`pane-${tabId}`).classList.contains('active'), `#${link} opens the trees pane`);
+    assert.ok(calls.some(c => c.el === tabButton(viewer, tabId)), `#${link} reveals the trees tab`);
   }
 });
 
@@ -124,7 +125,7 @@ test('the MGA tab does not request the file when the status says it is absent', 
   await viewer.viewer('loadMgaResumido');
   await flush();
   assert.equal(requests.filter(u => u.includes('mga_resumido.md')).length, 0, requests.join(', '));
-  assert.match(viewer.document.getElementById('mgaContent').textContent, /Aún no hay MGA resumido.*Fase 1/s);
+  assert.match(viewer.document.getElementById('mgaContent').textContent, /Aún no hay Proyecto Resumido.*Fase 1/s);
 });
 
 test('the MGA tab requests the file when the status lists it', async (t) => {
@@ -147,4 +148,14 @@ test('the modal footer buttons (.btn-secondary, .btn-primary) have CSS rules', a
     assert.ok(selectors.some(s => s.split(',').some(part => part.trim() === cls)), `${cls} has a rule`);
   }
   assert.ok(viewer.document.querySelector('#phaseExecModal .btn-secondary'), 'the phase modal uses .btn-secondary');
+});
+
+test('a deep link to #novedad opens and reveals the novelty tab on load', async (t) => {
+  const { viewer } = await harness(t);
+  const calls = spyScrollIntoView(viewer);
+  viewer.window.history.replaceState(null, '', '#novedad');
+  viewer.window.dispatchEvent(new viewer.window.Event('load'));
+  await flush();
+  assert.ok(viewer.document.getElementById('pane-novedad').classList.contains('active'));
+  assert.ok(calls.some(c => c.el === tabButton(viewer, 'novedad')));
 });

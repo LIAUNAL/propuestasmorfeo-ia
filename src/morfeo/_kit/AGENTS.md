@@ -19,6 +19,8 @@ cada fase al subagente correspondiente definido en `.claude/agents/`.
 | `/propuesta-exportar` | Empaqueta y exporta la corrida activa con artefactos a .tar.gz o .zip |
 | `/propuesta-limpiar` | Cierra la corrida activa |
 | `/propuesta-juez` | Juez SGR: puntaje estimado, alertas y acciones (asesor) |
+| `/propuesta-juez-avance` | Juez de avance por etapa (`arbol`, `novedad` o `final`, asesor) |
+| `/propuesta-novedad` | Pilares de novedad e hipótesis para el tablero (asesor) |
 | `/propuesta-convocatorias` | Convocatorias afines (CO, LatAm, intl.; es/en) al tablero |
 | `/compilar-pdf` | Compila la corrida activa a PDF (`build.sh` en `redaccion/`) |
 | `/compilar-docx` | Exporta la corrida activa a Word (`build.sh --docx` en `redaccion/`) |
@@ -38,7 +40,7 @@ proyecto portable creado con `marco init`. En ese modo:
 - **`RUN_ROOT` se resuelve igual que en el repo** (ver regla 7): el proyecto
   portable trae su propio `plantilla/`, `scripts/init-run.sh` y `proposals/`,
   así que las corridas viven en `proposals/<run-id>/` con las mismas cuatro
-  subcarpetas. Los agentes no necesitan reescritura de rutas.
+  subcarpetas.
 - **`/propuesta-init`** crea la corrida ahí igual que en el repo, y
   **`/propuesta-insumos`** re-siembra las zonas de depósito dentro de
   `insumos/`. Usá `marco init` solo para crear el proyecto portable en sí.
@@ -192,8 +194,7 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
    con esa alianza, copiando `plantilla/logos-opcionales/logo_utp.png` a
    `redaccion/logos/`. `redaccion/` es la **fuente de
    verdad** dentro de una corrida, pero **no está versionada**: `.tex`/`.bib`/`.pdf`/`.docx`
-   y el resto del contenido de la corrida están en `.gitignore` (igual que
-   las corridas archivadas bajo `proposals/<run-id>/`) — GitHub solo aloja el
+   y el resto del contenido de la corrida están en `.gitignore` (regla 7) — GitHub solo aloja el
    esqueleto del framework (agentes, comandos, scripts, plantillas), nunca
    el contenido de una propuesta específica. La tipografía y la jerarquía de títulos
    están en «Invariantes de estilo del documento».
@@ -236,7 +237,7 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
 
 ## Roster de agentes (`.claude/agents/`) y modelos por defecto
 
-El marco tiene **14 agentes**, todos definidos en `.claude/agents/` (fuente de
+El marco tiene **16 agentes**, todos definidos en `.claude/agents/` (fuente de
 verdad):
 
 | Agente | Modelo por defecto | Rol |
@@ -244,7 +245,7 @@ verdad):
 | `coordinador-propuesta` | sonnet | Referencia canónica del pipeline (no despachable como subagente activo) |
 | `investigador` | opus | Subproblemas, pregunta, objetivos, hipótesis, marco conceptual |
 | `redactor` | opus | Secciones narrativas (§2, §9–§12, §14–§15, §17–§18 y front-matter) |
-| `grant-flow-auditor` | sonnet | Auditoría micro-estilística de prosa: cadencia, voz activa, transiciones y fricción en secciones, subsecciones o secciones modificadas; aplica la skill `estilo-natural-es` |
+| `grant-flow-auditor` | sonnet | Auditoría micro-estilística de prosa: cadencia, voz activa, transiciones y fricción; aplica la skill `estilo-natural-es` |
 | `insumos-observador` | sonnet | Ingesta y estructuración de insumos del usuario |
 | `bibliografo-propuesta` | sonnet | Bibliografía (§4, §16) |
 | `revisor` | sonnet | Validación de coherencia/calidad en cada gate |
@@ -254,6 +255,7 @@ verdad):
 | `revisor-redundancia` | sonnet | Redundancia entre secciones, de solo lectura, sobre el reporte de `scripts/estilo_es.py` |
 | `tikz-optimizer` | haiku | Corrección de la spec cuando la auditoría determinista falla |
 | `juez-sgr` | opus | Juez final SGR (asesor): puntaje por rúbrica, alertas y acciones |
+| `juez-avance` | opus | Juez de avance por etapa (asesor) |
 | `revisor-estilo-sgr` | sonnet | Solo SGR: estilo, voz, léxico y redundancia (skill `estilo-sgr`), en lugar de `grant-flow-auditor` |
 | `explorador-convocatorias` | sonnet | Convocatorias afines y rol de Colombia (fuera del pipeline) |
 
@@ -268,7 +270,7 @@ que un agente carga cuando la tarea lo pide), con la misma fuente de verdad
 
 | Skill | Para qué | La usa |
 |-------|----------|--------|
-| `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): corrige 35 patrones mecánicos (aperturas cósmicas, gerundios de cierre, inflación de trascendencia, falsos rangos, regla de tres, monotonía de ritmo), prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
+| `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): corrige 35 patrones mecánicos, prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
 | `depuracion-redundancias-es` | Auditar y eliminar redundancias conceptuales, léxicas y estructurales dentro de una misma sección, asegurando que cada párrafo aporte avance argumentativo y articulando la aplicación integral de `estilo-natural-es` (humanización y ritmo). | `grant-flow-auditor`, `redactor`, `investigador` y el asistente primario en revisiones integrales de texto |
 | `constelacion-sota` | Construir la constelación SOTA de una corrida: un sistema por paper con planetas tipados (tema de aplicación y de IA, problema, aplicación, novedad, familia, resultados, conclusiones), cada uno con cita textual del abstract, validada por `scripts/check_atlas.py` y dibujada por `scripts/render_atlas.py` en `grafos/papers-graph.html`, con el estudio por familia en `grafos/papers-constellation-report.md`. Port de `plausibility` de papersmith-ai. | `bibliografo-propuesta` (MODE=atlas, Fases 1a y 1c), en ambos flujos |
 | `estilo-sgr` | Solo flujo SGR: voz en tercera persona, patrones por capítulo del Anexo 2, léxico `scripts/sgr/lexico_sgr.json` y redundancia R1–R14; ajusta las dos skills anteriores a la MGA (C1–C18). | `revisor-estilo-sgr` |

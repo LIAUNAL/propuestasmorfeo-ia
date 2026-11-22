@@ -12,10 +12,10 @@ python3 scripts/gen-pi.py --root DIR # write DIR/.pi (used by `marco init`)
 
 | Path | Generated from | Pi role |
 |---|---|---|
-| `.pi/agents/*.md` (14 files) | `.claude/agents/*.md` + `scripts/agent-models.json` | Project subagents, dispatched with `subagent_run` |
-| `.pi/prompts/*.md` (12 files) | `.claude/commands/*.md` | Prompt templates exposed as `/propuesta`, `/propuesta-init`, `/propuesta-insumos`, `/propuesta-analizar`, `/propuesta-continuar`, `/propuesta-exportar`, `/propuesta-limpiar`, `/propuesta-juez`, `/propuesta-convocatorias`, `/compilar-pdf`, `/compilar-docx`, plus the frontmatter-less `_propuesta-steps.md` step table they reference |
+| `.pi/agents/*.md` (15 files) | `.claude/agents/*.md` + `scripts/agent-models.json` | Project subagents, dispatched with `subagent_run` |
+| `.pi/prompts/*.md` (14 files) | `.claude/commands/*.md` | Prompt templates exposed as `/propuesta`, `/propuesta-init`, `/propuesta-insumos`, `/propuesta-analizar`, `/propuesta-continuar`, `/propuesta-exportar`, `/propuesta-limpiar`, `/propuesta-juez`, `/propuesta-juez-avance`, `/propuesta-novedad`, `/propuesta-convocatorias`, `/compilar-pdf`, `/compilar-docx`, plus the frontmatter-less `_propuesta-steps.md` step table they reference |
 | `.pi/skills/**/SKILL.md` (4 files) | `.claude/skills/**/SKILL.md` | Project skills, advertised by name+description and loadable with `/skill:estilo-natural-es`, `/skill:depuracion-redundancias-es`, `/skill:constelacion-sota` or `/skill:estilo-sgr` |
-| `.pi/subagents.json` | `scripts/agent-models.json` | Project-scope subagent profile store: the model and thinking level each of the 14 agents actually runs on |
+| `.pi/subagents.json` | `scripts/agent-models.json` | Project-scope subagent profile store: the model and thinking level each of the 15 agents actually runs on |
 | `.pi/mcp.json` | `.mcp.json` (merged with any server only this file declares) | Project MCP servers. Pi reads them **only** from here, so this file is what makes `codegraph`, `openalex`, `semanticscholar`, `crossref`, `pubmed`, `arxiv` and `consensus` reachable inside Pi |
 
 All of these paths are Pi's documented project-level resource directories (Pi's
@@ -42,7 +42,7 @@ generator has no project-specific knowledge):
 - **Models**: resolved **per agent**, not from the Claude tier, out of
   `scripts/agent-models.json`. The canonical `.claude/` source declares a Claude
   tier (`sonnet`/`opus`) because Claude Code is its native runtime; the Pi port
-  resolves each of the 14 agents to a concrete Pi model from that file's
+  resolves each of the 15 agents to a concrete Pi model from that file's
   `tiers` (`reasoning` / `analysis` / `mechanical`). This is deliberate: a
   direct tier mapping produced `claude-bridge/claude-sonnet-5` and
   `claude-bridge/claude-opus-5`, and `claude-bridge` is a bridge to the Claude

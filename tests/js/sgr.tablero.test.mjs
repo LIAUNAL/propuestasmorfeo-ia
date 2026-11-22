@@ -129,13 +129,17 @@ test('SGR sin estructura del TDR: el panel de capítulos no aparece', async () =
   assert.ok(doc.getElementById('tdrChaptersPanel').hidden);
 });
 
+// odd/tasks/tablero-juez-novedad.md, T8 (S8): the style report lives in the
+// drawer of the PDF preview, opened from its toolbar in both flows.
 test('Estilo: muestra índice, aviso y hallazgos en ambos flujos, sin inyectar HTML', async () => {
   for (const flujo of ['base', 'sgr']) {
     const { window, doc } = await boot(flujo);
-    assert.ok(!btn(doc, 'estilo').hidden);
-    window.navigateTab('estilo');
+    assert.ok(!doc.getElementById('btnStyleDrawer').hidden);
+    window.navigateTab('preview');
+    doc.getElementById('btnStyleDrawer').click();
     for (let i = 0; i < 10; i++) await tick();
-    const pane = doc.getElementById('pane-estilo');
+    const pane = doc.getElementById('styleDrawer');
+    assert.equal(pane.hidden, false);
     assert.match(pane.textContent, /72/);
     assert.match(pane.textContent, /Mide legibilidad/);
     assert.match(pane.textContent, /Usar un verbo directo/);
@@ -148,5 +152,28 @@ test('Estilo: sin reporte invita a generarlo', async () => {
   const { window, doc } = await boot('sgr', { estilo: { ok: true, disponible: false } });
   window.navigateTab('estilo');
   for (let i = 0; i < 10; i++) await tick();
-  assert.match(doc.getElementById('pane-estilo').textContent, /Aún no hay reporte/);
+  assert.match(doc.getElementById('styleDrawer').textContent, /Aún no hay reporte/);
+});
+
+// odd/tasks/tablero-juez-novedad.md, T5 (S4): «Novedad e hipótesis» follows the
+// trees tab and the SGR tabs, inserted by the flow, come after it.
+const tabLabels = doc => Array.from(doc.querySelectorAll('.tab-nav__btn')).filter(b => !b.hidden).map(b => b.textContent.trim());
+
+test('SGR: el orden es árbol, novedad y luego las pestañas SGR', async () => {
+  const { doc } = await boot('sgr');
+  const labels = tabLabels(doc);
+  const i = labels.indexOf('Árbol de problemas y objetivos');
+  assert.deepEqual(labels.slice(i, i + 9), [
+    'Árbol de problemas y objetivos', 'Novedad e hipótesis', 'Cadena de valor', 'Alianza y territorio',
+    'Presupuesto y cronograma', 'TRL y componentes', 'Productos e indicadores', 'Requisitos y anexos', 'Anexo 2',
+  ]);
+  assert.equal(labels[i + 9], 'Secciones');
+});
+
+test('Base: novedad sigue al árbol y no aparecen pestañas SGR', async () => {
+  const { doc } = await boot('base');
+  const labels = tabLabels(doc);
+  const i = labels.indexOf('Árbol de problemas y objetivos');
+  assert.deepEqual(labels.slice(i, i + 3), ['Árbol de problemas y objetivos', 'Novedad e hipótesis', 'Secciones']);
+  assert.ok(!labels.includes('Cadena de valor'));
 });

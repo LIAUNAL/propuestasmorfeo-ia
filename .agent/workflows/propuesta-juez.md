@@ -55,7 +55,8 @@ respuesta del agente) y mostrá:
 
 Cerrá con cómo iterar:
 
-- desde el tablero (`morfeo ui`), pestaña «Juez final»: cada acción tiene un
+- desde el tablero (`morfeo ui`), desplegable «Juez final» de la pestaña
+  «Previsualización PDF»: cada acción tiene un
   botón que la envía al terminal de su agente, y otro botón vuelve a correr
   el juez;
 - o respondiendo con los identificadores de las acciones que se quieren

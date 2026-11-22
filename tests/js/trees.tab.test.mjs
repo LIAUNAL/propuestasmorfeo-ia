@@ -72,14 +72,24 @@ async function harness(t, payload, posts = [], { stubPrompt = true } = {}) {
   return viewer;
 }
 
-test('la pestaña queda entre «Pipeline y Avance» y «MGA resumido»', async (t) => {
+test('la pestaña queda entre «Pipeline y Avance» y «Novedad e hipótesis» (el Proyecto Resumido es un pliegue)', async (t) => {
   const viewer = await harness(t, treesPayload());
   const labels = Array.from(viewer.document.querySelectorAll('.tab-nav__btn')).map(b => b.textContent.trim());
   const i = labels.indexOf('Árbol de problemas y objetivos');
   assert.ok(i > 0, 'la pestaña existe');
   assert.equal(labels[i - 1], 'Pipeline y Avance');
-  assert.equal(labels[i + 1], 'MGA resumido');
+  assert.equal(labels[i + 1], 'Novedad e hipótesis');
+  assert.equal(labels[i + 2], 'Secciones');
   assert.ok(viewer.document.getElementById('pane-trees'));
+});
+
+test('en el flujo SGR las pestañas propias siguen entrando justo después de los árboles y la novedad', async (t) => {
+  const viewer = await harness(t, treesPayload());
+  viewer.window.eval(`currentStatus = Object.assign({}, currentStatus || {}, { flujo: 'sgr' }); syncValueChainTab();`);
+  const labels = Array.from(viewer.document.querySelectorAll('.tab-nav__btn')).map(b => b.textContent.trim());
+  const i = labels.indexOf('Árbol de problemas y objetivos');
+  assert.equal(labels[i + 1], 'Novedad e hipótesis');
+  assert.equal(labels[i + 2], 'Cadena de valor');
 });
 
 test('el árbol de problemas pinta copa, efectos, tronco y causas por subproblema', async (t) => {

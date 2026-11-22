@@ -1,5 +1,6 @@
 /**
- * Pestaña «Juez final» (odd/tasks/juez-sgr.md, S7 y S8).
+ * «Juez final» (odd/tasks/juez-sgr.md, S7 y S8), hoy un desplegable de la
+ * previsualización PDF (odd/tasks/tablero-juez-novedad.md, S8).
  *
  * Se ejecuta el JavaScript real del tablero bajo jsdom; `/api/judge` y sus POST
  * se sustituyen por dobles deterministas. Se observa el panel y el prompt que
@@ -8,8 +9,12 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
-import { createViewerHarness, flush } from './harness.mjs';
+import { createViewerHarness, flush, DASHBOARD_STATIC } from './harness.mjs';
+
+const JUDGE_AVANCE = readFileSync(path.join(DASHBOARD_STATIC, 'judge-avance.js'), 'utf8');
 
 const RUBRICA = {
   id: 'conv54',
@@ -86,22 +91,25 @@ async function harness(t, body, posts = []) {
       posts.push({ url: u, body: JSON.parse(init.body || '{}') });
       return json({ ok: true, prompt: '/propuesta-juez' });
     }
+    if (u.includes('/api/judge-avance')) return json({ ok: true, run: 'demo', etapa: 'final', disponible: false, evaluacion: null, archivo: 'artefactos/juez/avance_final.json', errores: [] });
     if (u.includes('/api/judge')) return json(body);
     return json({}, 503);
   };
+  viewer.window.eval(JUDGE_AVANCE);
   viewer.window.eval(`window.__prompts = []; sendTerminalPrompt = (cmd) => { window.__prompts.push(cmd); return Promise.resolve(true); };`);
   await viewer.viewer('loadJudge');
   await flush();
   return viewer;
 }
 
-test('la pestaña «Juez final» queda después de «Secciones»', async (t) => {
+test('el «Juez final» vive sobre el visor de la previsualización PDF, no en una pestaña', async (t) => {
   const viewer = await harness(t, payload());
   const labels = Array.from(viewer.document.querySelectorAll('.tab-nav__btn')).map(b => b.textContent.trim());
-  const i = labels.indexOf('Juez final');
-  assert.ok(i > 0, 'la pestaña existe');
-  assert.equal(labels[i - 1], 'Secciones');
-  assert.ok(viewer.document.getElementById('pane-judge'));
+  assert.ok(!labels.includes('Juez final'));
+  assert.equal(viewer.document.getElementById('pane-judge'), null);
+  const fold = viewer.document.getElementById('previewJudgeFold');
+  assert.ok(fold.closest('#pane-preview .pdf-main-column'));
+  assert.ok(fold.contains(viewer.document.getElementById('judgeSummary')));
 });
 
 test('el encabezado muestra el total frente al umbral, la elegibilidad y el mínimo del criterio 1', async (t) => {
@@ -195,9 +203,13 @@ test('en SGR sin evaluación se explica cómo correr el juez', async (t) => {
   assert.deepEqual(Array.from(viewer.window.__prompts), ['/propuesta-juez']);
 });
 
-test('en el flujo base avisa que el juez de investigación llega después', async (t) => {
+test('en el flujo base el juez final es el juez de avance con la etapa `final`', async (t) => {
   const viewer = await harness(t, payload({ flujo: 'base', disponible: false, evaluacion: null, rubrica: null }));
-  const pane = viewer.document.getElementById('judgeContent');
-  assert.match(pane.textContent, /entrega posterior/);
+  await flush();
+  const root = viewer.document.getElementById('judgeFinalAvance');
+  assert.equal(root.hidden, false);
+  assert.equal(root.getAttribute('data-judge-avance-etapa'), 'final');
+  assert.match(root.textContent, /propuesta completa/);
+  assert.equal(viewer.document.getElementById('judgeSgr').hidden, true);
   assert.equal(viewer.document.getElementById('judgeSummary'), null);
 });

@@ -6,6 +6,7 @@ Uses Python's standard library (http.server) to guarantee zero external dependen
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import mimetypes
 import os
@@ -13,6 +14,7 @@ import re
 import subprocess
 import sys
 import threading
+import unicodedata
 import urllib.parse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -26,6 +28,8 @@ from ..core.sgr_rules import load_sgr_blocks
 from ..core import board
 from ..core.status import get_project_status, read_flujo, record_server_start
 from ..core.judge import EVALUACION_FILE, JUDGE_COMMAND, build_action_prompt, load_judge
+from ..core.judge_avance import ETAPAS as JUDGE_AVANCE_ETAPAS, ETAPAS_TEXTO as JUDGE_AVANCE_ETAPAS_TEXTO, build_run_command as build_judge_avance_command, load_judge_avance
+from ..core.novedad import build_run_command as build_novedad_command, load_novedad
 from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
 from ..core.style_sgr import load_style
 from ..core.value_chain import approve as approve_value_chain, build_adjust_prompt, load_value_chain
@@ -34,7 +38,14 @@ from ..core.budget import approve as approve_budget, build_adjust_prompt as buil
 from ..core.components import approve as approve_components, build_adjust_prompt as build_components_prompt, load_components
 from ..core.products import approve as approve_products, build_adjust_prompt as build_products_prompt, load_products
 from ..core.annex2 import load_annex2
-from ..core.opportunities import build_search_prompt, build_start_prompt, load_opportunities
+from ..core.opportunities import (
+    build_search_prompt,
+    build_start_prompt,
+    load_opportunities,
+    load_progress,
+    message_page,
+    render_opportunities_atlas,
+)
 from ..core.requirements import (
     MAX_BODY_BYTES as REQUIREMENTS_MAX_BODY,
     approve as approve_requirements,
@@ -124,7 +135,76 @@ def flatten_idea(markdown: str) -> str:
 BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 # Page code moved out of index.html: it must stay as fresh as the page that
 # loads it, so a cached copy never runs against a newer index.html.
-PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js"})
+PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js", "convocatorias-progress.js",
+                          "pdf-locate.js", "novedad-panel.js"})
+
+
+# --- Sentence text of the style findings --------------------------------------
+# A finding of scripts/estilo_es.py names its sentence by section and index and
+# quotes only a fragment of it, often a word or two. The style panel looks the
+# finding up in the PDF by its sentence, so `/api/estilo` attaches the sentence
+# text, rebuilt with the script's own splitter. It is attached only when the
+# fragment still sits in that sentence: a section edited after the audit leaves
+# the finding without `oracion_texto`, and the panel falls back to the fragment.
+_STYLE_SENTENCES_LOCK = threading.Lock()
+_STYLE_SENTENCES: dict[str, Any] = {"key": None, "texts": {}}
+_STYLE_MODULE: dict[str, Any] = {"key": None, "module": None}
+
+
+def _loose_text(value: Any) -> str:
+    folded = unicodedata.normalize("NFKD", str(value or "").lower())
+    return "".join(ch for ch in folded if ch.isalnum() and not unicodedata.combining(ch))
+
+
+def _style_module(script: Path) -> Any:
+    key = (str(script), script.stat().st_mtime_ns)
+    if _STYLE_MODULE["key"] != key:
+        name = "_morfeo_dashboard_estilo_es"
+        spec = importlib.util.spec_from_file_location(name, script)
+        module = importlib.util.module_from_spec(spec)
+        # Its dataclasses resolve their annotations through sys.modules.
+        sys.modules[name] = module
+        try:
+            spec.loader.exec_module(module)
+        except BaseException:
+            sys.modules.pop(name, None)
+            raise
+        _STYLE_MODULE.update(key=key, module=module)
+    return _STYLE_MODULE["module"]
+
+
+def style_sentence_texts(scripts_dir: Path, run_dir: Path) -> dict[tuple[str, int], str]:
+    """(section, sentence index) -> sentence text, numbered as scripts/estilo_es.py numbers them."""
+    script = scripts_dir / "estilo_es.py"
+    folder = run_dir / "redaccion" / "sections"
+    if not script.is_file() or not folder.is_dir():
+        return {}
+    files = []
+    for path in sorted(folder.glob("*.tex")):
+        info = path.stat()
+        files.append((path.name, info.st_mtime_ns, info.st_size))
+    key = (str(script), script.stat().st_mtime_ns, str(run_dir.resolve()), tuple(files))
+    with _STYLE_SENTENCES_LOCK:
+        if _STYLE_SENTENCES["key"] != key:
+            module = _style_module(script)
+            sections = module.run_sections(run_dir)
+            collapser = module.Collapser(module.build_terms(run_dir), module.check_run.detect_flujo(run_dir),
+                                         module.Exemptions())
+            texts = {(s.section, s.index): s.text for s in module.build_sentences(sections, collapser)}
+            _STYLE_SENTENCES.update(key=key, texts=texts)
+        return _STYLE_SENTENCES["texts"]
+
+
+def attach_sentence_texts(report: dict[str, Any], texts: dict[tuple[str, int], str]) -> dict[str, Any]:
+    """Adds `oracion_texto` to each finding whose fragment still sits in its sentence."""
+    for finding in report.get("hallazgos") or []:
+        if not isinstance(finding, dict):
+            continue
+        text = texts.get((finding.get("seccion"), finding.get("oracion")))
+        fragment = _loose_text(finding.get("fragmento"))
+        if text and fragment and fragment in _loose_text(text):
+            finding["oracion_texto"] = text
+    return report
 
 # Origins a loopback server answers from: the browser may name it either way.
 _LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -183,6 +263,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_style_report()
         elif path == "/api/judge":
             self.serve_judge()
+        elif path == "/api/judge-avance":
+            self.serve_judge_avance()
+        elif path == "/api/novedad":
+            self.serve_novedad()
         elif path == "/api/value-chain":
             self.serve_value_chain()
         elif path == "/api/alliance":
@@ -201,6 +285,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_style_sgr()
         elif path == "/api/convocatorias":
             self.serve_opportunities()
+        elif path == "/api/convocatorias/progreso":
+            self.serve_opportunities_progress()
+        elif path == "/api/convocatorias/atlas":
+            self.serve_opportunities_atlas()
         elif path == "/api/board/summary":
             self.serve_board_summary()
         else:
@@ -228,6 +316,10 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_judge_send()
         elif path == "/api/judge/run":
             self.handle_judge_run()
+        elif path == "/api/judge-avance/run":
+            self.handle_judge_avance_run()
+        elif path == "/api/novedad/run":
+            self.handle_novedad_run()
         elif path == "/api/value-chain/approve":
             self.handle_value_chain_approve()
         elif path == "/api/value-chain/adjust":
@@ -732,6 +824,57 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             return
         self._send_json(200, {"ok": True, "prompt": JUDGE_COMMAND})
 
+    # El juez de avance (etapas `arbol`, `novedad` y `final`, esta última el
+    # juez final del flujo base): como el juez final SGR, el
+    # servidor solo lee la ronda registrada y devuelve el comando de barra; el
+    # tablero lo entrega a la terminal con sendTerminalPrompt.
+    def serve_judge_avance(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        etapa = (query.get("etapa") or ["arbol"])[0] or "arbol"
+        if etapa not in JUDGE_AVANCE_ETAPAS:
+            self._send_json(400, {"ok": False, "error": f"Etapa desconocida: usa {JUDGE_AVANCE_ETAPAS_TEXTO}."})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_judge_avance(run_dir, etapa)})
+
+    def handle_judge_avance_run(self) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if self._active_run_dir() is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        etapa = str(payload.get("etapa") or "arbol")
+        if etapa not in JUDGE_AVANCE_ETAPAS:
+            self._send_json(400, {"ok": False, "error": f"Etapa desconocida: usa {JUDGE_AVANCE_ETAPAS_TEXTO}."})
+            return
+        self._send_json(200, {"ok": True, "etapa": etapa, "prompt": build_judge_avance_command(etapa)})
+
+    # Novedad e hipótesis: el servidor lee el artefacto que registró
+    # scripts/novedad.py, con la matriz y la validación que deriva ese mismo
+    # script, y devuelve el comando de barra que lo genera; el tablero lo entrega
+    # a la terminal con sendTerminalPrompt.
+    def serve_novedad(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_novedad(run_dir)})
+
+    def handle_novedad_run(self) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if self._active_run_dir() is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "prompt": build_novedad_command()})
+
     # Cadena de valor y estilo SGR (solo flujo SGR; en el base responden sin datos).
     # El ajuste, como en los árboles y el juez, devuelve el prompt y el tablero lo
     # entrega a la terminal con sendTerminalPrompt.
@@ -1020,6 +1163,36 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             return
         self._send_json(200, {"ok": True, **data})
 
+    # Constelación de convocatorias: la página del visor 3D de la constelación
+    # SOTA para el iframe de la vista «Constelación de afinidad». Se arma en cada
+    # petición, sin caché. `?alcance=`, `?agrupar=tema|ambito|rol` e `?ids=`
+    # (slugs separados por comas: los filtros del panel) son opcionales.
+    def serve_opportunities_atlas(self) -> None:
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query, keep_blank_values=True)
+        try:
+            params = {}
+            for key in ("alcance", "agrupar", "ids"):
+                values = query.get(key)
+                if values is not None and len(values) != 1:
+                    raise ValueError(f"El parámetro «{key}» va una sola vez.")
+                params[key] = values[0] if values else None
+            status, page = 200, render_opportunities_atlas(self.workspace_dir, **params)
+        except ValueError as err:
+            status, page = 400, message_page("Petición inválida", str(err))
+        body = page.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    # Avance de la búsqueda en curso (convocatorias/progreso.json, que escribe el
+    # agente por fase): porcentaje y tiempo restante estimados aquí, sin escribir.
+    # Ruta aparte para que el sondeo rápido del panel no recalcule la vista.
+    def serve_opportunities_progress(self) -> None:
+        self._send_json(200, {"ok": True, **load_progress(self.workspace_dir)})
+
     def handle_opportunities_search(self) -> None:
         payload = self._read_json_body()
         if payload is None:
@@ -1089,7 +1262,16 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         if run_dir is None:
             self._send_json(200, {"ok": True, "disponible": False})
             return
-        self._send_json(200, {"ok": True, **load_style_report(run_dir)})
+        self._send_json(200, {"ok": True, **self._style_report_with_sentences(run_dir)})
+
+    def _style_report_with_sentences(self, run_dir: Path) -> dict[str, Any]:
+        report = load_style_report(run_dir)
+        if not report.get("disponible"):
+            return report
+        try:
+            return attach_sentence_texts(report, style_sentence_texts(self._resolve_scripts_dir(), run_dir))
+        except Exception:  # noqa: BLE001 - the sentence text is a search aid; the report stands without it
+            return report
 
     def handle_style_audit(self) -> None:
         run_dir = self._active_run_dir()
@@ -1108,7 +1290,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         if done.returncode != 0:
             self._send_json(500, {"ok": False, "error": done.stderr.strip()[-400:] or "Falló la auditoría de estilo"})
             return
-        self._send_json(200, {"ok": True, **load_style_report(run_dir)})
+        self._send_json(200, {"ok": True, **self._style_report_with_sentences(run_dir)})
 
     def serve_api_status(self) -> None:
         response_data = get_project_status(self.workspace_dir)

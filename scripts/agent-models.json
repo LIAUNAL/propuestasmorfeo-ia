@@ -38,6 +38,7 @@
     "insumos-observador": "analysis",
     "revisor": "analysis",
     "juez-sgr": "analysis",
+    "juez-avance": "analysis",
     "explorador-convocatorias": "analysis",
     "disenador-tikz": "mechanical",
     "tikz-optimizer": "mechanical",

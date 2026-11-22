@@ -23,6 +23,13 @@ else `.marco/config.json`; a run folder inside it works too):
       requisitos [{tipo: consorcio|contrapartida|anfitrion|idioma|perfil|aval|entidad|otro,
       estado: cumple|por_verificar|no_cumple, texto ≤ 200 chars}], relacionados_banco
       [experiencia ids].
+  progreso.json (schema `morfeo.convocatorias-progreso/v1`, written by `progreso`)
+      {schema, alcance, started_at, updated_at, finished_at,
+       phases:[{n:1-5, nombre, started_at, ended_at, detalle}],
+       historial:[{finished_at, alcance, duraciones:{"1".."5": seconds}}]}
+      The five search phases: Perfil, Fuentes fijas, Búsqueda abierta, Registro,
+      Verificación. Times are ISO-8601 with offset; the dashboard estimates the
+      percent and the time left from them.
 
 Commands:
   perfil DIR [--alcance proyecto|banco]
@@ -30,7 +37,16 @@ Commands:
       workspace config, idea text from idea.md or the active run's
       insumos/ideas/idea.md) or convocatorias/perfil_banco.json (banco: title from
       the config, no idea text) when missing; never overwrites; prints the path.
-      The only command that writes.
+  progreso DIR (--reiniciar | --fase 1-5 --estado inicio|fin) [--alcance proyecto|banco]
+           [--detalle TEXTO] [--ahora ISO-8601]
+      Record the search progress in convocatorias/progreso.json (atomic write);
+      prints the path. --reiniciar starts a new search (history kept, capped at
+      20 finished searches); `inicio` stamps a phase start and closes an earlier
+      phase left running; `fin` stamps its end (a phase without a start takes
+      the previous end, else the search start); the end of phase 5 sets
+      finished_at and appends the phase durations to historial. Without a
+      document, the first phase creates it. `perfil` and `progreso` are the only
+      commands that write.
   check DIR [--json]
       Validate both profiles and the calls; one line per finding `severidad código mensaje`.
   datos DIR [--alcance proyecto|banco] [--json] [--hoy YYYY-MM-DD]
@@ -39,6 +55,14 @@ Commands:
       text output is one line per call: puntaje, estado, días, rol, título.
   fuentes [--json]
       The fixed source catalogue scripts/convocatorias/fuentes.json.
+  constelacion DIR [--alcance proyecto|banco] [--agrupar tema|ambito|rol] [--hoy YYYY-MM-DD]
+      The dashboard's constellation as JSON (schema
+      `morfeo.convocatorias-constelacion/v1`): an atlas for scripts/render_atlas.py
+      (profile "convocatorias") with one system per call, one for the search
+      profile and one per banco LIA line of mapa.experiencia (busiest first, at
+      most 12), families from the panel's grouping and links profile tema -> call
+      tema ("afinidad") and banco line -> call ("experiencia"), plus the base data
+      of each node (`fichas`). Only http(s) URLs are kept as links.
 
 Eligibility rules (scripts/convocatorias/reglas_co.json): the first rule whose
 regex matches financiador + programa + titulo (accent- and case-insensitive)
@@ -79,7 +103,9 @@ abierta-sin-cierre, experiencia-desconocida (warnings); sin-perfil,
 sin-oportunidades, regla-rol-distinto (info, the last one from `datos` only).
 
 Library (the dashboard): find_workspace(path), vista(dir, hoy=None, alcance=None),
-check(dir), init_profile(dir, alcance="proyecto"), load_sources(), load_rules().
+constelacion(dir, hoy=None, alcance=None, agrupar="tema", ids=None),
+atlas_de_vista(view, agrupar="tema", ids=None, idea=None), check(dir), init_profile(dir, alcance="proyecto"), record_progress(dir, ...), load_sources(),
+load_rules().
 
 Exit codes: 0 ok, 1 error findings (check), 2 bad input (no workspace, bad
 date, invalid alcance, unreadable catalogue). Standard library only; no network access.
@@ -96,6 +122,7 @@ import re
 import sys
 import tempfile
 import unicodedata
+import urllib.parse
 from pathlib import Path
 
 PROFILE_SCHEMA = "morfeo.perfil-convocatorias/v1"
@@ -125,6 +152,11 @@ REQUIRED_CALL_FIELDS = ("titulo", "financiador", "url", "ambito")
 ALCANCES = ("proyecto", "banco")
 PROFILE_FILES = {"proyecto": PROFILE_FILE, "banco": PROFILE_BANK_FILE}
 EFFORT_DAYS = {"bajo": 15, "medio": 45, "alto": 90}
+PROGRESS_SCHEMA = "morfeo.convocatorias-progreso/v1"
+PROGRESS_FILE = FOLDER / "progreso.json"
+PROGRESS_PHASES = ("Perfil", "Fuentes fijas", "Búsqueda abierta", "Registro", "Verificación")
+PROGRESS_STATES = ("inicio", "fin")
+PROGRESS_HISTORY_LIMIT = 20
 DEFAULT_EFFORT = "medio"
 REQUIREMENT_TYPES = ("consorcio", "contrapartida", "anfitrion", "idioma", "perfil", "aval", "entidad", "otro")
 REQUIREMENT_STATES = ("cumple", "por_verificar", "no_cumple")
@@ -312,6 +344,95 @@ def init_profile(path, alcance: str = "proyecto") -> tuple[Path, bool]:
         "experiencia": [],
     })
     return target, True
+
+
+# --- Search progress ----------------------------------------------------------
+
+def _instant(value) -> datetime.datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=datetime.timezone.utc)
+
+
+def _stamp(moment: datetime.datetime) -> str:
+    return moment.isoformat(timespec="seconds")
+
+
+def _new_progress(alcance: str, now: str, history: list) -> dict:
+    return {
+        "schema": PROGRESS_SCHEMA,
+        "alcance": alcance,
+        "started_at": now,
+        "updated_at": now,
+        "finished_at": None,
+        "phases": [{"n": n, "nombre": name, "started_at": None, "ended_at": None, "detalle": None}
+                   for n, name in enumerate(PROGRESS_PHASES, start=1)],
+        "historial": history[-PROGRESS_HISTORY_LIMIT:],
+    }
+
+
+def record_progress(path, fase: int | None = None, estado: str | None = None, reiniciar: bool = False,
+                    alcance: str | None = None, detalle: str | None = None,
+                    ahora: datetime.datetime | None = None) -> Path:
+    """Write the search progress (convocatorias/progreso.json); returns its path.
+
+    `reiniciar` starts a new search keeping the history; `fase` with `estado`
+    (`inicio` or `fin`) stamps that phase. The end of the last phase finishes
+    the search and appends its phase durations to `historial`.
+    """
+    workspace = find_workspace(path)
+    if alcance is not None:
+        _check_alcance(alcance)
+    if fase is not None and fase not in range(1, len(PROGRESS_PHASES) + 1):
+        raise InputError(f"fase inválida {fase!r}; use 1 a {len(PROGRESS_PHASES)}")
+    if (fase is None) != (estado is None) or (fase is None and not reiniciar):
+        raise InputError("use --reiniciar o --fase con --estado")
+    if estado is not None and estado not in PROGRESS_STATES:
+        raise InputError(f"estado inválido {estado!r}; use «inicio» o «fin»")
+    now = _stamp(ahora or datetime.datetime.now(datetime.timezone.utc))
+    target = workspace / PROGRESS_FILE
+    data, _ = _read_json(target)
+    valid = isinstance(data, dict) and data.get("schema") == PROGRESS_SCHEMA
+    history = [h for h in (data.get("historial") or []) if isinstance(h, dict)] if valid else []
+    if reiniciar or not valid or not isinstance(data.get("phases"), list):
+        data = _new_progress(alcance or (data.get("alcance") if valid else None) or "proyecto", now, history)
+    elif alcance is not None:
+        data["alcance"] = alcance
+    if fase is not None:
+        phases = {row.get("n"): row for row in data["phases"] if isinstance(row, dict)}
+        for n, name in enumerate(PROGRESS_PHASES, start=1):
+            phases.setdefault(n, {"n": n, "nombre": name, "started_at": None, "ended_at": None, "detalle": None})
+        data["phases"] = [phases[n] for n in sorted(phases)]
+        row = phases[fase]
+        if estado == "inicio":
+            for n in range(1, fase):
+                if phases[n].get("started_at") and not phases[n].get("ended_at"):
+                    phases[n]["ended_at"] = now
+            row["started_at"], row["ended_at"] = now, None
+        else:
+            if not row.get("started_at"):
+                earlier = [phases[n]["ended_at"] for n in range(1, fase) if phases[n].get("ended_at")]
+                row["started_at"] = earlier[-1] if earlier else data.get("started_at") or now
+            row["ended_at"] = now
+        if detalle is not None:
+            text = detalle.strip()
+            row["detalle"] = (text[:QUOTE_LIMIT - 1].rstrip() + "…" if len(text) > QUOTE_LIMIT else text) or None
+        if estado == "fin" and fase == len(PROGRESS_PHASES):
+            data["finished_at"] = now
+            durations = {}
+            for n in sorted(phases):
+                begin, end = _instant(phases[n].get("started_at")), _instant(phases[n].get("ended_at"))
+                if begin and end:
+                    durations[str(n)] = max(0, round((end - begin).total_seconds()))
+            history.append({"finished_at": now, "alcance": data.get("alcance"), "duraciones": durations})
+            data["historial"] = history[-PROGRESS_HISTORY_LIMIT:]
+    data["updated_at"] = now
+    _write_atomic(target, data)
+    return target
 
 
 # --- Data files ---------------------------------------------------------------
@@ -887,12 +1008,371 @@ def vista(path, hoy: datetime.date | None = None, alcance: str | None = None) ->
     }
 
 
+# --- Constellation (dashboard, 3D sky) ----------------------------------------
+# The «Convocatorias» constellation is drawn by scripts/render_atlas.py with its
+# "convocatorias" scene profile. This part maps the view to an atlas: one
+# system per call, one for the search profile and one per banco LIA line the
+# panel's map draws (mapa.experiencia, busiest first, at most 12). Families are
+# the panel's groups (convocatorias-map.js `groupOf`/`groupLabel`) and links its
+# affinity relations (`lit`): profile tema -> call tema ("afinidad") and banco
+# line -> call ("experiencia"). Every text comes from a web search, so it
+# travels as data only (the page renders it as text) and only http(s) URLs are
+# kept as links.
+
+CONSTELLATION_SCHEMA = "morfeo.convocatorias-constelacion/v1"
+GROUPINGS = ("tema", "ambito", "rol")
+ROLE_LABELS = {
+    "lider": "Puede liderar", "socio": "Solo como socio", "coaplicante": "Solo como coaplicante",
+    "anfitrion_exterior": "Requiere anfitrión en el exterior", "no_elegible": "No elegible desde Colombia",
+    "desconocido": "Rol por confirmar",
+}
+SCOPE_LABELS = {"colombia": "Colombia", "latam": "América Latina", "internacional": "Internacional"}
+LANGUAGE_LABELS = {"es": "Español", "en": "Inglés", "pt": "Portugués", "fr": "Francés"}
+APPLICANT_LABELS = {
+    "investigador": "Investigador", "estudiante": "Estudiante", "grupo": "Grupo de investigación",
+    "centro": "Centro", "universidad": "Universidad", "empresa": "Empresa",
+}
+ALCANCE_LABELS = {"proyecto": "Proyecto en formulación", "banco": "Banco LIA"}
+GROUPING_LABELS = {"tema": "tema", "ambito": "ámbito", "rol": "rol de Colombia"}
+EXPERIENCE_FAMILY = "Experiencia del banco LIA"
+NO_TOPIC_GROUP = "Sin tema del perfil"
+MAP_ROOTS = 12
+MAP_TOPICS = 6
+MAP_EVIDENCE = 5
+LABEL_LIMIT = 120
+_COMBINING = re.compile("[̀-ͯ]")
+_WEB_URL = re.compile(r"^https?://", re.IGNORECASE)
+
+
+def _map_key(text) -> str:
+    """The map's `fold`: NFD, combining marks U+0300-U+036F dropped, lowercase, trimmed."""
+    return _COMBINING.sub("", unicodedata.normalize("NFD", str(text or ""))).lower().strip()
+
+
+def _map_cap(text: str) -> str:
+    return text[:1].upper() + text[1:] if text else text
+
+
+def _map_num(value) -> float | None:
+    """The map's `num`: a finite number, or a numeric non-blank string; None otherwise."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value) if math.isfinite(value) else None
+    if isinstance(value, str) and value.strip():
+        try:
+            number = float(value)
+        except ValueError:
+            return None
+        return number if math.isfinite(number) else None
+    return None
+
+
+def _web_url(value) -> str:
+    """The map's `safeUrl`: the trimmed value when it is an http(s) address, else ''."""
+    text = value.strip() if isinstance(value, str) else ""
+    return text if _WEB_URL.match(text) else ""
+
+
+def _clip(value, limit: int = LABEL_LIMIT) -> str:
+    text = " ".join(str(value or "").split())
+    return text if len(text) <= limit else text[:limit - 1].rstrip() + "…"
+
+
+def _amount_text(monto) -> str | None:
+    """The dashboard's `cvAmount` (es-CO thousands); None when the call names no amount."""
+    m = monto if isinstance(monto, dict) else {}
+    low, high = _map_num(m.get("min")), _map_num(m.get("max"))
+    if low is None and high is None:
+        return None
+    fmt = lambda n: f"{_round_half_up(n):,}".replace(",", ".")  # noqa: E731
+    cur = f" {m['moneda']}" if isinstance(m.get("moneda"), str) and m["moneda"] else ""
+    if low is not None and high is not None and low != high:
+        return f"{fmt(low)} – {fmt(high)}{cur}"
+    if low is None:
+        return f"Hasta {fmt(high)}{cur}"
+    if high is None:
+        return f"Desde {fmt(low)}{cur}"
+    return f"{fmt(high)}{cur}"
+
+
+def _map_call(o: dict) -> dict:
+    """The map's `norm`: the fields its groups, links and urgency read."""
+    role = o.get("rol_colombia") if isinstance(o.get("rol_colombia"), str) and o.get("rol_colombia") in ROLE_LABELS \
+        else "desconocido"
+    match = _map_num(o.get("match"))
+    if match is None:
+        match = _map_num(o.get("puntaje"))
+    topics = [t for t in o.get("temas_match") or [] if isinstance(o.get("temas_match"), list)
+              and isinstance(t, dict) and isinstance(t.get("tema"), str) and t["tema"].strip()]
+    topics = [{"tema": t["tema"], "key": _map_key(t["tema"]),
+               "peso": _map_num(t.get("peso")) if _map_num(t.get("peso")) is not None else 0.0} for t in topics]
+    topics.sort(key=lambda t: -t["peso"])
+    title = o.get("titulo") or o.get("id") or "Convocatoria sin título"
+    short = o.get("titulo_corto").strip() if isinstance(o.get("titulo_corto"), str) else ""
+    return {
+        "raw": o, "id": str(o.get("id") or ""), "titulo": str(title), "corto": short or _short_title(o),
+        "match": _round_half_up(match or 0.0), "rol": role, "dias": _map_num(o.get("dias_restantes")),
+        "vigente": o.get("vigente") is True, "estado": o.get("estado") if isinstance(o.get("estado"), str) else "",
+        "temas": topics, "exp": _strings(o.get("experiencia")),
+    }
+
+
+def _map_topics(view: dict, calls: list[dict]) -> list[dict]:
+    """The map's profile temas: mapa.temas, or the temas the calls matched (older views)."""
+    mapa = view.get("mapa") if isinstance(view.get("mapa"), dict) else {}
+    raw = mapa.get("temas") if isinstance(mapa.get("temas"), list) else []
+    topics = [{"tema": t["tema"], "key": _map_key(t["tema"]),
+               "n": _map_num(t.get("n")) if _map_num(t.get("n")) is not None else 0}
+              for t in raw if isinstance(t, dict) and isinstance(t.get("tema"), str) and t["tema"].strip()]
+    if topics:
+        return topics
+    seen: dict[str, dict] = {}
+    for c in calls:
+        for t in c["temas"]:
+            seen.setdefault(t["key"], {"tema": t["tema"], "key": t["key"], "n": 0})["n"] += 1
+    return list(seen.values())
+
+
+def _map_roots(view: dict) -> list[dict]:
+    """The banco LIA lines the map draws: mapa.experiencia, busiest first, at most MAP_ROOTS."""
+    mapa = view.get("mapa") if isinstance(view.get("mapa"), dict) else {}
+    raw = mapa.get("experiencia") if isinstance(mapa.get("experiencia"), list) else []
+    roots = [{"id": x["id"], "nombre": x["nombre"] if isinstance(x.get("nombre"), str) and x["nombre"] else x["id"],
+              "detalle": x["detalle"] if isinstance(x.get("detalle"), str) else "",
+              "temas": _strings(x.get("temas")), "financiadores": _strings(x.get("financiadores")),
+              "n": _map_num(x.get("n")) if _map_num(x.get("n")) is not None else 0}
+             for x in raw if isinstance(x, dict) and isinstance(x.get("id"), str)]
+    return sorted(roots, key=lambda r: -r["n"])[:MAP_ROOTS]
+
+
+def _group(call: dict, agrupar: str, topics: list[dict]) -> str:
+    """The map's `groupOf` + `groupLabel`: the name of the call's group."""
+    if agrupar == "ambito":
+        ambito = call["raw"].get("ambito")
+        return SCOPE_LABELS.get(ambito, "Otro ámbito") if isinstance(ambito, str) else "Otro ámbito"
+    if agrupar == "rol":
+        return ROLE_LABELS[call["rol"]]
+    if not call["temas"]:
+        return NO_TOPIC_GROUP
+    key = call["temas"][0]["key"]
+    if not key:
+        return NO_TOPIC_GROUP
+    found = next((t for t in topics if t["key"] == key), None)
+    return _map_cap(found["tema"] if found else key)
+
+
+def _urgency(call: dict) -> str:
+    """The map's `urgency` label."""
+    if not call["vigente"]:
+        return "Pausada" if call["estado"] == "pausada" else "Cerrada"
+    if call["dias"] is None:
+        return "Sin fecha"
+    days = _round_half_up(call["dias"])
+    return "Cierra hoy" if days <= 0 else f"Cierra en {days} d"
+
+
+def _planet(pid: str, slot: str, orbit: int, label: str, detail: str | None = None,
+            evidence: dict | None = None) -> dict:
+    planet = {"id": pid, "slot": slot, "orbit": orbit, "label": label}
+    if detail and detail != label:
+        planet["detail"] = detail
+    if evidence:
+        planet["evidence"] = evidence
+    return planet
+
+
+def _system_id(prefix: str, raw_id: str, index: int) -> str:
+    return f"{prefix}-{raw_id}" if SLUG_RE.match(raw_id or "") else f"{prefix}-n{index}"
+
+
+def _call_system(c: dict, sid: str, group: str, agrupar: str) -> tuple[dict, dict, dict[str, str]]:
+    """(system, facts, {tema key: planet id}) of one call."""
+    o = c["raw"]
+    url = _web_url(o.get("url"))
+    found = _date(o.get("encontrada"))
+    stamp = {"retrieved": found.isoformat()} if found else {}
+    planets = [_planet("sun", "sun", 0, _clip(c["corto"]), _clip(c["titulo"], TEXT_LIMIT),
+                       {"origin": url} if url else None)]
+    if isinstance(o.get("financiador"), str) and o["financiador"].strip():
+        programa = o.get("programa") if isinstance(o.get("programa"), str) else ""
+        planets.append(_planet("funder", "funder", 1, _clip(o["financiador"]), _clip(programa, TEXT_LIMIT) or None))
+    if isinstance(o.get("ambito"), str) and o["ambito"]:
+        planets.append(_planet("region", "region", 1, SCOPE_LABELS.get(o["ambito"], _clip(o["ambito"]))))
+    amount = _amount_text(o.get("monto"))
+    if amount:
+        planets.append(_planet("amount", "amount", 1, amount))
+    parts = []
+    deadline = _date(o.get("cierre"))
+    if deadline:
+        parts.append(f"Cierre: {deadline.isoformat()}" + (" (estimado)" if o.get("cierre_tipo") == "estimado" else ""))
+    prepare = _date(o.get("preparar_desde"))
+    if prepare and c["vigente"]:
+        parts.append(f"empezar a preparar a más tardar el {prepare.isoformat()}")
+    planets.append(_planet("deadline", "deadline", 1, _urgency(c), " · ".join(parts) or None))
+    notice = o.get("aviso") if isinstance(o.get("aviso"), str) else ""
+    planets.append(_planet("role", "role", 1, ROLE_LABELS[c["rol"]], _clip(notice, TEXT_LIMIT) or None))
+    if isinstance(o.get("elegibilidad"), str) and o["elegibilidad"].strip():
+        planets.append(_planet("eligibility", "eligibility", 2, _clip(o["elegibilidad"]),
+                               _clip(o["elegibilidad"], TEXT_LIMIT)))
+    topic_ids: dict[str, str] = {}
+    for t in c["temas"]:
+        if t["key"] in topic_ids or len(topic_ids) >= MAP_TOPICS:
+            continue
+        pid = f"topic-{len(topic_ids) + 1}"
+        topic_ids[t["key"]] = pid
+        planets.append(_planet(pid, "topic", 2, _clip(_map_cap(t["tema"])),
+                               f"coincidencia {_round_half_up(100 * t['peso'])} %"))
+    planets.append(_planet("family", "family", 2, group, f"Agrupada por {GROUPING_LABELS[agrupar]}"))
+    cited = [e for e in o.get("evidencia") or [] if isinstance(o.get("evidencia"), list) and isinstance(e, dict)]
+    for e in cited:
+        text = e.get("texto") if isinstance(e.get("texto"), str) else ""
+        link = _web_url(e.get("url"))
+        label = _clip(text) or _clip(link)
+        if not label or len([p for p in planets if p["slot"] == "evidence"]) >= MAP_EVIDENCE:
+            continue
+        ev = {"origin": link} if link else {}
+        if text:
+            ev["quote"] = _clip(text, QUOTE_LIMIT)
+        ev.update(stamp)
+        planets.append(_planet(f"evidence-{len([p for p in planets if p['slot'] == 'evidence']) + 1}",
+                               "evidence", 3, label, None, ev))
+    if url:
+        host = urllib.parse.urlsplit(url).hostname or url
+        planets.append(_planet("link", "link", 3, _clip(host), None, {"origin": url}))
+    for planet in planets:
+        planet["tip"] = f"{planet['label']} · {c['corto']}" if planet["slot"] != "sun" else c["titulo"]
+    facts: dict[str, str] = {}
+    if isinstance(o.get("programa"), str) and o["programa"].strip():
+        facts["programa"] = _clip(o["programa"])
+    if isinstance(o.get("idioma"), str) and o["idioma"]:
+        facts["idioma"] = LANGUAGE_LABELS.get(o["idioma"], _clip(o["idioma"]))
+    applicants = [APPLICANT_LABELS.get(a, _clip(a)) for a in _strings(o.get("aplicantes"))]
+    if applicants:
+        facts["aplicantes"] = ", ".join(applicants)
+    opening = _date(o.get("apertura"))
+    if opening:
+        facts["apertura"] = opening.isoformat()
+    facts["match"] = f"{c['match']}/100"
+    if o.get("esfuerzo") in EFFORT_DAYS:
+        facts["esfuerzo"] = f"{o['esfuerzo']} (unos {EFFORT_DAYS[o['esfuerzo']]} días)"
+    if url:
+        facts["link"] = url
+    system = {"id": sid, "kind": "convocatoria", "call_id": c["id"], "title": _clip(c["titulo"], TEXT_LIMIT),
+              "planets": planets}
+    return system, facts, topic_ids
+
+
+def atlas_de_vista(view: dict, agrupar: str = "tema", ids=None, idea: str | None = None) -> dict:
+    """The constellation of a view (schema morfeo.convocatorias-constelacion/v1).
+
+    `agrupar` is the panel's grouping (tema, ambito or rol); `ids`, when given,
+    keeps only those calls (the panel's filters); `idea` is the profile's idea
+    text. Pure: reads nothing and writes nothing.
+    """
+    if agrupar not in GROUPINGS:
+        raise InputError(f"agrupar inválido {agrupar!r}; use {', '.join(GROUPINGS)}")
+    raw_calls = view.get("oportunidades") if isinstance(view.get("oportunidades"), list) else []
+    every = [_map_call(o) for o in raw_calls if isinstance(o, dict)]
+    keep = None if ids is None else {str(i) for i in ids}
+    calls = every if keep is None else [c for c in every if c["id"] in keep]
+    topics = _map_topics(view, every)
+    roots = _map_roots(view)
+    alcance = view.get("alcance") if view.get("alcance") in ALCANCES else "proyecto"
+    scope_label = ALCANCE_LABELS[alcance]
+    perfil = view.get("perfil") if isinstance(view.get("perfil"), dict) else {}
+    title = perfil.get("titulo").strip() if isinstance(perfil.get("titulo"), str) else ""
+    systems, links, facts = [], [], {}
+
+    profile_planets = [_planet("sun", "sun", 0, _clip(title or scope_label),
+                               "Todavía no hay perfil de búsqueda para este alcance"
+                               if perfil.get("existe") is False else f"Perfil de búsqueda: {scope_label}")]
+    if isinstance(idea, str) and idea.strip():
+        profile_planets.append(_planet("idea", "idea", 1, _clip(idea), _clip(idea, IDEA_LIMIT)))
+    profile_topic = {}
+    for index, t in enumerate(topics, 1):
+        profile_topic[t["key"]] = f"topic-{index}"
+        n = int(t["n"])
+        profile_planets.append(_planet(f"topic-{index}", "topic", 2, _clip(_map_cap(t["tema"])),
+                                       f"{n} {'convocatoria' if n == 1 else 'convocatorias'}"))
+    profile_planets.append(_planet("family", "family", 2, scope_label))
+    for planet in profile_planets:
+        planet["tip"] = f"{planet['label']} · perfil" if planet["slot"] != "sun" else planet["label"]
+    systems.append({"id": "perfil", "kind": "perfil", "title": _clip(title or scope_label),
+                    "planets": profile_planets})
+    profile_facts = {"alcance": scope_label}
+    for field, key, labels in (("aplicantes", "aplicantes", APPLICANT_LABELS), ("idiomas", "idiomas", LANGUAGE_LABELS),
+                               ("ambitos", "ambitos", SCOPE_LABELS)):
+        values = [labels.get(v, _clip(v)) for v in _strings(perfil.get(field))]
+        if values:
+            profile_facts[key] = ", ".join(values)
+    keywords = _map_num(perfil.get("n_palabras_clave"))
+    if keywords is not None:
+        profile_facts["palabras"] = str(int(keywords))
+    facts["perfil"] = profile_facts
+
+    root_ids = {}
+    for index, r in enumerate(roots, 1):
+        sid = _system_id("exp", r["id"], index)
+        root_ids[r["id"]] = sid
+        planets = [_planet("sun", "sun", 0, _clip(r["nombre"]))]
+        if r["detalle"]:
+            planets.append(_planet("summary", "summary", 1, _clip(r["detalle"]), _clip(r["detalle"], TEXT_LIMIT)))
+        for j, funder in enumerate(r["financiadores"][:MAP_TOPICS], 1):
+            planets.append(_planet(f"funder-{j}", "funder", 1, _clip(funder)))
+        for j, tema in enumerate(r["temas"][:MAP_TOPICS], 1):
+            planets.append(_planet(f"topic-{j}", "topic", 2, _clip(_map_cap(tema))))
+        planets.append(_planet("family", "family", 2, EXPERIENCE_FAMILY))
+        for planet in planets:
+            planet["tip"] = f"{planet['label']} · {r['nombre']}" if planet["slot"] != "sun" else planet["label"]
+        systems.append({"id": sid, "kind": "experiencia", "title": _clip(r["nombre"]), "planets": planets})
+        n = int(r["n"])
+        facts[sid] = {"conectadas": str(n)}
+
+    for index, c in enumerate(calls, 1):
+        sid = _system_id("cv", c["id"], index)
+        system, call_facts, topic_ids = _call_system(c, sid, _group(c, agrupar, topics), agrupar)
+        systems.append(system)
+        facts[sid] = call_facts
+        for key, pid in topic_ids.items():
+            if key in profile_topic:
+                links.append({"from_system": "perfil", "from": profile_topic[key], "to_system": sid, "to": pid,
+                              "rel": "afinidad"})
+        for root in dict.fromkeys(c["exp"]):
+            if root in root_ids:
+                links.append({"from_system": root_ids[root], "from": "sun", "to_system": sid, "to": "sun",
+                              "rel": "experiencia"})
+
+    return {
+        "schema": CONSTELLATION_SCHEMA, "hoy": view.get("hoy"), "alcance": alcance, "agrupar": agrupar,
+        "titulo": title or scope_label, "total": len(every), "mostradas": len(calls),
+        "atlas": {"systems": systems, "links": links}, "fichas": facts,
+    }
+
+
+def constelacion(path, hoy: datetime.date | None = None, alcance: str | None = None,
+                 agrupar: str = "tema", ids=None) -> dict:
+    """The constellation of the workspace's view (see `atlas_de_vista`); never writes."""
+    view = vista(path, hoy=hoy, alcance=alcance)
+    workspace = Path(view["workspace"])
+    profile, _ = _read_json(workspace / PROFILE_FILES[view["alcance"]])
+    idea = profile.get("idea") if isinstance(profile, dict) and isinstance(profile.get("idea"), str) else None
+    return atlas_de_vista(view, agrupar=agrupar, ids=ids, idea=idea)
+
+
 # --- CLI ----------------------------------------------------------------------
 
 def _hoy_arg(value: str) -> datetime.date:
     parsed = _date(value)
     if parsed is None:
         raise argparse.ArgumentTypeError(f"fecha inválida {value!r}; use AAAA-MM-DD")
+    return parsed
+
+
+def _ahora_arg(value: str) -> datetime.datetime:
+    parsed = _instant(value)
+    if parsed is None:
+        raise argparse.ArgumentTypeError(f"momento inválido {value!r}; use ISO-8601 (AAAA-MM-DDTHH:MM:SS+00:00)")
     return parsed
 
 
@@ -913,6 +1393,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("dir", type=Path)
     p.add_argument("--alcance", choices=ALCANCES, default="proyecto",
                    help="proyecto: perfil.json con la idea (por defecto); banco: perfil_banco.json")
+    p = sub.add_parser("progreso", help="anota el avance de la búsqueda en convocatorias/progreso.json")
+    p.add_argument("dir", type=Path)
+    p.add_argument("--reiniciar", action="store_true", help="empieza una búsqueda nueva (conserva el historial)")
+    p.add_argument("--fase", type=int, choices=range(1, len(PROGRESS_PHASES) + 1),
+                   help="fase de la búsqueda: 1 Perfil, 2 Fuentes fijas, 3 Búsqueda abierta, 4 Registro, 5 Verificación")
+    p.add_argument("--estado", choices=PROGRESS_STATES, help="inicio o fin de la fase")
+    p.add_argument("--alcance", choices=ALCANCES, help="alcance de la búsqueda (por defecto, proyecto)")
+    p.add_argument("--detalle", help="nota breve de la fase (máximo 200 caracteres)")
+    p.add_argument("--ahora", type=_ahora_arg, help="momento de referencia ISO-8601 (por defecto, ahora)")
     p = sub.add_parser("check", help="valida perfil.json y oportunidades.json")
     p.add_argument("dir", type=Path)
     p.add_argument("--json", action="store_true", help="imprime los hallazgos en JSON")
@@ -922,10 +1411,21 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--hoy", type=_hoy_arg, help="fecha de referencia AAAA-MM-DD (por defecto, hoy)")
     p.add_argument("--alcance", choices=ALCANCES,
                    help="perfil con el que se puntúa: proyecto (por defecto) o banco (por defecto si es el único)")
+    p = sub.add_parser("constelacion", help="constelación del tablero en JSON (atlas para render_atlas.py)")
+    p.add_argument("dir", type=Path)
+    p.add_argument("--hoy", type=_hoy_arg, help="fecha de referencia AAAA-MM-DD (por defecto, hoy)")
+    p.add_argument("--alcance", choices=ALCANCES, help="perfil con el que se puntúa: proyecto o banco")
+    p.add_argument("--agrupar", choices=GROUPINGS, default="tema", help="grupos de la constelación (por defecto, tema)")
     p = sub.add_parser("fuentes", help="catálogo de fuentes fijas")
     p.add_argument("--json", action="store_true", help="imprime el catálogo en JSON")
     args = parser.parse_args(argv)
+    if args.command == "progreso" and not args.reiniciar and (args.fase is None or args.estado is None):
+        parser.error("progreso: use --reiniciar o --fase con --estado")
     try:
+        if args.command == "progreso":
+            print(record_progress(args.dir, fase=args.fase, estado=args.estado, reiniciar=args.reiniciar,
+                                  alcance=args.alcance, detalle=args.detalle, ahora=args.ahora))
+            return 0
         if args.command == "perfil":
             path, created = init_profile(args.dir, alcance=args.alcance)
             if not created:
@@ -951,6 +1451,9 @@ def main(argv: list[str] | None = None) -> int:
                     print(_call_line(call))
             else:
                 print("sin oportunidades registradas")
+            return 0
+        if args.command == "constelacion":
+            _print_json(constelacion(args.dir, hoy=args.hoy, alcance=args.alcance, agrupar=args.agrupar))
             return 0
         sources = load_sources()
         if args.json:
