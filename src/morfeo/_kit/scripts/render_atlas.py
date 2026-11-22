@@ -31,6 +31,11 @@ flies to it;
 family chips filter; a toolbar zooms, turns, tilts, pauses the rotation,
 toggles names, regroups systems by family and switches to the 2D view.
 
+Scene profiles (``render(..., profile=)``): "sota" is this papers sky and
+keeps its exact output; "convocatorias" reuses the same page, viewer, controls
+and side panel with the funding calls vocabulary of scripts/convocatorias.py
+(`constelacion`), served by the dashboard at /api/convocatorias/atlas.
+
 Resource use (as in papersmith): the 3D viewer draws only when something
 changed, caps the pixel ratio between 1 and 2, pauses while the page is hidden
 (``visibilitychange``) or while the dashboard says so, and disposes its GPU
@@ -189,9 +194,12 @@ def _family_ties(atlas: dict, positions: dict[str, list[float]]) -> list[dict]:
     return ties
 
 
-def _scene(atlas: dict) -> dict:
+def _scene(atlas: dict, slot_colors: dict | None = None, rel_colors: dict | None = None) -> dict:
     """Everything the viewer draws, precomputed: the viewer lays out nothing,
-    so the same atlas always yields the same scene."""
+    so the same atlas always yields the same scene. The colors default to the
+    SOTA vocabulary; a scene profile passes its own."""
+    slot_colors = SLOT_COLORS if slot_colors is None else slot_colors
+    rel_colors = REL_COLORS if rel_colors is None else rel_colors
     centers = _system_centers(atlas["systems"])
     positions: dict[str, list[float]] = {}
     frames: dict[str, dict] = {}
@@ -211,7 +219,7 @@ def _scene(atlas: dict) -> dict:
         if source not in positions or target not in positions:
             continue
         edges.append({"from": source, "to": target, "rel": link.get("rel"),
-                      "color": REL_COLORS.get(link.get("rel"), "#4a5a80"),
+                      "color": rel_colors.get(link.get("rel"), "#4a5a80"),
                       "inter": link.get("from_system") != link.get("to_system")})
     return {
         "version": 1,
@@ -220,7 +228,7 @@ def _scene(atlas: dict) -> dict:
         "frames": dict(sorted(frames.items())),
         "edges": edges,
         "ties": _family_ties(atlas, positions),
-        "slot_colors": SLOT_COLORS,
+        "slot_colors": slot_colors,
         "orbit_radii": {str(orbit): radius for orbit, radius in ORBIT_RADII.items() if radius},
     }
 
@@ -299,16 +307,16 @@ h1{font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.02em}
 #study .pid{color:#7d86a3;font-size:11px}
 #study .counts{color:#9aa3bd;margin:0 0 6px}
 @media (max-width:820px){#toolbar .sep{display:none}#stage{flex-direction:column}#study{flex:0 0 auto;max-width:none;max-height:45vh}#side{position:fixed;left:0;right:0;bottom:0;z-index:20;flex:none;max-width:none;max-height:60vh;border:1px solid #2a3350;border-top:3px solid #9b7ede;border-radius:12px 12px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.55)}}
-</style>
+@@PROFILE_CSS@@</style>
 </head>
 <body>
 <h1>@@HEADING@@</h1>
-<div id="panel">Arrastra para orbitar, arrastra con el botón derecho para desplazar y usa la rueda para acercar. Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para abrir el resumen del paper y doble clic para volar hasta él.</div>
+<div id="panel">@@HELP@@</div>
 <div id="gpunote" role="status" hidden></div>
-<div id="famlegend"><em>Familias:</em> <span id="famchips"></span></div>
-<div id="rellegend"><em>Relaciones:</em> <span class="dot" style="border-color:#2ecc71"></span>extiende <span class="dot" style="border-color:#5aa9e6"></span>respalda <span class="dot" style="border-color:#e65a5a"></span>contradice <span class="dot" style="border-color:#8a93ad"></span>aborda <span class="dot" style="border-color:#9b7ede;border-top-style:dashed"></span>familia compartida <span class="dot" style="border-color:#e8b339"></span>produce <span class="dot" style="border-color:#4a5a80"></span>trata de</div>
+<div id="famlegend"><em>@@FAMILIES@@</em> <span id="famchips"></span></div>
+<div id="rellegend">@@RELLEGEND@@</div>
 <div id="toolbar"><button id="zoomin">acercar +</button><button id="zoomout">alejar −</button><span class="sep"></span><button id="spinleft" title="Girar a la izquierda">⟲ girar</button><button id="spinright" title="Girar a la derecha">girar ⟳</button><button id="tiltup" title="Inclinar hacia arriba">▲ inclinar</button><button id="tiltdown" title="Inclinar hacia abajo">▼ inclinar</button><button id="autorotate" class="on" title="Rotación automática">⏸ rotación</button><button id="names" class="on" title="Muestra u oculta los nombres de los sistemas; solo se dibujan los que no se solapan y al acercar aparecen más">nombres</button><span class="sep"></span><button id="zoomreset">restablecer vista</button><button id="grouplayout">Disposición de grupos</button><span class="sep"></span><button id="viewmode" title="Alterna entre el cielo 3D y la constelación 2D, más liviana">Vista 2D</button><span class="sep"></span><button id="studytoggle" class="on" aria-expanded="true" aria-controls="study" title="Muestra u oculta el estudio de constelaciones">Estudio de constelaciones</button></div>
-<div id="stage"><div id="sky" class="sky"></div><aside id="side" aria-label="Resumen del paper" hidden><button id="sideclose" type="button" aria-label="Cerrar">✕</button><div id="sidebody"></div></aside>
+<div id="stage"><div id="sky" class="sky"></div><aside id="side" aria-label="@@SIDE_LABEL@@" hidden><button id="sideclose" type="button" aria-label="Cerrar">✕</button><div id="sidebody"></div></aside>
 @@STUDY@@</div>
 <script type="application/json" id="atlas-data">@@DATA@@</script>
 <script>
@@ -317,10 +325,7 @@ h1{font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.02em}
 <script>
 const SCENE = JSON.parse(document.getElementById('atlas-data').textContent);
 const ATLAS = SCENE.atlas;
-const SLOT_NAMES = {sun: 'sol', branch: 'rama', topic_app: 'tema de aplicación', topic_ai: 'tema de IA',
-  problem: 'problema', application: 'aplicación', family: 'familia', novelty: 'novedad',
-  contribution: 'contribución', result: 'resultado', conclusion: 'conclusión'};
-const PROVENANCE_NAMES = {stated: 'declarado', grouped: 'agrupado'};
+@@SLOT_NAMES_JS@@const PROVENANCE_NAMES = {stated: 'declarado', grouped: 'agrupado'};
 const PLANETS = new Map();
 const SYSTEMS = new Map();
 ATLAS.systems.forEach(s => {
@@ -351,16 +356,7 @@ function linkOrText(value) {
   a.href = value; a.target = '_blank'; a.rel = 'noopener'; a.textContent = value;
   return a;
 }
-// A paper's summary, as its constellation states it: one section per planet
-// slot, in the order a reader meets the paper (papersmith's SIDE_SECTIONS).
-const SIDE_SECTIONS = [['topic_app', 'Tema de aplicación'], ['topic_ai', 'Tema de IA'], ['problem', 'Problema'],
-  ['application', 'Aplicación'], ['novelty', 'Novedad principal'], ['contribution', 'Contribuciones'],
-  ['result', 'Resultados'], ['conclusion', 'Conclusiones'], ['family', 'Familia'], ['branch', 'Ramas']];
-// The paper's metadata, read by the renderer from papers/paper-N.md.
-const PAPERS = SCENE.papers || {};
-const PAPER_FIELDS = [['authors', 'Autores'], ['year', 'Año'], ['venue', 'Publicación'],
-  ['quartile', 'Cuartil'], ['link', 'DOI/URL'], ['bibkey', 'Clave BibTeX']];
-function sunKey(system) {
+@@SIDE_JS@@function sunKey(system) {
   const sun = system.planets.find(p => p.slot === 'sun') || system.planets[0];
   return sun ? system.id + '.' + sun.id : null;
 }
@@ -410,9 +406,7 @@ function showSide(key) {
     if (p.detail && p.detail !== p.label) node.append(line('p', p.detail));
     const pev = p.evidence || {};
     if (pev.quote) node.append(line('p', pev.quote, 'quote'));
-    const prov = PROVENANCE_NAMES[p.provenance] || p.provenance || '';
-    node.append(line('small', 'órbita ' + p.orbit + (prov ? ' · ' + prov : '') + (pev.retrieved ? ' · consultado ' + pev.retrieved : '')));
-    nodes.push(node);
+@@NODE_FOOT_JS@@    nodes.push(node);
   }
   const list = document.createElement('dl');
   list.className = 'side-sections';
@@ -433,7 +427,7 @@ function showSide(key) {
   if (linked.length) {
     const links = document.createElement('div');
     links.className = 'side-links';
-    links.append(line('dt', 'Papers enlazados'));
+    links.append(line('dt', '@@LINKED@@'));
     linked.forEach(other => {
       const button = line('button', (other.planets.find(q => q.slot === 'sun') || {}).label || other.title || other.id);
       button.type = 'button';
@@ -442,7 +436,7 @@ function showSide(key) {
     });
     nodes.push(links);
   }
-  sideBody.replaceChildren(...nodes);
+@@SIDE_EXTRA_JS@@  sideBody.replaceChildren(...nodes);
   const opening = side.hidden;
   side.hidden = false;
   side.scrollTop = 0;
@@ -928,7 +922,7 @@ const gpuNote = document.getElementById('gpunote');
 const viewButton = document.getElementById('viewmode');
 const helpPanel = document.getElementById('panel');
 const HELP_3D = helpPanel.textContent;
-const HELP_2D = 'Vista 2D: arrastra para desplazar y usa la rueda para acercar; girar e inclinar cambian el ángulo. Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para abrir el resumen del paper y doble clic para centrarlo.';
+const HELP_2D = '@@HELP_2D@@';
 const NOTES = {
   weak: '⚠ Este equipo no tiene una GPU adecuada para el cielo 3D (render por software): se muestra la constelación 2D.',
   none: '⚠ WebGL no está disponible aquí: se muestra la constelación 2D.',
@@ -1162,9 +1156,10 @@ def _text(value: object) -> str:
     return " ".join(str(value or "").split())
 
 
-def study(atlas: dict) -> dict:
+def study(atlas: dict, slots: tuple = STUDY_SLOTS, rel_order: tuple = REL_ORDER) -> dict:
     """The constellation study as plain data (the HTML panel and the Markdown
-    report both render this). Families sort by label, systems by paper number."""
+    report both render this). Families sort by label, systems by paper number.
+    ``slots`` and ``rel_order`` default to the SOTA vocabulary."""
     by_family: dict[str, list[dict]] = {}
     for system in atlas["systems"]:
         by_family.setdefault(_family_of(system), []).append(system)
@@ -1172,7 +1167,7 @@ def study(atlas: dict) -> dict:
     for fam in sorted(by_family):
         members = sorted(by_family[fam], key=lambda s: _natural(s.get("id")))
         entry = {"family": fam or "(sin familia)", "systems": []}
-        for key, _, _ in STUDY_SLOTS:
+        for key, _, _ in slots:
             entry[key] = []
         for system in members:
             planets = [p for p in system.get("planets") or [] if isinstance(p, dict)]
@@ -1182,13 +1177,13 @@ def study(atlas: dict) -> dict:
                 "title": _text(system.get("title")) or str(system.get("id")),
                 "sun": f"{system.get('id')}.{sun['id']}" if sun else None,
             })
-            for key, slots, _ in STUDY_SLOTS:
-                for planet in sorted((p for p in planets if p.get("slot") in slots),
-                                     key=lambda p: (slots.index(p.get("slot")), str(p.get("id")))):
+            for key, kinds, _ in slots:
+                for planet in sorted((p for p in planets if p.get("slot") in kinds),
+                                     key=lambda p: (kinds.index(p.get("slot")), str(p.get("id")))):
                     entry[key].append({"label": _text(planet.get("label")),
                                        "system": str(system.get("id"))})
         families.append(entry)
-    relations = {rel: 0 for rel in REL_ORDER}
+    relations = {rel: 0 for rel in rel_order}
     for link in atlas.get("links") or []:
         if isinstance(link, dict):
             rel = str(link.get("rel"))
@@ -1218,29 +1213,33 @@ def study(atlas: dict) -> dict:
                        "links": len(atlas.get("links") or []), "families": len(families)}}
 
 
-def _slot_color(key: str) -> str:
-    slots = next(slots for name, slots, _ in STUDY_SLOTS if name == key)
-    return SLOT_COLORS[slots[0]]
+def _slot_color(key: str, slots: tuple = STUDY_SLOTS, slot_colors: dict | None = None) -> str:
+    kinds = next(kinds for name, kinds, _ in slots if name == key)
+    return (SLOT_COLORS if slot_colors is None else slot_colors)[kinds[0]]
 
 
-def study_html(data: dict) -> str:
-    """The side panel, escaped static HTML."""
+def study_html(data: dict, slots: tuple = STUDY_SLOTS, slot_colors: dict | None = None,
+               rel_colors: dict | None = None, group_word: str = "Familia", evidence: bool = True) -> str:
+    """The side panel, escaped static HTML. The keywords default to the SOTA
+    vocabulary; a scene profile passes its own (and may leave out the
+    evidence list)."""
     esc = html.escape
+    rel_colors = REL_COLORS if rel_colors is None else rel_colors
     totals = data["totals"]
     out = ['<aside id="study" aria-label="Estudio de constelaciones">',
            "<h2>Estudio de constelaciones</h2>",
            f'<p class="counts">{totals["systems"]} sistemas · {totals["planets"]} planetas · '
            f'{totals["links"]} relaciones · {totals["families"]} familias</p>']
     for fam in data["families"]:
-        out.append(f"<h3>Familia: {esc(fam['family'])}</h3>")
+        out.append(f"<h3>{esc(group_word)}: {esc(fam['family'])}</h3>")
         out.append("<h4>Sistemas</h4><ul>")
         for system in fam["systems"]:
             sun = f' data-sun="{esc(system["sun"])}"' if system["sun"] else ""
             out.append(f'<li><span class="sys"{sun}>{esc(system["title"])}</span> '
                        f'<span class="pid">{esc(system["id"])}</span></li>')
         out.append("</ul>")
-        for key, _, name in STUDY_SLOTS:
-            color = _slot_color(key)
+        for key, _, name in slots:
+            color = _slot_color(key, slots, slot_colors)
             out.append(f'<h4><span class="dot" style="border-color:{color};margin-left:0">'
                        f"</span>{name}</h4><ul>")
             for item in fam[key]:
@@ -1248,9 +1247,12 @@ def study_html(data: dict) -> str:
             out.append("</ul>")
     out.append("<h3>Relaciones por tipo</h3><ul>")
     for rel, count in data["relations"].items():
-        color = REL_COLORS.get(rel, "#4a5a80")
+        color = rel_colors.get(rel, "#4a5a80")
         out.append(f'<li><span class="dot" style="border-color:{color};margin-left:0"></span>'
                    f"{esc(rel)}: {count}</li>")
+    if not evidence:
+        out.append("</ul></aside>")
+        return "\n".join(out)
     out.append("</ul><h3>Evidencias</h3><ul>")
     for item in data["evidence"]:
         out.append(f'<li><span class="pid">{esc(", ".join(item["systems"]))}</span> '
@@ -1348,28 +1350,199 @@ def papers_meta(atlas: dict, papers_dir: Path | None) -> dict:
     return dict(sorted(found.items(), key=lambda item: _natural(item[0])))
 
 
+# --- Scene profiles ---------------------------------------------------------
+# A profile is the vocabulary one kind of constellation brings to the shared
+# page: slot colors and names, side panel sections and metadata fields, help
+# texts, the relation legend and the study's slots. The page itself (viewer,
+# controls, side panel, messages) is the same for every profile. "sota" is
+# the papers constellation and fills each placeholder with the exact text the
+# page always had, so its output does not change; "convocatorias" is the
+# dashboard's funding calls sky, built by scripts/convocatorias.py
+# (`constelacion`) and served by /api/convocatorias/atlas.
+
+_SOTA_FRAGMENTS = {
+    "@@PROFILE_CSS@@": "",
+    "@@HELP@@": ("Arrastra para orbitar, arrastra con el botón derecho para desplazar y usa la rueda para "
+                 "acercar. Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para "
+                 "abrir el resumen del paper y doble clic para volar hasta él."),
+    "@@FAMILIES@@": "Familias:",
+    "@@RELLEGEND@@": (
+        '<em>Relaciones:</em> <span class="dot" style="border-color:#2ecc71"></span>extiende '
+        '<span class="dot" style="border-color:#5aa9e6"></span>respalda '
+        '<span class="dot" style="border-color:#e65a5a"></span>contradice '
+        '<span class="dot" style="border-color:#8a93ad"></span>aborda '
+        '<span class="dot" style="border-color:#9b7ede;border-top-style:dashed"></span>familia compartida '
+        '<span class="dot" style="border-color:#e8b339"></span>produce '
+        '<span class="dot" style="border-color:#4a5a80"></span>trata de'),
+    "@@SIDE_LABEL@@": "Resumen del paper",
+    "@@SLOT_NAMES_JS@@": """const SLOT_NAMES = {sun: 'sol', branch: 'rama', topic_app: 'tema de aplicación', topic_ai: 'tema de IA',
+  problem: 'problema', application: 'aplicación', family: 'familia', novelty: 'novedad',
+  contribution: 'contribución', result: 'resultado', conclusion: 'conclusión'};
+""",
+    "@@SIDE_JS@@": """// A paper's summary, as its constellation states it: one section per planet
+// slot, in the order a reader meets the paper (papersmith's SIDE_SECTIONS).
+const SIDE_SECTIONS = [['topic_app', 'Tema de aplicación'], ['topic_ai', 'Tema de IA'], ['problem', 'Problema'],
+  ['application', 'Aplicación'], ['novelty', 'Novedad principal'], ['contribution', 'Contribuciones'],
+  ['result', 'Resultados'], ['conclusion', 'Conclusiones'], ['family', 'Familia'], ['branch', 'Ramas']];
+// The paper's metadata, read by the renderer from papers/paper-N.md.
+const PAPERS = SCENE.papers || {};
+const PAPER_FIELDS = [['authors', 'Autores'], ['year', 'Año'], ['venue', 'Publicación'],
+  ['quartile', 'Cuartil'], ['link', 'DOI/URL'], ['bibkey', 'Clave BibTeX']];
+""",
+    "@@NODE_FOOT_JS@@": """    const prov = PROVENANCE_NAMES[p.provenance] || p.provenance || '';
+    node.append(line('small', 'órbita ' + p.orbit + (prov ? ' · ' + prov : '') + (pev.retrieved ? ' · consultado ' + pev.retrieved : '')));
+""",
+    "@@LINKED@@": "Papers enlazados",
+    "@@SIDE_EXTRA_JS@@": "",
+    "@@HELP_2D@@": ("Vista 2D: arrastra para desplazar y usa la rueda para acercar; girar e inclinar cambian el "
+                    "ángulo. Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para "
+                    "abrir el resumen del paper y doble clic para centrarlo."),
+}
+
+#: Funding calls: one system per call, one for the search profile and one per
+#: banco LIA line; the slots are the call's base fields.
+CONVOCATORIAS_SLOT_COLORS = {
+    "sun": "#e8b339",
+    "funder": "#5aa9e6",
+    "region": "#5ad1e6",
+    "amount": "#2ecc71",
+    "deadline": "#e65a5a",
+    "role": "#e67e22",
+    "eligibility": "#7f6ae6",
+    "idea": "#e879f9",
+    "summary": "#b9c4de",
+    "topic": "#7fb069",
+    "family": "#9b7ede",
+    "evidence": "#95a5a6",
+    "link": "#9bc1ff",
+}
+CONVOCATORIAS_REL_COLORS = {"afinidad": "#5aa9e6", "experiencia": "#e879f9"}
+CONVOCATORIAS_STUDY_SLOTS = (
+    ("funders", ("funder",), "Financiadores"),
+    ("deadlines", ("deadline",), "Cierres"),
+    ("roles", ("role",), "Rol de Colombia"),
+)
+
+_CONVOCATORIAS_FRAGMENTS = {
+    "@@PROFILE_CSS@@": (
+        "#side .side-cited a{overflow-wrap:anywhere}\n"
+        "#side .side-start{display:block;width:100%;margin:12px 0 0;padding:6px 10px;cursor:pointer;"
+        "background:#9b7ede;color:#0a0a10;border:1px solid #9b7ede;border-radius:6px;font-size:13px;font-weight:600}\n"
+        "#side .side-start:hover,#side .side-start:focus-visible{background:#b59cf0}\n"),
+    "@@HELP@@": ("Arrastra para orbitar, arrastra con el botón derecho para desplazar y usa la rueda para "
+                 "acercar. Cada sistema es una convocatoria, el perfil de búsqueda o una línea del banco LIA. "
+                 "Haz clic en un planeta para abrir su ficha y doble clic para volar hasta él."),
+    "@@FAMILIES@@": "Grupos:",
+    "@@RELLEGEND@@": (
+        '<em>Relaciones:</em> <span class="dot" style="border-color:#5aa9e6"></span>tema compartido con el perfil '
+        '<span class="dot" style="border-color:#e879f9"></span>experiencia del banco LIA '
+        '<span class="dot" style="border-color:#9b7ede;border-top-style:dashed"></span>mismo grupo'),
+    "@@SIDE_LABEL@@": "Ficha del nodo",
+    "@@SLOT_NAMES_JS@@": """const SLOT_NAMES = {sun: 'sol', funder: 'financiador', region: 'ámbito', amount: 'monto',
+  deadline: 'cierre', role: 'rol de Colombia', eligibility: 'elegibilidad', idea: 'idea', summary: 'detalle',
+  topic: 'tema', family: 'grupo', evidence: 'evidencia', link: 'enlace'};
+""",
+    "@@SIDE_JS@@": """// A node's card: one section per base field, in the order a reader weighs a call.
+const SIDE_SECTIONS = [['funder', 'Financiador'], ['region', 'Ámbito'], ['amount', 'Monto'], ['deadline', 'Cierre'],
+  ['role', 'Rol de Colombia'], ['eligibility', 'Elegibilidad'], ['idea', 'Idea'], ['summary', 'Detalle'],
+  ['topic', 'Temas'], ['family', 'Grupo']];
+// The node's base data, computed by scripts/convocatorias.py from the view.
+const PAPERS = SCENE.papers || {};
+const PAPER_FIELDS = [['programa', 'Programa'], ['alcance', 'Alcance'], ['idioma', 'Idioma'], ['idiomas', 'Idiomas'],
+  ['ambitos', 'Ámbitos'], ['aplicantes', 'Aplicantes'], ['apertura', 'Apertura'], ['match', 'Match'],
+  ['esfuerzo', 'Esfuerzo estimado'], ['palabras', 'Palabras clave'], ['conectadas', 'Convocatorias conectadas'],
+  ['link', 'Enlace']];
+""",
+    "@@NODE_FOOT_JS@@": """    if (pev.retrieved) node.append(line('small', 'consultado ' + pev.retrieved));
+""",
+    "@@LINKED@@": "Nodos enlazados",
+    "@@SIDE_EXTRA_JS@@": """  // Cited evidence and the call's link: only web addresses become links.
+  [['evidence', 'Evidencia citada'], ['link', 'Enlace']].forEach(([slot, title]) => {
+    const cited = system.planets.filter(q => q.slot === slot && q.label);
+    if (!cited.length) return;
+    const box = document.createElement('dl');
+    box.className = 'side-cited';
+    box.append(line('dt', title));
+    const dd = document.createElement('dd');
+    cited.forEach(q => {
+      const item = document.createElement('p');
+      if (q === p) item.className = 'sel';
+      const origin = (q.evidence || {}).origin;
+      if (isWebLink(origin)) {
+        const a = linkOrText(origin);
+        a.textContent = q.label;
+        item.append(a);
+      } else {
+        item.append(document.createTextNode(q.label));
+      }
+      dd.append(item);
+    });
+    box.append(dd);
+    nodes.push(box);
+  });
+  // Framed by the dashboard, a call's card can start a proposal: the page only
+  // names the call; the dashboard checks it and runs its own start flow.
+  if (system.kind === 'convocatoria' && typeof system.call_id === 'string' && system.call_id && window.parent !== window) {
+    const start = line('button', '🚀 Iniciar propuesta con esta', 'side-start');
+    start.type = 'button';
+    start.addEventListener('click', () => tellParent({type: 'convocatoria-iniciar', id: String(system.call_id)}));
+    nodes.push(start);
+  }
+""",
+    "@@HELP_2D@@": ("Vista 2D: arrastra para desplazar y usa la rueda para acercar; girar e inclinar cambian el "
+                    "ángulo. Haz clic en un planeta para abrir su ficha y doble clic para centrarlo."),
+}
+
+PROFILES = {
+    "sota": {
+        "title": DEFAULT_TITLE, "heading": DEFAULT_HEADING,
+        "slot_colors": SLOT_COLORS, "rel_colors": REL_COLORS,
+        "study_slots": STUDY_SLOTS, "rel_order": REL_ORDER, "group_word": "Familia", "evidence": True,
+        "fragments": _SOTA_FRAGMENTS,
+    },
+    "convocatorias": {
+        "title": "Constelación de convocatorias", "heading": "Constelación de convocatorias",
+        "slot_colors": CONVOCATORIAS_SLOT_COLORS, "rel_colors": CONVOCATORIAS_REL_COLORS,
+        "study_slots": CONVOCATORIAS_STUDY_SLOTS, "rel_order": tuple(CONVOCATORIAS_REL_COLORS),
+        "group_word": "Grupo", "evidence": False,
+        "fragments": _CONVOCATORIAS_FRAGMENTS,
+    },
+}
+
+_PLACEHOLDER = re.compile(r"@@[A-Z0-9_]+@@")
+
+
 def render(atlas: dict, viewer: str | None = None, *,
            title: str | None = None, heading: str | None = None,
-           papers: dict | None = None) -> str:
+           papers: dict | None = None, profile: str = "sota") -> str:
     """The whole page. ``title`` names the tab and, unless ``heading`` says
     otherwise, the heading too, so the page cannot contradict its own tab.
-    ``papers`` is the per-paper metadata of :func:`papers_meta`."""
+    ``papers`` is the per-system metadata (:func:`papers_meta` for SOTA).
+    ``profile`` picks the vocabulary (:data:`PROFILES`); ValueError when it is
+    unknown. Every placeholder is filled in one pass over the template, so no
+    inserted text (a title, the study, the data) is ever read as one."""
+    if profile not in PROFILES:
+        raise ValueError(f"unknown scene profile {profile!r}")
+    prof = PROFILES[profile]
     bundle = _viewer_bundle() if viewer is None else viewer
     if "</script" in bundle.lower():
         raise ValueError("the viewer bundle contains </script and cannot be inlined")
     if title is None:
-        title, heading = DEFAULT_TITLE, heading or DEFAULT_HEADING
+        title, heading = prof["title"], heading or prof["heading"]
     elif heading is None:
         heading = title
-    named = PAGE.replace("@@TITLE@@", html.escape(title))
-    named = named.replace("@@HEADING@@", html.escape(heading))
-    named = named.replace("@@STUDY@@", study_html(study(atlas)))
-    scene = _scene(atlas)
+    scene = _scene(atlas, prof["slot_colors"], prof["rel_colors"])
     scene["papers"] = papers or {}
-    data = json.dumps(scene).replace("<", "\\u003c")
-    head, rest = named.split("@@DATA@@")
-    middle, tail = rest.split("@@VIEWER@@")
-    return head + data + middle + bundle + tail
+    values = dict(prof["fragments"])
+    values.update({
+        "@@TITLE@@": html.escape(title),
+        "@@HEADING@@": html.escape(heading),
+        "@@STUDY@@": study_html(study(atlas, prof["study_slots"], prof["rel_order"]), prof["study_slots"],
+                                prof["slot_colors"], prof["rel_colors"], prof["group_word"], prof["evidence"]),
+        "@@DATA@@": json.dumps(scene).replace("<", "\\u003c"),
+        "@@VIEWER@@": bundle,
+    })
+    return _PLACEHOLDER.sub(lambda match: values[match.group(0)], PAGE)
 
 
 USAGE = ("usage: render_atlas.py <atlas.json> --out <html> [--report <md>] [--title <text>] "
