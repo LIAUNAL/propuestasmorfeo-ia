@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import UserError
+from .language import read_project_lang, read_run_lang
 from .pipeline_units import canonical_gates, normalise_gate, units_for_flujo
 from .unit_progress import heartbeat_is_stale, unit_progress
 
@@ -686,6 +687,10 @@ def get_project_status(target_dir: Path, force_refresh: bool = False) -> dict:
         "workspace_title": workspace_title,
         # Flujo del proyecto (`base` o `sgr`), fijado por `morfeo init [--sgr]`.
         "flujo": flujo,
+        # Idioma de redacción del proyecto (`es` o `en`) y el que registró la
+        # corrida activa al crearse (las corridas no cambian de idioma).
+        "lang": read_project_lang(target_dir),
+        "run_lang": read_run_lang(target_dir / "proposals" / active_run, target_dir) if active_run else None,
         # `version` is the workspace kit stamp (`.marco/version`); the running
         # package can be newer, so the dashboard footer shows both.
         "version": version,
@@ -726,6 +731,7 @@ def status_project(target_dir: Path, as_json: bool = False) -> int:
     print("======================================================================")
     print(f"Directorio: {status['workspace']}")
     print(f"Flujo:      {status.get('flujo', 'base')}")
+    print(f"Idioma:     {status.get('lang', 'es')}")
     if status['active_run']:
         details = status['run_details']
         totals = status['totals']

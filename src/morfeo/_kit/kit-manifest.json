@@ -103,6 +103,7 @@
     "scripts/init-run.sh",
     "scripts/juez_avance.py",
     "scripts/juez_sgr.py",
+    "scripts/language.py",
     "scripts/novedad.py",
     "scripts/rubricas_sgr/_aval_institucional.json",
     "scripts/rubricas_sgr/_guia_comun.json",

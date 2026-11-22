@@ -170,6 +170,23 @@ print(v if v in ("base", "sgr") else "")' "$cfg" 2>/dev/null || true)"
 }
 flujo="$(read_flujo)"
 
+# --- writing language --------------------------------------------------------
+# `morfeo init --lang` / `morfeo config lang` record "lang" ("es" or "en") in
+# the same config; scripts/language.py resolves it (always "es" in the SGR
+# flow). A new English run gets the row `| idioma | en |` in its _run.md; a
+# Spanish run gets no row, so it stays byte-identical to the runs created
+# before the setting existed. The row is written once, with the manifest: an
+# existing run keeps its language when the project setting changes later.
+read_lang() {
+  python3 "$REPO_ROOT/scripts/language.py" project "$REPO_ROOT" 2>/dev/null || printf 'es'
+}
+lang="$(read_lang)"
+[ "$flujo" = "sgr" ] && lang="es"
+idioma_row=""
+if [ "$lang" = "en" ]; then
+  idioma_row=$'\n| idioma | en |'
+fi
+
 # --- run manifest ----------------------------------------------------------
 today="$(date +%Y-%m-%d)"
 if [ ! -e "$RUN_ROOT/_run.md" ]; then
@@ -183,7 +200,7 @@ if [ ! -e "$RUN_ROOT/_run.md" ]; then
 | cerrada | — |
 | estado | activa |
 | idea | ${idea:-—} |
-| flujo | $flujo |
+| flujo | $flujo |${idioma_row}
 | RUN_ROOT | \`proposals/$run_id/\` |
 
 Este es el único archivo en la raíz de la corrida; todo lo demás vive en una de
@@ -241,4 +258,7 @@ fi
 [ "$activate" -eq 1 ] && printf 'active run (proposals/.current-run): %s\n' "$run_id"
 printf 'RUN_ROOT: proposals/%s/  (insumos/ artefactos/ grafos/ redaccion/)\n' "$run_id"
 printf 'flujo: %s\n' "$flujo"
+if [ -f "$RUN_ROOT/_run.md" ] && grep -q '^| idioma | en |' "$RUN_ROOT/_run.md"; then
+  printf 'idioma: en\n'
+fi
 exit 0

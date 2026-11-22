@@ -115,6 +115,17 @@ de Regalías, MGA). Un proyecto creado antes de esta clave se trata como `base`.
 `scripts/init-run.sh` copia el valor a la fila `flujo` del `_run.md` de cada
 corrida nueva, y `morfeo status` y el tablero lo muestran.
 
+**Clave `lang`:** es el idioma de redacción del proyecto, `es` (por defecto) o
+`en`, y decide en qué idioma se escriben los artefactos, las fases y el
+manuscrito. `morfeo init --lang en` lo fija al crear el proyecto y
+`morfeo config lang` lo cambia después (§2.7). El flujo SGR solo admite `es`,
+porque la metodología MGA del DNP y sus plantillas están en español: `morfeo
+init --sgr --lang en` termina con error. Cada corrida conserva el idioma con el
+que se creó: `scripts/init-run.sh` escribe la fila `| idioma | en |` en el
+`_run.md` de una corrida en inglés y ninguna fila en una en español, de modo que
+un cambio posterior del proyecto no mezcla dos idiomas en la misma corrida.
+`python3 scripts/language.py run <RUN_ROOT>` imprime el idioma de una corrida.
+
 **Códigos de salida:**
 
 | Código | Significado |
@@ -335,6 +346,31 @@ embebido sigue funcionando: solo se desactiva el botón del terminal externo
 cuyo CLI no está instalado aparecen desactivados con «(no instalado)», y los
 comandos rápidos del pie son los de `.claude/commands/*.md` del workspace
 (hasta 24).
+
+### 2.7 `morfeo config` — Idioma de redacción
+
+```
+morfeo config lang [es|en] [--dir <dir>]
+```
+
+Sin valor, imprime el idioma de redacción del proyecto (`es` o `en`). Con
+valor, lo escribe en `.morfeo/config.json`, y también en `.marco/config.json`
+si existe, sin tocar las demás claves. El cambio rige para las corridas que se
+creen después: las existentes conservan el idioma registrado en su `_run.md`.
+
+| Caso | Resultado |
+|------|-----------|
+| `morfeo config lang` | Imprime `es` o `en` |
+| `morfeo config lang en` | Pasa el proyecto a inglés (código 0) |
+| `morfeo config lang en` en un proyecto SGR | Error (código 2): el flujo SGR se redacta solo en español |
+| `morfeo config lang fr` | Error (código 2): los idiomas válidos son `es` y `en` |
+| Fuera de un proyecto Morfeo | Error (código 2) |
+
+En inglés, los agentes redactan con la skill `estilo-natural-en` y
+`depuracion-redundancias-en`, el puntaje de estilo lo da
+`scripts/estilo_en.py`, la plantilla LaTeX carga `babel` en inglés y
+`scripts/check_run.py` aplica sus reglas en ese idioma. El idioma del tablero
+es otro ajuste, propio de cada persona que lo mira.
 
 ---
 

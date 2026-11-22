@@ -108,7 +108,8 @@ Dentro del directorio inicializado puedes ejecutar los comandos del asistente en
 
 | Comando | Descripción |
 |---|---|
-| `morfeo init [dir] [--title] [--preset] [--tools] [--sgr] [--force]` | Sin `dir`, usa el directorio actual (debe estar vacío salvo con `--force`; si ya es un proyecto Morfeo, sugiere `morfeo upgrade`). Inicializa un workspace autocontenido con los 113 activos base del marco. |
+| `morfeo init [dir] [--title] [--preset] [--tools] [--lang es\|en] [--sgr] [--force]` | `--lang` fija el idioma de redacción (por defecto `es`). Sin `dir`, usa el directorio actual (debe estar vacío salvo con `--force`; si ya es un proyecto Morfeo, sugiere `morfeo upgrade`). Inicializa un workspace autocontenido con los 113 activos base del marco. |
+| `morfeo config lang [es\|en] [--dir dir]` | Lee o cambia el idioma de redacción del proyecto (artefactos, fases y manuscrito). Las corridas nuevas lo toman al crearse y las existentes conservan el suyo; el flujo SGR solo admite `es`. Ver `docs/marco-cli.md` §2.7. |
 | `morfeo status [dir] [--json]` | Inspecciona la corrida activa, fases completadas, compuertas aprobadas y estado del PDF; imprime la unidad actual, lo que le falta y el siguiente comando. |
 | `morfeo ui [dir] [--port 8080] [--no-open] [--no-refresh] [--no-terminal] [--allowed-host HOST]` | Despliega el Command Center web interactivo en `127.0.0.1` (puerto 8080 por defecto, o el siguiente libre), imprime la dirección del tablero y el enlace «Activa el CLI» y abre ese enlace en el navegador (en WSL y en Linux sin pantalla, ver `docs/marco-cli.md` §2.6). `--no-refresh` omite la actualización al iniciar, `--no-terminal` desactiva el CLI embebido y `--allowed-host` acepta otro encabezado `Host`. |
 | `morfeo compile [dir] [--docx] [--run <id>]` | Compila el proyecto LaTeX a PDF (`build.sh`) o exporta a Word (`--docx`). |
