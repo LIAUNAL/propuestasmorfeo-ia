@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 
 import { createViewerHarness, flush } from './harness.mjs';
 
-const BASE_TABS = ['Flujo general', 'Convocatorias', 'Pipeline y Avance', 'Árbol de problemas y objetivos', 'MGA resumido', 'Secciones',
+const BASE_TABS = ['Flujo general', 'Convocatorias', 'Pipeline y Avance', 'Árbol de problemas y objetivos', 'Secciones',
   'Juez final', 'Grafos Proyecto', 'Estilo y redundancia', 'Previsualización PDF', 'Artefactos',
   'Telemetría y Costos'];
 

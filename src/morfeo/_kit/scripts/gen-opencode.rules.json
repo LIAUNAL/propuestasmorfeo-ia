@@ -17,6 +17,7 @@
       "grant-flow-auditor.md",
       "insumos-observador.md",
       "investigador.md",
+      "juez-avance.md",
       "juez-sgr.md",
       "explorador-convocatorias.md",
       "presupuestador.md",
@@ -36,6 +37,7 @@
       "propuesta-exportar.md",
       "propuesta-limpiar.md",
       "propuesta-juez.md",
+      "propuesta-juez-avance.md",
       "propuesta-convocatorias.md",
       "compilar-pdf.md",
       "compilar-docx.md",
@@ -174,6 +176,7 @@
         "propuesta-continuar.md",
         "propuesta-limpiar.md",
         "propuesta-juez.md",
+        "propuesta-juez-avance.md",
         "propuesta-convocatorias.md",
         "_propuesta-steps.md"
       ],

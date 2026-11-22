@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 
 import { createViewerHarness, flush } from './harness.mjs';
 
-const BASE_TABS = ['Flujo general', 'Convocatorias', 'Pipeline y Avance', 'Árbol de problemas y objetivos', 'MGA resumido', 'Secciones',
+const BASE_TABS = ['Flujo general', 'Convocatorias', 'Pipeline y Avance', 'Árbol de problemas y objetivos', 'Secciones',
   'Juez final', 'Grafos Proyecto', 'Estilo y redundancia', 'Previsualización PDF', 'Artefactos',
   'Telemetría y Costos'];
 
@@ -128,7 +128,7 @@ test('SGR: la pestaña «Anexo 2» aparece justo después de «Requisitos y anex
   const i = labels.indexOf('Anexo 2');
   assert.ok(i > 0, 'la pestaña existe en SGR');
   assert.equal(labels[i - 1], 'Requisitos y anexos');
-  assert.equal(labels[i + 1], 'MGA resumido');
+  assert.equal(labels[i + 1], 'Secciones');
   viewer.viewer('navigateTab', 'anexo2');
   await flush();
   const active = viewer.document.querySelectorAll('.tab-nav__btn.active');
