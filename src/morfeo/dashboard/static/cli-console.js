@@ -835,7 +835,7 @@
 
       terminalInstance = new Terminal({
         cursorBlink: true,
-        fontSize: 13,
+        fontSize: terminalFontSize(),
         lineHeight: 1.25,
         fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
         theme: {
@@ -1057,6 +1057,20 @@
         }
       };
     }
+
+    // The terminal draws in px, so it follows the text-size control itself
+    // (text-size.js): 13 px at ×1, scaled and rounded, refitted on a change.
+    const TERMINAL_BASE_FONT_PX = 13;
+    function terminalFontSize() {
+      const scale = Number(document.documentElement.dataset.textScale) || 1;
+      return Math.round(TERMINAL_BASE_FONT_PX * scale);
+    }
+    document.addEventListener('textscalechange', () => {
+      if (!terminalInstance || !terminalInstance.options) return;
+      terminalInstance.options.fontSize = terminalFontSize();
+      if (fitAddonInstance) fitAddonInstance.fit();
+      sendTerminalResize(true);
+    });
 
     function sendTerminalResize(forceRedraw = false) {
       if (terminalInstance && terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {

@@ -136,7 +136,7 @@ BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 # Page code moved out of index.html: it must stay as fresh as the page that
 # loads it, so a cached copy never runs against a newer index.html.
 PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js", "convocatorias-progress.js",
-                          "pdf-locate.js", "novedad-panel.js"})
+                          "pdf-locate.js", "novedad-panel.js", "text-size.js"})
 
 
 # --- Sentence text of the style findings --------------------------------------

@@ -11,6 +11,7 @@
   <script src="/static/vendor/pdf.min.js"></script>
   <script src="/static/vendor/xterm.js"></script>
   <script src="/static/vendor/xterm-addon-fit.js"></script>
+  <script src="/static/text-size.js"></script>
   <style>
     :root {
       --bg: #0b0f19;
@@ -62,6 +63,8 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* text-size.js scales the root, and every rem with it. */
+    html { font-size: calc(100% * var(--text-scale, 1)); }
     body {
       background: var(--bg);
       color: var(--text);
@@ -2994,6 +2997,30 @@
       font-weight: 600;
       overflow-wrap: anywhere;
     }
+
+    /* Responsive guards. The text-size control scales every rem up to ×2 and the
+       page also opens on tablets and phones: a header wraps instead of pushing
+       its row wider, a grid column never asks for more than the screen, and a
+       long path or name breaks rather than spilling past the right edge. */
+    .panel__header > * { min-width: 0; max-width: 100%; }
+    .badge { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+    .tab-pane code { overflow-wrap: anywhere; }
+    .tab-pane p, .tab-pane li, .tab-pane strong, .tab-pane a { overflow-wrap: break-word; }
+    .tab-pane select { max-width: 100%; min-width: 0; }
+    .pipeline-grid { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+    .pdf-viewer-topbar { flex-wrap: wrap; gap: 0.5rem; }
+    .pdf-topbar__left, .pdf-topbar__center, .pdf-topbar__right { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+    .phase-card__head, .phase-card__foot { flex-wrap: wrap; gap: 0.35rem; }
+    .topbar__actions { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+    .topbar__actions select.btn { max-width: 100%; }
+    /* Rows the panels build with inline flex styles wrap too. */
+    .tab-pane [style*="justify-content: space-between"], .tab-pane [style*="justify-content:space-between"] { flex-wrap: wrap; }
+    .tab-pane [style*="justify-content: space-between"] > * { min-width: 0; overflow-wrap: anywhere; }
+    @media (max-width: 700px) {
+      /* Two selectors more than before: the actions wrap rather than overflow. */
+      .topbar__actions { flex-wrap: wrap; }
+      #textSizeSelect, #langSelect { padding-left: 0.4rem; padding-right: 0.4rem; }
+    }
   </style>
 </head>
 <body>
@@ -3016,6 +3043,12 @@
         <option value="">Cargando corridas...</option>
       </select>
       <button class="btn" onclick="toggleTheme()" id="themeBtn" title="Cambiar tema" aria-label="Cambiar tema">☀️ <span class="btn__label">Claro</span></button>
+      <select id="textSizeSelect" class="btn" aria-label="Tamaño del texto" title="Tamaño del texto">
+        <option value="1">A ×1</option>
+        <option value="1.25">A ×1.25</option>
+        <option value="1.5">A ×1.5</option>
+        <option value="2">A ×2</option>
+      </select>
       <button class="btn btn--primary" id="boardRefreshBtn" onclick="refreshBoard()" title="Regenera los grafos de la corrida e informa el estado actual y lo que falta" aria-label="Actualizar tablero">⟳ <span class="btn__label">Actualizar tablero</span></button>
     </div>
   </header>
