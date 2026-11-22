@@ -22,16 +22,24 @@
  *   render(data, { pending, etapa }) -> HTML of the body (pure)
  *   tone(score) -> 'ok' | 'warn' | 'bad'
  *   THRESHOLDS  { ok: 75, warn: 50 }
+ *
+ * Texts come from static/i18n/<lang>/judge-avance.js; a language switch draws
+ * every mounted block again and reads the round once more (the server's
+ * messages follow the language too). The judge's own round is shown as written.
  */
 (function () {
   'use strict';
 
+  // The text of `key` in the dashboard's language (static/i18n.js).
+  const tr = (key, vars) => (window.i18n ? window.i18n.t(key, vars) : key);
+
   const THRESHOLDS = { ok: 75, warn: 50 };
-  const LEVELS = [['alta', 'Alta'], ['media', 'Media'], ['baja', 'Baja']];
+  const LEVELS = [['alta', 'panel.judgeAvance.levelHigh'], ['media', 'panel.judgeAvance.levelMedium'],
+    ['baja', 'panel.judgeAvance.levelLow']];
   const STAGES = {
-    arbol: 'el árbol de problemas y objetivos',
-    novedad: 'la novedad y las hipótesis',
-    final: 'la propuesta completa',
+    arbol: 'panel.judgeAvance.stageArbol',
+    novedad: 'panel.judgeAvance.stageNovedad',
+    final: 'panel.judgeAvance.stageFinal',
   };
 
   // UI copy per stage. `arbol` and `novedad` judge the proposal up to a panel;
@@ -39,19 +47,19 @@
   function copy(etapa) {
     if (etapa === 'final') {
       return {
-        name: 'juez final',
-        intro: 'El juez final puntúa la propuesta completa (0 a 100), con todas sus secciones y las dependencias cruzadas de la guía, y resume la idea, sus puntos fuertes, sus puntos débiles y las alertas. Es asesor: no cambia el veredicto del revisor ni aprueba compuertas.',
-        run: 'Evaluar la propuesta',
-        empty: 'Aún no hay evaluación de la propuesta completa. Pulsa «Evaluar la propuesta» para que el juez final lea todas las secciones.',
-        pending: 'Evaluación en curso: el juez final está leyendo la propuesta completa. La ronda nueva aparece aquí cuando termine.',
+        name: tr('panel.judgeAvance.finalName'),
+        intro: tr('panel.judgeAvance.finalIntro'),
+        run: tr('panel.judgeAvance.finalRun'),
+        empty: tr('panel.judgeAvance.finalEmpty'),
+        pending: tr('panel.judgeAvance.finalPending'),
       };
     }
     return {
-      name: 'juez de avance',
-      intro: `El juez de avance puntúa la propuesta hasta ${STAGES[etapa] || STAGES.arbol} (0 a 100) y resume la idea, sus puntos fuertes, sus puntos débiles y las alertas. Es asesor: no cambia el veredicto del revisor ni aprueba compuertas.`,
-      run: 'Evaluar hasta aquí',
-      empty: 'Aún no hay evaluación de esta etapa. Pulsa «Evaluar hasta aquí» para que el juez de avance lea la propuesta hasta este punto.',
-      pending: 'Evaluación en curso: el juez de avance está leyendo la propuesta. La ronda nueva aparece aquí cuando termine.',
+      name: tr('panel.judgeAvance.name'),
+      intro: tr('panel.judgeAvance.intro', { stage: tr(STAGES[etapa] || STAGES.arbol) }),
+      run: tr('panel.judgeAvance.run'),
+      empty: tr('panel.judgeAvance.empty'),
+      pending: tr('panel.judgeAvance.pending'),
     };
   }
 
@@ -81,39 +89,42 @@
 
   function bar(round) {
     const n = score(round.puntaje) || 0;
-    return `<div class="ja-bar" role="img" aria-label="Puntaje ${n} de 100">
+    return `<div class="ja-bar" role="img" aria-label="${esc(tr('panel.judgeAvance.scoreAria', { n }))}">
         <span class="ja-bar__fill ja-tone--${tone(n)}" style="width: ${n}%"></span>
-        <span class="ja-bar__mark" style="left: ${THRESHOLDS.ok}%" title="Umbral ${THRESHOLDS.ok}"></span>
+        <span class="ja-bar__mark" style="left: ${THRESHOLDS.ok}%" title="${esc(tr('panel.judgeAvance.threshold', { n: THRESHOLDS.ok }))}"></span>
       </div>`;
   }
 
+  const evidence = (text) => `<small class="ja-evidence">${esc(tr('panel.judgeAvance.evidence', { text }))}</small>`;
+
   function strengths(items) {
     if (!items.length) return '';
-    return `<h5 class="ja-h">Puntos fuertes</h5><ul class="ja-list ja-strengths">${items.map((f) => `
-        <li><span>${esc(f.texto)}</span>${f.evidencia ? `<small class="ja-evidence">Evidencia: ${esc(f.evidencia)}</small>` : ''}</li>`).join('')}</ul>`;
+    return `<h5 class="ja-h">${esc(tr('panel.judgeAvance.strengths'))}</h5><ul class="ja-list ja-strengths">${items.map((f) => `
+        <li><span>${esc(f.texto)}</span>${f.evidencia ? evidence(f.evidencia) : ''}</li>`).join('')}</ul>`;
   }
 
   function weaknesses(items) {
     if (!items.length) return '';
-    return `<h5 class="ja-h">Puntos débiles</h5><ul class="ja-list ja-weaknesses">${items.map((d) => `
-        <li><span>${esc(d.texto)}</span>${d.evidencia ? `<small class="ja-evidence">Evidencia: ${esc(d.evidencia)}</small>` : ''}
-          ${d.accion ? `<p class="ja-action"><strong>Acción sugerida:</strong> ${esc(d.accion)}</p>` : ''}</li>`).join('')}</ul>`;
+    return `<h5 class="ja-h">${esc(tr('panel.judgeAvance.weaknesses'))}</h5><ul class="ja-list ja-weaknesses">${items.map((d) => `
+        <li><span>${esc(d.texto)}</span>${d.evidencia ? evidence(d.evidencia) : ''}
+          ${d.accion ? `<p class="ja-action"><strong>${esc(tr('panel.judgeAvance.suggestedAction'))}</strong> ${esc(d.accion)}</p>` : ''}</li>`).join('')}</ul>`;
   }
 
   function alerts(items) {
     const ordered = LEVELS.flatMap(([level]) => items.filter((a) => obj(a).nivel === level));
     const body = ordered.length
       ? `<ul class="ja-list ja-alerts">${ordered.map((a) => {
-        const label = (LEVELS.find(([l]) => l === a.nivel) || [a.nivel, a.nivel])[1];
+        const level = LEVELS.find(([l]) => l === a.nivel);
+        const label = level ? tr(level[1]) : a.nivel;
         return `<li class="ja-alert" data-nivel="${esc(a.nivel)}"><span class="ja-level ja-level--${esc(a.nivel)}">${esc(label)}</span>
             <span class="ja-alert__text">${esc(a.texto)}${a.donde ? ` <small class="ja-evidence">(${esc(a.donde)})</small>` : ''}</span></li>`;
       }).join('')}</ul>`
-      : '<p class="ja-muted">Sin alertas en esta ronda.</p>';
-    return `<h5 class="ja-h">Alertas</h5>${body}`;
+      : `<p class="ja-muted">${esc(tr('panel.judgeAvance.noAlerts'))}</p>`;
+    return `<h5 class="ja-h">${esc(tr('panel.judgeAvance.alerts'))}</h5>${body}`;
   }
 
   function detail(round) {
-    return `${round.resumen_idea ? `<h5 class="ja-h">Resumen de la idea</h5><p class="ja-idea">${esc(round.resumen_idea)}</p>` : ''}
+    return `${round.resumen_idea ? `<h5 class="ja-h">${esc(tr('panel.judgeAvance.ideaSummary'))}</h5><p class="ja-idea">${esc(round.resumen_idea)}</p>` : ''}
       <div class="ja-columns">
         <div>${strengths(list(round.fortalezas))}</div>
         <div>${weaknesses(list(round.debilidades))}</div>
@@ -124,7 +135,7 @@
   function head(round) {
     return `<div class="ja-head">${badge(round)}
         <div class="ja-head__text">
-          <span class="ja-meta">Ronda ${esc(round.ronda)}${round.fecha ? ` · ${esc(round.fecha)}` : ''}</span>
+          <span class="ja-meta">${esc(tr('panel.judgeAvance.round', { n: round.ronda }))}${round.fecha ? ` · ${esc(round.fecha)}` : ''}</span>
           <p class="ja-verdict">${esc(round.veredicto)}</p>
         </div>
       </div>`;
@@ -140,7 +151,7 @@
       parts.push(`<p class="ja-pending" role="status">${esc(text.pending)}</p>`);
     }
     if (errors.length) {
-      parts.push(`<div class="ja-errors"><strong>No se pudo leer la evaluación</strong><ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>`);
+      parts.push(`<div class="ja-errors"><strong>${esc(tr('panel.judgeAvance.readError'))}</strong><ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>`);
     }
     const current = d.evaluacion && typeof d.evaluacion === 'object' ? d.evaluacion : null;
     if (!current) {
@@ -153,8 +164,8 @@
     const older = list(current.historial).filter((r) => r && typeof r === 'object')
       .slice().sort((a, b) => Number(b.ronda) - Number(a.ronda));
     if (older.length) {
-      parts.push(`<h5 class="ja-h">Rondas anteriores</h5>${older.map((r) => `
-        <details class="ja-round"><summary>Ronda ${esc(r.ronda)} · ${esc(r.fecha || '')} · ${score(r.puntaje) === null ? '?' : score(r.puntaje)}/100 · ${esc(r.veredicto || '')}</summary>
+      parts.push(`<h5 class="ja-h">${esc(tr('panel.judgeAvance.olderRounds'))}</h5>${older.map((r) => `
+        <details class="ja-round"><summary>${esc(tr('panel.judgeAvance.round', { n: r.ronda }))} ·${esc(r.fecha || '')} · ${score(r.puntaje) === null ? '?' : score(r.puntaje)}/100 · ${esc(r.veredicto || '')}</summary>
           <div class="ja-round__body">${head(r)}${detail(r)}</div></details>`).join('')}`);
     }
     return parts.join('');
@@ -224,28 +235,31 @@
     const doFetch = opts.fetch || ((...args) => window.fetch(...args));
     const send = opts.send || ((prompt) => window.sendTerminalPrompt(prompt));
     const doc = root.ownerDocument;
-    const text = copy(etapa);
+    const text = () => copy(etapa);
     injectStyles(doc);
 
     root.classList.add('ja');
     root.setAttribute('data-judge-avance-etapa', etapa);
     root.innerHTML = `
-      <p class="ja-intro">${esc(text.intro)}</p>
+      <p class="ja-intro">${esc(text().intro)}</p>
       <div class="ja-toolbar">
-        <button class="btn btn--sm btn--primary ja-run" type="button">${esc(text.run)}</button>
-        <button class="btn btn--sm ja-retry" type="button" hidden>Reintentar envío</button>
+        <button class="btn btn--sm btn--primary ja-run" type="button">${esc(text().run)}</button>
+        <button class="btn btn--sm ja-retry" type="button" hidden>${esc(tr('panel.judgeAvance.retrySend'))}</button>
         <span class="ja-message" role="status" aria-live="polite"></span>
       </div>
       <div class="ja-body"></div>`;
+    const intro = root.querySelector('.ja-intro');
     const runBtn = root.querySelector('.ja-run');
     const retryBtn = root.querySelector('.ja-retry');
     const message = root.querySelector('.ja-message');
     const body = root.querySelector('.ja-body');
 
-    const state = { data: null, sig: null, pending: null, prompt: null, timer: null };
+    const state = { data: null, sig: null, pending: null, prompt: null, timer: null, said: null };
 
-    function say(text, kind) {
-      message.textContent = text || '';
+    // `key` and `vars` name the message, kept so a language switch can say it again.
+    function say(key, vars, kind) {
+      state.said = key ? { key, vars, kind } : null;
+      message.textContent = key ? tr(key, vars) : '';
       message.className = `ja-message${kind ? ` is-${kind}` : ''}`;
     }
 
@@ -269,14 +283,16 @@
         data = await res.json();
         if (!res.ok || !data || data.ok === false) throw new Error((data && data.error) || `HTTP ${res.status}`);
       } catch (err) {
-        state.data = { errores: [`No se pudo consultar el ${text.name}: ${err && err.message ? err.message : err}`] };
+        state.data = { errores: [tr('panel.judgeAvance.queryFailed', {
+          name: text().name, reason: err && err.message ? err.message : err,
+        })] };
         paint();
         return state.data;
       }
       state.data = data;
       if (state.pending && currentRound() > state.pending.from) {
         state.pending = null;
-        say(`Llegó la ronda ${currentRound()} del ${text.name}.`, 'ok');
+        say('panel.judgeAvance.arrived', { n: currentRound(), name: text().name }, 'ok');
       }
       paint();
       return data;
@@ -284,17 +300,17 @@
 
     async function deliver(prompt) {
       state.prompt = prompt;
-      say('Enviando la evaluación al agente…');
+      say('panel.judgeAvance.sending');
       let delivered = false;
       try { delivered = await send(prompt); } catch (_) { delivered = false; }
       if (delivered === false) {
         retryBtn.hidden = false;
-        say(`La evaluación no llegó al agente: la terminal no conectó. Abre el asistente y pulsa «Reintentar envío».`, 'error');
+        say('panel.judgeAvance.notDelivered', null, 'error');
         return false;
       }
       retryBtn.hidden = true;
       state.pending = { from: currentRound() };
-      say(`Se envió ${prompt} al agente. La evaluación aparece aquí cuando el juez termine.`, 'ok');
+      say('panel.judgeAvance.sent', { prompt }, 'ok');
       paint();
       return true;
     }
@@ -307,11 +323,13 @@
         });
         result = await res.json();
       } catch (err) {
-        say(`No se pudo pedir la evaluación: ${err && err.message ? err.message : err}`, 'error');
+        say('panel.judgeAvance.requestFailedReason', { reason: err && err.message ? err.message : err }, 'error');
         return false;
       }
       if (!result || !result.ok || !result.prompt) {
-        say((result && result.error) || 'No se pudo pedir la evaluación.', 'error');
+        // The server's own message (localize.py translates it), shown as it comes.
+        if (result && result.error) say('panel.judgeAvance.serverMessage', { message: result.error }, 'error');
+        else say('panel.judgeAvance.requestFailed', null, 'error');
         return false;
       }
       return deliver(result.prompt);
@@ -333,6 +351,23 @@
       if (state.timer) clearInterval(state.timer);
       state.timer = null;
     }
+
+    // A language switch: the block's own texts at once, then the round again
+    // (the server translates its messages too). A block removed from the page stops listening.
+    function relabel() {
+      if (!root.isConnected) {
+        doc.removeEventListener('languagechange', relabel);
+        return;
+      }
+      intro.textContent = text().intro;
+      runBtn.textContent = text().run;
+      retryBtn.textContent = tr('panel.judgeAvance.retrySend');
+      if (state.said) say(state.said.key, state.said.vars, state.said.kind);
+      state.sig = null;
+      paint();
+      if (state.data) refresh();
+    }
+    doc.addEventListener('languagechange', relabel);
 
     runBtn.addEventListener('click', () => { run(); });
     retryBtn.addEventListener('click', () => { retry(); });

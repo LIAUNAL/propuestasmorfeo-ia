@@ -249,3 +249,44 @@ test('quick commands come from the server list', async (t) => {
   assert.deepEqual(Array.from(viewer.window.__sent), ['/propuesta-continuar']);
   assert.equal(select.value, '', 'the picker resets');
 });
+
+test('a language switch labels the banner and its note again', async (t) => {
+  const { viewer } = await harness(t, { activateOrigin: 'http://127.0.0.1:8000' });
+  viewer.document.getElementById('cliActivateBtn').click();
+  await flush(10);
+  const banner = viewer.document.getElementById('cliActivationBanner');
+  const spanish = banner.innerHTML;
+  viewer.window.i18n.setLanguage('en');
+  assert.match(banner.textContent, /The board's CLI is not activated/);
+  assert.equal(viewer.document.getElementById('cliActivateBtn').textContent, 'Activate CLI');
+  assert.match(banner.querySelector('#cliActivationNote').textContent, /^The CLI activates at another address; open the board at/);
+  assert.equal(banner.querySelector('#cliActivationNote a').getAttribute('href'), 'http://127.0.0.1:8000/');
+  assert.equal(viewer.document.getElementById('cliActivationClose').title, 'Hide notice');
+  viewer.window.i18n.setLanguage('es');
+  await flush(10);
+  assert.equal(banner.innerHTML, spanish);
+});
+
+test('a language switch labels the tools notice, the selectors and the external button again', async (t) => {
+  const { viewer } = await harness(t, {
+    authorized: true,
+    tools: { ready: false, preferred_terminal: null, missing: ['herdr', 'terminal'], herdr: { installed: false } },
+  });
+  viewer.viewer('toggleMorfeoTerminal');
+  await viewer.advance(500);
+  await flush(10);
+  viewer.window.i18n.setLanguage('en');
+  const notice = viewer.document.getElementById('cliToolsNotice');
+  assert.match(notice.textContent, /The embedded CLI works; the external terminal is unavailable because Herdr and Ghostty or WezTerm is missing/);
+  assert.equal(viewer.document.getElementById('btnLaunchExternalTerm').title, 'Unavailable: Herdr and Ghostty or WezTerm is missing');
+  const claude = [...viewer.document.getElementById('terminalAgentSelect').options].find((o) => o.value === 'claude');
+  assert.match(claude.textContent, /\(not installed\)$/);
+  const quick = viewer.document.getElementById('terminalQuickSelect');
+  assert.equal(quick.options[0].textContent, 'Commands…');
+  assert.equal(quick.getAttribute('aria-label'), 'Quick commands');
+  assert.match(viewer.document.getElementById('terminalStatusDot').title, /^(Connected to|Connecting to|Disconnected)/);
+  viewer.window.i18n.setLanguage('es');
+  await flush(10);
+  assert.match(viewer.document.getElementById('cliToolsNotice').textContent, /El CLI embebido funciona/);
+  assert.equal(quick.options[0].textContent, 'Comandos…');
+});

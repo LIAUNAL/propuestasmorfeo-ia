@@ -1820,6 +1820,7 @@
   "page.files": "Archivos",
   "page.canonicalStructureNumberedSectionsFront": "Estructura canónica: secciones numeradas y front-matter",
   "page.sectionOfficialTitle": "Sección y Título Oficial",
+  "page.structureColumn": "Estructura",
   "page.latexFile": "Archivo LaTeX",
   "page.apaCitations": "Citas APA",
   "page.figures": "Figuras",

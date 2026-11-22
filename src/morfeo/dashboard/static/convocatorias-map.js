@@ -21,41 +21,56 @@
 // the elements under the pointer are never replaced, and a repaint with the
 // same query keeps the loaded constellation frame.
 //
+// Texts come from static/i18n/<lang>/convocatorias-map.js; the tables below
+// read the active language, and a language switch draws the view again (the
+// constellation frame reloads with ?lang=). The calls' own data stay as found.
+//
 // Public surface: window.cvMap = { render, select, reset, closeSheet }.
 (function () {
   'use strict';
 
+  // The text of `key` in the dashboard's language (static/i18n.js).
+  const tr = (key, vars) => (window.i18n ? window.i18n.t(key, vars) : key);
+  const later = (key) => (window.i18n ? window.i18n.tl(key) : key);
+  const live = (data) => (window.i18n ? window.i18n.live(data) : data);
+  const english = () => !!window.i18n && window.i18n.getLanguage() === 'en';
+  const P = 'panel.convocatoriasMap.';
+
   const DAY = 86400000;
-  const ROLES = {
-    lider: ['Puede liderar', 'ok'],
-    socio: ['Solo como socio', 'warn'],
-    coaplicante: ['Solo como coaplicante', 'warn'],
-    anfitrion_exterior: ['Requiere anfitrión en el exterior', 'warn'],
-    no_elegible: ['No elegible desde Colombia', 'bad'],
-    desconocido: ['Rol por confirmar', 'dim'],
-  };
-  const AMBITOS = { colombia: 'Colombia', latam: 'América Latina', internacional: 'Internacional' };
-  const IDIOMAS = { es: 'Español', en: 'Inglés', pt: 'Portugués', fr: 'Francés' };
-  const APLICANTES = {
-    investigador: 'Investigador', estudiante: 'Estudiante', grupo: 'Grupo de investigación',
-    centro: 'Centro', universidad: 'Universidad', empresa: 'Empresa',
-  };
+  const ROLES = live({
+    lider: [later(P + 'roleLead'), 'ok'],
+    socio: [later(P + 'rolePartner'), 'warn'],
+    coaplicante: [later(P + 'roleCoapplicant'), 'warn'],
+    anfitrion_exterior: [later(P + 'roleForeignHost'), 'warn'],
+    no_elegible: [later(P + 'roleIneligible'), 'bad'],
+    desconocido: [later(P + 'roleUnknown'), 'dim'],
+  });
+  const AMBITOS = live({ colombia: later(P + 'scopeColombia'), latam: later(P + 'scopeLatam'), internacional: later(P + 'scopeInternational') });
+  const IDIOMAS = live({ es: later(P + 'langEs'), en: later(P + 'langEn'), pt: later(P + 'langPt'), fr: later(P + 'langFr') });
+  const APLICANTES = live({
+    investigador: later(P + 'applicantResearcher'), estudiante: later(P + 'applicantStudent'), grupo: later(P + 'applicantGroup'),
+    centro: later(P + 'applicantCenter'), universidad: later(P + 'applicantUniversity'), empresa: later(P + 'applicantCompany'),
+  });
+  const EFFORT_KEYS = { bajo: 'effortLow', medio: 'effortMedium', alto: 'effortHigh' };
   // Days of preparation per effort level (same table as the script's `need`).
   const ESFUERZO = { bajo: 15, medio: 45, alto: 90 };
-  const REQ_COLS = [
-    ['consorcio', 'Consorcio'], ['contrapartida', 'Contrapartida'], ['anfitrion', 'Anfitrión'], ['idioma', 'Idioma'],
-    ['perfil', 'Perfil'], ['aval', 'Aval o categoría'], ['entidad', 'Tipo de entidad'], ['otro', 'Otro'],
-  ];
+  const REQ_COLS = live([
+    ['consorcio', later(P + 'reqConsortium')], ['contrapartida', later(P + 'reqCounterpart')], ['anfitrion', later(P + 'reqHost')],
+    ['idioma', later(P + 'reqLanguage')], ['perfil', later(P + 'reqProfile')], ['aval', later(P + 'reqEndorsement')],
+    ['entidad', later(P + 'reqEntity')], ['otro', later(P + 'reqOther')],
+  ]);
   const REQ_MARK = { cumple: ['m-ok', '✓'], por_verificar: ['m-warn', '⚠'], no_cumple: ['m-no', '✕'] };
   const REQ_RANK = { cumple: 1, por_verificar: 2, no_cumple: 3 };
-  const COMPONENTES = [
-    ['tematica', 'Temática', 'Coincidencia de los temas de la convocatoria con el perfil (35 %)'],
-    ['experiencia', 'Experiencia', 'Experiencia del banco LIA conectada y financiador previo (25 %)'],
-    ['elegibilidad', 'Elegibilidad', 'Rol que puede tener un solicitante colombiano (25 %)'],
-    ['tiempo', 'Tiempo', 'Días al cierre frente al esfuerzo estimado (15 %)'],
-  ];
-  const NO_EXPERIENCE = 'Ejecuta Buscar para el banco LIA para ver la experiencia del laboratorio';
-  const EMPTY = '<div class="cvm-empty">Ninguna convocatoria cumple los filtros.</div>';
+  const COMPONENTES = live([
+    ['tematica', later(P + 'componentTopic'), later(P + 'componentTopicHint')],
+    ['experiencia', later(P + 'componentExperience'), later(P + 'componentExperienceHint')],
+    ['elegibilidad', later(P + 'componentEligibility'), later(P + 'componentEligibilityHint')],
+    ['tiempo', later(P + 'componentTime'), later(P + 'componentTimeHint')],
+  ]);
+  const noExperience = () => tr(P + 'noExperience');
+  const empty = () => `<div class="cvm-empty">${esc(tr(P + 'empty'))}</div>`;
+  // Dates read as the dashboard does: Colombian Spanish, or English.
+  const dateLocale = () => (english() ? 'en-US' : 'es-CO');
 
   const S = {
     sel: null, focus: null, expanded: new Set(),
@@ -81,7 +96,7 @@
   const toDate = d => (isDay(d) ? new Date(`${d}T00:00:00`) : null);
   function fmtDate(d) {
     const x = toDate(d);
-    return x ? x.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : 'sin fecha';
+    return x ? x.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric' }) : tr(P + 'noDate');
   }
   function safeUrl(url) {
     const s = str(url).trim();
@@ -108,7 +123,7 @@
     return {
       raw: o,
       id: String(o.id || ''),
-      titulo: String(o.titulo || o.id || 'Convocatoria sin título'),
+      titulo: String(o.titulo || o.id || tr(P + 'untitled')),
       match: Math.round(match),
       rol,
       dias: num(o.dias_restantes),
@@ -149,24 +164,25 @@
       }));
     const perfil = v.perfil && typeof v.perfil === 'object' ? v.perfil : {};
     const alcance = ctx.alcance === 'banco' ? 'banco' : 'proyecto';
-    const scopeLabel = alcance === 'banco' ? 'Banco LIA' : 'Proyecto en formulación';
+    const scopeLabel = tr(P + (alcance === 'banco' ? 'scopeBank' : 'scopeProject'));
     return {
       v, hoy, items, temas, exp, total, alcance, scopeLabel,
       titulo: str(perfil.titulo).trim() || scopeLabel,
-      trunkDetail: perfil.existe === false ? 'Todavía no hay perfil de búsqueda para este alcance'
-        : `Perfil de búsqueda: ${temas.length} ${temas.length === 1 ? 'tema' : 'temas'}${exp.length ? ` y ${exp.length} ${exp.length === 1 ? 'línea' : 'líneas'} de experiencia` : ''}`,
+      trunkDetail: perfil.existe === false ? tr(P + 'noProfile')
+        : tr(P + (temas.length === 1 ? 'profileTopicsOne' : 'profileTopicsMany'), { n: temas.length })
+          + (exp.length ? tr(P + (exp.length === 1 ? 'profileLinesOne' : 'profileLinesMany'), { n: exp.length }) : ''),
       agrupar: ['ambito', 'rol'].includes(ctx.agrupar) ? ctx.agrupar : 'tema',
       view: ctx.view,
     };
   }
 
   function urgency(c) {
-    if (!c.vigente) return { color: 'var(--text-dim)', label: c.estado === 'pausada' ? 'Pausada' : 'Cerrada', tone: 'dim', u: 'dim' };
-    if (c.dias === null) return { color: 'var(--cvm-info)', label: 'Sin fecha', tone: 'info', u: 'info' };
+    if (!c.vigente) return { color: 'var(--text-dim)', label: tr(P + (c.estado === 'pausada' ? 'paused' : 'closed')), tone: 'dim', u: 'dim' };
+    if (c.dias === null) return { color: 'var(--cvm-info)', label: tr(P + 'noDeadline'), tone: 'info', u: 'info' };
     const n = Math.round(c.dias);
-    if (n <= 30) return { color: 'var(--bad)', label: n <= 0 ? 'Cierra hoy' : `Cierra en ${n} d`, tone: 'bad', u: 'bad' };
-    if (n <= 90) return { color: 'var(--warn)', label: `Cierra en ${n} d`, tone: 'warn', u: 'warn' };
-    return { color: 'var(--ok)', label: `Cierra en ${n} d`, tone: 'ok', u: 'ok' };
+    if (n <= 30) return { color: 'var(--bad)', label: n <= 0 ? tr(P + 'closesToday') : tr(P + 'closesIn', { n }), tone: 'bad', u: 'bad' };
+    if (n <= 90) return { color: 'var(--warn)', label: tr(P + 'closesIn', { n }), tone: 'warn', u: 'warn' };
+    return { color: 'var(--ok)', label: tr(P + 'closesIn', { n }), tone: 'ok', u: 'ok' };
   }
 
   const isLate = (c, X) => c.vigente && !!c.preparar && c.preparar < X.hoy;
@@ -177,9 +193,9 @@
     return c.temas.length ? c.temas[0].key : '';
   }
   function groupLabel(k, X) {
-    if (X.agrupar === 'ambito') return AMBITOS[k] || 'Otro ámbito';
+    if (X.agrupar === 'ambito') return AMBITOS[k] || tr(P + 'otherScope');
     if (X.agrupar === 'rol') return ROLES[k][0];
-    if (!k) return 'Sin tema del perfil';
+    if (!k) return tr(P + 'noProfileTopic');
     const t = X.temas.find(x => x.key === k);
     return cap(t ? t.tema : k);
   }
@@ -232,7 +248,7 @@
         <span class="cvm-card__meta">
           <span class="cvm-pill cvm-pill--${u.tone}">⏱ ${esc(u.label)}</span>
           <span class="cvm-pill cvm-pill--${role[1]}">${esc(role[0])}</span>
-          ${warn ? `<span class="cvm-pill cvm-pill--warn" title="Alertas de requisitos">⚠ ${warn}</span>` : ''}
+          ${warn ? `<span class="cvm-pill cvm-pill--warn" title="${esc(tr(P + 'requirementAlerts'))}">⚠ ${warn}</span>` : ''}
           ${c.raw.idioma ? `<span>${esc(String(c.raw.idioma).toUpperCase())}</span>` : ''}
         </span>
       </button>`;
@@ -245,32 +261,32 @@
       const shown = open ? g.list : g.list.slice(0, 4);
       const rest = g.list.length - shown.length;
       return `<section class="cvm-group" data-ids="${esc(g.list.map(c => c.id).join(' '))}">
-          <div class="cvm-group__head"><span>${esc(g.label)}</span><small>${g.list.length} · match medio ${g.avg}</small></div>
+          <div class="cvm-group__head"><span>${esc(g.label)}</span><small>${esc(tr(P + 'groupMeta', { n: g.list.length, avg: g.avg }))}</small></div>
           ${shown.map(cardHtml).join('')}
-          ${rest > 0 ? `<button type="button" class="cvm-more" data-cvm-expand="${esc(g.k)}">+ ${rest} más</button>` : ''}
-          ${open && g.list.length > 4 ? `<button type="button" class="cvm-more" data-cvm-expand="${esc(g.k)}">Mostrar menos</button>` : ''}
+          ${rest > 0 ? `<button type="button" class="cvm-more" data-cvm-expand="${esc(g.k)}">${esc(tr(P + 'more', { n: rest }))}</button>` : ''}
+          ${open && g.list.length > 4 ? `<button type="button" class="cvm-more" data-cvm-expand="${esc(g.k)}">${esc(tr(P + 'showLess'))}</button>` : ''}
         </section>`;
     }).join('');
     const themeHtml = X.temas.map(t => {
       const w = Math.round(100 * t.n / Math.max(1, X.total));
-      return `<button type="button" class="cvm-node cvm-node--theme" data-theme="${esc(t.key)}" title="${t.n} de ${X.total} convocatorias tocan este tema">
+      return `<button type="button" class="cvm-node cvm-node--theme" data-theme="${esc(t.key)}" title="${esc(tr(P + 'themeTitle', { n: t.n, total: X.total }))}">
           ${esc(cap(t.tema))}<span class="cvm-bar"><span style="width:${w}%"></span></span></button>`;
-    }).join('') || '<span class="cvm-hint">El perfil todavía no declara temas.</span>';
+    }).join('') || `<span class="cvm-hint">${esc(tr(P + 'noThemes'))}</span>`;
     const rootHtml = X.exp.map(r => `<button type="button" class="cvm-node cvm-node--root" data-root="${esc(r.id)}">
-        <strong>${esc(r.nombre)}</strong>${r.detalle ? `<small>${esc(r.detalle)}</small>` : ''}<small>${r.n} ${r.n === 1 ? 'convocatoria' : 'convocatorias'}</small></button>`).join('')
-      || `<span class="cvm-hint">${NO_EXPERIENCE}.</span>`;
+        <strong>${esc(r.nombre)}</strong>${r.detalle ? `<small>${esc(r.detalle)}</small>` : ''}<small>${esc(tr(P + (r.n === 1 ? 'callsOne' : 'callsMany'), { n: r.n }))}</small></button>`).join('')
+      || `<span class="cvm-hint">${esc(noExperience())}.</span>`;
     el.innerHTML = `<div class="cvm-tree">
         <svg class="cvm-links" aria-hidden="true"></svg>
-        <div class="cvm-tier">Frutos · convocatorias ordenadas por match</div>
-        ${gs.length ? `<div class="cvm-groups">${groupsHtml}</div>` : EMPTY}
+        <div class="cvm-tier">${esc(tr(P + 'tierFruits'))}</div>
+        ${gs.length ? `<div class="cvm-groups">${groupsHtml}</div>` : empty()}
         <div class="cvm-tree-link"></div>
-        <div class="cvm-tier">Ramas · temas del perfil (barra = parte de las convocatorias)</div>
+        <div class="cvm-tier">${esc(tr(P + 'tierBranches'))}</div>
         <div class="cvm-row">${themeHtml}</div>
         <div class="cvm-tree-link"></div>
-        <div class="cvm-tier">Tronco · ${esc(X.scopeLabel)}</div>
+        <div class="cvm-tier">${esc(tr(P + 'tierTrunk', { scope: X.scopeLabel }))}</div>
         <div class="cvm-row"><div class="cvm-node cvm-node--trunk"><strong>${esc(X.titulo)}</strong><small>${esc(X.trunkDetail)}</small></div></div>
         <div class="cvm-tree-link"></div>
-        <div class="cvm-tier">Raíces · experiencia del banco LIA</div>
+        <div class="cvm-tier">${esc(tr(P + 'tierRoots'))}</div>
         <div class="cvm-row">${rootHtml}</div>
       </div>`;
   }
@@ -323,44 +339,46 @@
     const q = new URLSearchParams({ alcance: X.alcance, agrupar: X.agrupar });
     if (X.items.length < X.total) q.set('ids', X.items.map(c => c.id).filter(id => SLUG.test(id)).join(','));
     q.set('v', signature(X.v));
+    // The page carries its own labels: it is asked for in the dashboard's language.
+    if (english()) q.set('lang', 'en');
     return `/api/convocatorias/atlas?${q.toString()}`;
   }
 
   function renderConstellation(el, X) {
-    if (!X.items.length) { el.innerHTML = EMPTY; return; }
+    if (!X.items.length) { el.innerHTML = empty(); return; }
     const src = atlasUrl(X);
     const current = el.querySelector('iframe.cvm-atlas');
     if (current && current.getAttribute('src') === src) return;
-    el.innerHTML = `<div class="cvm-constwrap"><iframe class="cvm-atlas" loading="lazy" title="Constelación de convocatorias" src="${esc(src)}"></iframe></div>`;
+    el.innerHTML = `<div class="cvm-constwrap"><iframe class="cvm-atlas" loading="lazy" title="${esc(tr(P + 'constellationTitle'))}" src="${esc(src)}"></iframe></div>`;
     const frame = el.querySelector('iframe.cvm-atlas');
     frame.addEventListener('load', () => { if (typeof window.syncOpportunitiesAtlasPause === 'function') window.syncOpportunitiesAtlasPause(); });
   }
 
   // ------------------------------------------------------ requirements matrix
   function renderMatrix(el, X) {
-    if (!X.items.length) { el.innerHTML = EMPTY; return; }
+    if (!X.items.length) { el.innerHTML = empty(); return; }
     const mark = (c, tipo) => {
       const reqs = (c.requisitos || []).filter(r => r.tipo === tipo && REQ_MARK[r.estado]);
-      if (!reqs.length) return `<td class="m-na" data-tipo="${tipo}" title="No se exige o no está registrado">—</td>`;
+      if (!reqs.length) return `<td class="m-na" data-tipo="${tipo}" title="${esc(tr(P + 'notRequired'))}">—</td>`;
       const worst = reqs.reduce((a, r) => (REQ_RANK[r.estado] > REQ_RANK[a.estado] ? r : a));
       const [cls, sym] = REQ_MARK[worst.estado];
       return `<td class="${cls}" data-tipo="${tipo}" title="${esc(reqs.map(r => str(r.texto)).join(' · '))}">${sym}</td>`;
     };
     const none = X.items.every(c => c.requisitos === null);
     el.innerHTML = `<div class="cvm-tablewrap"><table class="cvm-matrix">
-        <thead><tr><th class="l">Convocatoria</th><th>Match</th><th>Rol de Colombia</th><th>Cierre</th>${REQ_COLS.map(([, l]) => `<th>${l}</th>`).join('')}</tr></thead>
+        <thead><tr><th class="l">${esc(tr(P + 'colCall'))}</th><th>${esc(tr(P + 'colMatch'))}</th><th>${esc(tr(P + 'colRole'))}</th><th>${esc(tr(P + 'colDeadline'))}</th>${REQ_COLS.map(([, l]) => `<th>${esc(l)}</th>`).join('')}</tr></thead>
         <tbody>${X.items.map(c => {
           const u = urgency(c);
           return `<tr data-call="${esc(c.id)}" class="${S.sel === c.id ? 'is-sel' : ''}"><td class="l"><strong>${esc(c.titulo)}</strong><br><span class="cvm-dim">${esc(c.raw.financiador || '')}</span></td>
             <td><strong>${c.match}</strong></td><td><span class="cvm-pill cvm-pill--${ROLES[c.rol][1]}">${esc(ROLES[c.rol][0])}</span></td>
             <td><span class="cvm-pill cvm-pill--${u.tone}">${esc(u.label)}</span></td>${REQ_COLS.map(([tipo]) => mark(c, tipo)).join('')}</tr>`;
         }).join('')}</tbody></table></div>
-        <div class="cvm-legend"><span class="m-ok">✓ cumple</span><span class="m-warn">⚠ por verificar</span><span class="m-no">✕ no cumple</span><span class="m-na">— no se exige o no está registrado</span><span>Pasa el cursor por una celda para ver el requisito.</span>${none ? '<span>Esta búsqueda no trae requisitos: ejecuta una búsqueda nueva para verlos.</span>' : ''}</div>`;
+        <div class="cvm-legend"><span class="m-ok">${esc(tr(P + 'legendMeets'))}</span><span class="m-warn">${esc(tr(P + 'legendToVerify'))}</span><span class="m-no">${esc(tr(P + 'legendFails'))}</span><span class="m-na">${esc(tr(P + 'legendNotRequired'))}</span><span>${esc(tr(P + 'legendHover'))}</span>${none ? `<span>${esc(tr(P + 'legendNoRequirements'))}</span>` : ''}</div>`;
   }
 
   // ------------------------------------------------------------- timeline
   function renderTimeline(el, X) {
-    if (!X.items.length) { el.innerHTML = EMPTY; return; }
+    if (!X.items.length) { el.innerHTML = empty(); return; }
     const rows = X.items.slice().sort((a, b) => (a.dias === null ? 9999 : a.dias) - (b.dias === null ? 9999 : b.dias));
     const hoy = toDate(X.hoy);
     const W = 1000;
@@ -374,7 +392,7 @@
     let months = '';
     for (let d = new Date(t0.getFullYear(), t0.getMonth() + 1, 1); d < t1; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
       const x = X0(d).toFixed(1);
-      months += `<line class="grid" x1="${x}" y1="${top - 6}" x2="${x}" y2="${H - 8}"/><text x="${Number(x) + 3}" y="${top - 12}">${d.toLocaleDateString('es-CO', { month: 'short' })}${d.getMonth() === 0 ? ` ${d.getFullYear()}` : ''}</text>`;
+      months += `<line class="grid" x1="${x}" y1="${top - 6}" x2="${x}" y2="${H - 8}"/><text x="${Number(x) + 3}" y="${top - 12}">${d.toLocaleDateString(dateLocale(), { month: 'short' })}${d.getMonth() === 0 ? ` ${d.getFullYear()}` : ''}</text>`;
     }
     const body = rows.map((c, i) => {
       const y = top + i * rh;
@@ -390,28 +408,28 @@
         const prep = toDate(c.preparar);
         const marker = prep ? (() => {
           const px = X0(new Date(Math.max(prep, t0))).toFixed(1);
-          return `<line class="tl-prep${late ? ' is-late' : ''}" x1="${px}" y1="${y + 3}" x2="${px}" y2="${y + 25}"><title>${late ? 'Ya debió empezar la preparación' : 'Empezar a preparar a más tardar aquí'}</title></line>`;
+          return `<line class="tl-prep${late ? ' is-late' : ''}" x1="${px}" y1="${y + 3}" x2="${px}" y2="${y + 25}"><title>${esc(tr(P + (late ? 'prepLate' : 'prepBy')))}</title></line>`;
         })() : '';
         bar = `<rect class="tl-bar" x="${x0.toFixed(1)}" y="${y + 7}" width="${(x1 - x0).toFixed(1)}" height="14" rx="4" opacity="${(0.25 + 0.75 * clamp(c.match, 0, 100) / 100).toFixed(2)}"/>
-          ${marker}<text x="${(x1 + 6).toFixed(1)}" y="${y + 18}">${c.match}${late ? ' · tarde' : ''}</text>`;
+          ${marker}<text x="${(x1 + 6).toFixed(1)}" y="${y + 18}">${c.match}${late ? esc(tr(P + 'late')) : ''}</text>`;
       } else {
-        bar = `<text class="tl-none" x="${(X0(hoy) + 8).toFixed(1)}" y="${y + 18}">${c.vigente ? 'Sin fecha de cierre publicada' : (c.estado === 'pausada' ? 'Pausada' : 'Cerrada')}</text>`;
+        bar = `<text class="tl-none" x="${(X0(hoy) + 8).toFixed(1)}" y="${y + 18}">${esc(tr(P + (c.vigente ? 'noPublishedDeadline' : (c.estado === 'pausada' ? 'paused' : 'closed'))))}</text>`;
       }
       return `<g class="tl-row${S.sel === c.id ? ' is-sel' : ''}" data-call="${esc(c.id)}" data-late="${late ? '1' : '0'}"><rect class="tl-bg" x="0" y="${y}" width="${W}" height="${rh}"/>
           <text class="tl-name" x="6" y="${y + 18}">${esc(name)}<title>${esc(c.titulo)}</title></text>${bar}</g>`;
     }).join('');
     const xh = X0(hoy).toFixed(1);
-    el.innerHTML = `<div class="cvm-tlscroll"><svg class="cvm-timeline" viewBox="0 0 ${W} ${H}" role="img" aria-label="Línea de tiempo de cierres">
+    el.innerHTML = `<div class="cvm-tlscroll"><svg class="cvm-timeline" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tr(P + 'timelineAria'))}">
         <g class="axis">${months}</g>${body}
-        <line class="today" x1="${xh}" y1="${top - 8}" x2="${xh}" y2="${H - 8}"/><text class="todaylbl" x="${Number(xh) + 4}" y="${H - 10}">hoy</text>
+        <line class="today" x1="${xh}" y1="${top - 8}" x2="${xh}" y2="${H - 8}"/><text class="todaylbl" x="${Number(xh) + 4}" y="${H - 10}">${esc(tr(P + 'today'))}</text>
       </svg></div>
-      <div class="cvm-legend"><span>Barra = ventana abierta, más intensa con mejor match</span><span>Línea punteada = empezar a preparar a más tardar (según el esfuerzo)</span><span class="m-no">roja = ya es tarde</span></div>`;
+      <div class="cvm-legend"><span>${esc(tr(P + 'legendBar'))}</span><span>${esc(tr(P + 'legendDotted'))}</span><span class="m-no">${esc(tr(P + 'legendRed'))}</span></div>`;
   }
 
   // ------------------------------------------------------------- detail
   function amount(monto) {
     if (typeof window.cvAmount === 'function') return window.cvAmount(monto);
-    return typeof monto === 'string' && monto ? monto : 'Monto no indicado';
+    return typeof monto === 'string' && monto ? monto : tr(P + 'amountUnknown');
   }
 
   function renderDetail(X) {
@@ -421,8 +439,8 @@
     document.body.classList.toggle('cvm-has-sheet', !!c);
     if (!c) {
       const best = X.items.filter(x => x.vigente && x.rol !== 'no_elegible').slice().sort((a, b) => b.match - a.match).slice(0, 3);
-      el.innerHTML = `<h3 class="cvm-detail__title">Detalle</h3><p class="cvm-muted">Haz clic en una convocatoria para ver por qué encaja, sus requisitos y sus tiempos. Pasa el cursor por un tema o por una raíz del banco LIA para iluminar lo que conecta.</p>
-          <h4>Mejores opciones ahora</h4>${best.map(cardHtml).join('') || '<p class="cvm-muted">Sin opciones con los filtros actuales.</p>'}`;
+      el.innerHTML = `<h3 class="cvm-detail__title">${esc(tr(P + 'detail'))}</h3><p class="cvm-muted">${esc(tr(P + 'detailHint'))}</p>
+          <h4>${esc(tr(P + 'bestNow'))}</h4>${best.map(cardHtml).join('') || `<p class="cvm-muted">${esc(tr(P + 'noOptions'))}</p>`}`;
       return;
     }
     const o = c.raw;
@@ -431,27 +449,28 @@
     const icon = s => (s === 'error' ? '🔴' : s === 'warning' ? '⚠️' : 'ℹ️');
     const bars = c.comp ? `<div class="cvm-bars">${COMPONENTES.map(([key, label, hint]) => {
       const v = clamp(Math.round(num(c.comp[key]) || 0), 0, 100);
-      return `<span title="${esc(hint)}">${label}</span><span class="cvm-b" data-componente="${key}" data-valor="${v}"><span style="width:${v}%"></span></span><strong>${v}</strong>`;
-    }).join('')}</div>` : '<p class="cvm-muted">Esta búsqueda no trae el desglose del match: el número es la afinidad temática.</p>';
+      return `<span title="${esc(hint)}">${esc(label)}</span><span class="cvm-b" data-componente="${key}" data-valor="${v}"><span style="width:${v}%"></span></span><strong>${v}</strong>`;
+    }).join('')}</div>` : `<p class="cvm-muted">${esc(tr(P + 'noBreakdown'))}</p>`;
     const tiempos = (() => {
-      const parts = [`Apertura: ${esc(fmtDate(o.apertura))} · Cierre: ${esc(fmtDate(o.cierre))}${o.cierre_tipo === 'estimado' ? ' (estimado)' : ''}`];
+      const parts = [esc(tr(P + 'datesLine', { open: fmtDate(o.apertura), close: fmtDate(o.cierre) }))
+        + (o.cierre_tipo === 'estimado' ? esc(tr(P + 'estimated')) : '')];
       if (c.esfuerzo) {
-        let line = `Esfuerzo estimado: ${c.esfuerzo} (unos ${ESFUERZO[c.esfuerzo]} días)`;
+        let line = esc(tr(P + 'effortLine', { effort: tr(P + EFFORT_KEYS[c.esfuerzo]), days: ESFUERZO[c.esfuerzo] }));
         if (c.preparar && c.vigente) {
           line += isLate(c, X)
-            ? ` · <strong class="cvm-late">ya es tarde: la preparación debió empezar el ${esc(fmtDate(c.preparar))}</strong>`
-            : ` · empezar a más tardar el ${esc(fmtDate(c.preparar))}`;
+            ? tr(P + 'lateHtml', { date: esc(fmtDate(c.preparar)) })
+            : esc(tr(P + 'startBy', { date: fmtDate(c.preparar) }));
         }
         parts.push(line);
       }
       return parts.join('<br>');
     })();
-    const scopePill = `<span class="cvm-pill cvm-pill--accent">${X.alcance === 'banco' ? 'Banco LIA' : 'Proyecto'}</span>`;
-    const whyTemas = c.temas.map(t => `<div>${scopePill}<span class="cvm-arrow">→</span>${esc(cap(t.tema))} <span class="cvm-dim">(coincidencia ${Math.round(100 * t.peso)} %)</span></div>`).join('');
+    const scopePill = `<span class="cvm-pill cvm-pill--accent">${esc(tr(P + (X.alcance === 'banco' ? 'scopeBank' : 'project')))}</span>`;
+    const whyTemas = c.temas.map(t => `<div>${scopePill}<span class="cvm-arrow">→</span>${esc(cap(t.tema))} <span class="cvm-dim">${esc(tr(P + 'affinity', { n: Math.round(100 * t.peso) }))}</span></div>`).join('');
     const whyExp = c.exp.map(id => X.exp.find(r => r.id === id) || { id, nombre: id, corto: abbrev(id) })
       .map(r => `<div><span class="cvm-pill cvm-pill--violet">${esc(r.corto)}</span> ${esc(r.nombre)}</div>`).join('');
-    const whyHist = c.historial ? '<div><span class="cvm-pill cvm-pill--ok">financiador previo ✓</span> El financiador ya apoyó al laboratorio.</div>' : '';
-    const why = whyTemas + whyExp + whyHist || '<div class="cvm-dim">Ningún tema ni experiencia del perfil conectados con esta convocatoria.</div>';
+    const whyHist = c.historial ? `<div><span class="cvm-pill cvm-pill--ok">${esc(tr(P + 'previousFunder'))}</span> ${esc(tr(P + 'previousFunderText'))}</div>` : '';
+    const why = whyTemas + whyExp + whyHist || `<div class="cvm-dim">${esc(tr(P + 'nothingConnected'))}</div>`;
     const aplicantes = list(o.aplicantes).map(a => APLICANTES[a] || String(a)).join(', ');
     const evidencia = list(o.evidencia).filter(e => e && typeof e === 'object').map(e => {
       const url = safeUrl(e.url);
@@ -460,7 +479,7 @@
     }).join('');
     const url = safeUrl(o.url);
     el.innerHTML = `
-        <button class="btn btn--xs cvm-sheet-close" type="button" data-cvm-clear aria-label="Cerrar detalle">✕ Cerrar</button>
+        <button class="btn btn--xs cvm-sheet-close" type="button" data-cvm-clear aria-label="${esc(tr(P + 'closeDetail'))}">${esc(tr(P + 'closeX'))}</button>
         <h2>${esc(c.titulo)}</h2>
         <div class="cvm-muted">${esc(o.financiador || '')}${o.programa ? ` · ${esc(o.programa)}` : ''}</div>
         <div class="cvm-tags">
@@ -468,22 +487,22 @@
           <span class="cvm-pill cvm-pill--${role[1]}">${esc(role[0])}</span><span class="cvm-pill cvm-pill--${u.tone}">⏱ ${esc(u.label)}</span>
         </div>
         <div class="cvm-bigscore"><div class="cvm-ring" style="--m:${clamp(c.match, 0, 100)}"><span>${c.match}</span></div>
-          <div><strong>Match</strong><div class="cvm-muted cvm-small">con el ${X.alcance === 'banco' ? 'banco LIA' : 'proyecto en formulación'}</div></div></div>
+          <div><strong>${esc(tr(P + 'colMatch'))}</strong><div class="cvm-muted cvm-small">${esc(tr(P + (X.alcance === 'banco' ? 'matchWithBank' : 'matchWithProject')))}</div></div></div>
         ${bars}
         ${o.aviso ? `<div class="cvm-notice">${esc(o.aviso)}</div>` : ''}
-        <h4>Alertas</h4>
-        ${c.alertas.length ? `<ul class="cvm-alerts">${c.alertas.map(a => `<li data-severidad="${esc(a.severidad)}"><span>${icon(a.severidad)}</span><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : '<p class="cvm-muted">Sin alertas.</p>'}
-        <h4>Tiempos</h4>
+        <h4>${esc(tr(P + 'alerts'))}</h4>
+        ${c.alertas.length ? `<ul class="cvm-alerts">${c.alertas.map(a => `<li data-severidad="${esc(a.severidad)}"><span>${icon(a.severidad)}</span><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : `<p class="cvm-muted">${esc(tr(P + 'noAlerts'))}</p>`}
+        <h4>${esc(tr(P + 'dates'))}</h4>
         <div class="cvm-small">${tiempos}</div>
-        <h4>Por qué encaja</h4>
+        <h4>${esc(tr(P + 'whyItFits'))}</h4>
         <div class="cvm-why">${why}</div>
-        ${o.resumen ? `<h4>Resumen</h4><p class="cvm-small">${esc(o.resumen)}</p>` : ''}
-        <div class="cvm-small cvm-muted">Monto: ${esc(amount(o.monto))}${aplicantes ? ` · Aplicantes: ${esc(aplicantes)}` : ''}</div>
-        ${evidencia ? `<h4>Evidencia</h4><ul class="cvm-evidence">${evidencia}</ul>` : ''}
+        ${o.resumen ? `<h4>${esc(tr(P + 'summary'))}</h4><p class="cvm-small">${esc(o.resumen)}</p>` : ''}
+        <div class="cvm-small cvm-muted">${esc(tr(P + 'amount', { amount: amount(o.monto) }))}${aplicantes ? esc(tr(P + 'applicants', { list: aplicantes })) : ''}</div>
+        ${evidencia ? `<h4>${esc(tr(P + 'evidence'))}</h4><ul class="cvm-evidence">${evidencia}</ul>` : ''}
         <div class="cvm-actions">
-          <button class="btn btn--sm btn--primary" type="button" data-iniciar="${esc(c.id)}" onclick="startOpportunity(this.getAttribute('data-iniciar'))">🚀 Iniciar propuesta con esta</button>
-          ${url ? `<a class="btn btn--sm" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Abrir la convocatoria</a>` : ''}
-          <button class="btn btn--sm" type="button" data-cvm-clear>Cerrar</button>
+          <button class="btn btn--sm btn--primary" type="button" data-iniciar="${esc(c.id)}" onclick="startOpportunity(this.getAttribute('data-iniciar'))">${esc(tr(P + 'startProposal'))}</button>
+          ${url ? `<a class="btn btn--sm" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(tr(P + 'openCall'))}</a>` : ''}
+          <button class="btn btn--sm" type="button" data-cvm-clear>${esc(tr(P + 'close'))}</button>
         </div>`;
   }
 
@@ -597,8 +616,12 @@
     } else if (X.view === 'lado') {
       // Keep the layout (and its loaded frame) when it is already there.
       if (!viewEl.querySelector(':scope > .cvm-side')) {
-        viewEl.innerHTML = `<div class="cvm-side"><div><div class="cvm-view-title">🌳 Árbol de oportunidades</div><div class="cvm-side__tree"></div></div>
-          <div><div class="cvm-view-title">✦ Constelación de afinidad</div><div class="cvm-side__const"></div></div></div>`;
+        viewEl.innerHTML = `<div class="cvm-side"><div><div class="cvm-view-title">${esc(tr(P + 'treeView'))}</div><div class="cvm-side__tree"></div></div>
+          <div><div class="cvm-view-title">${esc(tr(P + 'constellationView'))}</div><div class="cvm-side__const"></div></div></div>`;
+      } else {
+        const titles = viewEl.querySelectorAll(':scope > .cvm-side .cvm-view-title');
+        if (titles[0]) titles[0].textContent = tr(P + 'treeView');
+        if (titles[1]) titles[1].textContent = tr(P + 'constellationView');
       }
       renderTree(viewEl.querySelector('.cvm-side__tree'), X);
       renderConstellation(viewEl.querySelector('.cvm-side__const'), X);

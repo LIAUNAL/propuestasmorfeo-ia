@@ -88,6 +88,20 @@ export function readDashboardHtml() {
   return inlineLocalScripts(readFileSync(DASHBOARD_INDEX, 'utf8'));
 }
 
+// The language runtime (static/i18n.js) with every catalogue, in the order
+// index.html loads them in <head>: the scripts a panel finds already there.
+const I18N_TAG = /<script\s+src="\/static\/(i18n\.js|i18n\/[a-z]{2}\/[a-z0-9-]+\.js)"\s*><\/script>/g;
+
+/** Runs the language runtime and its catalogues in `window` (a panel page). */
+export function loadI18n(window, { lang = null } = {}) {
+  const head = readFileSync(DASHBOARD_INDEX, 'utf8').split('</head>')[0];
+  if (lang) window.localStorage.setItem('morfeo.lang', lang);
+  for (const match of head.matchAll(I18N_TAG)) {
+    window.eval(readFileSync(path.join(DASHBOARD_STATIC, match[1]), 'utf8'));
+  }
+  return window.i18n;
+}
+
 /** Promesa que solo se asienta cuando alguien lo pide. */
 function deferred() {
   let settleWith;

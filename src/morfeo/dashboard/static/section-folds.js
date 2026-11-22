@@ -5,7 +5,9 @@
  * A block marked `data-fold="<name>"` with `data-fold-title="<title>"` (and
  * `data-fold-open` when it should start open) is wrapped in a
  * <details class="exp-fold" data-fold-name="<name>"> whose summary carries that
- * title. The operator's open or closed choice is remembered per browser under
+ * title. With `data-fold-title-key="<key>"` the title is that catalogue text
+ * of static/i18n.js instead, marked data-i18n so it follows the dashboard
+ * language. The operator's open or closed choice is remembered per browser under
  * localStorage['morfeo.folds'], so a reload or a panel that redraws keeps it.
  * Blocked or corrupt storage falls back to the defaults.
  *
@@ -66,7 +68,13 @@
       summary.className = 'exp-fold__summary';
       const title = document.createElement('span');
       title.className = 'exp-fold__title';
-      title.textContent = block.getAttribute('data-fold-title') || name;
+      const key = block.getAttribute('data-fold-title-key');
+      if (key && window.i18n && window.i18n.has(key)) {
+        title.setAttribute('data-i18n', key);
+        title.textContent = window.i18n.t(key);
+      } else {
+        title.textContent = block.getAttribute('data-fold-title') || name;
+      }
       summary.appendChild(title);
       const body = document.createElement('div');
       body.className = 'exp-fold__body';

@@ -189,3 +189,42 @@ test('the footer warns when the server is older than the installed package', asy
   window.renderFooterVersion({ package_version: '0.8.0', version: '0.8.0', stale_server: false });
   assert.equal(stale.hidden, true);
 });
+
+test('a language switch redraws the report and reads the server labels again', async (t) => {
+  let english = false;
+  const { window, document, calls } = await boardPage(t, (url) => (url === '/api/board/summary'
+    ? json(200, { summary: summary(english ? { current: { id: 'fase1a', name: 'Early scoping', state: 'partial' },
+      missing: ['Gate G1a at PASS'] } : {}), last_refresh: null, refreshing: false })
+    : null));
+  window.boardRefresh.render({ summary: summary() }, 'summary');
+  const panel = document.getElementById('boardStatus');
+  const spanish = panel.innerHTML;
+  assert.match(panel.textContent, /Estado actual: fase1a · Scoping temprano/);
+  english = true;
+  window.i18n.setLanguage('en');
+  await flush();
+  assert.match(panel.textContent, /Current status: fase1a · Early scoping/);
+  assert.match(panel.textContent, /1 of 3 units passed · 1 of 2 gates passed/);
+  assert.match(panel.textContent, /Unit fase1a is incomplete/);
+  assert.match(panel.textContent, /Steps still missing:/);
+  assert.match(panel.textContent, /Gate G1a at PASS/);
+  assert.match(panel.textContent, /Next: \/propuesta-continuar/);
+  assert.equal(panel.querySelector('[data-board-close]').getAttribute('aria-label'), 'Close');
+  assert.ok(calls.filter((c) => c.url === '/api/board/summary').length >= 2);
+  english = false;
+  window.i18n.setLanguage('es');
+  await flush();
+  assert.equal(panel.innerHTML, spanish, 'back in Spanish the report is the same as before');
+});
+
+test('a notice is drawn again in the new language', async (t) => {
+  const { window, document } = await boardPage(t, (url) =>
+    (url === '/api/board/refresh' ? json(409, { ok: false, busy: true }) : null));
+  await window.refreshBoard();
+  await flush();
+  window.i18n.setLanguage('en');
+  await flush();
+  assert.match(document.getElementById('boardStatus').textContent, /A board refresh is already running/);
+  assert.equal(document.querySelector('#boardRefreshBtn .btn__label').textContent, 'Refresh board');
+  window.i18n.setLanguage('es');
+});

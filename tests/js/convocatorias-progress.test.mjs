@@ -163,3 +163,18 @@ test('salir de la pestaña detiene el sondeo del avance', async (t) => {
   await flush();
   assert.equal(server.calls.filter(c => c.url.includes('/progreso')).length, count);
 });
+
+test('a language switch redraws the bar and asks the server for the phase label again', async (t) => {
+  const { viewer, server } = await harness(t, estimate());
+  const before = server.calls.filter(c => c.url.includes('/progreso')).length;
+  server.progreso = estimate({ phase_label: 'Phase 3/5 · Open search' });
+  viewer.window.i18n.setLanguage('en');
+  assert.equal(label(viewer), 'Fase 3/5 · Búsqueda abierta · ~60 % · ~5 min left', 'the panel text changes at once');
+  await flush();
+  assert.ok(server.calls.filter(c => c.url.includes('/progreso')).length > before);
+  assert.equal(label(viewer), 'Phase 3/5 · Open search · ~60 % · ~5 min left');
+  server.progreso = estimate();
+  viewer.window.i18n.setLanguage('es');
+  await flush();
+  assert.equal(label(viewer), 'Fase 3/5 · Búsqueda abierta · ~60 % · faltan ~5 min');
+});

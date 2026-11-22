@@ -14,7 +14,7 @@ import path from 'node:path';
 
 import { JSDOM } from 'jsdom';
 
-import { createViewerHarness, DASHBOARD_INDEX, DASHBOARD_STATIC, flush } from './harness.mjs';
+import { createViewerHarness, DASHBOARD_INDEX, DASHBOARD_STATIC, flush, loadI18n } from './harness.mjs';
 
 const SCRIPT = readFileSync(path.join(DASHBOARD_STATIC, 'novedad-panel.js'), 'utf8');
 const FOLDS = readFileSync(path.join(DASHBOARD_STATIC, 'section-folds.js'), 'utf8');
@@ -106,6 +106,7 @@ const PAGE = `<!doctype html><html><body><div id="root">
 async function mountPage({ answer = () => json(payload()), send = async () => true, judge = false } = {}) {
   const dom = new JSDOM(PAGE, { runScripts: 'outside-only', url: 'http://localhost:8000/' });
   const { window } = dom;
+  loadI18n(window);
   if (judge) window.eval(JUDGE);
   window.eval(SCRIPT);
   const calls = [];
@@ -372,4 +373,27 @@ test('the dashboard loads novedad-panel.js right after judge-avance.js', () => {
   const panel = html.indexOf('<script src="/static/novedad-panel.js"></script>');
   assert.ok(judge > 0 && panel > judge);
   assert.equal(html.slice(judge, panel).split('<script').length, 2, 'nothing loads in between');
+});
+
+test('a language switch draws the panel again and reads the artifact once more', async () => {
+  const { controller, root, calls, window } = await mountPage({ judge: true });
+  await controller.refresh();
+  const spanish = root.innerHTML;
+  const before = calls.filter((c) => c.url === '/api/novedad').length;
+  window.i18n.setLanguage('en');
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.match(root.querySelector('.nov-intro').textContent, /^The researcher proposes the novelty pillars/);
+  assert.equal(root.querySelector('.nov-run').textContent, 'Generate / update');
+  assert.match(root.querySelector('[data-nov-slot="tree"]').textContent, /Novelty pillars/);
+  assert.match(root.querySelector('[data-nov-slot="tree"]').textContent, /Central problem · trunk/);
+  assert.deepEqual(Array.from(root.querySelectorAll('.nov-table th'), (th) => th.textContent).slice(0, 3),
+    ['Direct cause', 'Specific objective', 'Pillars']);
+  assert.match(root.querySelector('.nov-count').textContent, /of \d+ specific objectives/);
+  assert.equal(window.NovedadPanel.TIPOS[0][1], 'Experiment');
+  assert.match(root.querySelector('[data-nov-slot="judge"] .ja-intro').textContent, /^The progress judge/);
+  assert.ok(calls.filter((c) => c.url === '/api/novedad').length > before);
+  window.i18n.setLanguage('es');
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(window.NovedadPanel.TIPOS[0][1], 'Experimento');
+  assert.equal(root.innerHTML, spanish);
 });

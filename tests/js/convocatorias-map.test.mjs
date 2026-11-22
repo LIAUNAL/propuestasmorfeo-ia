@@ -436,3 +436,27 @@ test('an older payload without the new fields still renders every view', async (
   assert.equal($$(viewer, '#cvDetail [data-componente]').length, 0);
   assert.match($(viewer, '#cvDetail').textContent, /Sin alertas/);
 });
+
+test('a language switch draws the views again and asks the constellation in English', async (t) => {
+  const viewer = await loaded(t);
+  const tree = () => $(viewer, '#cvView').textContent;
+  assert.match(tree(), /Frutos · convocatorias ordenadas por match/);
+  viewer.window.i18n.setLanguage('en');
+  await flush(6);
+  assert.match(tree(), /Fruits · calls sorted by match/);
+  assert.match(tree(), /Roots · LIA bank experience/);
+  assert.match($(viewer, '#cvDetail').textContent, /Best options now/);
+  // The calls' own titles stay as they are.
+  assert.ok($$(viewer, '#cvView .cvm-card__t').some((el) => /Convocatoria SGR CTeI/.test(el.textContent)));
+  await showView(viewer, 'requisitos');
+  assert.deepEqual($$(viewer, '#cvView thead th').slice(0, 4).map((th) => th.textContent), ['Call', 'Match', "Colombia's role", 'Deadline']);
+  await showView(viewer, 'constelacion');
+  const src = $(viewer, '#cvView iframe.cvm-atlas').getAttribute('src');
+  assert.match(src, /[?&]lang=en(&|$)/);
+  assert.equal($(viewer, '#cvView iframe.cvm-atlas').getAttribute('title'), 'Constellation of calls');
+  viewer.window.i18n.setLanguage('es');
+  await flush(6);
+  assert.doesNotMatch($(viewer, '#cvView iframe.cvm-atlas').getAttribute('src'), /lang=/, 'Spanish asks without lang');
+  await showView(viewer, 'arbol');
+  assert.match(tree(), /Frutos · convocatorias ordenadas por match/);
+});

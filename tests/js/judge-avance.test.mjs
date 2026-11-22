@@ -15,7 +15,7 @@ import path from 'node:path';
 
 import { JSDOM } from 'jsdom';
 
-import { createViewerHarness, DASHBOARD_INDEX, DASHBOARD_STATIC, flush } from './harness.mjs';
+import { createViewerHarness, DASHBOARD_INDEX, DASHBOARD_STATIC, flush, loadI18n } from './harness.mjs';
 
 const SCRIPT = readFileSync(path.join(DASHBOARD_STATIC, 'judge-avance.js'), 'utf8');
 const FOLDS = readFileSync(path.join(DASHBOARD_STATIC, 'section-folds.js'), 'utf8');
@@ -56,6 +56,7 @@ async function mountPage({ answer = () => json(judgePayload()), send = async () 
     runScripts: 'outside-only', url: 'http://localhost:8000/',
   });
   const { window } = dom;
+  loadI18n(window);
   window.eval(SCRIPT);
   const calls = [];
   const prompts = [];
@@ -268,4 +269,42 @@ test('the dashboard loads judge-avance.js right after section-folds.js', () => {
   const folds = html.indexOf('<script src="/static/section-folds.js"></script>');
   const judge = html.indexOf('<script src="/static/judge-avance.js"></script>');
   assert.ok(folds > 0 && judge > folds);
+});
+
+test('a language switch draws the block again and reads the round once more', async () => {
+  const { controller, root, calls, window } = await mountPage({ etapa: 'final' });
+  await controller.refresh();
+  const spanish = root.innerHTML;
+  assert.match(root.querySelector('.ja-intro').textContent, /^El juez final puntúa/);
+  const before = calls.length;
+  window.i18n.setLanguage('en');
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.match(root.querySelector('.ja-intro').textContent, /^The final judge scores the whole proposal/);
+  assert.equal(root.querySelector('.ja-run').textContent, 'Evaluate the proposal');
+  assert.equal(root.querySelector('.ja-retry').textContent, 'Retry sending');
+  assert.match(root.textContent, /Round 2/);
+  assert.match(root.textContent, /Strengths/);
+  assert.match(root.textContent, /Suggested action:/);
+  assert.equal(root.querySelector('.ja-bar').getAttribute('aria-label'), 'Score 74 out of 100');
+  assert.equal(root.querySelector('.ja-level--alta').textContent, 'High');
+  // The judge's own words stay as written.
+  assert.match(root.querySelector('.ja-verdict').textContent, /Árbol coherente/);
+  assert.ok(calls.length > before, 'the round is read again in the new language');
+  window.i18n.setLanguage('es');
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(root.innerHTML, spanish);
+});
+
+test('the toolbar message follows the language', async () => {
+  const { controller, root, window } = await mountPage({
+    send: async () => false,
+    answer: (url, init) => (init && init.method === 'POST'
+      ? json({ ok: true, prompt: '/propuesta-juez-avance arbol' }) : json(judgePayload())),
+  });
+  await controller.refresh();
+  await controller.run();
+  assert.match(root.querySelector('.ja-message').textContent, /La evaluación no llegó al agente/);
+  window.i18n.setLanguage('en');
+  assert.match(root.querySelector('.ja-message').textContent, /The evaluation did not reach the agent/);
+  window.i18n.setLanguage('es');
 });

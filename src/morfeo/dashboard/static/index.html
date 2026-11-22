@@ -16,6 +16,22 @@
   <script src="/static/i18n/en/core.js"></script>
   <script src="/static/i18n/es/traduccion.js"></script>
   <script src="/static/i18n/en/traduccion.js"></script>
+  <script src="/static/i18n/es/board-refresh.js"></script>
+  <script src="/static/i18n/en/board-refresh.js"></script>
+  <script src="/static/i18n/es/cli-console.js"></script>
+  <script src="/static/i18n/en/cli-console.js"></script>
+  <script src="/static/i18n/es/convocatorias-map.js"></script>
+  <script src="/static/i18n/en/convocatorias-map.js"></script>
+  <script src="/static/i18n/es/convocatorias-progress.js"></script>
+  <script src="/static/i18n/en/convocatorias-progress.js"></script>
+  <script src="/static/i18n/es/judge-avance.js"></script>
+  <script src="/static/i18n/en/judge-avance.js"></script>
+  <script src="/static/i18n/es/novedad-panel.js"></script>
+  <script src="/static/i18n/en/novedad-panel.js"></script>
+  <script src="/static/i18n/es/pdf-locate.js"></script>
+  <script src="/static/i18n/en/pdf-locate.js"></script>
+  <script src="/static/i18n/es/section-folds.js"></script>
+  <script src="/static/i18n/en/section-folds.js"></script>
   <script src="/static/i18n.js"></script>
   <style>
     :root {
@@ -3295,7 +3311,7 @@
 
       <!-- Proyecto Resumido (artefactos/mga_resumido.md), folded under the trees;
            it was the «MGA resumido» tab, and #mga still lands here. -->
-      <section class="panel" id="mgaFold" data-fold="proyecto-resumido" data-fold-title="Proyecto Resumido">
+      <section class="panel" id="mgaFold" data-fold="proyecto-resumido" data-fold-title="Proyecto Resumido" data-fold-title-key="panel.sectionFolds.summarizedProject">
         <div class="fold-toolbar">
           <span class="fold-toolbar__note" data-i18n="page.problemStatementThatPhase1">Planteamiento del problema que la Fase 1 deriva de los dos árboles aprobados.</span>
           <button class="btn btn--sm" type="button" onclick="loadMgaResumido()" data-i18n="page.reload">Recargar</button>
@@ -3329,7 +3345,7 @@
       </section>
 
       <!-- Juez de avance, stage `arbol` (judge-avance.js; agent juez-avance). -->
-      <section class="panel" id="treeJudgeFold" data-fold="juez-avance-arbol" data-fold-title="Juez de avance" data-fold-open>
+      <section class="panel" id="treeJudgeFold" data-fold="juez-avance-arbol" data-fold-title="Juez de avance" data-fold-title-key="panel.sectionFolds.progressJudge" data-fold-open>
         <div id="treeJudgeAvance"></div>
       </section>
     </div>
@@ -3343,14 +3359,14 @@
         </div>
         <div data-nov-slot="head"></div>
       </div>
-      <section class="panel" data-fold="novedad-pilares" data-fold-title="Pilares e hipótesis" data-fold-open>
+      <section class="panel" data-fold="novedad-pilares" data-fold-title="Pilares e hipótesis" data-fold-title-key="panel.sectionFolds.pillarsAndHypotheses" data-fold-open>
         <div data-nov-slot="tree"></div>
       </section>
-      <section class="panel" data-fold="novedad-matriz" data-fold-title="Matriz del proyecto">
+      <section class="panel" data-fold="novedad-matriz" data-fold-title="Matriz del proyecto" data-fold-title-key="panel.sectionFolds.projectMatrix">
         <div data-nov-slot="matrix"></div>
       </section>
       <!-- Juez de avance, stage `novedad` (judge-avance.js, mounted by novedad-panel.js). -->
-      <section class="panel" data-fold="juez-avance-novedad" data-fold-title="Juez de avance" data-fold-open>
+      <section class="panel" data-fold="juez-avance-novedad" data-fold-title="Juez de avance" data-fold-title-key="panel.sectionFolds.progressJudge" data-fold-open>
         <div data-nov-slot="judge"></div>
       </section>
     </div>
@@ -3643,7 +3659,7 @@
               <tr>
                 <th data-i18n="vcProductHtml.code">Código</th>
                 <th data-i18n="page.sectionOfficialTitle">Sección y Título Oficial</th>
-                <th>Estructura</th>
+                <th data-i18n="page.structureColumn">Estructura</th>
                 <th data-i18n="page.latexFile">Archivo LaTeX</th>
                 <th data-i18n="a2SectionsHtml.words">Palabras</th>
                 <th data-i18n="page.apaCitations">Citas APA</th>
@@ -3686,7 +3702,7 @@
           <!-- Juez final (papersmith paperReviewDetails): in the SGR flow the rubric
                judge (/api/judge, /propuesta-juez); in the base flow the stage judge
                `final` (judge-avance.js, /propuesta-juez-avance final). -->
-          <section class="panel preview-judge" id="previewJudgeFold" data-fold="juez-final" data-fold-title="Juez final" data-fold-open>
+          <section class="panel preview-judge" id="previewJudgeFold" data-fold="juez-final" data-fold-title="Juez final" data-fold-title-key="panel.sectionFolds.finalJudge" data-fold-open>
             <div class="panel__header">
               <div class="panel__title" data-i18n="page.finalJudge">Juez final</div>
               <span class="panel__meta" id="judgeRunMeta">—</span>
