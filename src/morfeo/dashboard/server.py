@@ -55,6 +55,7 @@ from ..core.requirements import (
     update_item as update_requirement,
 )
 from . import terminal_routes
+from .localize import localize_response
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -730,6 +731,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
     # --- Árboles de problemas y objetivos -----------------------------------
 
     def _send_json(self, status_code: int, payload: dict[str, Any]) -> None:
+        # ?lang=en translates the display fields (localize.py); Spanish passes through.
+        payload = localize_response(self.path, payload)
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -1301,7 +1304,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self._send_json(200, {"ok": True, **self._style_report_with_sentences(run_dir)})
 
     def serve_api_status(self) -> None:
-        response_data = get_project_status(self.workspace_dir)
+        response_data = localize_response(self.path, get_project_status(self.workspace_dir))
         # Compacto: el tablero lo pide cada 2 a 5 s, y la sangría solo engordaba el cuerpo.
         body = json.dumps(response_data, separators=(",", ":")).encode("utf-8")
         self.send_response(200)
