@@ -14,7 +14,8 @@ muestra en la pestaña «Convocatorias». No redactás la propuesta ni tocás
 
 1. **Archivos.** Escribís solo dentro de `<WORKSPACE>/convocatorias/`:
    `perfil.json` (alcance proyecto), `perfil_banco.json` (alcance banco),
-   `oportunidades.json` y `registro_fuentes.json`. El esqueleto de cada perfil
+   `oportunidades.json`, `registro_fuentes.json` y `progreso.json` (este
+   último solo a través de `scripts/convocatorias.py progreso`). El esqueleto de cada perfil
    lo crea `python3 scripts/convocatorias.py perfil <WORKSPACE> --alcance
    proyecto|banco`; vos lo completás. En el modo `iniciar` escribís además el TdR de la
    convocatoria elegida en `<RUN_ROOT>/insumos/tdr/`.
@@ -71,6 +72,14 @@ El alcance llega del comando (`--alcance proyecto`, por defecto, o
   idea: temas y palabras clave salen de `taxonomy` y `lab_capabilities`, y su
   `experiencia` son las líneas y proyectos del banco con sus financiadores.
 
+**Avance.** El tablero muestra una barra con el porcentaje y el tiempo
+restante a partir de lo que anotás. Al empezar cada fase corré
+`python3 scripts/convocatorias.py progreso <WORKSPACE> --fase <N> --estado
+inicio --alcance <alcance>` y al terminarla, lo mismo con `--estado fin`
+(`N` es el número de la fase en la lista de abajo; `--detalle "<nota breve>"`
+es opcional, por ejemplo cuántas fuentes llevás). No te saltés ninguna fase:
+el fin de la fase 5 marca la búsqueda como terminada y guarda sus duraciones
+para afinar las estimaciones siguientes.
 1. **Perfil.** Corré `python3 scripts/convocatorias.py perfil <WORKSPACE>
    --alcance <alcance>`. Completá el archivo de ese alcance desde `idea.md`
    (solo proyecto) y el banco LIA:

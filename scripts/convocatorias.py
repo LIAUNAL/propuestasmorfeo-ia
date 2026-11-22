@@ -23,6 +23,13 @@ else `.marco/config.json`; a run folder inside it works too):
       requisitos [{tipo: consorcio|contrapartida|anfitrion|idioma|perfil|aval|entidad|otro,
       estado: cumple|por_verificar|no_cumple, texto ≤ 200 chars}], relacionados_banco
       [experiencia ids].
+  progreso.json (schema `morfeo.convocatorias-progreso/v1`, written by `progreso`)
+      {schema, alcance, started_at, updated_at, finished_at,
+       phases:[{n:1-5, nombre, started_at, ended_at, detalle}],
+       historial:[{finished_at, alcance, duraciones:{"1".."5": seconds}}]}
+      The five search phases: Perfil, Fuentes fijas, Búsqueda abierta, Registro,
+      Verificación. Times are ISO-8601 with offset; the dashboard estimates the
+      percent and the time left from them.
 
 Commands:
   perfil DIR [--alcance proyecto|banco]
@@ -30,7 +37,16 @@ Commands:
       workspace config, idea text from idea.md or the active run's
       insumos/ideas/idea.md) or convocatorias/perfil_banco.json (banco: title from
       the config, no idea text) when missing; never overwrites; prints the path.
-      The only command that writes.
+  progreso DIR (--reiniciar | --fase 1-5 --estado inicio|fin) [--alcance proyecto|banco]
+           [--detalle TEXTO] [--ahora ISO-8601]
+      Record the search progress in convocatorias/progreso.json (atomic write);
+      prints the path. --reiniciar starts a new search (history kept, capped at
+      20 finished searches); `inicio` stamps a phase start and closes an earlier
+      phase left running; `fin` stamps its end (a phase without a start takes
+      the previous end, else the search start); the end of phase 5 sets
+      finished_at and appends the phase durations to historial. Without a
+      document, the first phase creates it. `perfil` and `progreso` are the only
+      commands that write.
   check DIR [--json]
       Validate both profiles and the calls; one line per finding `severidad código mensaje`.
   datos DIR [--alcance proyecto|banco] [--json] [--hoy YYYY-MM-DD]
@@ -79,7 +95,8 @@ abierta-sin-cierre, experiencia-desconocida (warnings); sin-perfil,
 sin-oportunidades, regla-rol-distinto (info, the last one from `datos` only).
 
 Library (the dashboard): find_workspace(path), vista(dir, hoy=None, alcance=None),
-check(dir), init_profile(dir, alcance="proyecto"), load_sources(), load_rules().
+check(dir), init_profile(dir, alcance="proyecto"), record_progress(dir, ...), load_sources(),
+load_rules().
 
 Exit codes: 0 ok, 1 error findings (check), 2 bad input (no workspace, bad
 date, invalid alcance, unreadable catalogue). Standard library only; no network access.
@@ -125,6 +142,11 @@ REQUIRED_CALL_FIELDS = ("titulo", "financiador", "url", "ambito")
 ALCANCES = ("proyecto", "banco")
 PROFILE_FILES = {"proyecto": PROFILE_FILE, "banco": PROFILE_BANK_FILE}
 EFFORT_DAYS = {"bajo": 15, "medio": 45, "alto": 90}
+PROGRESS_SCHEMA = "morfeo.convocatorias-progreso/v1"
+PROGRESS_FILE = FOLDER / "progreso.json"
+PROGRESS_PHASES = ("Perfil", "Fuentes fijas", "Búsqueda abierta", "Registro", "Verificación")
+PROGRESS_STATES = ("inicio", "fin")
+PROGRESS_HISTORY_LIMIT = 20
 DEFAULT_EFFORT = "medio"
 REQUIREMENT_TYPES = ("consorcio", "contrapartida", "anfitrion", "idioma", "perfil", "aval", "entidad", "otro")
 REQUIREMENT_STATES = ("cumple", "por_verificar", "no_cumple")
@@ -312,6 +334,95 @@ def init_profile(path, alcance: str = "proyecto") -> tuple[Path, bool]:
         "experiencia": [],
     })
     return target, True
+
+
+# --- Search progress ----------------------------------------------------------
+
+def _instant(value) -> datetime.datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=datetime.timezone.utc)
+
+
+def _stamp(moment: datetime.datetime) -> str:
+    return moment.isoformat(timespec="seconds")
+
+
+def _new_progress(alcance: str, now: str, history: list) -> dict:
+    return {
+        "schema": PROGRESS_SCHEMA,
+        "alcance": alcance,
+        "started_at": now,
+        "updated_at": now,
+        "finished_at": None,
+        "phases": [{"n": n, "nombre": name, "started_at": None, "ended_at": None, "detalle": None}
+                   for n, name in enumerate(PROGRESS_PHASES, start=1)],
+        "historial": history[-PROGRESS_HISTORY_LIMIT:],
+    }
+
+
+def record_progress(path, fase: int | None = None, estado: str | None = None, reiniciar: bool = False,
+                    alcance: str | None = None, detalle: str | None = None,
+                    ahora: datetime.datetime | None = None) -> Path:
+    """Write the search progress (convocatorias/progreso.json); returns its path.
+
+    `reiniciar` starts a new search keeping the history; `fase` with `estado`
+    (`inicio` or `fin`) stamps that phase. The end of the last phase finishes
+    the search and appends its phase durations to `historial`.
+    """
+    workspace = find_workspace(path)
+    if alcance is not None:
+        _check_alcance(alcance)
+    if fase is not None and fase not in range(1, len(PROGRESS_PHASES) + 1):
+        raise InputError(f"fase inválida {fase!r}; use 1 a {len(PROGRESS_PHASES)}")
+    if (fase is None) != (estado is None) or (fase is None and not reiniciar):
+        raise InputError("use --reiniciar o --fase con --estado")
+    if estado is not None and estado not in PROGRESS_STATES:
+        raise InputError(f"estado inválido {estado!r}; use «inicio» o «fin»")
+    now = _stamp(ahora or datetime.datetime.now(datetime.timezone.utc))
+    target = workspace / PROGRESS_FILE
+    data, _ = _read_json(target)
+    valid = isinstance(data, dict) and data.get("schema") == PROGRESS_SCHEMA
+    history = [h for h in (data.get("historial") or []) if isinstance(h, dict)] if valid else []
+    if reiniciar or not valid or not isinstance(data.get("phases"), list):
+        data = _new_progress(alcance or (data.get("alcance") if valid else None) or "proyecto", now, history)
+    elif alcance is not None:
+        data["alcance"] = alcance
+    if fase is not None:
+        phases = {row.get("n"): row for row in data["phases"] if isinstance(row, dict)}
+        for n, name in enumerate(PROGRESS_PHASES, start=1):
+            phases.setdefault(n, {"n": n, "nombre": name, "started_at": None, "ended_at": None, "detalle": None})
+        data["phases"] = [phases[n] for n in sorted(phases)]
+        row = phases[fase]
+        if estado == "inicio":
+            for n in range(1, fase):
+                if phases[n].get("started_at") and not phases[n].get("ended_at"):
+                    phases[n]["ended_at"] = now
+            row["started_at"], row["ended_at"] = now, None
+        else:
+            if not row.get("started_at"):
+                earlier = [phases[n]["ended_at"] for n in range(1, fase) if phases[n].get("ended_at")]
+                row["started_at"] = earlier[-1] if earlier else data.get("started_at") or now
+            row["ended_at"] = now
+        if detalle is not None:
+            text = detalle.strip()
+            row["detalle"] = (text[:QUOTE_LIMIT - 1].rstrip() + "…" if len(text) > QUOTE_LIMIT else text) or None
+        if estado == "fin" and fase == len(PROGRESS_PHASES):
+            data["finished_at"] = now
+            durations = {}
+            for n in sorted(phases):
+                begin, end = _instant(phases[n].get("started_at")), _instant(phases[n].get("ended_at"))
+                if begin and end:
+                    durations[str(n)] = max(0, round((end - begin).total_seconds()))
+            history.append({"finished_at": now, "alcance": data.get("alcance"), "duraciones": durations})
+            data["historial"] = history[-PROGRESS_HISTORY_LIMIT:]
+    data["updated_at"] = now
+    _write_atomic(target, data)
+    return target
 
 
 # --- Data files ---------------------------------------------------------------
@@ -896,6 +1007,13 @@ def _hoy_arg(value: str) -> datetime.date:
     return parsed
 
 
+def _ahora_arg(value: str) -> datetime.datetime:
+    parsed = _instant(value)
+    if parsed is None:
+        raise argparse.ArgumentTypeError(f"momento inválido {value!r}; use ISO-8601 (AAAA-MM-DDTHH:MM:SS+00:00)")
+    return parsed
+
+
 def _call_line(call: dict) -> str:
     days = call["dias_restantes"]
     days_text = "sin fecha" if days is None else f"{days} d"
@@ -913,6 +1031,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("dir", type=Path)
     p.add_argument("--alcance", choices=ALCANCES, default="proyecto",
                    help="proyecto: perfil.json con la idea (por defecto); banco: perfil_banco.json")
+    p = sub.add_parser("progreso", help="anota el avance de la búsqueda en convocatorias/progreso.json")
+    p.add_argument("dir", type=Path)
+    p.add_argument("--reiniciar", action="store_true", help="empieza una búsqueda nueva (conserva el historial)")
+    p.add_argument("--fase", type=int, choices=range(1, len(PROGRESS_PHASES) + 1),
+                   help="fase de la búsqueda: 1 Perfil, 2 Fuentes fijas, 3 Búsqueda abierta, 4 Registro, 5 Verificación")
+    p.add_argument("--estado", choices=PROGRESS_STATES, help="inicio o fin de la fase")
+    p.add_argument("--alcance", choices=ALCANCES, help="alcance de la búsqueda (por defecto, proyecto)")
+    p.add_argument("--detalle", help="nota breve de la fase (máximo 200 caracteres)")
+    p.add_argument("--ahora", type=_ahora_arg, help="momento de referencia ISO-8601 (por defecto, ahora)")
     p = sub.add_parser("check", help="valida perfil.json y oportunidades.json")
     p.add_argument("dir", type=Path)
     p.add_argument("--json", action="store_true", help="imprime los hallazgos en JSON")
@@ -925,7 +1052,13 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("fuentes", help="catálogo de fuentes fijas")
     p.add_argument("--json", action="store_true", help="imprime el catálogo en JSON")
     args = parser.parse_args(argv)
+    if args.command == "progreso" and not args.reiniciar and (args.fase is None or args.estado is None):
+        parser.error("progreso: use --reiniciar o --fase con --estado")
     try:
+        if args.command == "progreso":
+            print(record_progress(args.dir, fase=args.fase, estado=args.estado, reiniciar=args.reiniciar,
+                                  alcance=args.alcance, detalle=args.detalle, ahora=args.ahora))
+            return 0
         if args.command == "perfil":
             path, created = init_profile(args.dir, alcance=args.alcance)
             if not created:

@@ -36,7 +36,7 @@ from ..core.budget import approve as approve_budget, build_adjust_prompt as buil
 from ..core.components import approve as approve_components, build_adjust_prompt as build_components_prompt, load_components
 from ..core.products import approve as approve_products, build_adjust_prompt as build_products_prompt, load_products
 from ..core.annex2 import load_annex2
-from ..core.opportunities import build_search_prompt, build_start_prompt, load_opportunities
+from ..core.opportunities import build_search_prompt, build_start_prompt, load_opportunities, load_progress
 from ..core.requirements import (
     MAX_BODY_BYTES as REQUIREMENTS_MAX_BODY,
     approve as approve_requirements,
@@ -126,7 +126,8 @@ def flatten_idea(markdown: str) -> str:
 BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 # Page code moved out of index.html: it must stay as fresh as the page that
 # loads it, so a cached copy never runs against a newer index.html.
-PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js", "estilo-pdf.js"})
+PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js", "convocatorias-progress.js",
+                          "estilo-pdf.js"})
 
 
 # --- Sentence text of the style findings --------------------------------------
@@ -271,6 +272,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_style_sgr()
         elif path == "/api/convocatorias":
             self.serve_opportunities()
+        elif path == "/api/convocatorias/progreso":
+            self.serve_opportunities_progress()
         elif path == "/api/board/summary":
             self.serve_board_summary()
         else:
@@ -1089,6 +1092,12 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {"ok": False, "error": str(err)})
             return
         self._send_json(200, {"ok": True, **data})
+
+    # Avance de la búsqueda en curso (convocatorias/progreso.json, que escribe el
+    # agente por fase): porcentaje y tiempo restante estimados aquí, sin escribir.
+    # Ruta aparte para que el sondeo rápido del panel no recalcule la vista.
+    def serve_opportunities_progress(self) -> None:
+        self._send_json(200, {"ok": True, **load_progress(self.workspace_dir)})
 
     def handle_opportunities_search(self) -> None:
         payload = self._read_json_body()

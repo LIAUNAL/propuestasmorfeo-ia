@@ -200,6 +200,18 @@ class TestOpportunitiesHttpApi(StubScripts):
         self.assertEqual(data["vista"]["workspace"], str(self.ws))
         self.assertEqual(snapshot(self.ws), before)
 
+    def test_a_progress_file_does_not_change_the_view_payload(self):
+        base = self._serve(self.ws)
+        _, before = self._request(base + "/api/convocatorias")
+        (self.ws / "convocatorias").mkdir()
+        (self.ws / "convocatorias" / "progreso.json").write_text(
+            json.dumps({"schema": "morfeo.convocatorias-progreso/v1", "started_at": "2026-11-22T10:00:00+00:00",
+                        "phases": [], "historial": []}), encoding="utf-8")
+        code, after = self._request(base + "/api/convocatorias")
+        self.assertEqual(code, 200)
+        self.assertEqual(sorted(after), ["disponible", "error", "ok", "vista"])
+        self.assertEqual(after, before)
+
     def test_get_with_an_active_run_still_reads_the_workspace(self):
         run = self.ws / "proposals" / "run-x"
         run.mkdir(parents=True)
