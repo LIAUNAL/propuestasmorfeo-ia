@@ -3,6 +3,9 @@
 
     language.py project [DIR]       print the project's language (es | en)
     language.py run [RUN_ROOT]      print the run's language (es | en)
+    language.py localize --lang en FILE...
+                                    rewrite a freshly seeded main.tex or
+                                    datos_proyecto.tex in that language
 
 The project setting is `"lang"` in `.morfeo/config.json` (legacy
 `.marco/config.json`), found from DIR upwards; `es` when missing or unknown,
@@ -77,6 +80,65 @@ def run_lang(run_root: Path) -> str:
     return DEFAULT_LANG
 
 
+# --- LaTeX template ------------------------------------------------------------
+# plantilla/main.tex and datos_proyecto.tex are Spanish. init-run.sh seeds a new
+# English run with these replacements applied once; a Spanish run gets the files
+# untouched. Every anchor must appear exactly once, so a template edit that drops
+# one fails loudly here (and in tests/test_plantilla_main.py) instead of leaving
+# a half-Spanish document.
+MAIN_TEX_EN = (
+    (r"\usepackage[spanish,es-noindentfirst]{babel}", r"\usepackage[english]{babel}"),
+    ("% --- Referencias cruzadas en español ----------------------------------------",
+     "% --- Referencias cruzadas en inglés (run language: en) ----------------------"),
+    (r"\crefname{section}{sección}{secciones}", r"\crefname{section}{section}{sections}"),
+    (r"\crefname{figure}{figura}{figuras}", r"\crefname{figure}{figure}{figures}"),
+    (r"\crefname{table}{tabla}{tablas}", r"\crefname{table}{table}{tables}"),
+    (r"\crefname{equation}{ecuación}{ecuaciones}", r"\crefname{equation}{equation}{equations}"),
+    ('% --- Captions de tabla: "Tabla", nunca "Cuadro" (babel exige el hook) -------',
+     '% --- Captions de tabla: "Table" (babel english; el hook lo deja explícito) ---'),
+    (r"\addto\captionsspanish{\renewcommand{\tablename}{Tabla}}",
+     r"\addto\captionsenglish{\renewcommand{\tablename}{Table}}"),
+    (r"\caption{\textbf{[Falta caption: #1]}}", r"\caption{\textbf{[Missing caption: #1]}}"),
+    (r"\section*{Referencias}", r"\section*{References}"),
+    ("Investigador principal: \\InvestigadorPrincipal", "Principal investigator: \\InvestigadorPrincipal"),
+)
+COVER_EN = (
+    ("% Datos de portada de la propuesta. main.tex los usa en el bloque de título;\n"
+     "% el título no se repite en ninguna sección del cuerpo. Reemplazar cada\n"
+     '% "[Por definir: ...]": scripts/check_run.py marca los que queden.',
+     "% Cover data of the proposal. main.tex uses them in the title block; the\n"
+     "% title is never repeated in a body section. Replace each\n"
+     '% "[To be defined: ...]": scripts/check_run.py reports the ones left.'),
+    ("[Por definir: título del proyecto]", "[To be defined: project title]"),
+    ("[Por definir: investigador principal]", "[To be defined: principal investigator]"),
+    ("[Por definir: grupo, laboratorio, facultad y sede]", "[To be defined: group, laboratory, faculty and campus]"),
+)
+
+
+def _replace_all(text: str, pairs, what: str) -> str:
+    for old, new in pairs:
+        if text.count(old) != 1:
+            raise ValueError(f"{what}: expected exactly one {old!r}, found {text.count(old)}")
+        text = text.replace(old, new)
+    return text
+
+
+def localize_main_tex(text: str, lang: str) -> str:
+    """main.tex in `lang`: the template itself for Spanish."""
+    return text if lang != "en" else _replace_all(text, MAIN_TEX_EN, "main.tex")
+
+
+def localize_cover(text: str, lang: str) -> str:
+    """datos_proyecto.tex in `lang`: the template itself for Spanish."""
+    return text if lang != "en" else _replace_all(text, COVER_EN, "datos_proyecto.tex")
+
+
+def localize_files(paths: list[Path], lang: str) -> None:
+    for path in paths:
+        localize = localize_cover if path.name == "datos_proyecto.tex" else localize_main_tex
+        path.write_text(localize(path.read_text(encoding="utf-8"), lang), encoding="utf-8")
+
+
 def _active_run() -> Path:
     pointer = Path("proposals/.current-run")
     if not pointer.is_file():
@@ -91,9 +153,18 @@ def main(argv: list[str] | None = None) -> int:
     project.add_argument("dir", nargs="?", default=".")
     run = commands.add_parser("run", help="print the run's writing language")
     run.add_argument("run_root", nargs="?")
+    localize = commands.add_parser("localize", help="rewrite freshly seeded main.tex / datos_proyecto.tex in LANG")
+    localize.add_argument("--lang", choices=VALID_LANGS, required=True)
+    localize.add_argument("files", nargs="+", type=Path)
     args = parser.parse_args(argv)
     if args.command == "project":
         print(project_lang(Path(args.dir)))
+    elif args.command == "localize":
+        try:
+            localize_files(args.files, args.lang)
+        except ValueError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 1
     else:
         print(run_lang(Path(args.run_root) if args.run_root else _active_run()))
     return 0

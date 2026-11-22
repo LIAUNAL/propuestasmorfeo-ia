@@ -105,12 +105,14 @@ done
 # main.tex and datos_proyecto.tex are seeded once and never overwritten: the
 # run fills them in. logos-opcionales/ (e.g. the UTP logo) stays in the
 # framework; a proposal that needs one copies it into redaccion/logos/.
+seeded=()
 for item in build.sh scripts logos templates main.tex datos_proyecto.tex; do
   src="$SKELETON/$item"
   dest="$RUN_ROOT/redaccion/$item"
   [ -e "$src" ] || die "framework skeleton missing: $src"
   if [ ! -e "$dest" ]; then
     cp -R "$src" "$dest"
+    case "$item" in main.tex|datos_proyecto.tex) seeded+=("$dest") ;; esac
   fi
 done
 
@@ -183,8 +185,21 @@ read_lang() {
 lang="$(read_lang)"
 [ "$flujo" = "sgr" ] && lang="es"
 idioma_row=""
-if [ "$lang" = "en" ]; then
+if [ "$lang" = "en" ] && [ ! -e "$RUN_ROOT/_run.md" ]; then
   idioma_row=$'\n| idioma | en |'
+fi
+# The LaTeX skeleton is Spanish; a new English run gets its freshly seeded
+# main.tex and datos_proyecto.tex rewritten once (babel english, «Table»,
+# English cref names and cover placeholders). Files the run already had are
+# never touched, so a Spanish run stays Spanish after a project change.
+# An existing run keeps the language its _run.md recorded.
+run_lang="$lang"
+if [ -e "$RUN_ROOT/_run.md" ]; then
+  run_lang="$(python3 "$REPO_ROOT/scripts/language.py" run "$RUN_ROOT" 2>/dev/null || printf 'es')"
+fi
+if [ "$run_lang" = "en" ] && [ "${#seeded[@]}" -gt 0 ]; then
+  python3 "$REPO_ROOT/scripts/language.py" localize --lang en "${seeded[@]}" \
+    || die "could not write the English LaTeX skeleton"
 fi
 
 # --- run manifest ----------------------------------------------------------

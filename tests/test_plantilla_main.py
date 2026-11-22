@@ -142,5 +142,96 @@ class TemplateCompilesTest(unittest.TestCase):
             self.assertIn("TextoNuevoDePrueba", text, "the PDF is stale after adding a section")
 
 
+def _load_language():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("kit_language", REPO / "scripts" / "language.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _english_workspace(root: Path) -> Path:
+    for marker in (".morfeo", ".marco"):
+        (root / marker).mkdir()
+        (root / marker / "config.json").write_text('{"lang": "en"}', encoding="utf-8")
+    return root
+
+
+class TemplateLanguageTest(unittest.TestCase):
+    """S3: a run created in English gets an English main.tex and cover."""
+
+    def setUp(self) -> None:
+        self.language = _load_language()
+        self.tex = MAIN.read_text(encoding="utf-8")
+
+    def test_every_spanish_anchor_exists_once_in_the_template(self) -> None:
+        for spanish, _ in self.language.MAIN_TEX_EN:
+            with self.subTest(anchor=spanish):
+                self.assertEqual(self.tex.count(spanish), 1)
+
+    def test_the_english_template_switches_babel_captions_and_cref(self) -> None:
+        english = self.language.localize_main_tex(self.tex, "en")
+        for needle in (r"\usepackage[english]{babel}", r"\addto\captionsenglish{\renewcommand{\tablename}{Table}}",
+                       r"\crefname{section}{section}{sections}", r"\crefname{figure}{figure}{figures}",
+                       r"\crefname{table}{table}{tables}", r"\crefname{equation}{equation}{equations}",
+                       "Principal investigator:", r"\section*{References}", "[Missing caption: #1]"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, english)
+        code = "\n".join(line.split("%")[0] for line in english.splitlines())
+        for spanish in ("spanish", "Tabla", "sección", "figura", "ecuación", "Investigador principal",
+                        "{Referencias}", "Falta caption"):
+            with self.subTest(spanish=spanish):
+                self.assertNotIn(spanish, code)
+
+    def test_spanish_is_the_template_unchanged(self) -> None:
+        self.assertEqual(self.language.localize_main_tex(self.tex, "es"), self.tex)
+
+    def test_a_drifted_template_is_refused(self) -> None:
+        with self.assertRaises(ValueError):
+            self.language.localize_main_tex(self.tex.replace(r"\usepackage[spanish,es-noindentfirst]{babel}", ""),
+                                            "en")
+
+    def test_the_english_cover_keeps_a_placeholder_check_run_reads(self) -> None:
+        cover = (REPO / "plantilla" / "datos_proyecto.tex").read_text(encoding="utf-8")
+        english = self.language.localize_cover(cover, "en")
+        self.assertIn("[To be defined: project title]", english)
+        self.assertNotIn("[Por definir", english)
+        self.assertEqual(self.language.localize_cover(cover, "es"), cover)
+
+    def test_init_run_seeds_english_files_for_an_english_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            red = _make_run(_english_workspace(Path(tmp))) / "redaccion"
+            self.assertIn(r"\usepackage[english]{babel}", (red / "main.tex").read_text(encoding="utf-8"))
+            self.assertIn("[To be defined", (red / "datos_proyecto.tex").read_text(encoding="utf-8"))
+
+    def test_init_run_keeps_the_spanish_template_byte_identical(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            red = _make_run(Path(tmp)) / "redaccion"
+            self.assertEqual((red / "main.tex").read_bytes(), MAIN.read_bytes())
+            self.assertEqual((red / "datos_proyecto.tex").read_bytes(),
+                             (REPO / "plantilla" / "datos_proyecto.tex").read_bytes())
+
+
+@unittest.skipUnless(HAS_TEX and shutil.which("pdftotext"), "latexmk/pdflatex/pdftotext not installed")
+class EnglishTemplateCompilesTest(unittest.TestCase):
+    def test_an_english_run_names_tables_table(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            red = _make_run(_english_workspace(Path(tmp))) / "redaccion"
+            (red / "sections" / "05_hipotesis.tex").write_text(
+                "\\section{Hypothesis}\nSee \\cref{tab:demo}.\n\\begin{table}[h]\\centering"
+                "\\begin{tabular}{c}x\\end{tabular}\\caption{Demo table}\\label{tab:demo}\\end{table}\n",
+                encoding="utf-8")
+            env = dict(os.environ, SKIP_DOI_REPAIR="1")
+            build = subprocess.run(["bash", "build.sh"], cwd=red, capture_output=True, text=True, env=env,
+                                   input="s\n", timeout=240)
+            self.assertTrue((red / "main.pdf").is_file(), build.stdout[-2000:] + build.stderr[-2000:])
+            text = subprocess.run(["pdftotext", str(red / "main.pdf"), "-"], capture_output=True, text=True).stdout
+            self.assertIn("Table 1", text)
+            self.assertIn("table 1", text)
+            self.assertIn("Principal investigator", text)
+            for spanish in ("Tabla", "Cuadro", "tabla 1"):
+                self.assertNotIn(spanish, text)
+
+
 if __name__ == "__main__":
     unittest.main()
