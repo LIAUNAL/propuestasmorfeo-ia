@@ -6,7 +6,11 @@ https://github.com/LIAUNAL/papersmith-ai), Apache License 2.0. Changes for
 Morfeo: Spanish UI; the dashboard's ``{"type": "atlas-control", "cmd": ...}``
 message is answered beside papersmith's ``atlas-command``; a collapsible
 "Estudio de constelaciones" side panel and an optional Markdown report of the
-same study (``--report``), both computed here with no model in the loop. See
+same study (``--report``), both computed here with no model in the loop; the
+paper summary panel also shows each paper's metadata (authors, year, venue,
+quartile, DOI/URL, BibTeX key), read at build time from the metadata lines of
+the sibling ``papers/paper-N.md`` files (``--papers`` names another
+directory; without one the panel simply omits it). See
 scripts/assets/THIRD_PARTY_NOTICES.md.
 
 Reads ``artefactos/scoping/atlas.json`` and writes a single HTML page: every
@@ -19,7 +23,11 @@ across systems, and dashed ties between planets sharing a family name.
 The scene is computed here and written as a JSON data island; the vendored
 three.js viewer (``scripts/assets/atlas3d.bundle.js``) is inlined verbatim and
 only draws it: no CDN, no network at view time. Hovering a planet dims what is
-not linked to it; clicking opens its evidence; double-clicking flies to it;
+not linked to it; clicking any planet opens its paper's summary beside the
+sky (papersmith's side panel: metadata, the selected planet with its quote,
+one section per slot, linked papers) and dims every paper but that one and
+those it links to, until Esc or the close button clears it; double-clicking
+flies to it;
 family chips filter; a toolbar zooms, turns, tilts, pauses the rotation,
 toggles names, regroups systems by family and switches to the 2D view.
 
@@ -31,6 +39,7 @@ is missing or software-only, the machine reports under 4 GB or under 4 cores,
 or the 3D sky draws under 20 fps during its first 3 seconds.
 
 Usage: render_atlas.py <atlas.json> --out <html> [--report <md>] [--title <text>]
+                       [--papers <dir>]
 
 Exit 0 on written files, 1 when the atlas fails this module's own shape read
 (run check_atlas.py first: it names violations, this one only refuses to draw),
@@ -44,6 +53,7 @@ from __future__ import annotations
 import html
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -243,12 +253,27 @@ h1{font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.02em}
 .sky canvas{display:block;width:100%;height:100%}
 .sky:active{cursor:grabbing}
 #panel{color:#9aa3bd;font-size:13px;margin:0 0 8px}
-#overlay{position:fixed;inset:0;background:rgba(5,5,10,.65);display:none;align-items:center;justify-content:center;z-index:10}
-#overlay.open{display:flex}
-#modal{background:#11131f;border:1px solid #9b7ede;border-radius:10px;padding:16px 20px;max-width:580px;max-height:82vh;overflow:auto;box-shadow:0 0 40px rgba(155,126,222,.25)}
-#modal h3{margin:0 0 6px}
-#modal .quote{font-style:italic;color:#b9c4de;border-left:3px solid #9b7ede;margin:10px 0;padding-left:10px}
-#modalclose{float:right;cursor:pointer;font-size:14px;padding:2px 10px;background:#1a1d2e;color:#e4e4ed;border:1px solid #2a3350;border-radius:6px}
+#side{position:relative;flex:0 0 360px;max-width:40%;box-sizing:border-box;background:#11131f;border:1px solid #2a3350;border-left:3px solid #9b7ede;border-radius:10px;padding:14px 16px;overflow:auto;font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+#side[hidden]{display:none}
+#side h2{font-size:15px;margin:0 30px 4px 0;color:#fff}
+#side .side-meta{color:#9aa3bd;font-size:12px;margin:0 0 10px}
+#side a{color:#9bc1ff}
+#side dl{margin:0}
+#side dt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#9b7ede;margin-top:10px}
+#side dd{margin:2px 0 0}
+#side dd p{margin:2px 0;padding:1px 4px;border-radius:4px}
+#side dd span{color:#b9c4de}
+#side dd p.sel{background:#2a2350;outline:1px solid #9b7ede}
+#side .side-paper{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;align-items:baseline;margin:0 0 10px;padding:6px 8px;border:1px solid #1e2236;border-radius:6px;background:#0e1020}
+#side .side-paper dt{margin:0}
+#side .side-paper dd{margin:0}
+#side .side-node{margin:0 0 8px;padding:6px 8px;border:1px solid #9b7ede;border-radius:6px;background:#14172a}
+#side .side-node p{margin:4px 0 0}
+#side .side-node .quote{font-style:italic;color:#b9c4de;border-left:3px solid #9b7ede;margin:6px 0 0;padding-left:8px}
+#side .side-node small{display:block;margin-top:4px;color:#7d86a3}
+#side .side-links button{display:block;width:100%;text-align:left;margin:4px 0 0;padding:4px 8px;cursor:pointer;background:#14172a;color:#e4e4ed;border:1px solid #2a3350;border-radius:6px;font-size:12px;overflow-wrap:anywhere}
+#side .side-links button:hover,#side .side-links button:focus-visible{border-color:#9b7ede}
+#sideclose{position:absolute;top:8px;right:10px;cursor:pointer;font-size:13px;padding:1px 8px;background:#1a1d2e;color:#e4e4ed;border:1px solid #2a3350;border-radius:6px}
 #famlegend,#rellegend,#toolbar{margin:0 0 6px;font-size:13px;color:#9aa3bd}
 .famchip{margin:2px;padding:3px 12px;cursor:pointer;border-radius:12px;border:1px solid #9b7ede;background:#14172a;color:#e4e4ed;font-size:12px}
 .famchip.on{background:#9b7ede;color:#0a0a10}
@@ -273,18 +298,17 @@ h1{font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.02em}
 #study .sys{cursor:pointer;text-decoration:underline dotted}
 #study .pid{color:#7d86a3;font-size:11px}
 #study .counts{color:#9aa3bd;margin:0 0 6px}
-@media (max-width:820px){#toolbar .sep{display:none}#stage{flex-direction:column}#study{flex:0 0 auto;max-width:none;max-height:45vh}}
+@media (max-width:820px){#toolbar .sep{display:none}#stage{flex-direction:column}#study{flex:0 0 auto;max-width:none;max-height:45vh}#side{position:fixed;left:0;right:0;bottom:0;z-index:20;flex:none;max-width:none;max-height:60vh;border:1px solid #2a3350;border-top:3px solid #9b7ede;border-radius:12px 12px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.55)}}
 </style>
 </head>
 <body>
 <h1>@@HEADING@@</h1>
-<div id="panel">Arrastra para orbitar, arrastra con el botón derecho para desplazar y usa la rueda para acercar. Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para leer su evidencia y doble clic para volar hasta él.</div>
+<div id="panel">Arrastra para orbitar, arrastra con el botón derecho para desplazar y usa la rueda para acercar. Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para abrir el resumen del paper y doble clic para volar hasta él.</div>
 <div id="gpunote" role="status" hidden></div>
-<div id="overlay"><div id="modal"><button id="modalclose">cerrar</button><div id="modalbody"></div></div></div>
 <div id="famlegend"><em>Familias:</em> <span id="famchips"></span></div>
 <div id="rellegend"><em>Relaciones:</em> <span class="dot" style="border-color:#2ecc71"></span>extiende <span class="dot" style="border-color:#5aa9e6"></span>respalda <span class="dot" style="border-color:#e65a5a"></span>contradice <span class="dot" style="border-color:#8a93ad"></span>aborda <span class="dot" style="border-color:#9b7ede;border-top-style:dashed"></span>familia compartida <span class="dot" style="border-color:#e8b339"></span>produce <span class="dot" style="border-color:#4a5a80"></span>trata de</div>
 <div id="toolbar"><button id="zoomin">acercar +</button><button id="zoomout">alejar −</button><span class="sep"></span><button id="spinleft" title="Girar a la izquierda">⟲ girar</button><button id="spinright" title="Girar a la derecha">girar ⟳</button><button id="tiltup" title="Inclinar hacia arriba">▲ inclinar</button><button id="tiltdown" title="Inclinar hacia abajo">▼ inclinar</button><button id="autorotate" class="on" title="Rotación automática">⏸ rotación</button><button id="names" class="on" title="Muestra u oculta los nombres de los sistemas; solo se dibujan los que no se solapan y al acercar aparecen más">nombres</button><span class="sep"></span><button id="zoomreset">restablecer vista</button><button id="grouplayout">Disposición de grupos</button><span class="sep"></span><button id="viewmode" title="Alterna entre el cielo 3D y la constelación 2D, más liviana">Vista 2D</button><span class="sep"></span><button id="studytoggle" class="on" aria-expanded="true" aria-controls="study" title="Muestra u oculta el estudio de constelaciones">Estudio de constelaciones</button></div>
-<div id="stage"><div id="sky" class="sky"></div>
+<div id="stage"><div id="sky" class="sky"></div><aside id="side" aria-label="Resumen del paper" hidden><button id="sideclose" type="button" aria-label="Cerrar">✕</button><div id="sidebody"></div></aside>
 @@STUDY@@</div>
 <script type="application/json" id="atlas-data">@@DATA@@</script>
 <script>
@@ -308,35 +332,150 @@ function familyLabel(s) {
   const fam = s ? s.planets.find(p => p.slot === 'family' && typeof p.label === 'string' && p.label.trim()) : null;
   return fam ? fam.label.trim() : '';
 }
-const panel = document.getElementById('modalbody');
-const overlay = document.getElementById('overlay');
-function closeModal() { overlay.classList.remove('open'); }
-document.getElementById('modalclose').addEventListener('click', closeModal);
-overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+const side = document.getElementById('side');
+const sideBody = document.getElementById('sidebody');
 function line(tag, text, cls) {
   const el = document.createElement(tag);
   el.textContent = text;
   if (cls) el.className = cls;
   return el;
 }
-function openModal(nodes) {
-  panel.replaceChildren(...nodes);
-  overlay.classList.add('open');
+// Only web addresses become links; anything else (a bare DOI, a hostile
+// javascript: value) stays text.
+function isWebLink(value) {
+  return typeof value === 'string' && /^https?:[/][/]/i.test(value);
 }
-function showPlanet(key) {
+function linkOrText(value) {
+  if (!isWebLink(value)) return document.createTextNode(String(value || ''));
+  const a = document.createElement('a');
+  a.href = value; a.target = '_blank'; a.rel = 'noopener'; a.textContent = value;
+  return a;
+}
+// A paper's summary, as its constellation states it: one section per planet
+// slot, in the order a reader meets the paper (papersmith's SIDE_SECTIONS).
+const SIDE_SECTIONS = [['topic_app', 'Tema de aplicación'], ['topic_ai', 'Tema de IA'], ['problem', 'Problema'],
+  ['application', 'Aplicación'], ['novelty', 'Novedad principal'], ['contribution', 'Contribuciones'],
+  ['result', 'Resultados'], ['conclusion', 'Conclusiones'], ['family', 'Familia'], ['branch', 'Ramas']];
+// The paper's metadata, read by the renderer from papers/paper-N.md.
+const PAPERS = SCENE.papers || {};
+const PAPER_FIELDS = [['authors', 'Autores'], ['year', 'Año'], ['venue', 'Publicación'],
+  ['quartile', 'Cuartil'], ['link', 'DOI/URL'], ['bibkey', 'Clave BibTeX']];
+function sunKey(system) {
+  const sun = system.planets.find(p => p.slot === 'sun') || system.planets[0];
+  return sun ? system.id + '.' + sun.id : null;
+}
+// The systems a link ties to this one, by id, in a stable order.
+function linkedSystems(system) {
+  const ids = new Set();
+  SCENE.edges.forEach(e => {
+    if (!e.inter) return;
+    const a = PLANETS.get(e.from), b = PLANETS.get(e.to);
+    if (!a || !b) return;
+    if (a.system.id === system.id && b.system.id !== system.id) ids.add(b.system.id);
+    if (b.system.id === system.id && a.system.id !== system.id) ids.add(a.system.id);
+  });
+  return [...ids].sort().map(id => SYSTEMS.get(id)).filter(Boolean);
+}
+function showSide(key) {
   const entry = PLANETS.get(key);
   if (!entry) return;
+  const system = entry.system;
+  const sun = system.planets.find(p => p.slot === 'sun') || {};
+  const nodes = [line('h2', sun.label || system.title || system.id)];
+  const ev = sun.evidence || {};
+  const meta = document.createElement('p');
+  meta.className = 'side-meta';
+  if (system.title && system.title !== sun.label) meta.append(system.title + ' · ');
+  meta.append(system.id);
+  if (ev.origin) { meta.append(' · '); meta.append(linkOrText(ev.origin)); }
+  nodes.push(meta);
+  const paper = PAPERS[system.id];
+  if (paper) {
+    const facts = document.createElement('dl');
+    facts.className = 'side-paper';
+    PAPER_FIELDS.forEach(([field, title]) => {
+      if (!paper[field]) return;
+      facts.append(line('dt', title));
+      const dd = document.createElement('dd');
+      dd.append(field === 'link' ? linkOrText(paper[field]) : document.createTextNode(paper[field]));
+      facts.append(dd);
+    });
+    nodes.push(facts);
+  }
   const p = entry.planet;
-  const ev = p.evidence || {};
-  openModal([
-    line('h3', p.label),
-    line('p', (SLOT_NAMES[p.slot] || p.slot) + ' · órbita ' + p.orbit + ' · ' + (PROVENANCE_NAMES[p.provenance] || p.provenance || '') + ' · ' + (entry.system.title || entry.system.id) + ' (' + entry.system.id + ')'),
-    line('p', p.detail || ''),
-    line('p', ev.quote || '', 'quote'),
-    line('small', (ev.origin || '') + ' · consultado ' + (ev.retrieved || '')),
-  ]);
+  if (p.slot !== 'sun') {
+    const node = document.createElement('div');
+    node.className = 'side-node';
+    node.append(line('strong', 'Seleccionado · ' + (SLOT_NAMES[p.slot] || p.slot) + ': '), line('span', p.label || ''));
+    if (p.detail && p.detail !== p.label) node.append(line('p', p.detail));
+    const pev = p.evidence || {};
+    if (pev.quote) node.append(line('p', pev.quote, 'quote'));
+    const prov = PROVENANCE_NAMES[p.provenance] || p.provenance || '';
+    node.append(line('small', 'órbita ' + p.orbit + (prov ? ' · ' + prov : '') + (pev.retrieved ? ' · consultado ' + pev.retrieved : '')));
+    nodes.push(node);
+  }
+  const list = document.createElement('dl');
+  list.className = 'side-sections';
+  SIDE_SECTIONS.forEach(([slot, title]) => {
+    const planets = system.planets.filter(q => q.slot === slot && q.label);
+    if (!planets.length) return;
+    list.append(line('dt', title));
+    const dd = document.createElement('dd');
+    planets.forEach(q => {
+      const item = line('p', q.label, q === p ? 'sel' : '');
+      if (q.detail && q.detail.trim().toLowerCase() !== String(q.label).trim().toLowerCase()) item.append(line('span', ' · ' + q.detail));
+      dd.append(item);
+    });
+    list.append(dd);
+  });
+  nodes.push(list);
+  const linked = linkedSystems(system);
+  if (linked.length) {
+    const links = document.createElement('div');
+    links.className = 'side-links';
+    links.append(line('dt', 'Papers enlazados'));
+    linked.forEach(other => {
+      const button = line('button', (other.planets.find(q => q.slot === 'sun') || {}).label || other.title || other.id);
+      button.type = 'button';
+      button.addEventListener('click', () => { const k = sunKey(other); if (k) { if (viewer && viewer.focus) viewer.focus(k); select(k); } });
+      links.append(button);
+    });
+    nodes.push(links);
+  }
+  sideBody.replaceChildren(...nodes);
+  const opening = side.hidden;
+  side.hidden = false;
+  side.scrollTop = 0;
+  if (opening && viewer) viewer.refresh();
 }
+// The paper selected by a click on any of its planets, a linked-paper button
+// or a title in the study: its summary opens beside the sky, and the sky
+// keeps it and the papers it links to lit until another is selected or the
+// panel closes (Esc or the close button).
+let selectedKeep = null;
+function select(key) {
+  const entry = PLANETS.get(key);
+  if (!entry) return;
+  showSide(key);
+  const keep = new Set();
+  [entry.system, ...linkedSystems(entry.system)].forEach(s => s.planets.forEach(q => keep.add(s.id + '.' + q.id)));
+  selectedKeep = keep;
+  dimTo(keep);
+  reportPlanet(key);
+}
+// Close the panel without touching the dimming (the caller decides it).
+function hideSide() {
+  const was = !side.hidden;
+  side.hidden = true;
+  selectedKeep = null;
+  if (was && viewer) viewer.refresh();
+}
+function clearSelection() {
+  hideSide();
+  dimTo(familyKeep());
+}
+document.getElementById('sideclose').addEventListener('click', clearSelection);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !side.hidden) clearSelection(); });
 let activeFam = null;
 function familyKeep() {
   if (activeFam === null) return null;
@@ -789,7 +928,7 @@ const gpuNote = document.getElementById('gpunote');
 const viewButton = document.getElementById('viewmode');
 const helpPanel = document.getElementById('panel');
 const HELP_3D = helpPanel.textContent;
-const HELP_2D = 'Vista 2D: arrastra para desplazar y usa la rueda para acercar; girar e inclinar cambian el ángulo. Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para leer su evidencia y doble clic para centrarlo.';
+const HELP_2D = 'Vista 2D: arrastra para desplazar y usa la rueda para acercar; girar e inclinar cambian el ángulo. Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para abrir el resumen del paper y doble clic para centrarlo.';
 const NOTES = {
   weak: '⚠ Este equipo no tiene una GPU adecuada para el cielo 3D (render por software): se muestra la constelación 2D.',
   none: '⚠ WebGL no está disponible aquí: se muestra la constelación 2D.',
@@ -797,8 +936,8 @@ const NOTES = {
   slow: '⚠ El cielo 3D se dibujaba demasiado lento aquí: se cambió a la constelación 2D, más liviana.',
 };
 const viewerHooks = {
-  onSelect: key => { showPlanet(key); reportPlanet(key); },
-  onHover: key => { hovered = key; dimTo(key ? hoverKeep(key) : familyKeep()); },
+  onSelect: key => select(key),
+  onHover: key => { hovered = key; dimTo(key ? hoverKeep(key) : (selectedKeep || familyKeep())); },
   afterDraw: drawNames,
 };
 let viewer = null;
@@ -820,7 +959,7 @@ function mountView(mode, reason) {
   }
   view = mode;
   if (layout !== 'sky') viewer.setLayout(layout);
-  dimTo(familyKeep());
+  dimTo(selectedKeep || familyKeep());
   gpuNote.textContent = NOTES[reason] || '';
   gpuNote.hidden = !NOTES[reason];
   helpPanel.textContent = mode === '2d' ? HELP_2D : HELP_3D;
@@ -902,6 +1041,7 @@ function resetView() {
   if (!viewer) return;
   activeFam = null;
   document.querySelectorAll('.famchip').forEach(c => c.classList.remove('on'));
+  hideSide();
   viewer.reset();
   dimTo(null);
   syncRotate();
@@ -958,13 +1098,14 @@ Object.keys(fams).sort().forEach(label => {
   b.addEventListener('click', () => {
     activeFam = (activeFam === label) ? null : label;
     document.querySelectorAll('.famchip').forEach(c => c.classList.toggle('on', c === b && activeFam === label));
+    hideSide();
     dimTo(familyKeep());
   });
   chips.appendChild(b);
 });
 // "Estudio de constelaciones": the panel is static HTML computed by the
 // renderer; here it only collapses (narrow frames start collapsed) and a
-// paper title flies to its sun.
+// paper title flies to its sun and opens its summary.
 const studyPanel = document.getElementById('study');
 const studyButton = document.getElementById('studytoggle');
 function setStudy(open) {
@@ -977,7 +1118,7 @@ setStudy(window.innerWidth >= 900);
 studyButton.addEventListener('click', () => setStudy(studyPanel.hidden));
 studyPanel.addEventListener('click', ev => {
   const target = ev.target.closest('[data-sun]');
-  if (target && viewer) viewer.focus(target.getAttribute('data-sun'));
+  if (target && viewer) { viewer.focus(target.getAttribute('data-sun')); select(target.getAttribute('data-sun')); }
 });
 </script>
 </body>
@@ -1147,10 +1288,72 @@ def study_markdown(data: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+# --- Paper metadata for the summary panel -----------------------------------
+# Read at build time from the metadata lines of papers/paper-N.md (the lines
+# before the first "## " heading). Only these fields cross into the page; the
+# abstract and the verification block never do. Each value is capped, and the
+# page renders every one of them as text.
+
+#: "- <Label>: value" lines of paper-N.md, and the key each one becomes.
+PAPER_FIELDS = {
+    "Autores": "authors",
+    "Año": "year",
+    "Venue": "venue",
+    "Cuartil": "quartile",
+    "DOI/URL": "link",
+    "Clave": "bibkey",
+}
+PAPER_FIELD_MAX = 300
+PAPER_FILE_ID = re.compile(r"^paper-\d+$")
+_FIELD_LINE = re.compile(r"^[-*]\s+([^:]+):\s*(.*)$")
+
+
+def read_paper_meta(text: str) -> dict:
+    """The metadata block of one paper-N.md as {key: value}; absent or blank
+    fields are left out."""
+    meta: dict[str, str] = {}
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("## "):
+            break
+        match = _FIELD_LINE.match(line)
+        if not match:
+            continue
+        key = PAPER_FIELDS.get(match.group(1).strip())
+        value = _text(match.group(2))[:PAPER_FIELD_MAX]
+        if key and value and key not in meta:
+            meta[key] = value
+    return meta
+
+
+def papers_meta(atlas: dict, papers_dir: Path | None) -> dict:
+    """{system id: metadata} for every system whose paper-N.md is readable.
+    Only ids shaped like paper-N name a file, so an atlas cannot point the
+    renderer outside its papers directory. A missing directory or file just
+    yields fewer entries: the panel then omits the metadata."""
+    found: dict[str, dict] = {}
+    if papers_dir is None or not papers_dir.is_dir():
+        return found
+    for system in atlas.get("systems") or []:
+        sid = system.get("id") if isinstance(system, dict) else None
+        if not isinstance(sid, str) or not PAPER_FILE_ID.match(sid):
+            continue
+        try:
+            text = (papers_dir / f"{sid}.md").read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        meta = read_paper_meta(text)
+        if meta:
+            found[sid] = meta
+    return dict(sorted(found.items(), key=lambda item: _natural(item[0])))
+
+
 def render(atlas: dict, viewer: str | None = None, *,
-           title: str | None = None, heading: str | None = None) -> str:
+           title: str | None = None, heading: str | None = None,
+           papers: dict | None = None) -> str:
     """The whole page. ``title`` names the tab and, unless ``heading`` says
-    otherwise, the heading too, so the page cannot contradict its own tab."""
+    otherwise, the heading too, so the page cannot contradict its own tab.
+    ``papers`` is the per-paper metadata of :func:`papers_meta`."""
     bundle = _viewer_bundle() if viewer is None else viewer
     if "</script" in bundle.lower():
         raise ValueError("the viewer bundle contains </script and cannot be inlined")
@@ -1161,13 +1364,16 @@ def render(atlas: dict, viewer: str | None = None, *,
     named = PAGE.replace("@@TITLE@@", html.escape(title))
     named = named.replace("@@HEADING@@", html.escape(heading))
     named = named.replace("@@STUDY@@", study_html(study(atlas)))
-    data = json.dumps(_scene(atlas)).replace("<", "\\u003c")
+    scene = _scene(atlas)
+    scene["papers"] = papers or {}
+    data = json.dumps(scene).replace("<", "\\u003c")
     head, rest = named.split("@@DATA@@")
     middle, tail = rest.split("@@VIEWER@@")
     return head + data + middle + bundle + tail
 
 
-USAGE = "usage: render_atlas.py <atlas.json> --out <html> [--report <md>] [--title <text>]"
+USAGE = ("usage: render_atlas.py <atlas.json> --out <html> [--report <md>] [--title <text>] "
+         "[--papers <dir>]")
 
 
 def main(argv: list[str]) -> int:
@@ -1175,16 +1381,19 @@ def main(argv: list[str]) -> int:
     out_path: Path | None = None
     report_path: Path | None = None
     title: str | None = None
+    papers_dir: Path | None = None
     tokens = argv[1:]
     index = 0
     while index < len(tokens):
         flag = tokens[index]
-        if flag in ("--out", "--report", "--title") and index + 1 < len(tokens):
+        if flag in ("--out", "--report", "--title", "--papers") and index + 1 < len(tokens):
             value = tokens[index + 1]
             if flag == "--out":
                 out_path = Path(value)
             elif flag == "--report":
                 report_path = Path(value)
+            elif flag == "--papers":
+                papers_dir = Path(value)
             else:
                 title = value
             index += 2
@@ -1208,8 +1417,10 @@ def main(argv: list[str]) -> int:
     if shape_error is not None:
         print(f"{shape_error}: run scripts/check_atlas.py first", file=sys.stderr)
         return 1
+    if papers_dir is None:
+        papers_dir = Path(inputs[0]).parent / "papers"
     try:
-        page = render(atlas, title=title)
+        page = render(atlas, title=title, papers=papers_meta(atlas, papers_dir))
     except OSError as error:
         print(f"ATLAS_VIEWER_MISSING: {error} (expected {VIEWER})", file=sys.stderr)
         return 2

@@ -717,7 +717,8 @@ def parse_markdown_note(md_text: str, fallback_title: str) -> tuple[str, str, di
 def build_papers_constellation(run_dir: Path, atlas_path: Path) -> dict | None:
     """Render the SOTA constellation (artefactos/scoping/atlas.json) with
     render_atlas.py into grafos/papers-graph.html plus the study report
-    grafos/papers-constellation-report.md. Returns None when the renderer is
+    grafos/papers-constellation-report.md; the papers directory goes along so
+    the paper summary panel shows each paper's metadata. Returns None when the renderer is
     missing or refuses the atlas, so the caller falls back to the legacy graph
     and the Grafos tab still shows something."""
     grafos_dir = run_dir / "grafos"
@@ -730,7 +731,8 @@ def build_papers_constellation(run_dir: Path, atlas_path: Path) -> dict | None:
     out_report = grafos_dir / "papers-constellation-report.md"
     res = subprocess.run(
         [sys.executable, str(renderer), str(atlas_path), "--out", str(out_html),
-         "--report", str(out_report), "--title", f"Constelación SOTA: {run_dir.name}"],
+         "--report", str(out_report), "--title", f"Constelación SOTA: {run_dir.name}",
+         "--papers", str(run_dir / "artefactos" / "scoping" / "papers")],
         capture_output=True, text=True,
     )
     if res.returncode != 0:

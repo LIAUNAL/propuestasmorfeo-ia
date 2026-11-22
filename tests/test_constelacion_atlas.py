@@ -350,7 +350,7 @@ class RenderAtlasTests(Tmp):
         inter = sorted((e["from"], e["to"]) for e in scene["edges"] if e["inter"])
         self.assertIn(("paper-3.p3-novelty", "paper-1.p1-novelty"), inter)
         for needle in ('rellegend', 'id="zoomin"', 'id="zoomout"', 'id="zoomreset"',
-                       'famchips', 'id="overlay"', 'openModal', 'AtlasViewer.mount',
+                       'famchips', 'id="side"', 'showSide', 'AtlasViewer.mount',
                        '<html lang="es">'):
             self.assertIn(needle, page)
         self.assertNotIn("<script src", page)
@@ -360,7 +360,7 @@ class RenderAtlasTests(Tmp):
     def test_ui_text_is_spanish(self):
         page = self.page()
         for text in ("Familias:", "Relaciones:", "restablecer vista", "Vista 2D",
-                     "cerrar", "Disposición de grupos"):
+                     "Resumen del paper", "Disposición de grupos"):
             self.assertIn(text, page)
         self.assertNotIn(">close<", page)
         self.assertNotIn("reset view", page)

@@ -92,7 +92,13 @@ sin inventar.
 3. Dibuja:
    `python3 scripts/render_atlas.py <RUN_ROOT>/artefactos/scoping/atlas.json --out <RUN_ROOT>/grafos/papers-graph.html --report <RUN_ROOT>/grafos/papers-constellation-report.md`.
    La página es determinista: mismo atlas, mismo cielo. Nunca se edita a
-   mano.
+   mano. Un clic sobre cualquier planeta abre al lado el resumen de su
+   paper: título y metadatos, el planeta elegido con su cita, un apartado
+   por slot y los papers enlazados; los demás sistemas se atenúan hasta
+   cerrarlo con Esc o ✕. Los metadatos (autores, año, publicación, cuartil,
+   DOI/URL y clave) salen de las líneas iniciales de cada `paper-N.md` en
+   `papers/`, junto al atlas, o de la carpeta que indique `--papers`; sin
+   ellos el resumen los omite. El abstract nunca entra en la página.
 
 ## Qué devolver
 
