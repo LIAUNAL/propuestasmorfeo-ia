@@ -1,7 +1,10 @@
 /**
  * «Convocatorias» views: opportunity tree, affinity constellation, side by
  * side, requirements matrix, timeline and the detail panel
- * (odd/tasks/convocatorias-mapa.md, S1 and S4).
+ * (odd/tasks/convocatorias-mapa.md, S1 and S4). The constellation became the
+ * SOTA 3D viewer in a frame (odd/tasks/tablero-juez-novedad.md, S7): here it is
+ * only checked to open; its page and its frame are pinned in
+ * convocatorias-atlas.test.mjs.
  *
  * The real dashboard runs under jsdom with static/convocatorias-map.js inlined
  * by the harness; `/api/status` and `/api/convocatorias` are doubles shaped
@@ -153,8 +156,6 @@ function fire(viewer, el, type) {
   el.dispatchEvent(new Ctor(type, { bubbles: true, cancelable: true, button: 0 }));
 }
 
-const node = (viewer, id) => $(viewer, `#cvView svg.cvm-const g.n[data-call="${id}"]`);
-
 test('the view switcher opens on the tree and renders each view', async (t) => {
   const viewer = await loaded(t);
   const tabs = $$(viewer, '#cvVistas [data-vista]').map(b => [b.getAttribute('data-vista'), b.textContent.trim()]);
@@ -165,7 +166,7 @@ test('the view switcher opens on the tree and renders each view', async (t) => {
   assert.ok($(viewer, '#cvView .cvm-tree'), 'the tree is the default view');
   assert.ok($(viewer, '#cvVistas [data-vista="arbol"]').classList.contains('is-on'));
   const marks = {
-    arbol: ['.cvm-tree'], constelacion: ['svg.cvm-const'], lado: ['.cvm-tree', 'svg.cvm-const'],
+    arbol: ['.cvm-tree'], constelacion: ['iframe.cvm-atlas'], lado: ['.cvm-tree', 'iframe.cvm-atlas'],
     requisitos: ['table.cvm-matrix'], tiempo: ['svg.cvm-timeline'], lista: ['#cvLista'],
   };
   for (const [key, sels] of Object.entries(marks)) {
@@ -178,53 +179,14 @@ test('the view switcher opens on the tree and renders each view', async (t) => {
   assert.equal($$(viewer, '#cvLista [data-id]').length, CALLS.length, 'the list keeps every card');
 });
 
-test('every constellation node is labelled «titulo_corto · match»', async (t) => {
-  const viewer = await loaded(t);
-  await showView(viewer, 'constelacion');
-  const nodes = $$(viewer, '#cvView svg.cvm-const g.n');
-  assert.equal(nodes.length, CALLS.length);
-  for (const c of CALLS) {
-    const g = node(viewer, c.id);
-    assert.ok(g, `node ${c.id}`);
-    assert.equal(g.querySelector('text.lbl').textContent, `${c.titulo_corto} · ${c.match}`);
-    assert.ok(g.querySelector('circle.hit'), 'wider hit ring');
-    assert.ok(g.querySelector('path.leader'), 'leader line');
-  }
-  assert.equal($$(viewer, '#cvView svg.cvm-const g.root').length, MAPA.experiencia.length, 'experiencia roots');
-  assert.equal($$(viewer, '#cvView [data-cvm-zoom]').length, 3, 'zoom in, out and reset');
-});
-
-test('clicking a label selects the call, a second node switches it and the background clears it', async (t) => {
-  const viewer = await loaded(t);
-  await showView(viewer, 'constelacion');
-  const before = $$(viewer, '#cvView svg.cvm-const g.n');
-  fire(viewer, node(viewer, 'horizon-cl1').querySelector('text.lbl'), 'click');
-  await flush();
-  assert.equal($(viewer, '#cvDetail h2').textContent, 'Horizon Europe Cluster 1 · Mental health');
-  assert.ok(node(viewer, 'horizon-cl1').classList.contains('is-sel'));
-  fire(viewer, node(viewer, 'google-phd').querySelector('circle.hit'), 'click');
-  await flush();
-  assert.equal($(viewer, '#cvDetail h2').textContent, 'Google PhD Fellowship · América Latina');
-  assert.ok(node(viewer, 'google-phd').classList.contains('is-sel'));
-  assert.ok(!node(viewer, 'horizon-cl1').classList.contains('is-sel'));
-  const after = $$(viewer, '#cvView svg.cvm-const g.n');
-  assert.ok(before.every((el, i) => el === after[i]), 'selecting never replaces the nodes');
-  const svg = $(viewer, '#cvView svg.cvm-const');
-  fire(viewer, svg, 'pointerdown');
-  fire(viewer, svg, 'pointerup');
-  await flush();
-  assert.equal($$(viewer, '#cvView g.n.is-sel').length, 0);
-  assert.match($(viewer, '#cvDetail').textContent, /Haz clic en una convocatoria/);
-});
-
-test('hover lights the connected temas and experiencia without replacing the nodes', async (t) => {
+test('hover lights the connected temas and experiencia in the tree without replacing the cards', async (t) => {
   const viewer = await loaded(t);
   await showView(viewer, 'lado');
-  const nodes = $$(viewer, '#cvView svg.cvm-const g.n');
   const cards = $$(viewer, '#cvView .cvm-card[data-call]');
-  fire(viewer, node(viewer, 'sgr-salud'), 'pointerover');
-  assert.ok(node(viewer, 'sgr-salud').classList.contains('is-hl'));
-  assert.ok(node(viewer, 'google-phd').classList.contains('is-dim'));
+  const card = id => $(viewer, `#cvView .cvm-card[data-call="${id}"]`);
+  fire(viewer, card('sgr-salud'), 'pointerover');
+  assert.ok(!card('sgr-salud').classList.contains('is-dim'));
+  assert.ok(card('google-phd').classList.contains('is-dim'));
   const theme = tema => $$(viewer, '#cvView .cvm-node--theme').find(el => el.getAttribute('data-theme') === tema);
   assert.ok(theme('salud mental').classList.contains('is-hl'));
   assert.ok(theme('eeg').classList.contains('is-hl'));
@@ -232,15 +194,11 @@ test('hover lights the connected temas and experiencia without replacing the nod
   const root = id => $(viewer, `#cvView .cvm-node--root[data-root="${id}"]`);
   assert.ok(root('lia-eeg').classList.contains('is-hl'));
   assert.ok(root('lia-dl').classList.contains('is-dim'));
-  assert.ok(!$(viewer, '#cvView svg.cvm-const g.root[data-root="lia-salud"]').classList.contains('is-dim'));
-  assert.ok($(viewer, '#cvView svg.cvm-const g.root[data-root="lia-dl"]').classList.contains('is-dim'));
-  assert.ok($(viewer, '#cvView svg.cvm-const .cvm-edges path.edge'), 'edges to the connected roots');
   // Hovering a root lights its calls.
   fire(viewer, root('lia-dl'), 'pointerover');
-  assert.ok(node(viewer, 'google-phd').classList.contains('is-hl'));
-  assert.ok(node(viewer, 'horizon-cl1').classList.contains('is-hl'));
-  assert.ok(node(viewer, 'sgr-salud').classList.contains('is-dim'));
-  assert.ok(nodes.every((el, i) => el === $$(viewer, '#cvView svg.cvm-const g.n')[i]), 'same node elements');
+  assert.ok(!card('google-phd').classList.contains('is-dim'));
+  assert.ok(!card('horizon-cl1').classList.contains('is-dim'));
+  assert.ok(card('sgr-salud').classList.contains('is-dim'));
   assert.ok(cards.every((el, i) => el === $$(viewer, '#cvView .cvm-card[data-call]')[i]), 'same card elements');
 });
 
@@ -440,9 +398,8 @@ test('titles and short names are escaped in every view and in the detail', async
     const view = $(viewer, '#cvView');
     for (const tag of ['img', 'b', 'i', 'u', 'em', 's']) assert.equal(view.querySelector(tag), null, `${key}: <${tag}>`);
   }
-  await showView(viewer, 'constelacion');
-  assert.equal(node(viewer, 'evil').querySelector('text.lbl').textContent, '<i>corto</i> · 78');
-  fire(viewer, node(viewer, 'evil'), 'click');
+  await showView(viewer, 'arbol');
+  $(viewer, '#cvView .cvm-card[data-call="evil"]').click();
   await flush();
   const detail = $(viewer, '#cvDetail');
   for (const tag of ['img', 'b', 'i', 'u', 'em', 's']) assert.equal(detail.querySelector(tag), null, `detail: <${tag}>`);
@@ -466,8 +423,7 @@ test('an older payload without the new fields still renders every view', async (
   assert.match($(viewer, '#cvView .cvm-tree').textContent, /Ejecuta Buscar para el banco LIA para ver la experiencia del laboratorio/);
   assert.equal($(viewer, '#cvAlcance [data-alcance="banco"]').disabled, true);
   await showView(viewer, 'constelacion');
-  // No titulo_corto: the title is cut at a word boundary with «…».
-  assert.equal(node(viewer, 'horizon-cl1').querySelector('text.lbl').textContent, 'Horizon Europe Cluster 1… · 70');
+  assert.ok($(viewer, '#cvView iframe.cvm-atlas'), 'the constellation still opens');
   await showView(viewer, 'requisitos');
   const marks = $$(viewer, '#cvView tbody td[data-tipo]').map(td => td.textContent);
   assert.ok(marks.length > 0 && marks.every(m => m === '—'));

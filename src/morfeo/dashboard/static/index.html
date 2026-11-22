@@ -691,7 +691,6 @@
     .cvm-hint { font-size: 0.8rem; color: var(--text-muted); text-align: center; }
     .cvm-empty { padding: 1.8rem; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
     .cvm-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; font-size: 0.74rem; color: var(--text-muted); margin-top: 0.5rem; }
-    .cvm-legend .cvm-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
     .cvm-pill { display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: 999px; font-size: 0.7rem; border: 1px solid var(--border); white-space: nowrap; }
     .cvm-pill--bad { color: var(--bad); border-color: var(--bad); }
     .cvm-pill--warn { color: var(--warn); border-color: var(--warn); }
@@ -735,40 +734,9 @@
     .cvm-node--root { border-bottom: 3px solid var(--cvm-violet); }
     .cvm-view .is-dim { opacity: var(--cvm-dim, 0.22); }
     .cvm-view .is-hl { box-shadow: 0 0 0 2px var(--accent); }
-    /* Constellation. */
-    .cvm-constwrap { position: relative; }
-    .cvm-constscroll { overflow: auto; -webkit-overflow-scrolling: touch; }
-    .cvm-zoombar { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; z-index: 2; }
-    .cvm-const { width: 100%; height: auto; display: block; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
-    .cvm-const.is-dragging { cursor: grabbing; }
-    .cvm-const .ring { fill: none; stroke: var(--border); stroke-dasharray: 3 5; }
-    .cvm-const .ringlbl { fill: var(--text-dim); }
-    .cvm-const .sector { stroke: var(--border-subtle); }
-    .cvm-const .seclbl { fill: var(--text-muted); font-weight: 600; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; pointer-events: none; }
-    .cvm-const .center { fill: var(--accent-dim); stroke: var(--accent); stroke-width: 2; }
-    .cvm-const .centerlbl { fill: var(--text); font-size: 12px; font-weight: 600; }
-    .cvm-const .lbl { fill: var(--text); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; cursor: pointer; }
-    .cvm-const .hit { fill: transparent; }
-    .cvm-const .leader { fill: none; stroke: var(--text-dim); stroke-width: 1; opacity: 0.5; pointer-events: none; }
-    .cvm-const .n { cursor: pointer; transition: opacity .15s; }
-    .cvm-const .n:focus { outline: none; }
-    .cvm-const .n.is-hl .leader, .cvm-const .n.is-sel .leader { stroke: var(--accent); stroke-width: 2; opacity: 1; }
-    .cvm-const .n.is-hl .lbl, .cvm-const .n.is-sel .lbl { font-weight: 700; fill: var(--accent); }
-    .cvm-const .n.u-bad { --u: var(--bad); } .cvm-const .n.u-warn { --u: var(--warn); } .cvm-const .n.u-ok { --u: var(--ok); }
-    .cvm-const .n.u-info { --u: var(--cvm-info); } .cvm-const .n.u-dim { --u: var(--text-dim); }
-    .cvm-const .sh-fill { fill: var(--u); stroke: var(--bg); stroke-width: 2; }
-    .cvm-const .sh-ring { fill: var(--surface); stroke: var(--u); stroke-width: 3; }
-    .cvm-const .sh-thin { stroke-width: 2; }
-    .cvm-const .sh-half { fill: var(--u); }
-    .cvm-const .sh-x { stroke: var(--u); stroke-width: 3; }
-    .cvm-const .n:focus .sh-sel, .cvm-const .n.is-sel .sh-sel { stroke: var(--text); stroke-width: 3; }
-    .cvm-const .root { cursor: pointer; transition: opacity .15s; }
-    .cvm-const .root rect { fill: var(--surface-2); stroke: var(--cvm-violet); stroke-width: 2; }
-    .cvm-const .root text { fill: var(--text); font-size: 10px; font-weight: 700; pointer-events: none; }
-    .cvm-const .edge { stroke: var(--cvm-violet); stroke-width: 1.6; opacity: 0.8; fill: none; }
-    .cvm-const .edge--theme { stroke: var(--accent); stroke-dasharray: 4 4; }
-    .cvm-tip { position: fixed; z-index: 99996; pointer-events: none; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem 0.6rem; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35); font-size: 0.76rem; max-width: 280px; display: none; }
-    .cvm-tip strong { display: block; font-size: 0.82rem; margin-bottom: 2px; }
+    /* Constellation: the SOTA 3D viewer in a frame (/api/convocatorias/atlas), sized like the graphs frame. */
+    .cvm-constwrap { position: relative; min-width: 0; }
+    .cvm-atlas { display: block; width: 100%; height: 76vh; min-height: 420px; border: 1px solid var(--border); border-radius: var(--radius); background: #0a0a10; }
     /* Requirements matrix and timeline. */
     .cvm-tablewrap { overflow-x: auto; }
     table.cvm-matrix { border-collapse: collapse; width: 100%; font-size: 0.78rem; }
@@ -826,7 +794,6 @@
       body.cvm-has-sheet { padding-bottom: 72vh; }
     }
     @media (max-width: 700px) {
-      .cvm-const { min-width: 620px; }
       .cvm-timeline { min-width: 640px; }
       .cvm-stat { min-width: 0; flex: 1 1 calc(50% - 0.25rem); }
       .cvm-search { max-width: none; flex-basis: 100%; }
@@ -9213,6 +9180,7 @@
       const targetPane = document.getElementById(`pane-${tabId}`);
       if (targetPane) targetPane.classList.add('active');
       syncGraphPause();
+      syncOpportunitiesAtlasPause();
 
       if (tabId === 'trees') { startTreesPolling(); startTreeJudge(); }
       else { stopTreesPolling(); stopTreeJudge(); }
@@ -9309,6 +9277,16 @@
       if (!src || src === 'about:blank' || !iframe.contentWindow) return;
       const cmd = activeTab === 'atlas' && !document.hidden ? 'resume' : 'pause';
       try { iframe.contentWindow.postMessage({ type: 'atlas-control', cmd }, '*'); } catch (_) {}
+    }
+
+    // Lo mismo para la constelación de «Convocatorias» (el mismo visor 3D, en
+    // un iframe de /api/convocatorias/atlas): pausa fuera de su pestaña.
+    function syncOpportunitiesAtlasPause() {
+      const cmd = activeTab === 'convocatorias' && !document.hidden ? 'resume' : 'pause';
+      document.querySelectorAll('#cvView iframe.cvm-atlas').forEach(iframe => {
+        if (!iframe.getAttribute('src') || !iframe.contentWindow) return;
+        try { iframe.contentWindow.postMessage({ type: 'atlas-control', cmd }, '*'); } catch (_) {}
+      });
     }
 
     let currentGraphKind = 'papers';
@@ -13256,6 +13234,7 @@
     document.addEventListener('visibilitychange', () => {
       document.documentElement.classList.toggle('is-page-hidden', document.hidden);
       syncGraphPause();
+      syncOpportunitiesAtlasPause();
       if (!document.hidden) {
         loadStatus();
         scheduleStatusPoll();
