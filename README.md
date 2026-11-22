@@ -19,7 +19,7 @@
 
 **Morfeo IA** (`propuestasmorfeo-ia`) es un entorno de trabajo agéntico y determinista diseñado para investigar, redactar, estructurar y auditar propuestas completas de investigación científica y desarrollo tecnológico en Inteligencia Artificial. Produce documentos formales en **español** bajo formato LaTeX nativo (con exportación determinista a Word/DOCX), articulados rigurosamente en 18 secciones metodológicas con coherencia matemática, lógica, presupuestal y de impacto social (TRL 6 o 7).
 
-El sistema coordina un equipo de **15 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
+El sistema coordina un equipo de **16 subagentes especializados** guiados por compuertas de revisión (*gates* G0.5 a G7), auditoría cruzada de coherencia, generación determinista de diagramas TikZ, un **tablero de control interactivo en tiempo real con visor PDF y herramientas de anotación editorial**, y una capa de grafos de conocimiento dual conectada mediante el servidor MCP `codegraph`.
 
 ---
 
@@ -135,7 +135,9 @@ En entornos asistidos (Claude Code, OpenCode, Antigravity, Pi), el framework ofr
 | `/propuesta-exportar` | Empaqueta y exporta la propuesta activa con todos sus artefactos, insumos y PDF listo para compartir con un colaborador. |
 | `/propuesta-limpiar` | Cierra y archiva la corrida activa en `_run.md` y `registry.md`, dejando el entorno listo para una nueva formulación sin borrar datos. |
 | `/propuesta-juez` | Juez final (flujo SGR): estima el puntaje de la evaluación por pares con la rúbrica de la convocatoria, señala inconsistencias y propone acciones para cada agente. Es asesor y se puede correr en cualquier momento. |
-| `/propuesta-convocatorias` | Busca convocatorias de Colombia, América Latina e internacionales, en español e inglés, afines a la idea y al banco LIA; marca el rol que un solicitante colombiano puede tener en cada una y las muestra en la pestaña «Convocatorias». Con `iniciar <id>` baja el TdR a la corrida activa. |
+| `/propuesta-juez-avance <arbol\|novedad>` | Juez de avance, en ambos flujos: puntúa de 0 a 100 la propuesta hasta esa etapa y registra el resumen de la idea, los puntos fuertes, los puntos débiles y las alertas en `artefactos/juez/avance_<etapa>.json`. Se lanza desde las pestañas «Árbol de problemas y objetivos» y «Novedad e hipótesis». Es asesor. |
+| `/propuesta-novedad` | El `investigador` propone los pilares de novedad y las hipótesis, cada una con sus experimentos, acciones, implementaciones, intervenciones o transferencias, ligados a las causas y objetivos de los árboles. `scripts/novedad.py` los valida y los registra en `artefactos/novedad/novedad.json`. Es asesor y no reescribe secciones. |
+| `/propuesta-convocatorias` | Busca convocatorias de Colombia, América Latina e internacionales, en español e inglés, afines a la idea y al banco LIA; marca el rol que un solicitante colombiano puede tener en cada una y las muestra en la pestaña «Convocatorias». Con `iniciar <id>` baja el TdR a la corrida activa. Mientras busca, el agente marca cada fase en `convocatorias/progreso.json` y la pestaña muestra una barra con el porcentaje estimado y el tiempo que falta. |
 | `/compilar-pdf` | Compila de forma determinista la propuesta activa a PDF ejecutando `build.sh` en `redaccion/`. |
 | `/compilar-docx` | Exporta la propuesta activa a formato Word DOCX mediante `build.sh --docx` en `redaccion/` vía Pandoc y CSL APA. |
 
@@ -157,7 +159,7 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
    - Visualización gráfica de las 16 unidades del pipeline (intake, guía ajustada al TDR y las 14 unidades de redacción) y de sus 13 compuertas.
    - Las fases completadas y aprobadas se iluminan con borde activo, resplandor esmeralda/cian y badge de verificación.
    - Las fases pendientes permanecen en reposo visual sutil, evitando sobrecarga cognitiva.
-   - Cada caja de fase trae un botón **«Ejecutar»**. Solo queda activo en la unidad que el flujo va a correr (`next_step` del control de ejecución) o en el intake mientras siga abierto, y envía `/propuesta-continuar` o `/propuesta-analizar` a la terminal del asistente. En cualquier otra fase explica qué etapas, compuertas y secciones faltan para habilitarla. La caja «Intake y enrutamiento de insumos» queda activa incluso antes de crear la corrida: abre un campo con la idea inicial, precargada desde `idea.md` (o `insumos/ideas/idea.md` de la corrida), y lanza `/propuesta-analizar <idea>`, que crea la corrida y hace el intake. Un clic en cualquier caja abre ese mismo recuadro: la unidad habilitada trae un campo con la guía de lo que se puede pedir en esa fase (términos de búsqueda, región y fuentes de cifras, equipo, tope del presupuesto…) y lo envía como `/propuesta-continuar <indicaciones>`; las fases con panel propio ofrecen ir a él (árboles en 1b y 4, MGA resumido en 1, Secciones en las que redactan, Previsualización en la 7).
+   - Cada caja de fase trae un botón **«Ejecutar»**. Solo queda activo en la unidad que el flujo va a correr (`next_step` del control de ejecución) o en el intake mientras siga abierto, y envía `/propuesta-continuar` o `/propuesta-analizar` a la terminal del asistente. En cualquier otra fase explica qué etapas, compuertas y secciones faltan para habilitarla. La caja «Intake y enrutamiento de insumos» queda activa incluso antes de crear la corrida: abre un campo con la idea inicial, precargada desde `idea.md` (o `insumos/ideas/idea.md` de la corrida), y lanza `/propuesta-analizar <idea>`, que crea la corrida y hace el intake. Un clic en cualquier caja abre ese mismo recuadro: la unidad habilitada trae un campo con la guía de lo que se puede pedir en esa fase (términos de búsqueda, región y fuentes de cifras, equipo, tope del presupuesto…) y lo envía como `/propuesta-continuar <indicaciones>`; las fases con panel propio ofrecen ir a él (árboles en 1b y 4, Proyecto Resumido en 1, Secciones en las que redactan, Previsualización en la 7).
 
    - Botón **«⟳ Actualizar tablero»** (barra superior): regenera los grafos de la corrida activa y relee el estado (`POST /api/board/refresh`; solo generadores locales, sin llamadas a modelos; uno a la vez, 409 si ya hay otro en curso, 403 desde otro origen). El panel de estado sobre las pestañas dice dónde está el proyecto: la unidad actual, hasta seis «Pasos que aún faltan», las compuertas pendientes o fallidas, lo que no se pudo regenerar y un botón **«Siguiente: <comando>»** que envía el comando a la terminal integrada. `morfeo ui` corre la misma actualización al iniciar y el tablero la reporta una vez por arranque (`GET /api/board/summary`). Si se instala otra versión de Morfeo mientras el servidor corre, el pie de página avisa «El servidor corre una versión anterior: reinicia `morfeo ui`».
 
@@ -191,27 +193,34 @@ El comando `morfeo ui` despliega un Command Center web interactivo en `http://lo
 5. **Telemetría y Grafos de Conocimiento:**
    - Monitor de consumo acumulado de tokens, tool-uses y duración por fase.
    - Visores interactivos embebidos para explorar el grafo de literatura científica (`papers-graph`) y el mapa conceptual del vault Obsidian (`vault-graph`).
+   - En la constelación SOTA, un clic sobre cualquier planeta de un paper abre el panel lateral de resumen: título, autores, año, revista, cuartil, DOI y clave BibTeX tomados de `artefactos/scoping/papers/paper-N.md`, el planeta seleccionado con su cita textual, las secciones tipadas del paper y los papers enlazados. Los demás sistemas se atenúan hasta cerrar el panel con ✕ o Esc.
 
 6. **Árbol de problemas y objetivos:**
-   - Pestaña propia, entre «Pipeline y Avance» y «MGA resumido». Los dos árboles se construyen en la Fase 1b. Dibuja el árbol de problemas a partir de `redaccion/specs/arbol_problemas.spec.json` (copa, efectos, problema central y causas agrupadas por subproblema).
+   - Pestaña propia, entre «Pipeline y Avance» y «Novedad e hipótesis». Los dos árboles se construyen en la Fase 1b. Dibuja el árbol de problemas a partir de `redaccion/specs/arbol_problemas.spec.json` (copa, efectos, problema central y causas agrupadas por subproblema).
    - Propone el árbol de objetivos como espejo del anterior: cada causa da un medio, cada subproblema su objetivo específico, el problema central el objetivo general y cada efecto un fin. Toma §6 y §7 cuando ya existen y deja en línea punteada lo que el agente aún debe redactar. Si el agente escribe `artefactos/arboles/arbol_objetivos.json`, esa versión reemplaza la derivada.
    - Se itera nodo por nodo: un clic selecciona el nodo, se escribe el comentario y **«Enviar ajuste al agente»** guarda la solicitud en `artefactos/arboles/ajuste_<árbol>_NN.md` y se la pasa a la terminal (`disenador-tikz` para el de problemas, `investigador` para el de objetivos). La pestaña se refresca sola y avisa cuando llega una versión nueva.
    - La aprobación queda en `artefactos/arboles/revision.json`, atada al contenido aprobado: si el árbol cambia después, la aprobación caduca. El de objetivos solo se itera y se aprueba con el de problemas aprobado y sin textos pendientes.
    - El tercer botón, **«Relaciones entre las causas y objetivos»**, muestra una tabla de dos columnas (causa relacionada y objetivos específicos): cada causa directa con su objetivo específico y cada causa indirecta con el medio que sale de ella. Es de solo lectura, se arma con los dos árboles y marca como «Pendiente» lo que el árbol de objetivos aún no redacta.
 
-7. **MGA resumido:**
-   - Pestaña entre «Árbol de problemas y objetivos» y «Secciones». Muestra `artefactos/mga_resumido.md`, que la Fase 1 escribe antes de §3: el problema central copiado del árbol, la descripción de la situación existente, un párrafo por cada causa directa, la magnitud del problema y la tabla de indicadores con la línea base del proyecto resaltada. §3 se deriva de este documento. El desplegable «Reglas para construir el MGA resumido» resume las reglas de trabajo de cada párrafo, de la magnitud y de la tabla de indicadores.
+   - El desplegable **«Proyecto Resumido»** muestra `artefactos/mga_resumido.md`, que la Fase 1 escribe antes de §3: el problema central copiado del árbol, la descripción de la situación existente, un párrafo por cada causa directa, la magnitud del problema y la tabla de indicadores con la línea base del proyecto resaltada. §3 se deriva de este documento. Sus reglas de trabajo quedan en el desplegable interno. Los enlaces antiguos a `#mga` abren esta pestaña con el desplegable abierto.
+   - El desplegable **«Juez de avance»** lanza `/propuesta-juez-avance arbol` con «Evaluar hasta aquí» y muestra el puntaje, el resumen de la idea, los puntos fuertes, los puntos débiles con su acción sugerida y las alertas por nivel; las rondas anteriores quedan plegadas. Los desplegables recuerdan si estaban abiertos.
+
+7. **Novedad e hipótesis:**
+   - Pestaña justo después del árbol. «Generar / actualizar» envía `/propuesta-novedad` y la pestaña espera `artefactos/novedad/novedad.json`.
+   - El desplegable «Pilares e hipótesis» encadena cada causa directa con su objetivo específico y dibuja los pilares de novedad sobre las hipótesis, unidos por flechas; cada hipótesis lleva sus experimentos, acciones, implementaciones, intervenciones o transferencias. Al pasar el cursor sobre una caja se resaltan sus relaciones, y en pantallas angostas las flechas se cambian por líneas de texto.
+   - El desplegable «Matriz del proyecto» resume la propuesta con la lógica de la cadena de valor: una fila por objetivo específico con su causa directa, pilares, hipótesis, experimentos o acciones, productos, resultado esperado con su indicador y los efectos del árbol de problemas. Trae buscador y filtro por tipo de acción.
+   - El desplegable «Juez de avance» repite la evaluación del árbol en la etapa `novedad`.
 
 ---
 
 ## Ecosistema de Agentes Especializados
 
-El marco cuenta con **15 subagentes especializados** con roles no solapados:
+El marco cuenta con **16 subagentes especializados** con roles no solapados:
 
 | Agente | Modelo sugerido | Responsabilidad |
 |---|---|---|
 | `coordinador-propuesta` | Sonnet | Referencia canónica del pipeline, despacho y ensamble final de `main.tex`. |
-| `investigador` | Opus | Subproblemas y pregunta de investigación (§3), hipótesis (§5), objetivos (§6, §7), marco conceptual (§8) y árbol de objetivos. |
+| `investigador` | Opus | Subproblemas y pregunta de investigación (§3), hipótesis (§5), objetivos (§6, §7), marco conceptual (§8), árbol de objetivos y, en modo novedad, pilares e hipótesis. |
 | `redactor` | Opus | Prosa narrativa (§2, §9 a §12, §14, §15, §17, §18 y front-matter). |
 | `grant-flow-auditor` | Sonnet | Auditoría micro-estilística de cadencia, voz activa y eliminación de fricción léxica. |
 | `insumos-observador` | Sonnet | Ingesta y estructuración de insumos del usuario (PDFs, papers, TDRs, convocatorias). |
@@ -223,6 +232,7 @@ El marco cuenta con **15 subagentes especializados** con roles no solapados:
 | `revisor-redundancia` | Sonnet | Redundancia entre secciones, de solo lectura, sobre el reporte de `scripts/estilo_es.py` (Fase 7 y, en SGR, cierre de la Fase 6.47). |
 | `tikz-optimizer` | Haiku | Corrección asistida de especificaciones JSON cuando falla la compilación o la auditoría. |
 | `juez-sgr` | Opus | Juez final del flujo SGR: puntaje estimado con la rúbrica oficial, alertas de inconsistencia y acciones de mejora (asesor, no cambia el veredicto del `revisor`). |
+| `juez-avance` | Opus | Juez de avance en ambos flujos: puntúa la propuesta hasta el árbol o la novedad y registra resumen, puntos fuertes, puntos débiles y alertas (asesor). |
 | `revisor-estilo-sgr` | Sonnet | Solo en el flujo SGR: audita y pule estilo, voz en tercera persona, léxico por sección y redundancia según la MGA del DNP (skill `estilo-sgr`); ocupa el lugar de `grant-flow-auditor` antes de cada `revisor`. |
 | `explorador-convocatorias` | Sonnet | Fuera del pipeline: busca convocatorias afines (banco LIA, fuentes fijas y web), aplica las reglas de elegibilidad para Colombia y escribe `convocatorias/oportunidades.json`. |
 
@@ -247,7 +257,7 @@ Catálogo de **35 patrones de prosa mecánica** (cotejado con *humanizer-mit* y 
 - Garantiza que la articulación entre subproblemas, objetivos y metodología sea limpia y sin redundancias.
 
 ### 3. Puntaje de estilo y redundancia (`scripts/estilo_es.py`)
-Da un índice de legibilidad de 0 a 100 por sección y por documento, visible en la pestaña **Estilo y redundancia** del tablero. Mide oraciones largas, variedad léxica, fórmulas repetidas y frases duplicadas entre secciones. Una lista de términos protegidos respeta el vocabulario MGA y las copias literales exigidas. El índice no reprueba una sección; lo que bloquea es `verificar`, si el pulido cambió una cifra, una cita o una etiqueta. El agente `revisor-redundancia` revisa, en modo de solo lectura, las repeticiones de idea entre secciones.
+Da un índice de legibilidad de 0 a 100 por sección y por documento, visible en la pestaña **Estilo y redundancia** del tablero. Mide oraciones largas, variedad léxica, fórmulas repetidas y frases duplicadas entre secciones. Una lista de términos protegidos respeta el vocabulario MGA y las copias literales exigidas. El índice no reprueba una sección; lo que bloquea es `verificar`, si el pulido cambió una cifra, una cita o una etiqueta. El agente `revisor-redundancia` revisa, en modo de solo lectura, las repeticiones de idea entre secciones. La pestaña muestra el `main.pdf` compilado junto a los hallazgos: «Ubicar» busca la oración del hallazgo en el PDF, salta a su página y la resalta, y el visor se recarga solo cuando el PDF cambia.
 
 ### 4. `estilo-sgr` (solo flujo SGR)
 - Ajusta las dos skills anteriores a un proyecto de inversión del Sistema General de Regalías: tercera persona («El proyecto…», «Este proyecto busca…», «La presente propuesta se enmarca…»), sin primera persona, y la impersonal con «se».
