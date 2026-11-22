@@ -3018,6 +3018,12 @@
     .phase-card__head, .phase-card__foot { flex-wrap: wrap; gap: 0.35rem; }
     .topbar__actions { flex-wrap: wrap; min-width: 0; max-width: 100%; }
     .topbar__actions select.btn { max-width: 100%; }
+    .pipeline-grid > *, .phase-card__head > * { min-width: 0; }
+    .phase-card__head .badge { max-width: 100%; }
+    html:not([data-text-scale="1"]) .phase-card__head .badge { white-space: normal; }
+    .tree-switch, .btn-group, .tree-toolbar { flex-wrap: wrap; }
+    .tree-legend { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .panel__meta { overflow-wrap: anywhere; min-width: 0; }
     /* Rows the panels build with inline flex styles wrap too. */
     .tab-pane [style*="justify-content: space-between"], .tab-pane [style*="justify-content:space-between"] { flex-wrap: wrap; }
     .tab-pane [style*="justify-content: space-between"] > * { min-width: 0; overflow-wrap: anywhere; }
