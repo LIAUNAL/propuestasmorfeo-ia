@@ -454,6 +454,20 @@
     .tree-rules ul { margin: 0; padding-left: 1.1rem; color: var(--text-muted); line-height: 1.5; }
     .mga-rules__example { margin: 0.4rem 0 0.2rem; padding: 0.45rem 0.65rem; border-left: 3px solid var(--accent); background: var(--surface-1); color: var(--text-muted); font-style: italic; line-height: 1.5; }
     .mga-rules__example strong { font-style: normal; color: var(--text); }
+    /* section-folds.js: a [data-fold] block folds behind a bar (ported from papersmith). */
+    .exp-fold { margin-top: 1rem; min-width: 0; }
+    .exp-fold__summary { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; list-style: none; padding: 0.7rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-weight: 700; font-size: 0.95rem; color: var(--text); overflow-wrap: anywhere; }
+    .exp-fold__summary::-webkit-details-marker { display: none; }
+    .exp-fold__summary::before { content: '▸'; color: var(--accent); transition: transform 0.15s; }
+    .exp-fold__summary:hover { background: var(--surface-hover); }
+    .exp-fold__summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .exp-fold[open] > .exp-fold__summary::before { transform: rotate(90deg); }
+    .exp-fold[open] > .exp-fold__summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .exp-fold__body { min-width: 0; }
+    .exp-fold__body > [data-fold] { margin: 0 !important; border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; min-width: 0; }
+    .exp-fold__body > [data-fold] > .panel__header .panel__title { display: none; }
+    .fold-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .fold-toolbar__note { font-size: 0.82rem; color: var(--text-muted); flex: 1 1 220px; min-width: 0; }
     .tree-rules__intro { margin: 0.5rem 0 0; color: var(--text-muted); line-height: 1.5; }
     .tree-rules__source { margin: 0.6rem 0 0; font-size: 0.72rem; color: var(--text-dim); }
     .tree-empty p { margin-bottom: 0.9rem; }
@@ -3036,7 +3050,6 @@
     <button class="tab-nav__btn" onclick="navigateTab('convocatorias')">Convocatorias</button>
     <button class="tab-nav__btn" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
     <button class="tab-nav__btn" onclick="navigateTab('trees')">Árbol de problemas y objetivos</button>
-    <button class="tab-nav__btn" onclick="navigateTab('mga')">MGA resumido</button>
     <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
       <button class="tab-nav__btn" onclick="navigateTab('judge')">Juez final</button>
     <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
@@ -3241,6 +3254,41 @@
           </div>
         </aside>
       </div>
+
+      <!-- Proyecto Resumido (artefactos/mga_resumido.md), folded under the trees;
+           it was the «MGA resumido» tab, and #mga still lands here. -->
+      <section class="panel" id="mgaFold" data-fold="proyecto-resumido" data-fold-title="Proyecto Resumido">
+        <div class="fold-toolbar">
+          <span class="fold-toolbar__note">Planteamiento del problema que la Fase 1 deriva de los dos árboles aprobados.</span>
+          <button class="btn btn--sm" type="button" onclick="loadMgaResumido()">Recargar</button>
+        </div>
+        <details class="tree-rules" id="mgaRules">
+          <summary>Reglas para construir el Proyecto Resumido</summary>
+          <p class="tree-rules__intro">La Fase 1 lo escribe a partir de los dos árboles aprobados en G1b y después deriva §3 de este documento, con la misma variable, las mismas causas y la misma magnitud.</p>
+          <h4>Planteamiento del problema</h4>
+          <ul>
+            <li><strong>Problema central:</strong> el tronco del árbol de problemas, copiado textual, sin reescribirlo.</li>
+            <li><strong>Descripción de la situación existente:</strong> presenta el problema desde los antecedentes y el sector de aplicación con sus desafíos operativos, económicos o sociales, lo describe mejor y delimita la ubicación (departamentos o regiones). Cierra declarando las causas directas del árbol.
+              <blockquote class="mga-rules__example"><strong>Ejemplo:</strong> En los 12 municipios no certificados del departamento de Risaralda, las instituciones educativas de básica y media técnica enfrentan múltiples desafíos en la implementación efectiva de estrategias pedagógicas orientadas al desarrollo de competencias en Ciencia, Tecnología, Ingeniería y Matemáticas (STEM). A pesar de los esfuerzos realizados por las secretarías de educación y otras entidades, persisten brechas significativas en términos de ambientes de aprendizaje (entendidos como: infraestructura, acceso a tecnologías, formación docente y metodologías activas). Actualmente, dichos ambientes de aprendizaje carecen de recursos didácticos actualizados, laboratorios adecuados, herramientas tecnológicas y conectividad que permitan una enseñanza innovadora y contextualizada en las áreas STEM. Esta situación limita las oportunidades de los estudiantes para desarrollar habilidades del siglo XXI, como el pensamiento crítico, la solución de problemas, la creatividad y la alfabetización digital, aspectos esenciales para su inserción en una sociedad cada vez más tecnológica y competitiva. Además, se ha identificado que gran parte del cuerpo docente no cuenta con la formación específica ni con acompañamiento continuo para aplicar estrategias pedagógicas activas e interdisciplinarias propias del enfoque STEM. Esto genera un rezago en la calidad educativa y afecta los resultados académicos y la motivación de los estudiantes en estas áreas.</blockquote>
+            </li>
+            <li><strong>Causa directa 1:</strong> en proyectos de IA aplicada, se relaciona con el levantamiento de datos: sensores, baterías de pruebas, levantamiento de información y construcción de bases de datos (sin infraestructura, con especialistas y con apoyo de las comunidades), calidad de los datos y datos descentralizados.</li>
+            <li><strong>Causa directa 2:</strong> se relaciona con la necesidad de una plataforma interoperable que se alimente de los datos de la causa 1, con buena conectividad, accesible y de buena interacción con el usuario, y con modelos de IA generativa y predictiva, agentes de IA, procesamiento de datos multimodal, de bajo costo, desplegables y de muchas variables.</li>
+            <li><strong>Causa directa 3:</strong> se alinea con la apropiación social y la transferencia de la tecnología: pocos estudios (ninguno en Colombia), barreras con las comunidades, apropiación por parte de ellas e impacto en ellas.</li>
+            <li>Los párrafos de las causas siguen las reglas del árbol de problemas: cada uno expande su causa directa y sus causas indirectas como un estado negativo, nunca como la ausencia de la solución.</li>
+          </ul>
+          <h4>Magnitud del problema</h4>
+          <ul>
+            <li>Cifras que sustentan cada causa directa, con su fuente (autor o entidad, año y enlace o documento de <code>insumos/</code>). Sin fuente verificable, la cifra se marca «[cifra por confirmar]» y nunca se inventa.
+              <blockquote class="mga-rules__example"><strong>Ejemplo:</strong> En Risaralda, según el Sistema de Información Nacional de Educación Básica y Media - SINEB (2022), de 2.248 docentes registrados, solo el 55% cuenta con estudios de posgrado, lo que deja a un número considerable de maestros sin acceso a formación avanzada en pedagogía y tecnología educativa. Esta falta de formación y la escasa apropiación de herramientas tecnológicas limita su capacidad para implementar enfoques pedagógicos innovadores y relevantes (UNICEF, 2020), y genera desinterés y apatía entre los estudiantes, especialmente en el aprendizaje de conceptos STEM. La desconexión entre las expectativas de los estudiantes y las oportunidades educativas disponibles en su contexto social, educativo, productivo y cultural se convierte en un factor intrínseco que agrava esta problemática (Zambrano &amp; Barzaga, 2023), especialmente en Colombia (SINEB, 2022). De acuerdo con las cifras de deserción del Ministerio de Educación Nacional (septiembre, 2024), en Risaralda se registró una tasa de deserción de 4,64% en primaria y 4,26% en media durante el 2023, cifras que, aunque han mostrado una leve disminución respecto a 2022, siguen reflejando una tendencia ascendente desde 2020. Esto reduce las posibilidades de un futuro profesional prometedor y conectado con las demandas territoriales. Estas cifras reflejan un desafío estructural particularmente en las zonas rurales, donde los estudiantes enfrentan una calidad educativa desigual. Según el Ministerio de Educación Nacional, los estudiantes rurales obtienen un rendimiento de 5 a 10 puntos por debajo de sus pares urbanos en las pruebas SABER (ICFES, 2021). Además, solo el 30% de los estudiantes alcanzan niveles altos de competencias en matemáticas, mientras que más del 50% no logran el nivel esperado en ciencias naturales y matemáticas, áreas fundamentales para el desarrollo de competencias STEM. Esta es una realidad para 76.545 estudiantes de la básica primaria y media técnica, 4.235 docentes y 1.103 sedes del departamento.</blockquote>
+            </li>
+            <li>El indicador de línea base es el más flexible y fácil de cuantificar según el árbol y las causas; en proyectos de IA aplicada se alinea con la plataforma. Se desarrolla en 2 o 3 párrafos.</li>
+            <li>Una tabla reúne los indicadores (indicador, causa, valor, fuente y año) y resalta en negrilla el que el proyecto busca mover, marcado como «línea base del proyecto».</li>
+            <li>Ese indicador coincide con la magnitud del tronco del árbol de problemas; si cambia, se actualiza el árbol y se vuelve a aprobar.</li>
+          </ul>
+          <p class="tree-rules__source">Fuente: estructura del Proyecto Resumido acordada para Morfeo (investigador, regla 15) y reglas MGA del árbol de problemas (guía, §3).</p>
+        </details>
+        <div id="mgaContent" class="artifact-viewer is-markdown">Cargando…</div>
+      </section>
     </div>
 
     <!-- TAB: CADENA DE VALOR (solo flujo SGR; el botón se agrega con el flujo) -->
@@ -3501,42 +3549,6 @@
       </div>
       <div class="panel">
         <div id="a2Content"></div>
-      </div>
-    </div>
-
-    <!-- TAB: MGA RESUMIDO -->
-    <div id="pane-mga" class="tab-pane">
-      <div class="panel">
-        <div class="panel__header">
-          <div class="panel__title">MGA resumido: planteamiento del problema</div>
-          <button class="btn btn--sm" type="button" onclick="loadMgaResumido()">Recargar</button>
-        </div>
-        <details class="tree-rules" id="mgaRules">
-          <summary>Reglas para construir el MGA resumido</summary>
-          <p class="tree-rules__intro">La Fase 1 lo escribe a partir de los dos árboles aprobados en G1b y después deriva §3 de este documento, con la misma variable, las mismas causas y la misma magnitud.</p>
-          <h4>Planteamiento del problema</h4>
-          <ul>
-            <li><strong>Problema central:</strong> el tronco del árbol de problemas, copiado textual, sin reescribirlo.</li>
-            <li><strong>Descripción de la situación existente:</strong> presenta el problema desde los antecedentes y el sector de aplicación con sus desafíos operativos, económicos o sociales, lo describe mejor y delimita la ubicación (departamentos o regiones). Cierra declarando las causas directas del árbol.
-              <blockquote class="mga-rules__example"><strong>Ejemplo:</strong> En los 12 municipios no certificados del departamento de Risaralda, las instituciones educativas de básica y media técnica enfrentan múltiples desafíos en la implementación efectiva de estrategias pedagógicas orientadas al desarrollo de competencias en Ciencia, Tecnología, Ingeniería y Matemáticas (STEM). A pesar de los esfuerzos realizados por las secretarías de educación y otras entidades, persisten brechas significativas en términos de ambientes de aprendizaje (entendidos como: infraestructura, acceso a tecnologías, formación docente y metodologías activas). Actualmente, dichos ambientes de aprendizaje carecen de recursos didácticos actualizados, laboratorios adecuados, herramientas tecnológicas y conectividad que permitan una enseñanza innovadora y contextualizada en las áreas STEM. Esta situación limita las oportunidades de los estudiantes para desarrollar habilidades del siglo XXI, como el pensamiento crítico, la solución de problemas, la creatividad y la alfabetización digital, aspectos esenciales para su inserción en una sociedad cada vez más tecnológica y competitiva. Además, se ha identificado que gran parte del cuerpo docente no cuenta con la formación específica ni con acompañamiento continuo para aplicar estrategias pedagógicas activas e interdisciplinarias propias del enfoque STEM. Esto genera un rezago en la calidad educativa y afecta los resultados académicos y la motivación de los estudiantes en estas áreas.</blockquote>
-            </li>
-            <li><strong>Causa directa 1:</strong> en proyectos de IA aplicada, se relaciona con el levantamiento de datos: sensores, baterías de pruebas, levantamiento de información y construcción de bases de datos (sin infraestructura, con especialistas y con apoyo de las comunidades), calidad de los datos y datos descentralizados.</li>
-            <li><strong>Causa directa 2:</strong> se relaciona con la necesidad de una plataforma interoperable que se alimente de los datos de la causa 1, con buena conectividad, accesible y de buena interacción con el usuario, y con modelos de IA generativa y predictiva, agentes de IA, procesamiento de datos multimodal, de bajo costo, desplegables y de muchas variables.</li>
-            <li><strong>Causa directa 3:</strong> se alinea con la apropiación social y la transferencia de la tecnología: pocos estudios (ninguno en Colombia), barreras con las comunidades, apropiación por parte de ellas e impacto en ellas.</li>
-            <li>Los párrafos de las causas siguen las reglas del árbol de problemas: cada uno expande su causa directa y sus causas indirectas como un estado negativo, nunca como la ausencia de la solución.</li>
-          </ul>
-          <h4>Magnitud del problema</h4>
-          <ul>
-            <li>Cifras que sustentan cada causa directa, con su fuente (autor o entidad, año y enlace o documento de <code>insumos/</code>). Sin fuente verificable, la cifra se marca «[cifra por confirmar]» y nunca se inventa.
-              <blockquote class="mga-rules__example"><strong>Ejemplo:</strong> En Risaralda, según el Sistema de Información Nacional de Educación Básica y Media - SINEB (2022), de 2.248 docentes registrados, solo el 55% cuenta con estudios de posgrado, lo que deja a un número considerable de maestros sin acceso a formación avanzada en pedagogía y tecnología educativa. Esta falta de formación y la escasa apropiación de herramientas tecnológicas limita su capacidad para implementar enfoques pedagógicos innovadores y relevantes (UNICEF, 2020), y genera desinterés y apatía entre los estudiantes, especialmente en el aprendizaje de conceptos STEM. La desconexión entre las expectativas de los estudiantes y las oportunidades educativas disponibles en su contexto social, educativo, productivo y cultural se convierte en un factor intrínseco que agrava esta problemática (Zambrano &amp; Barzaga, 2023), especialmente en Colombia (SINEB, 2022). De acuerdo con las cifras de deserción del Ministerio de Educación Nacional (septiembre, 2024), en Risaralda se registró una tasa de deserción de 4,64% en primaria y 4,26% en media durante el 2023, cifras que, aunque han mostrado una leve disminución respecto a 2022, siguen reflejando una tendencia ascendente desde 2020. Esto reduce las posibilidades de un futuro profesional prometedor y conectado con las demandas territoriales. Estas cifras reflejan un desafío estructural particularmente en las zonas rurales, donde los estudiantes enfrentan una calidad educativa desigual. Según el Ministerio de Educación Nacional, los estudiantes rurales obtienen un rendimiento de 5 a 10 puntos por debajo de sus pares urbanos en las pruebas SABER (ICFES, 2021). Además, solo el 30% de los estudiantes alcanzan niveles altos de competencias en matemáticas, mientras que más del 50% no logran el nivel esperado en ciencias naturales y matemáticas, áreas fundamentales para el desarrollo de competencias STEM. Esta es una realidad para 76.545 estudiantes de la básica primaria y media técnica, 4.235 docentes y 1.103 sedes del departamento.</blockquote>
-            </li>
-            <li>El indicador de línea base es el más flexible y fácil de cuantificar según el árbol y las causas; en proyectos de IA aplicada se alinea con la plataforma. Se desarrolla en 2 o 3 párrafos.</li>
-            <li>Una tabla reúne los indicadores (indicador, causa, valor, fuente y año) y resalta en negrilla el que el proyecto busca mover, marcado como «línea base del proyecto».</li>
-            <li>Ese indicador coincide con la magnitud del tronco del árbol de problemas; si cambia, se actualiza el árbol y se vuelve a aprobar.</li>
-          </ul>
-          <p class="tree-rules__source">Fuente: estructura del MGA resumido acordada para Morfeo (investigador, regla 15) y reglas MGA del árbol de problemas (guía, §3).</p>
-        </details>
-        <div id="mgaContent" class="artifact-viewer is-markdown">Cargando…</div>
       </div>
     </div>
 
@@ -4162,6 +4174,7 @@
   <script src="/static/cli-console.js"></script>
   <script src="/static/estilo-pdf.js"></script>
   <script src="/static/board-refresh.js"></script>
+  <script src="/static/section-folds.js"></script>
   <script src="/static/convocatorias-map.js"></script>
   <script src="/static/convocatorias-progress.js"></script>
   <script>
@@ -4486,7 +4499,7 @@
       fase1b: { label: 'Indicaciones para los árboles', placeholder: 'Problema central (calificativo negativo + variable + población o lugar), causas directas e indirectas, efectos y la magnitud con su fuente…', panel: { tab: 'trees', label: 'Revisar y aprobar en «Árbol de problemas y objetivos»' } },
       fase1b_sgr: { label: 'Indicaciones para la alianza y el territorio', placeholder: 'Entidades de la alianza (IES, actores del SNCTI, entidades territoriales, usuarios o adoptantes, aliado internacional) con su rol, NIT y aportes; demandas territoriales del TdR que el proyecto atiende; departamentos y municipios de ejecución…', panel: { tab: 'alianza', label: 'Ver alianza y territorio' } },
       fase1c: { label: 'Indicaciones para el corpus SOTA', placeholder: 'Temas y enfoques a cubrir, años, revistas o conferencias, papers semilla que no pueden faltar…' },
-      fase1: { label: 'Indicaciones para el MGA resumido y §3', placeholder: 'Sector de aplicación, departamentos o regiones, fuentes de cifras (DANE, IDEAM, ministerios…) e indicador de línea base que buscas mover…', panel: { tab: 'mga', label: 'Ver el MGA resumido' } },
+      fase1: { label: 'Indicaciones para el MGA resumido y §3', placeholder: 'Sector de aplicación, departamentos o regiones, fuentes de cifras (DANE, IDEAM, ministerios…) e indicador de línea base que buscas mover…', panel: { tab: 'mga', label: 'Ver el Proyecto Resumido' } },
       fase2: { label: 'Indicaciones para el estado del arte y la hipótesis', placeholder: 'Enfoques o familias de modelos a priorizar en el estado del arte, papers clave, brechas que quieres resaltar y la idea de la hipótesis…', panel: { tab: 'sections', label: 'Ver §4 y §5 en Secciones' } },
       fase3: { label: 'Indicaciones para la justificación', placeholder: 'ODS, Plan Nacional de Desarrollo, planes departamentales, cifras de contexto y argumentos de pertinencia y TRL…', panel: { tab: 'sections', label: 'Ver §2 en Secciones' } },
       fase4: { label: 'Indicaciones para los objetivos', placeholder: 'Ajustes al objetivo general o a los específicos (siempre desde el árbol de objetivos aprobado), verbos o alcances que quieras privilegiar…', panel: { tab: 'trees', label: 'Ver el árbol de objetivos' } },
@@ -9097,6 +9110,13 @@
     }
 
     function navigateTab(tabId) {
+      // «MGA resumido» was a tab; it is now the «Proyecto Resumido» fold of the
+      // trees pane, so old #mga links land there with the fold open.
+      if (tabId === 'mga') {
+        if (window.SectionFolds) window.SectionFolds.open(MGA_FOLD);
+        navigateTab('trees');
+        return;
+      }
       if (tabId === 'gates') {
         tabId = 'pipeline';
         activeTab = 'pipeline';
@@ -9159,7 +9179,7 @@
 
       if (tabId === 'sections' && isSgrFlujo()) loadStyleSgr();
 
-      if (tabId === 'mga') loadMgaResumido();
+      if (tabId === 'trees' && mgaFoldOpen()) loadMgaResumido();
 
       if (tabId === 'sections') loadTdrChapters();
 
@@ -9429,14 +9449,38 @@
       }
     }
 
-    // The Fase 1 writes the MGA summary before §3; the tab shows it rendered.
+    // The Fase 1 writes the MGA summary before §3; the «Proyecto Resumido» fold
+    // of the trees pane shows it rendered. The file keeps its name.
     const MGA_FILE = 'artefactos/mga_resumido.md';
+    const MGA_FOLD = 'proyecto-resumido';
 
-    async function loadMgaResumido() {
+    // Without section-folds.js (or before it wraps) the block is plain and visible.
+    function mgaFoldOpen() {
+      const folds = window.SectionFolds;
+      const wrapped = document.querySelector(`details.exp-fold[data-fold-name="${MGA_FOLD}"]`);
+      if (!wrapped) return true;
+      return folds ? folds.isOpen(MGA_FOLD) : wrapped.open;
+    }
+
+    // The content is read lazily: when the trees tab opens with the fold open,
+    // and when the fold is opened.
+    document.addEventListener('toggle', (event) => {
+      const item = event.target;
+      if (item && item.getAttribute && item.getAttribute('data-fold-name') === MGA_FOLD && item.open) loadMgaResumido();
+    }, true);
+
+    // Opening the fold and opening the tab can ask at the same time: one read.
+    let MGA_IN_FLIGHT = null;
+    function loadMgaResumido() {
+      if (!MGA_IN_FLIGHT) MGA_IN_FLIGHT = loadMgaResumidoNow().finally(() => { MGA_IN_FLIGHT = null; });
+      return MGA_IN_FLIGHT;
+    }
+
+    async function loadMgaResumidoNow() {
       const box = document.getElementById('mgaContent');
       if (!box) return;
       const showMissing = () => {
-        box.innerHTML = `<p>Aún no hay MGA resumido. La Fase 1 lo escribe en <code>${MGA_FILE}</code> a partir de los árboles aprobados en G1b, antes de redactar §3.</p>`;
+        box.innerHTML = `<p>Aún no hay Proyecto Resumido. La Fase 1 lo escribe en <code>${MGA_FILE}</code> a partir de los árboles aprobados en G1b, antes de redactar §3.</p>`;
       };
       // The status lists artefactos/*.md: when it is known and the file is not
       // there, no request is made (a 404 would only add console noise).

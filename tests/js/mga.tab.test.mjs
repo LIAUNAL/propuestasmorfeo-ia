@@ -1,16 +1,23 @@
 /**
- * Pestaña «MGA resumido».
+ * «Proyecto Resumido», the fold of the trees panel that replaced the «MGA
+ * resumido» tab (odd/tasks/tablero-juez-novedad.md, S3).
  *
  * Se ejecuta el JavaScript real del tablero bajo jsdom; `/api/artifact` se
- * sustituye por un doble determinista. Se observa el orden de las pestañas, el
- * archivo que se pide y el Markdown renderizado (títulos, tabla y la línea base
- * resaltada).
+ * sustituye por un doble determinista. The harness does not inline
+ * static/section-folds.js, so these tests evaluate the real file in the page's
+ * window after it loads, as board.refresh.test.mjs does with its script. Se
+ * observa la navegación, el pliegue, el archivo que se pide y el Markdown
+ * renderizado (títulos, tabla y la línea base resaltada).
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
-import { createViewerHarness, flush } from './harness.mjs';
+import { createViewerHarness, DASHBOARD_STATIC, flush } from './harness.mjs';
+
+const FOLDS_SCRIPT = readFileSync(path.join(DASHBOARD_STATIC, 'section-folds.js'), 'utf8');
 
 const MGA = `# Planteamiento del problema
 
@@ -32,7 +39,7 @@ function text(body, status = 200) {
   return { ok: status < 400, status, json: async () => ({}), text: async () => body };
 }
 
-async function harness(t, respond) {
+async function harness(t, respond, { folds = true } = {}) {
   const viewer = await createViewerHarness({ numPages: 1 });
   t.after(() => viewer.dispose());
   const requests = [];
@@ -42,17 +49,36 @@ async function harness(t, respond) {
     if (u.includes('/api/artifact')) return respond(u);
     return text('', 503);
   };
+  try { viewer.window.localStorage.clear(); } catch (_) { /* storage blocked */ }
+  if (folds) viewer.window.eval(FOLDS_SCRIPT);
   return { viewer, requests };
 }
 
-test('la pestaña queda entre «Árbol de problemas y objetivos» y «Secciones»', async (t) => {
+const fold = (document) => document.querySelector('#pane-trees details.exp-fold[data-fold-name="proyecto-resumido"]');
+
+test('the «MGA resumido» tab is gone from the navigation and its pane is removed', async (t) => {
   const { viewer } = await harness(t, () => text(MGA));
   const labels = Array.from(viewer.document.querySelectorAll('.tab-nav__btn')).map(b => b.textContent.trim());
-  const i = labels.indexOf('MGA resumido');
-  assert.ok(i > 0, 'la pestaña existe');
-  assert.equal(labels[i - 1], 'Árbol de problemas y objetivos');
-  assert.equal(labels[i + 1], 'Secciones');
-  assert.ok(viewer.document.getElementById('pane-mga'));
+  assert.ok(!labels.includes('MGA resumido'), labels.join(' | '));
+  assert.ok(!labels.includes('Proyecto Resumido'), 'Proyecto Resumido is a fold, not a tab');
+  const mgaButtons = Array.from(viewer.document.querySelectorAll('.tab-nav__btn'))
+    .filter(b => (b.getAttribute('onclick') || '').includes("'mga'"));
+  assert.equal(mgaButtons.length, 0);
+  assert.equal(viewer.document.getElementById('pane-mga'), null);
+});
+
+test('the trees panel holds a «Proyecto Resumido» fold below the tree stage, closed by default', async (t) => {
+  const { viewer } = await harness(t, () => text(MGA));
+  const doc = viewer.document;
+  const details = fold(doc);
+  assert.ok(details, 'the fold exists');
+  assert.equal(details.querySelector('.exp-fold__title').textContent.trim(), 'Proyecto Resumido');
+  assert.equal(details.open, false);
+  assert.ok(details.querySelector('#mgaContent'), 'the content box lives in the fold');
+  assert.ok(details.querySelector('#mgaRules'), 'the rules live in the fold');
+  const layout = doc.querySelector('#pane-trees .tree-layout');
+  assert.ok(layout.compareDocumentPosition(details) & viewer.window.Node.DOCUMENT_POSITION_FOLLOWING, 'the fold follows the tree stage');
+  assert.doesNotMatch(doc.getElementById('pane-trees').textContent, /MGA resumido/);
 });
 
 test('carga artefactos/mga_resumido.md y lo pinta como Markdown', async (t) => {
@@ -68,18 +94,49 @@ test('carga artefactos/mga_resumido.md y lo pinta como Markdown', async (t) => {
   assert.match(box.querySelector('table strong').textContent, /línea base del proyecto/);
 });
 
-test('sin el archivo, explica que lo escribe la Fase 1', async (t) => {
+test('sin el archivo, explica que lo escribe la Fase 1 y nombra el Proyecto Resumido', async (t) => {
   const { viewer } = await harness(t, () => text('File not found', 404));
   await viewer.viewer('loadMgaResumido');
   await flush();
   const box = viewer.document.getElementById('mgaContent');
   assert.match(box.textContent, /Fase 1/);
+  assert.match(box.textContent, /Proyecto Resumido/);
+  assert.doesNotMatch(box.textContent, /MGA resumido/);
   assert.equal(box.querySelector('table'), null);
 });
 
-test('navegar a la pestaña dispara la carga', async (t) => {
+test('navigateTab("mga") lands on the trees panel with the fold open and loads the content', async (t) => {
   const { viewer, requests } = await harness(t, () => text(MGA));
   await viewer.viewer('navigateTab', 'mga');
+  await flush();
+  const doc = viewer.document;
+  assert.equal(viewer.window.eval('activeTab'), 'trees');
+  assert.ok(doc.getElementById('pane-trees').classList.contains('active'));
+  assert.equal(viewer.window.location.hash, '#trees');
+  const active = doc.querySelector('.tab-nav__btn.active');
+  assert.equal(active.textContent.trim(), 'Árbol de problemas y objetivos');
+  assert.equal(fold(doc).open, true);
+  assert.ok(requests.some(u => u.includes('mga_resumido.md')));
+});
+
+test('opening the trees tab with the fold closed does not read the file; opening the fold does', async (t) => {
+  const { viewer, requests } = await harness(t, () => text(MGA));
+  await viewer.viewer('navigateTab', 'trees');
+  await flush();
+  assert.ok(!requests.some(u => u.includes('mga_resumido.md')), requests.join(', '));
+  const details = fold(viewer.document);
+  details.open = true;
+  details.dispatchEvent(new viewer.window.Event('toggle'));
+  await flush();
+  assert.ok(requests.some(u => u.includes('mga_resumido.md')));
+  assert.match(viewer.document.getElementById('mgaContent').textContent, /Problema central/);
+});
+
+test('with the fold remembered open, opening the trees tab loads the content', async (t) => {
+  const { viewer, requests } = await harness(t, () => text(MGA), { folds: false });
+  viewer.window.localStorage.setItem('morfeo.folds', JSON.stringify({ 'proyecto-resumido': true }));
+  viewer.window.eval(FOLDS_SCRIPT);
+  await viewer.viewer('navigateTab', 'trees');
   await flush();
   assert.ok(requests.some(u => u.includes('mga_resumido.md')));
 });
@@ -93,16 +150,17 @@ test('un error que no es 404 se informa como error, no como archivo ausente', as
   assert.doesNotMatch(box.textContent, /Aún no hay/);
 });
 
-test('la pestaña muestra las reglas de trabajo del MGA resumido', async (t) => {
+test('el pliegue muestra las reglas de trabajo del Proyecto Resumido', async (t) => {
   const { viewer } = await harness(t, () => text(MGA));
-  const rules = viewer.document.querySelector('#pane-mga details.tree-rules#mgaRules');
+  const rules = viewer.document.querySelector('#pane-trees details.tree-rules#mgaRules');
   assert.ok(rules, 'el desplegable de reglas existe');
-  assert.equal(rules.querySelector('summary').textContent.trim(), 'Reglas para construir el MGA resumido');
+  assert.equal(rules.querySelector('summary').textContent.trim(), 'Reglas para construir el Proyecto Resumido');
   const txt = rules.textContent;
   for (const rule of [/copiado textual/, /Descripción de la situación existente:/, /desde los antecedentes y el sector de aplicación/, /departamentos o regiones/, /Causa directa 1/, /plataforma interoperable/, /apropiación social/, /línea base/, /tabla/, /\[cifra por confirmar\]/]) {
     assert.match(txt, rule);
   }
   assert.doesNotMatch(txt, /Contexto general/);
+  assert.doesNotMatch(txt, /MGA resumido/);
 });
 
 test('la regla de la situación existente trae su ejemplo', async (t) => {
