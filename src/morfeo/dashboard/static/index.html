@@ -3050,6 +3050,7 @@
     <button class="tab-nav__btn" onclick="navigateTab('convocatorias')">Convocatorias</button>
     <button class="tab-nav__btn" onclick="navigateTab('pipeline')">Pipeline y Avance</button>
     <button class="tab-nav__btn" onclick="navigateTab('trees')">Árbol de problemas y objetivos</button>
+    <button class="tab-nav__btn" onclick="navigateTab('novedad')">Novedad e hipótesis</button>
     <button class="tab-nav__btn" onclick="navigateTab('sections')">Secciones</button>
       <button class="tab-nav__btn" onclick="navigateTab('judge')">Juez final</button>
     <button class="tab-nav__btn" onclick="navigateTab('atlas')">Grafos Proyecto</button>
@@ -3293,6 +3294,27 @@
       <!-- Juez de avance, stage `arbol` (judge-avance.js; agent juez-avance). -->
       <section class="panel" id="treeJudgeFold" data-fold="juez-avance-arbol" data-fold-title="Juez de avance" data-fold-open>
         <div id="treeJudgeAvance"></div>
+      </section>
+    </div>
+
+    <!-- TAB: NOVEDAD E HIPÓTESIS (novedad-panel.js; command /propuesta-novedad, script scripts/novedad.py) -->
+    <div id="pane-novedad" class="tab-pane">
+      <div class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Novedad e hipótesis</div>
+          <span class="panel__meta" data-nov-slot="meta">—</span>
+        </div>
+        <div data-nov-slot="head"></div>
+      </div>
+      <section class="panel" data-fold="novedad-pilares" data-fold-title="Pilares e hipótesis" data-fold-open>
+        <div data-nov-slot="tree"></div>
+      </section>
+      <section class="panel" data-fold="novedad-matriz" data-fold-title="Matriz del proyecto">
+        <div data-nov-slot="matrix"></div>
+      </section>
+      <!-- Juez de avance, stage `novedad` (judge-avance.js, mounted by novedad-panel.js). -->
+      <section class="panel" data-fold="juez-avance-novedad" data-fold-title="Juez de avance" data-fold-open>
+        <div data-nov-slot="judge"></div>
       </section>
     </div>
 
@@ -4181,6 +4203,7 @@
   <script src="/static/board-refresh.js"></script>
   <script src="/static/section-folds.js"></script>
   <script src="/static/judge-avance.js"></script>
+  <script src="/static/novedad-panel.js"></script>
   <script src="/static/convocatorias-map.js"></script>
   <script src="/static/convocatorias-progress.js"></script>
   <script>
@@ -5232,6 +5255,21 @@
       if (TREE_JUDGE) TREE_JUDGE.stop();
     }
 
+    // «Novedad e hipótesis» (novedad-panel.js): mounted on first use, with the
+    // stage judge `novedad` inside; it polls only while the tab is open.
+    let NOVEDAD_PANEL = null;
+    function startNovedadPanel() {
+      if (!NOVEDAD_PANEL && window.NovedadPanel) {
+        const root = document.getElementById('pane-novedad');
+        if (root) NOVEDAD_PANEL = window.NovedadPanel.mount(root, { interval: 4000 });
+      }
+      if (NOVEDAD_PANEL) NOVEDAD_PANEL.start();
+    }
+
+    function stopNovedadPanel() {
+      if (NOVEDAD_PANEL) NOVEDAD_PANEL.stop();
+    }
+
     function setTreeView(view) {
       TREES_STATE.view = ['objetivos', 'relaciones'].includes(view) ? view : 'problemas';
       TREES_STATE.selected = null;
@@ -6000,6 +6038,14 @@
 
     // El botón solo existe en el flujo SGR, justo después del de los árboles: en
     // el flujo base la barra de pestañas queda como antes.
+    // The SGR tabs follow «Novedad e hipótesis», which follows the trees tab;
+    // without the novelty button they fall back to the trees tab.
+    function sgrTabsAnchor(nav) {
+      const btns = Array.from(nav.querySelectorAll('.tab-nav__btn'));
+      const by = (tab) => btns.find(b => (b.getAttribute('onclick') || '').includes(`'${tab}'`));
+      return by('novedad') || by('trees');
+    }
+
     function syncValueChainTab() {
       const nav = document.querySelector('.tabs-nav');
       if (!nav) return;
@@ -6014,7 +6060,7 @@
       btn.className = `tab-nav__btn${activeTab === 'cadena' ? ' active' : ''}`;
       btn.setAttribute('onclick', "navigateTab('cadena')");
       btn.textContent = 'Cadena de valor';
-      const trees = Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+      const trees = sgrTabsAnchor(nav);
       if (trees) trees.after(btn);
       else nav.appendChild(btn);
     }
@@ -6288,7 +6334,7 @@
       btn.setAttribute('onclick', "navigateTab('alianza')");
       btn.textContent = 'Alianza y territorio';
       const anchor = document.getElementById('valueChainTabBtn')
-        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+        || sgrTabsAnchor(nav);
       if (anchor) anchor.after(btn);
       else nav.appendChild(btn);
     }
@@ -6679,7 +6725,7 @@
       btn.setAttribute('onclick', "navigateTab('presupuesto')");
       btn.textContent = 'Presupuesto y cronograma';
       const anchor = document.getElementById('allianceTabBtn') || document.getElementById('valueChainTabBtn')
-        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+        || sgrTabsAnchor(nav);
       if (anchor) anchor.after(btn);
       else nav.appendChild(btn);
     }
@@ -7144,7 +7190,7 @@
       btn.textContent = 'TRL y componentes';
       const anchor = document.getElementById('budgetTabBtn') || document.getElementById('allianceTabBtn')
         || document.getElementById('valueChainTabBtn')
-        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+        || sgrTabsAnchor(nav);
       if (anchor) anchor.after(btn);
       else nav.appendChild(btn);
     }
@@ -7542,7 +7588,7 @@
       btn.textContent = 'Productos e indicadores';
       const anchor = document.getElementById('componentsTabBtn') || document.getElementById('budgetTabBtn')
         || document.getElementById('allianceTabBtn') || document.getElementById('valueChainTabBtn')
-        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+        || sgrTabsAnchor(nav);
       if (anchor) anchor.after(btn);
       else nav.appendChild(btn);
     }
@@ -7941,7 +7987,7 @@
       const anchor = document.getElementById('productsTabBtn') || document.getElementById('componentsTabBtn')
         || document.getElementById('budgetTabBtn') || document.getElementById('allianceTabBtn')
         || document.getElementById('valueChainTabBtn')
-        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+        || sgrTabsAnchor(nav);
       if (anchor) anchor.after(btn);
       else nav.appendChild(btn);
     }
@@ -8348,7 +8394,7 @@
       const anchor = document.getElementById('requirementsTabBtn') || document.getElementById('productsTabBtn')
         || document.getElementById('componentsTabBtn') || document.getElementById('budgetTabBtn')
         || document.getElementById('allianceTabBtn') || document.getElementById('valueChainTabBtn')
-        || Array.from(nav.querySelectorAll('.tab-nav__btn')).find(b => (b.getAttribute('onclick') || '').includes("'trees'"));
+        || sgrTabsAnchor(nav);
       if (anchor) anchor.after(btn);
       else nav.appendChild(btn);
     }
@@ -9170,6 +9216,9 @@
 
       if (tabId === 'trees') { startTreesPolling(); startTreeJudge(); }
       else { stopTreesPolling(); stopTreeJudge(); }
+
+      if (tabId === 'novedad') startNovedadPanel();
+      else stopNovedadPanel();
 
       if (tabId === 'judge') startJudgePolling();
       else stopJudgePolling();
@@ -13188,7 +13237,7 @@
     // Hash routing on load
     window.addEventListener('load', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['pipeline', 'flow', 'trees', 'mga', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'requisitos', 'anexo2', 'convocatorias', 'estilo', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
+      if (hash && ['pipeline', 'flow', 'trees', 'novedad', 'mga', 'sections', 'judge', 'cadena', 'alianza', 'presupuesto', 'componentes', 'productos', 'requisitos', 'anexo2', 'convocatorias', 'estilo', 'gates', 'telemetria', 'atlas', 'preview', 'artifacts'].includes(hash)) {
         navigateTab(hash);
       }
       const flowPane = document.getElementById('pane-flow');

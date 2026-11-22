@@ -149,3 +149,13 @@ test('the modal footer buttons (.btn-secondary, .btn-primary) have CSS rules', a
   }
   assert.ok(viewer.document.querySelector('#phaseExecModal .btn-secondary'), 'the phase modal uses .btn-secondary');
 });
+
+test('a deep link to #novedad opens and reveals the novelty tab on load', async (t) => {
+  const { viewer } = await harness(t);
+  const calls = spyScrollIntoView(viewer);
+  viewer.window.history.replaceState(null, '', '#novedad');
+  viewer.window.dispatchEvent(new viewer.window.Event('load'));
+  await flush();
+  assert.ok(viewer.document.getElementById('pane-novedad').classList.contains('active'));
+  assert.ok(calls.some(c => c.el === tabButton(viewer, 'novedad')));
+});

@@ -29,6 +29,7 @@ from ..core import board
 from ..core.status import get_project_status, read_flujo, record_server_start
 from ..core.judge import EVALUACION_FILE, JUDGE_COMMAND, build_action_prompt, load_judge
 from ..core.judge_avance import ETAPAS as JUDGE_AVANCE_ETAPAS, build_run_command as build_judge_avance_command, load_judge_avance
+from ..core.novedad import build_run_command as build_novedad_command, load_novedad
 from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
 from ..core.style_sgr import load_style
 from ..core.value_chain import approve as approve_value_chain, build_adjust_prompt, load_value_chain
@@ -128,7 +129,7 @@ BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 # Page code moved out of index.html: it must stay as fresh as the page that
 # loads it, so a cached copy never runs against a newer index.html.
 PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js", "convocatorias-progress.js",
-                          "estilo-pdf.js"})
+                          "estilo-pdf.js", "novedad-panel.js"})
 
 
 # --- Sentence text of the style findings --------------------------------------
@@ -257,6 +258,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_judge()
         elif path == "/api/judge-avance":
             self.serve_judge_avance()
+        elif path == "/api/novedad":
+            self.serve_novedad()
         elif path == "/api/value-chain":
             self.serve_value_chain()
         elif path == "/api/alliance":
@@ -306,6 +309,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_judge_run()
         elif path == "/api/judge-avance/run":
             self.handle_judge_avance_run()
+        elif path == "/api/novedad/run":
+            self.handle_novedad_run()
         elif path == "/api/value-chain/approve":
             self.handle_value_chain_approve()
         elif path == "/api/value-chain/adjust":
@@ -838,6 +843,27 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {"ok": False, "error": f"Etapa desconocida: usa {' o '.join(JUDGE_AVANCE_ETAPAS)}."})
             return
         self._send_json(200, {"ok": True, "etapa": etapa, "prompt": build_judge_avance_command(etapa)})
+
+    # Novedad e hipótesis: el servidor lee el artefacto que registró
+    # scripts/novedad.py, con la matriz y la validación que deriva ese mismo
+    # script, y devuelve el comando de barra que lo genera; el tablero lo entrega
+    # a la terminal con sendTerminalPrompt.
+    def serve_novedad(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_novedad(run_dir)})
+
+    def handle_novedad_run(self) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if self._active_run_dir() is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        self._send_json(200, {"ok": True, "prompt": build_novedad_command()})
 
     # Cadena de valor y estilo SGR (solo flujo SGR; en el base responden sin datos).
     # El ajuste, como en los árboles y el juez, devuelve el prompt y el tablero lo

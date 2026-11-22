@@ -150,3 +150,26 @@ test('Estilo: sin reporte invita a generarlo', async () => {
   for (let i = 0; i < 10; i++) await tick();
   assert.match(doc.getElementById('pane-estilo').textContent, /Aún no hay reporte/);
 });
+
+// odd/tasks/tablero-juez-novedad.md, T5 (S4): «Novedad e hipótesis» follows the
+// trees tab and the SGR tabs, inserted by the flow, come after it.
+const tabLabels = doc => Array.from(doc.querySelectorAll('.tab-nav__btn')).filter(b => !b.hidden).map(b => b.textContent.trim());
+
+test('SGR: el orden es árbol, novedad y luego las pestañas SGR', async () => {
+  const { doc } = await boot('sgr');
+  const labels = tabLabels(doc);
+  const i = labels.indexOf('Árbol de problemas y objetivos');
+  assert.deepEqual(labels.slice(i, i + 9), [
+    'Árbol de problemas y objetivos', 'Novedad e hipótesis', 'Cadena de valor', 'Alianza y territorio',
+    'Presupuesto y cronograma', 'TRL y componentes', 'Productos e indicadores', 'Requisitos y anexos', 'Anexo 2',
+  ]);
+  assert.equal(labels[i + 9], 'Secciones');
+});
+
+test('Base: novedad sigue al árbol y no aparecen pestañas SGR', async () => {
+  const { doc } = await boot('base');
+  const labels = tabLabels(doc);
+  const i = labels.indexOf('Árbol de problemas y objetivos');
+  assert.deepEqual(labels.slice(i, i + 3), ['Árbol de problemas y objetivos', 'Novedad e hipótesis', 'Secciones']);
+  assert.ok(!labels.includes('Cadena de valor'));
+});
