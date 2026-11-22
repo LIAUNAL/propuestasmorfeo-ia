@@ -13,12 +13,13 @@
  *
  * Public surface (window.JudgeAvance):
  *   mount(root, { etapa, interval, fetch, send }) -> controller
- *     etapa     'arbol' (trees pane) or 'novedad' (novelty pane); default 'arbol'
+ *     etapa     'arbol' (trees pane), 'novedad' (novelty pane) or 'final' (the
+ *               «Juez final» fold of the PDF preview, base flow); default 'arbol'
  *     interval  polling period in ms while started; default 5000
  *     fetch     fetch implementation; default window.fetch at call time
  *     send      async (prompt) => boolean; default window.sendTerminalPrompt
  *   controller: refresh(), run(), retry(), start(), stop(), polling, data
- *   render(data, { pending }) -> HTML of the body (pure)
+ *   render(data, { pending, etapa }) -> HTML of the body (pure)
  *   tone(score) -> 'ok' | 'warn' | 'bad'
  *   THRESHOLDS  { ok: 75, warn: 50 }
  */
@@ -30,7 +31,29 @@
   const STAGES = {
     arbol: 'el árbol de problemas y objetivos',
     novedad: 'la novedad y las hipótesis',
+    final: 'la propuesta completa',
   };
+
+  // UI copy per stage. `arbol` and `novedad` judge the proposal up to a panel;
+  // `final` judges the whole proposal and is the final judge of the base flow.
+  function copy(etapa) {
+    if (etapa === 'final') {
+      return {
+        name: 'juez final',
+        intro: 'El juez final puntúa la propuesta completa (0 a 100), con todas sus secciones y las dependencias cruzadas de la guía, y resume la idea, sus puntos fuertes, sus puntos débiles y las alertas. Es asesor: no cambia el veredicto del revisor ni aprueba compuertas.',
+        run: 'Evaluar la propuesta',
+        empty: 'Aún no hay evaluación de la propuesta completa. Pulsa «Evaluar la propuesta» para que el juez final lea todas las secciones.',
+        pending: 'Evaluación en curso: el juez final está leyendo la propuesta completa. La ronda nueva aparece aquí cuando termine.',
+      };
+    }
+    return {
+      name: 'juez de avance',
+      intro: `El juez de avance puntúa la propuesta hasta ${STAGES[etapa] || STAGES.arbol} (0 a 100) y resume la idea, sus puntos fuertes, sus puntos débiles y las alertas. Es asesor: no cambia el veredicto del revisor ni aprueba compuertas.`,
+      run: 'Evaluar hasta aquí',
+      empty: 'Aún no hay evaluación de esta etapa. Pulsa «Evaluar hasta aquí» para que el juez de avance lea la propuesta hasta este punto.',
+      pending: 'Evaluación en curso: el juez de avance está leyendo la propuesta. La ronda nueva aparece aquí cuando termine.',
+    };
+  }
 
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -110,10 +133,11 @@
   function render(data, options) {
     const d = obj(data);
     const pending = !!(options && options.pending);
+    const text = copy(options && options.etapa);
     const errors = list(d.errores);
     const parts = [];
     if (pending) {
-      parts.push('<p class="ja-pending" role="status">Evaluación en curso: el juez de avance está leyendo la propuesta. La ronda nueva aparece aquí cuando termine.</p>');
+      parts.push(`<p class="ja-pending" role="status">${esc(text.pending)}</p>`);
     }
     if (errors.length) {
       parts.push(`<div class="ja-errors"><strong>No se pudo leer la evaluación</strong><ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>`);
@@ -121,7 +145,7 @@
     const current = d.evaluacion && typeof d.evaluacion === 'object' ? d.evaluacion : null;
     if (!current) {
       if (!errors.length && !pending) {
-        parts.push('<p class="ja-empty">Aún no hay evaluación de esta etapa. Pulsa «Evaluar hasta aquí» para que el juez de avance lea la propuesta hasta este punto.</p>');
+        parts.push(`<p class="ja-empty">${esc(text.empty)}</p>`);
       }
       return parts.join('');
     }
@@ -200,14 +224,15 @@
     const doFetch = opts.fetch || ((...args) => window.fetch(...args));
     const send = opts.send || ((prompt) => window.sendTerminalPrompt(prompt));
     const doc = root.ownerDocument;
+    const text = copy(etapa);
     injectStyles(doc);
 
     root.classList.add('ja');
     root.setAttribute('data-judge-avance-etapa', etapa);
     root.innerHTML = `
-      <p class="ja-intro">El juez de avance puntúa la propuesta hasta ${esc(STAGES[etapa])} (0 a 100) y resume la idea, sus puntos fuertes, sus puntos débiles y las alertas. Es asesor: no cambia el veredicto del revisor ni aprueba compuertas.</p>
+      <p class="ja-intro">${esc(text.intro)}</p>
       <div class="ja-toolbar">
-        <button class="btn btn--sm btn--primary ja-run" type="button">Evaluar hasta aquí</button>
+        <button class="btn btn--sm btn--primary ja-run" type="button">${esc(text.run)}</button>
         <button class="btn btn--sm ja-retry" type="button" hidden>Reintentar envío</button>
         <span class="ja-message" role="status" aria-live="polite"></span>
       </div>
@@ -233,7 +258,7 @@
       const sig = JSON.stringify([state.data, !!state.pending]);
       if (sig === state.sig) return;
       state.sig = sig;
-      body.innerHTML = render(state.data, { pending: !!state.pending });
+      body.innerHTML = render(state.data, { pending: !!state.pending, etapa });
       runBtn.disabled = !!state.pending;
     }
 
@@ -244,14 +269,14 @@
         data = await res.json();
         if (!res.ok || !data || data.ok === false) throw new Error((data && data.error) || `HTTP ${res.status}`);
       } catch (err) {
-        state.data = { errores: [`No se pudo consultar el juez de avance: ${err && err.message ? err.message : err}`] };
+        state.data = { errores: [`No se pudo consultar el ${text.name}: ${err && err.message ? err.message : err}`] };
         paint();
         return state.data;
       }
       state.data = data;
       if (state.pending && currentRound() > state.pending.from) {
         state.pending = null;
-        say(`Llegó la ronda ${currentRound()} del juez de avance.`, 'ok');
+        say(`Llegó la ronda ${currentRound()} del ${text.name}.`, 'ok');
       }
       paint();
       return data;

@@ -28,7 +28,7 @@ from ..core.sgr_rules import load_sgr_blocks
 from ..core import board
 from ..core.status import get_project_status, read_flujo, record_server_start
 from ..core.judge import EVALUACION_FILE, JUDGE_COMMAND, build_action_prompt, load_judge
-from ..core.judge_avance import ETAPAS as JUDGE_AVANCE_ETAPAS, build_run_command as build_judge_avance_command, load_judge_avance
+from ..core.judge_avance import ETAPAS as JUDGE_AVANCE_ETAPAS, ETAPAS_TEXTO as JUDGE_AVANCE_ETAPAS_TEXTO, build_run_command as build_judge_avance_command, load_judge_avance
 from ..core.novedad import build_run_command as build_novedad_command, load_novedad
 from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
 from ..core.style_sgr import load_style
@@ -824,7 +824,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             return
         self._send_json(200, {"ok": True, "prompt": JUDGE_COMMAND})
 
-    # El juez de avance (etapas `arbol` y `novedad`): como el juez final, el
+    # El juez de avance (etapas `arbol`, `novedad` y `final`, esta última el
+    # juez final del flujo base): como el juez final SGR, el
     # servidor solo lee la ronda registrada y devuelve el comando de barra; el
     # tablero lo entrega a la terminal con sendTerminalPrompt.
     def serve_judge_avance(self) -> None:
@@ -835,7 +836,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         etapa = (query.get("etapa") or ["arbol"])[0] or "arbol"
         if etapa not in JUDGE_AVANCE_ETAPAS:
-            self._send_json(400, {"ok": False, "error": f"Etapa desconocida: usa {' o '.join(JUDGE_AVANCE_ETAPAS)}."})
+            self._send_json(400, {"ok": False, "error": f"Etapa desconocida: usa {JUDGE_AVANCE_ETAPAS_TEXTO}."})
             return
         self._send_json(200, {"ok": True, "run": run_dir.name, **load_judge_avance(run_dir, etapa)})
 
@@ -849,7 +850,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             return
         etapa = str(payload.get("etapa") or "arbol")
         if etapa not in JUDGE_AVANCE_ETAPAS:
-            self._send_json(400, {"ok": False, "error": f"Etapa desconocida: usa {' o '.join(JUDGE_AVANCE_ETAPAS)}."})
+            self._send_json(400, {"ok": False, "error": f"Etapa desconocida: usa {JUDGE_AVANCE_ETAPAS_TEXTO}."})
             return
         self._send_json(200, {"ok": True, "etapa": etapa, "prompt": build_judge_avance_command(etapa)})
 

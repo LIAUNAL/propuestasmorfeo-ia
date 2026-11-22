@@ -3,7 +3,8 @@
 
 The juez-avance agent reads the proposal "up to this point" (stage `arbol`:
 idea, inputs, TDR-adjusted guide and the two trees; stage `novedad`: that plus
-the novelty and hypotheses artifact) and writes a draft with a score, a short
+the novelty and hypotheses artifact; stage `final`: the whole proposal, the
+final judge of the base flow) and writes a draft with a score, a short
 verdict, the idea summary, strengths, weaknesses and alerts. This script does
 what must not depend on the model: it validates the draft strictly, numbers the
 round, dates it, keeps the earlier rounds in `historial` and writes the record
@@ -11,8 +12,8 @@ atomically. The agent never writes the record by hand. Standard library only,
 like the rest of Morfeo's scripts. Advisory: nothing here touches a gate.
 
 Usage:
-  python3 scripts/juez_avance.py validar   RUN_ROOT --etapa arbol|novedad [--borrador PATH] [--json]
-  python3 scripts/juez_avance.py registrar RUN_ROOT --etapa arbol|novedad [--borrador PATH] [--json]
+  python3 scripts/juez_avance.py validar   RUN_ROOT --etapa arbol|novedad|final [--borrador PATH] [--json]
+  python3 scripts/juez_avance.py registrar RUN_ROOT --etapa arbol|novedad|final [--borrador PATH] [--json]
 
 Files (under RUN_ROOT/artefactos/juez/):
   avance_<etapa>_borrador.json  draft written by the agent (default --borrador);
@@ -39,7 +40,7 @@ import tempfile
 from pathlib import Path
 
 SCHEMA = "morfeo.juez-avance/v1"
-ETAPAS = ("arbol", "novedad")
+ETAPAS = ("arbol", "novedad", "final")
 NIVELES = ("alta", "media", "baja")
 JUEZ_DIR = Path("artefactos") / "juez"
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -324,14 +325,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("comando", choices=("validar", "registrar"))
     parser.add_argument("run_root", help="carpeta de la corrida (proposals/<run-id>)")
-    parser.add_argument("--etapa", required=True, help="arbol o novedad")
+    parser.add_argument("--etapa", required=True, help="arbol, novedad o final")
     parser.add_argument("--borrador", help="ruta del borrador (por defecto artefactos/juez/avance_<etapa>_borrador.json)")
     parser.add_argument("--json", action="store_true", help="salida en JSON")
     args = parser.parse_args(argv)
     run = Path(args.run_root).resolve()
     try:
         if args.etapa not in ETAPAS:
-            raise JuezAvanceError(f"Etapa desconocida {args.etapa!r}: usa {' o '.join(ETAPAS)}.")
+            raise JuezAvanceError(f"Etapa desconocida {args.etapa!r}: usa {', '.join(ETAPAS[:-1])} o {ETAPAS[-1]}.")
         if not run.is_dir():
             raise JuezAvanceError(f"No existe la corrida {run}.")
         borrador = Path(args.borrador).resolve() if args.borrador else None

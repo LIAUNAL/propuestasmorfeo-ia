@@ -19,7 +19,7 @@ cada fase al subagente correspondiente definido en `.claude/agents/`.
 | `/propuesta-exportar` | Empaqueta y exporta la corrida activa con artefactos a .tar.gz o .zip |
 | `/propuesta-limpiar` | Cierra la corrida activa |
 | `/propuesta-juez` | Juez SGR: puntaje estimado, alertas y acciones (asesor) |
-| `/propuesta-juez-avance` | Juez de avance por etapa (`arbol` o `novedad`, asesor) |
+| `/propuesta-juez-avance` | Juez de avance por etapa (`arbol`, `novedad` o `final`, asesor) |
 | `/propuesta-novedad` | Pilares de novedad e hipótesis para el tablero (asesor) |
 | `/propuesta-convocatorias` | Convocatorias afines (CO, LatAm, intl.; es/en) al tablero |
 | `/compilar-pdf` | Compila la corrida activa a PDF (`build.sh` en `redaccion/`) |

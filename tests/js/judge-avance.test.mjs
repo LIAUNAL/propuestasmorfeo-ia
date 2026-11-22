@@ -112,6 +112,41 @@ test('earlier rounds stay collapsed under the current one', async () => {
   assert.ok(rounds[0].querySelector('.ja-score.ja-tone--bad'));
 });
 
+test('stage final judges the whole proposal: its own query, copy, button and command', async () => {
+  const finalRound = { ...ROUND, etapa: 'final', veredicto: 'Propuesta completa coherente.' };
+  const answer = (url) => (url === '/api/judge-avance/run'
+    ? json({ ok: true, etapa: 'final', prompt: '/propuesta-juez-avance final' })
+    : json({ ...judgePayload(null), etapa: 'final', archivo: 'artefactos/juez/avance_final.json' }));
+  const { controller, root, calls, prompts } = await mountPage({ etapa: 'final', answer });
+  assert.equal(controller.etapa, 'final');
+  assert.equal(root.getAttribute('data-judge-avance-etapa'), 'final');
+  assert.match(root.querySelector('.ja-intro').textContent, /propuesta completa/);
+  assert.doesNotMatch(root.querySelector('.ja-intro').textContent, /hasta/);
+  assert.equal(root.querySelector('.ja-run').textContent.trim(), 'Evaluar la propuesta');
+  await controller.refresh();
+  assert.ok(calls.some(c => c.url === '/api/judge-avance?etapa=final'));
+  assert.match(root.textContent, /Aún no hay evaluación de la propuesta completa/);
+  assert.match(root.textContent, /«Evaluar la propuesta»/);
+  await controller.run();
+  assert.deepEqual(prompts, ['/propuesta-juez-avance final']);
+  assert.deepEqual(JSON.parse(calls.find(c => c.method === 'POST').body), { etapa: 'final' });
+  assert.match(root.querySelector('.ja-pending').textContent, /juez final/);
+  const ui = await mountPage({ etapa: 'final', answer: () => json({ ...judgePayload(finalRound), etapa: 'final' }) });
+  await ui.controller.refresh();
+  assert.match(ui.root.querySelector('.ja-verdict').textContent, /Propuesta completa coherente/);
+});
+
+test('stages arbol and novedad keep their copy', async () => {
+  for (const [etapa, phrase] of [['arbol', 'el árbol de problemas y objetivos'], ['novedad', 'la novedad y las hipótesis']]) {
+    const { root, controller } = await mountPage({ etapa, answer: () => json(judgePayload(null)) });
+    assert.equal(root.querySelector('.ja-intro').textContent,
+      `El juez de avance puntúa la propuesta hasta ${phrase} (0 a 100) y resume la idea, sus puntos fuertes, sus puntos débiles y las alertas. Es asesor: no cambia el veredicto del revisor ni aprueba compuertas.`);
+    assert.equal(root.querySelector('.ja-run').textContent.trim(), 'Evaluar hasta aquí');
+    await controller.refresh();
+    assert.match(root.textContent, /Aún no hay evaluación de esta etapa\. Pulsa «Evaluar hasta aquí» para que el juez de avance lea la propuesta hasta este punto\./);
+  }
+});
+
 test('the badge tone follows the thresholds', async () => {
   const { window } = await mountPage();
   const tone = window.JudgeAvance.tone;

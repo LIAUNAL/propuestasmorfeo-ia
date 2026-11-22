@@ -126,6 +126,29 @@ class TestRegistrar(unittest.TestCase):
             self.assertFalse(record_path(run, "arbol").exists())
             self.assertEqual(json.loads(record_path(run, "novedad").read_text(encoding="utf-8"))["etapa"], "novedad")
 
+    def test_the_final_stage_judges_the_whole_proposal_in_its_own_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(tmp)
+            write_draft(run, {**DRAFT, "etapa": "final"}, etapa="final")
+            proc = run_cli("registrar", str(run), "--etapa", "final", "--json")
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            out = json.loads(proc.stdout)
+            self.assertEqual((out["ok"], out["etapa"], out["ronda"], out["archivo"]),
+                             (True, "final", 1, "artefactos/juez/avance_final.json"))
+            record = json.loads(record_path(run, "final").read_text(encoding="utf-8"))
+            self.assertEqual((record["schema"], record["etapa"], record["ronda"]), ("morfeo.juez-avance/v1", "final", 1))
+            self.assertFalse(record_path(run, "arbol").exists())
+            self.assertFalse((run / "artefactos" / "juez" / "avance_final_borrador.json").exists())
+            proc = run_cli("validar", str(run), "--etapa", "final")
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_a_draft_of_another_stage_is_rejected_by_the_final_stage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(tmp)
+            write_draft(run, {**DRAFT, "etapa": "arbol"}, etapa="final")
+            self.assertEqual(run_cli("registrar", str(run), "--etapa", "final").returncode, 1)
+            self.assertFalse(record_path(run, "final").exists())
+
     def test_an_explicit_draft_path_is_accepted(self):
         with tempfile.TemporaryDirectory() as tmp:
             run = make_run(tmp)
@@ -164,7 +187,9 @@ class TestRegistrar(unittest.TestCase):
             self.assertEqual(proc.returncode, 2)
             self.assertIn("avance_arbol_borrador.json", proc.stderr)
             write_draft(run, DRAFT)
-            self.assertEqual(run_cli("registrar", str(run), "--etapa", "final").returncode, 2)
+            proc = run_cli("registrar", str(run), "--etapa", "metodologia")
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("arbol, novedad o final", proc.stderr)
             self.assertEqual(run_cli("registrar", str(Path(tmp) / "no-existe"), "--etapa", "arbol").returncode, 2)
 
     def test_a_corrupt_previous_record_is_not_overwritten(self):
@@ -251,6 +276,24 @@ class TestValidar(unittest.TestCase):
             proc = run_cli("validar", str(run), "--etapa", "arbol")
             self.assertEqual(proc.returncode, 1)
             self.assertRegex(proc.stderr, re.compile("historial", re.I))
+
+
+class TestStageContract(unittest.TestCase):
+    """The script, the dashboard loader, the command and the agent share the stages."""
+
+    def test_the_three_stages_are_the_same_everywhere(self):
+        sys.path.insert(0, str(REPO / "src"))
+        from morfeo.core.judge_avance import ETAPAS as CORE_ETAPAS
+
+        self.assertEqual(load_module().ETAPAS, ("arbol", "novedad", "final"))
+        self.assertEqual(CORE_ETAPAS, ("arbol", "novedad", "final"))
+        command = (REPO / ".claude" / "commands" / "propuesta-juez-avance.md").read_text(encoding="utf-8")
+        self.assertIn('argument-hint: "arbol | novedad | final"', command)
+        self.assertIn("«Etapa desconocida: usa arbol, novedad o final.»", command)
+        agent = (REPO / ".claude" / "agents" / "juez-avance.md").read_text(encoding="utf-8")
+        self.assertIn("- **`final`**", agent)
+        for source in ("redaccion/sections/", "refs.bib", "AGENTS.md", "guiaProyectosIA_Agente.md"):
+            self.assertIn(source, agent)
 
 
 if __name__ == "__main__":

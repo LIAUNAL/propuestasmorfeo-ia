@@ -91,13 +91,27 @@ class TestLoadJudgeAvance(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             _, run = make_workspace(Path(tmp))
             with self.assertRaises(ValueError):
-                load_judge_avance(run, "final")
+                load_judge_avance(run, "metodologia")
             with self.assertRaises(ValueError):
                 build_run_command("../x")
 
     def test_the_command_names_the_stage(self):
         self.assertEqual(build_run_command("arbol"), "/propuesta-juez-avance arbol")
         self.assertEqual(build_run_command("novedad"), f"{JUDGE_AVANCE_COMMAND} novedad")
+        self.assertEqual(build_run_command("final"), "/propuesta-juez-avance final")
+
+    def test_the_final_stage_reads_its_own_record(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, run = make_workspace(Path(tmp))
+            write_round(run, ROUND)
+            data = load_judge_avance(run, "final")
+            self.assertEqual((data["disponible"], data["archivo"]), (False, "artefactos/juez/avance_final.json"))
+            write_round(run, {**ROUND, "etapa": "final"}, etapa="final")
+            data = load_judge_avance(run, "final")
+            self.assertTrue(data["disponible"])
+            self.assertEqual(data["evaluacion"]["etapa"], "final")
+            write_round(run, ROUND, etapa="final")
+            self.assertFalse(load_judge_avance(run, "final")["disponible"])
 
 
 class TestJudgeAvanceHttpApi(unittest.TestCase):
@@ -137,14 +151,24 @@ class TestJudgeAvanceHttpApi(unittest.TestCase):
             self.assertEqual(data["evaluacion"]["puntaje"], 74)
             self.assertEqual(data["evaluacion"]["historial"][0]["ronda"], 1)
 
+    def test_get_serves_the_final_stage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace, run = make_workspace(Path(tmp))
+            base = self._serve(workspace)
+            write_round(run, {**ROUND, "etapa": "final", "puntaje": 81}, etapa="final")
+            code, data = self._request(base + "/api/judge-avance?etapa=final")
+            self.assertEqual((code, data["etapa"], data["disponible"]), (200, "final", True))
+            self.assertEqual(data["evaluacion"]["puntaje"], 81)
+
     def test_get_defaults_to_the_tree_stage_and_rejects_unknown_stages(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace, _ = make_workspace(Path(tmp))
             base = self._serve(workspace)
             code, data = self._request(base + "/api/judge-avance")
             self.assertEqual((code, data["etapa"]), (200, "arbol"))
-            code, data = self._request(base + "/api/judge-avance?etapa=final")
+            code, data = self._request(base + "/api/judge-avance?etapa=metodologia")
             self.assertEqual(code, 400)
+            self.assertIn("arbol, novedad o final", data["error"])
             self.assertFalse(data["ok"])
 
     def test_run_returns_the_slash_command_for_the_stage(self):
@@ -156,6 +180,8 @@ class TestJudgeAvanceHttpApi(unittest.TestCase):
             code, data = self._request(base + "/api/judge-avance/run", {"etapa": "novedad"})
             self.assertEqual(data["prompt"], "/propuesta-juez-avance novedad")
             code, data = self._request(base + "/api/judge-avance/run", {"etapa": "final"})
+            self.assertEqual((code, data), (200, {"ok": True, "etapa": "final", "prompt": "/propuesta-juez-avance final"}))
+            code, data = self._request(base + "/api/judge-avance/run", {"etapa": "metodologia"})
             self.assertEqual(code, 400)
             code, data = self._request(base + "/api/judge-avance/run", raw=b"{roto")
             self.assertEqual(code, 400)

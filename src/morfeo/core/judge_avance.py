@@ -4,7 +4,9 @@
 (esquema `morfeo.juez-avance/v1`) a partir del borrador del agente
 `juez-avance`. Este módulo solo lo lee para los paneles que montan el juez
 («Árbol de problemas y objetivos» con la etapa `arbol`; «Novedad e hipótesis»
-con `novedad`) y arma el comando que el tablero escribe en la terminal. Nunca
+con `novedad`; el desplegable «Juez final» de la previsualización PDF, en el
+flujo base, con `final`) y arma el comando que el tablero escribe en la
+terminal. Nunca
 lanza una excepción hacia la capa HTTP por un archivo ausente o dañado: eso se
 informa en `errores`. Una etapa desconocida sí es un error del llamador
 (`ValueError`).
@@ -16,7 +18,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-ETAPAS = ("arbol", "novedad")
+ETAPAS = ("arbol", "novedad", "final")
+# «arbol, novedad o final»: la lista de etapas para los mensajes de error.
+ETAPAS_TEXTO = f"{', '.join(ETAPAS[:-1])} o {ETAPAS[-1]}"
 AVANCE_SCHEMA = "morfeo.juez-avance/v1"
 JUDGE_AVANCE_COMMAND = "/propuesta-juez-avance"
 JUDGE_DIR = Path("artefactos") / "juez"
@@ -24,7 +28,7 @@ JUDGE_DIR = Path("artefactos") / "juez"
 
 def _check(etapa: str) -> str:
     if etapa not in ETAPAS:
-        raise ValueError(f"Etapa desconocida {etapa!r}: usa {' o '.join(ETAPAS)}.")
+        raise ValueError(f"Etapa desconocida {etapa!r}: usa {ETAPAS_TEXTO}.")
     return etapa
 
 
