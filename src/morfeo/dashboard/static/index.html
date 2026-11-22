@@ -3289,6 +3289,11 @@
         </details>
         <div id="mgaContent" class="artifact-viewer is-markdown">Cargando…</div>
       </section>
+
+      <!-- Juez de avance, stage `arbol` (judge-avance.js; agent juez-avance). -->
+      <section class="panel" id="treeJudgeFold" data-fold="juez-avance-arbol" data-fold-title="Juez de avance" data-fold-open>
+        <div id="treeJudgeAvance"></div>
+      </section>
     </div>
 
     <!-- TAB: CADENA DE VALOR (solo flujo SGR; el botón se agrega con el flujo) -->
@@ -4175,6 +4180,7 @@
   <script src="/static/estilo-pdf.js"></script>
   <script src="/static/board-refresh.js"></script>
   <script src="/static/section-folds.js"></script>
+  <script src="/static/judge-avance.js"></script>
   <script src="/static/convocatorias-map.js"></script>
   <script src="/static/convocatorias-progress.js"></script>
   <script>
@@ -5209,6 +5215,21 @@
     function stopTreesPolling() {
       if (TREES_STATE.timer) clearInterval(TREES_STATE.timer);
       TREES_STATE.timer = null;
+    }
+
+    // Juez de avance of the trees pane (stage `arbol`): judge-avance.js owns the
+    // block; it is mounted on first use and polls only while the tab is open.
+    let TREE_JUDGE = null;
+    function startTreeJudge() {
+      if (!TREE_JUDGE && window.JudgeAvance) {
+        const root = document.getElementById('treeJudgeAvance');
+        if (root) TREE_JUDGE = window.JudgeAvance.mount(root, { etapa: 'arbol', interval: 4000 });
+      }
+      if (TREE_JUDGE) TREE_JUDGE.start();
+    }
+
+    function stopTreeJudge() {
+      if (TREE_JUDGE) TREE_JUDGE.stop();
     }
 
     function setTreeView(view) {
@@ -9147,8 +9168,8 @@
       if (targetPane) targetPane.classList.add('active');
       syncGraphPause();
 
-      if (tabId === 'trees') startTreesPolling();
-      else stopTreesPolling();
+      if (tabId === 'trees') { startTreesPolling(); startTreeJudge(); }
+      else { stopTreesPolling(); stopTreeJudge(); }
 
       if (tabId === 'judge') startJudgePolling();
       else stopJudgePolling();
