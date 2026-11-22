@@ -47,6 +47,9 @@ _MODEL_PRESETS: dict[str, dict[str, str]] = {
         "revisor-figuras": "sonnet",
         "coordinador-propuesta": "sonnet",
         "juez-sgr": "opus",
+        "juez-avance": "opus",
+        "traductor": "opus",
+        "revisor-traduccion": "sonnet",
         "revisor-estilo-sgr": "sonnet",
     },
     "gpt": {
@@ -61,6 +64,9 @@ _MODEL_PRESETS: dict[str, dict[str, str]] = {
         "revisor-figuras": "gpt-5.6-terra",
         "coordinador-propuesta": "gpt-5.6-terra",
         "juez-sgr": "gpt-5.6-sol",
+        "juez-avance": "gpt-5.6-sol",
+        "traductor": "gpt-5.6-sol",
+        "revisor-traduccion": "gpt-5.6-terra",
         "revisor-estilo-sgr": "gpt-5.6-terra",
     },
     "opencode-go": {
@@ -75,6 +81,9 @@ _MODEL_PRESETS: dict[str, dict[str, str]] = {
         "revisor-figuras": "opencode-go/glm-5.2",
         "coordinador-propuesta": "opencode-go/glm-5.2",
         "juez-sgr": "opencode-go/glm-5.2",
+        "juez-avance": "opencode-go/glm-5.2",
+        "traductor": "opencode-go/glm-5.2",
+        "revisor-traduccion": "opencode-go/glm-5.2",
         "revisor-estilo-sgr": "opencode-go/glm-5.2",
     },
 }
@@ -1016,7 +1025,8 @@ def _print_presets() -> None:
         "investigador", "redactor", "bibliografo-propuesta", "revisor",
         "presupuestador", "insumos-observador", "disenador-tikz",
         "tikz-optimizer", "revisor-figuras", "coordinador-propuesta",
-        "juez-sgr", "revisor-estilo-sgr",
+        "juez-sgr", "revisor-estilo-sgr", "juez-avance", "traductor",
+        "revisor-traduccion",
     ]
     print("Built-in model presets")
     print("=" * 60)
