@@ -424,5 +424,50 @@ class TestRevisorEstiloSgrRegistration(unittest.TestCase):
             self.assertIn(f"`{self.AGENT}`", readme.read_text(encoding="utf-8"))
 
 
+class TestTraduccionRegistration(unittest.TestCase):
+    """The translator, its style reviewer and /propuesta-traducir in every registry.
+
+    Both agents run outside the pipeline, so only the command dispatches them;
+    a map that misses one leaves it on the wrong model or unported.
+    """
+
+    AGENTS = {"traductor": ("opus", "reasoning"), "revisor-traduccion": ("sonnet", "analysis")}
+    COMMAND = "propuesta-traducir"
+
+    def test_the_canonical_sources_exist_with_their_tiers(self):
+        models = _load_json(REPO / "scripts" / "agent-models.json")["agents"]
+        for agent, (claude, pi) in self.AGENTS.items():
+            with self.subTest(agent=agent):
+                text = (REPO / ".claude" / "agents" / f"{agent}.md").read_text(encoding="utf-8")
+                self.assertIn(f"\nmodel: {claude}\n", text)
+                self.assertEqual(models.get(agent), pi)
+        self.assertIn("\ntools: Read, Grep, Glob\n",
+                      (REPO / ".claude" / "agents" / "revisor-traduccion.md").read_text(encoding="utf-8"))
+        self.assertTrue((REPO / ".claude" / "commands" / f"{self.COMMAND}.md").is_file())
+
+    def test_every_generator_and_the_kit_carry_them(self):
+        for gen in ("opencode", "pi"):
+            paths = _load_json(REPO / "scripts" / f"gen-{gen}.rules.json")["paths"]
+            for agent in self.AGENTS:
+                with self.subTest(generator=gen, agent=agent):
+                    self.assertIn(f"{agent}.md", paths["agent_files"])
+            self.assertIn(f"{self.COMMAND}.md", paths["command_files"])
+        antigravity = _load_json(REPO / "scripts" / "gen-antigravity.rules.json")
+        self.assertIn(f"{self.COMMAND}.md", antigravity["command_files"])
+        kit = _load_json(REPO / "scripts" / "kit-manifest.json")["kit_paths"]
+        for path in [f".claude/agents/{a}.md" for a in self.AGENTS] + [
+                f".claude/commands/{self.COMMAND}.md", "scripts/traducir.py"]:
+            with self.subTest(kit=path):
+                self.assertIn(path, kit)
+
+    def test_the_documentation_lists_them(self):
+        for doc in ("AGENTS.md", "README.md"):
+            text = (REPO / doc).read_text(encoding="utf-8")
+            with self.subTest(doc=doc):
+                for agent in self.AGENTS:
+                    self.assertIn(f"`{agent}`", text)
+                self.assertIn(f"/{self.COMMAND}", text)
+
+
 if __name__ == "__main__":
     unittest.main()

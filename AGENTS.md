@@ -22,6 +22,7 @@ cada fase al subagente correspondiente definido en `.claude/agents/`.
 | `/propuesta-juez-avance` | Juez de avance por etapa (`arbol`, `novedad` o `final`, asesor) |
 | `/propuesta-novedad` | Pilares de novedad e hipótesis para el tablero (asesor) |
 | `/propuesta-convocatorias` | Convocatorias afines (CO, LatAm, intl.; es/en) al tablero |
+| `/propuesta-traducir` | Versión traducida del manuscrito (`en` o `es`; derivada, asesor) |
 | `/compilar-pdf` | Compila la corrida activa a PDF (`build.sh` en `redaccion/`) |
 | `/compilar-docx` | Exporta la corrida activa a Word (`build.sh --docx` en `redaccion/`) |
 
@@ -127,16 +128,14 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
    - Metodología (§10) ↔ objetivos específicos (§7), marco conceptual (§8) y
      equipo de trabajo (§9), cadena de valor. El punto 2 de Metodología nombra
      el enfoque/algoritmo por subproblema con razonamiento causa-efecto
-     explícito referenciando el marco conceptual (§8) — función que antes
-     cubría el desaparecido §5.3 Enfoques teóricos.
+     explícito referenciando el marco conceptual (§8).
    - Equipo de trabajo (§9) deriva sus roles de los objetivos específicos
      (§7); nunca de la Metodología (§10).
    - Cronograma de actividades (§14) ↔ fases de la Metodología (§10).
    - Resultados esperados (§11) ↔ productos entregados en hitos del
      cronograma (§14).
-   - Presupuesto (§13) ↔ Metodología (§10) y Cronograma (§14) —referencia
-     hacia adelante válida, ya que Presupuesto se redacta antes que Cronograma
-     en el pipeline pero ambos referencian las mismas fases de Metodología.
+   - Presupuesto (§13) ↔ Metodología (§10) y Cronograma (§14): la referencia
+     hacia adelante vale, porque ambos citan las mismas fases de Metodología.
    - TRL 6 o 7 debe ser explícito en pertinencia (§2) y resultados esperados
      (§11), y la metodología (§10) muestra la trayectoria; **nunca** se nombra
      en objetivo general (§6) ni en objetivos específicos (§7).
@@ -195,9 +194,8 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
    con esa alianza, copiando `plantilla/logos-opcionales/logo_utp.png` a
    `redaccion/logos/`. `redaccion/` es la **fuente de
    verdad** dentro de una corrida, pero **no está versionada**: `.tex`/`.bib`/`.pdf`/`.docx`
-   y el resto del contenido de la corrida están en `.gitignore` (regla 7) — GitHub solo aloja el
-   esqueleto del framework (agentes, comandos, scripts, plantillas), nunca
-   el contenido de una propuesta específica. La tipografía y la jerarquía de títulos
+   y el resto del contenido de la corrida están en `.gitignore` (regla 7): GitHub solo aloja el
+   esqueleto del framework, nunca el contenido de una propuesta. La tipografía y la jerarquía de títulos
    están en «Invariantes de estilo del documento».
 9. **Espejo `artefactos/vault/`:** `artefactos/vault/secciones/` y
    `artefactos/vault/insumos/` son un espejo Markdown compatible con Obsidian,
@@ -238,7 +236,7 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
 
 ## Roster de agentes (`.claude/agents/`) y modelos por defecto
 
-El marco tiene **16 agentes**, todos definidos en `.claude/agents/` (fuente de
+El marco tiene **18 agentes**, todos definidos en `.claude/agents/` (fuente de
 verdad):
 
 | Agente | Modelo por defecto | Rol |
@@ -259,6 +257,8 @@ verdad):
 | `juez-avance` | opus | Juez de avance por etapa (asesor) |
 | `revisor-estilo-sgr` | sonnet | Solo SGR: estilo, voz, léxico y redundancia (skill `estilo-sgr`), en lugar de `grant-flow-auditor` |
 | `explorador-convocatorias` | sonnet | Convocatorias afines y rol de Colombia (fuera del pipeline) |
+| `traductor` | opus | Traduce el manuscrito al otro idioma, bloque por bloque (`scripts/traducir.py`) |
+| `revisor-traduccion` | sonnet | Estilo de la traducción sobre su `auditoria.json` (solo lectura) |
 
 No existen agentes llamados `orquestador`, `observador` (a secas) ni
 `bibliotecario`.

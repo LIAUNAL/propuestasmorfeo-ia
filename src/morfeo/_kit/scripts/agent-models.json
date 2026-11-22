@@ -45,7 +45,9 @@
     "revisor-figuras": "mechanical",
     "revisor-redundancia": "analysis",
     "grant-flow-auditor": "mechanical",
-    "revisor-estilo-sgr": "mechanical"
+    "revisor-estilo-sgr": "mechanical",
+    "traductor": "reasoning",
+    "revisor-traduccion": "analysis"
   },
   "runtime": {
     "default_mode": "task",

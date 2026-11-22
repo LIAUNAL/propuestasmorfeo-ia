@@ -80,9 +80,10 @@ script lee ni las claves de los JSON. Con `LANG=es` nada cambia.
 (solo flujo SGR), `revisor-estilo-sgr` (solo flujo SGR),
 `explorador-convocatorias` (fuera del pipeline: lo despacha
 `/propuesta-convocatorias`), `juez-avance` (fuera del
-pipeline: lo despacha `/propuesta-juez-avance`). (No existen
-`orquestador`, `observador` ni `bibliotecario`: usa siempre
-estos 15 nombres reales. `coordinador-propuesta`
+pipeline: lo despacha `/propuesta-juez-avance`), `traductor` y
+`revisor-traduccion` (fuera del pipeline: los despacha `/propuesta-traducir`).
+(No existen `orquestador`, `observador` ni `bibliotecario`: usa siempre
+estos 17 nombres reales. `coordinador-propuesta`
 existe como documento de referencia del pipeline, no como subagente despachable.)
 
 **Regla del flujo SGR para la auditoría de estilo.** Con `"flujo": "sgr"` en
