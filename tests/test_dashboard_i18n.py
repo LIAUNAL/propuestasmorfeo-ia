@@ -85,7 +85,7 @@ class CatalogueTests(unittest.TestCase):
                 es, en = namespace("es", name), namespace("en", name)
                 self.assertEqual(sorted(set(es) - set(en)), [], f"keys missing from i18n/en/{name}.js")
                 self.assertEqual(sorted(set(en) - set(es)), [], f"keys missing from i18n/es/{name}.js")
-        self.assertGreater(len(ES), 300)
+        self.assertGreater(len(ES), 1500)
 
     def test_a_key_lives_in_one_namespace_only(self) -> None:
         for lang in LANGS:
@@ -128,6 +128,17 @@ class PageKeyTests(unittest.TestCase):
             keys |= {pair.split(":", 1)[1].strip() for pair in spec.split(";") if ":" in pair}
         self.assertGreater(len(keys), 250)
         self.assertEqual(sorted(keys - set(ES)), [])
+
+    def test_every_key_the_inline_script_asks_for_exists(self) -> None:
+        script = inline_script()
+        called = set(re.findall(r"(?<![\w.$])t[l]?\(\s*'([A-Za-z0-9.]+)'", script))
+        self.assertGreater(len(called), 1000)
+        self.assertEqual(sorted(called - set(ES)), [])
+        # Keys picked by a condition (t(a ? 'x.y' : 'x.z')) or written into data-i18n.
+        prefixes = {key.split(".", 1)[0] for key in ES}
+        literal = {key for key in re.findall(r"'([a-z][A-Za-z0-9]*\.[A-Za-z0-9]+)'", script)
+                   if key.split(".", 1)[0] in prefixes}
+        self.assertEqual(sorted(literal - set(ES)), [])
 
     def test_the_spanish_catalogue_reproduces_the_shipped_markup(self) -> None:
         # The markup ships the Spanish text, so the page shows it before any

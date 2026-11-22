@@ -72,6 +72,17 @@ test('choosing EN in the selector translates the markup and persists', async (t)
   assert.equal($(viewer, 'runSelector').value, 'run-1', 'machine values stay as they are');
 });
 
+test('a language change re-renders what the inline script drew', async (t) => {
+  const viewer = await dashboard(t);
+  viewer.window.i18n.setLanguage('en');
+  await flush(6);
+  assert.equal($(viewer, 'themeBtn').textContent.trim(), '☀️ Light');
+  assert.equal($(viewer, 'flujoBadge').textContent, 'Base flow');
+  assert.match($(viewer, 'totalsContainer').textContent, /3 sections/);
+  assert.match($(viewer, 'totalsContainer').textContent, /1,200 words/);
+  assert.equal($(viewer, 'runSelector').value, 'run-1');
+});
+
 test('switching back to ES restores the exact Spanish text', async (t) => {
   const viewer = await dashboard(t);
   const before = visibleText(viewer);
@@ -89,6 +100,16 @@ test('a value the script wrote is never overwritten by the catalogue', async (t)
   viewer.window.i18n.setLanguage('en');
   await flush(6);
   assert.equal($(viewer, 'metaProposalTitle').textContent, 'Proyecto de prueba');
+});
+
+test('tables defined at load time follow the language', async (t) => {
+  const viewer = await dashboard(t);
+  assert.equal(viewer.window.eval('PHASE_GUIDES.fase5_sgr.panel.label'), 'Ver productos e indicadores');
+  assert.equal(viewer.window.eval('PHASE_GUIDES.fase5_sgr.panel.tab'), 'productos');
+  viewer.window.i18n.setLanguage('en');
+  assert.equal(viewer.window.eval('PHASE_GUIDES.fase5_sgr.panel.label'), 'See products and indicators');
+  assert.equal(viewer.window.eval('PHASE_GUIDES.fase5_sgr.panel.tab'), 'productos');
+  assert.equal(viewer.window.eval('TREE_STATUS.aprobado[0]'), 'Approved');
 });
 
 test('a saved English choice applies before the page shows, with no Spanish flash', async () => {
