@@ -28,6 +28,7 @@ from ..core.sgr_rules import load_sgr_blocks
 from ..core import board
 from ..core.status import get_project_status, read_flujo, record_server_start
 from ..core.judge import EVALUACION_FILE, JUDGE_COMMAND, build_action_prompt, load_judge
+from ..core.judge_avance import ETAPAS as JUDGE_AVANCE_ETAPAS, build_run_command as build_judge_avance_command, load_judge_avance
 from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
 from ..core.style_sgr import load_style
 from ..core.value_chain import approve as approve_value_chain, build_adjust_prompt, load_value_chain
@@ -254,6 +255,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_style_report()
         elif path == "/api/judge":
             self.serve_judge()
+        elif path == "/api/judge-avance":
+            self.serve_judge_avance()
         elif path == "/api/value-chain":
             self.serve_value_chain()
         elif path == "/api/alliance":
@@ -301,6 +304,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_judge_send()
         elif path == "/api/judge/run":
             self.handle_judge_run()
+        elif path == "/api/judge-avance/run":
+            self.handle_judge_avance_run()
         elif path == "/api/value-chain/approve":
             self.handle_value_chain_approve()
         elif path == "/api/value-chain/adjust":
@@ -804,6 +809,35 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
             return
         self._send_json(200, {"ok": True, "prompt": JUDGE_COMMAND})
+
+    # El juez de avance (etapas `arbol` y `novedad`): como el juez final, el
+    # servidor solo lee la ronda registrada y devuelve el comando de barra; el
+    # tablero lo entrega a la terminal con sendTerminalPrompt.
+    def serve_judge_avance(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        etapa = (query.get("etapa") or ["arbol"])[0] or "arbol"
+        if etapa not in JUDGE_AVANCE_ETAPAS:
+            self._send_json(400, {"ok": False, "error": f"Etapa desconocida: usa {' o '.join(JUDGE_AVANCE_ETAPAS)}."})
+            return
+        self._send_json(200, {"ok": True, "run": run_dir.name, **load_judge_avance(run_dir, etapa)})
+
+    def handle_judge_avance_run(self) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            self._send_json(400, {"ok": False, "error": "JSON payload inválido"})
+            return
+        if self._active_run_dir() is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        etapa = str(payload.get("etapa") or "arbol")
+        if etapa not in JUDGE_AVANCE_ETAPAS:
+            self._send_json(400, {"ok": False, "error": f"Etapa desconocida: usa {' o '.join(JUDGE_AVANCE_ETAPAS)}."})
+            return
+        self._send_json(200, {"ok": True, "etapa": etapa, "prompt": build_judge_avance_command(etapa)})
 
     # Cadena de valor y estilo SGR (solo flujo SGR; en el base responden sin datos).
     # El ajuste, como en los árboles y el juez, devuelve el prompt y el tablero lo
