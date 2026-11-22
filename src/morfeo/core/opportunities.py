@@ -7,7 +7,14 @@ Colombia, su cuenta regresiva y su puntaje) sale de `scripts/convocatorias.py`
 (`vista(dir)`, esquema `morfeo.convocatorias-vista/v1`), que se carga desde el
 kit como los demás scripts. Es de solo lectura: el tablero no escribe nada y
 sus botones solo devuelven el prompt de `/propuesta-convocatorias` que se
-entrega a la terminal. El alcance (`proyecto` o `banco`) elige el perfil contra
+entrega a la terminal.
+
+Constelación: `render_opportunities_atlas` arma la página que muestra la vista
+«Constelación de afinidad» (`/api/convocatorias/atlas`). La escena sale de
+`convocatorias.py` (`constelacion`) y la dibuja `render_atlas.py` con su perfil
+«convocatorias», el mismo visor 3D de la constelación SOTA. Sin convocatorias
+devuelve una página de estado vacío; si un script falta o falla, una página de
+error. Nada se guarda: cada petición lee la vista del momento. El alcance (`proyecto` o `banco`) elige el perfil contra
 el que se puntúa; solo se pasa al script cuando la petición lo trae. Si el script falta o falla, la pestaña muestra el error
 y el tablero nunca se cae.
 
@@ -39,6 +46,7 @@ estimados, de forma determinista y sin escribir nada:
 from __future__ import annotations
 
 import datetime
+import html
 import json
 import math
 import re
@@ -49,6 +57,11 @@ from typing import Any
 from .value_chain import load_kit_script
 
 OPPORTUNITIES_SCRIPT = "convocatorias.py"
+ATLAS_SCRIPT = "render_atlas.py"
+ATLAS_PROFILE = "convocatorias"
+ATLAS_GROUPINGS = ("tema", "ambito", "rol")
+ATLAS_TITLE = "Constelación de convocatorias"
+SCOPE_NAMES = {"proyecto": "Proyecto en formulación", "banco": "Banco LIA"}
 OPPORTUNITIES_SCHEMA = "morfeo.convocatorias-vista/v1"
 SEARCH_COMMAND = "/propuesta-convocatorias"
 _ID_RE = re.compile(r"[a-z0-9-]+")
@@ -118,6 +131,90 @@ def build_start_prompt(opportunity_id: Any) -> str:
     if not _ID_RE.fullmatch(value):
         raise ValueError("El id de la convocatoria debe ser un slug (minúsculas, dígitos y guiones).")
     return f"{SEARCH_COMMAND} iniciar {value}"
+
+
+# --- Constellation page -------------------------------------------------------
+
+def _validate_atlas_query(agrupar: Any, ids: Any) -> tuple[str, list[str] | None]:
+    """(agrupar, ids) of the atlas route; ValueError for anything else.
+
+    `ids` is a comma-separated list of call slugs (the panel's filters); absent
+    means every call.
+    """
+    if agrupar is None:
+        agrupar = "tema"
+    if not isinstance(agrupar, str) or agrupar not in ATLAS_GROUPINGS:
+        raise ValueError("El agrupamiento debe ser «tema», «ambito» o «rol».")
+    if ids is None:
+        return agrupar, None
+    if not isinstance(ids, str):
+        raise ValueError("Los ids deben ser slugs separados por comas.")
+    values = [v for v in ids.split(",") if v]
+    if any(not _ID_RE.fullmatch(v) for v in values):
+        raise ValueError("Los ids deben ser slugs separados por comas.")
+    return agrupar, values
+
+
+def message_page(title: str, text: str) -> str:
+    """A small dark page for the constellation frame: an empty state or an error, as text."""
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{html.escape(title)}</title></head>
+<body style="background:#0a0a10;color:#9aa3bd;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px;box-sizing:border-box;text-align:center">
+  <div style="background:#11131f;padding:2rem;border-radius:12px;border:1px solid #2a3350;max-width:520px;overflow-wrap:anywhere">
+    <h3 style="color:#e4e4ed;margin:0 0 0.5rem;font-size:1.1rem">{html.escape(title)}</h3>
+    <p style="font-size:0.9rem;line-height:1.5;margin:0">{html.escape(text)}</p>
+  </div>
+</body>
+</html>"""
+
+
+def atlas_page(built: dict[str, Any]) -> str:
+    """The constellation page of a built scene (`convocatorias.py` `atlas_de_vista`).
+
+    LookupError when render_atlas.py is missing from the kit.
+    """
+    module = load_kit_script(ATLAS_SCRIPT, ("render",))
+    render = getattr(module, "render", None) if module is not None else None
+    if not callable(render):
+        raise LookupError(f"No se encontró scripts/{ATLAS_SCRIPT} con la función render en el kit.")
+    scope = SCOPE_NAMES.get(built.get("alcance"), SCOPE_NAMES["proyecto"])
+    return render(built["atlas"], title=ATLAS_TITLE, heading=f"{ATLAS_TITLE} · {scope}",
+                  papers=built.get("fichas") or {}, profile=ATLAS_PROFILE)
+
+
+def render_opportunities_atlas(workspace_dir: Path | str, alcance: Any = None, agrupar: Any = None,
+                               ids: Any = None) -> str:
+    """HTML of the «Convocatorias» constellation; never writes.
+
+    Invalid parameters raise ValueError (the HTTP layer answers 400); a missing
+    or failing script becomes an error page, and a view without calls an empty
+    state page.
+    """
+    scope = validate_alcance(alcance)
+    grouping, wanted = _validate_atlas_query(agrupar, ids)
+    module = load_kit_script(OPPORTUNITIES_SCRIPT, ("constelacion",))
+    fn = getattr(module, "constelacion", None) if module is not None else None
+    if not callable(fn):
+        return message_page("Constelación no disponible",
+                            f"No se encontró scripts/{OPPORTUNITIES_SCRIPT} con la función constelacion en el kit.")
+    try:
+        built = fn(Path(workspace_dir), alcance=scope, agrupar=grouping, ids=wanted)
+    except SystemExit as err:
+        return message_page("Constelación no disponible",
+                            f"{OPPORTUNITIES_SCRIPT} terminó con el código {err.code} al armar la constelación.")
+    except Exception as err:
+        return message_page("Constelación no disponible", f"{OPPORTUNITIES_SCRIPT} no pudo armar la constelación: {err}")
+    if not isinstance(built, dict) or not built.get("total"):
+        return message_page("Todavía no hay convocatorias",
+                            "Todavía no hay convocatorias para este espacio de trabajo. Pulsa «Buscar para el "
+                            "proyecto» o «Buscar para el banco LIA» y la constelación aparece aquí.")
+    try:
+        return atlas_page(built)
+    except LookupError as err:
+        return message_page("Constelación no disponible", str(err))
+    except (OSError, ValueError) as err:
+        return message_page("Constelación no disponible", f"{ATLAS_SCRIPT} no pudo dibujar la constelación: {err}")
 
 
 # --- Search progress ----------------------------------------------------------

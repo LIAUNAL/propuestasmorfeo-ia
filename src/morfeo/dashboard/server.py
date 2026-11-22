@@ -38,7 +38,14 @@ from ..core.budget import approve as approve_budget, build_adjust_prompt as buil
 from ..core.components import approve as approve_components, build_adjust_prompt as build_components_prompt, load_components
 from ..core.products import approve as approve_products, build_adjust_prompt as build_products_prompt, load_products
 from ..core.annex2 import load_annex2
-from ..core.opportunities import build_search_prompt, build_start_prompt, load_opportunities, load_progress
+from ..core.opportunities import (
+    build_search_prompt,
+    build_start_prompt,
+    load_opportunities,
+    load_progress,
+    message_page,
+    render_opportunities_atlas,
+)
 from ..core.requirements import (
     MAX_BODY_BYTES as REQUIREMENTS_MAX_BODY,
     approve as approve_requirements,
@@ -280,6 +287,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_opportunities()
         elif path == "/api/convocatorias/progreso":
             self.serve_opportunities_progress()
+        elif path == "/api/convocatorias/atlas":
+            self.serve_opportunities_atlas()
         elif path == "/api/board/summary":
             self.serve_board_summary()
         else:
@@ -1152,6 +1161,30 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {"ok": False, "error": str(err)})
             return
         self._send_json(200, {"ok": True, **data})
+
+    # Constelación de convocatorias: la página del visor 3D de la constelación
+    # SOTA para el iframe de la vista «Constelación de afinidad». Se arma en cada
+    # petición, sin caché. `?alcance=`, `?agrupar=tema|ambito|rol` e `?ids=`
+    # (slugs separados por comas: los filtros del panel) son opcionales.
+    def serve_opportunities_atlas(self) -> None:
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query, keep_blank_values=True)
+        try:
+            params = {}
+            for key in ("alcance", "agrupar", "ids"):
+                values = query.get(key)
+                if values is not None and len(values) != 1:
+                    raise ValueError(f"El parámetro «{key}» va una sola vez.")
+                params[key] = values[0] if values else None
+            status, page = 200, render_opportunities_atlas(self.workspace_dir, **params)
+        except ValueError as err:
+            status, page = 400, message_page("Petición inválida", str(err))
+        body = page.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     # Avance de la búsqueda en curso (convocatorias/progreso.json, que escribe el
     # agente por fase): porcentaje y tiempo restante estimados aquí, sin escribir.
