@@ -20,6 +20,7 @@ cada fase al subagente correspondiente definido en `.claude/agents/`.
 | `/propuesta-limpiar` | Cierra la corrida activa |
 | `/propuesta-juez` | Juez SGR: puntaje estimado, alertas y acciones (asesor) |
 | `/propuesta-juez-avance` | Juez de avance por etapa (`arbol` o `novedad`, asesor) |
+| `/propuesta-novedad` | Pilares de novedad e hipótesis para el tablero (asesor) |
 | `/propuesta-convocatorias` | Convocatorias afines (CO, LatAm, intl.; es/en) al tablero |
 | `/compilar-pdf` | Compila la corrida activa a PDF (`build.sh` en `redaccion/`) |
 | `/compilar-docx` | Exporta la corrida activa a Word (`build.sh --docx` en `redaccion/`) |
@@ -39,7 +40,7 @@ proyecto portable creado con `marco init`. En ese modo:
 - **`RUN_ROOT` se resuelve igual que en el repo** (ver regla 7): el proyecto
   portable trae su propio `plantilla/`, `scripts/init-run.sh` y `proposals/`,
   así que las corridas viven en `proposals/<run-id>/` con las mismas cuatro
-  subcarpetas. Los agentes no necesitan reescritura de rutas.
+  subcarpetas.
 - **`/propuesta-init`** crea la corrida ahí igual que en el repo, y
   **`/propuesta-insumos`** re-siembra las zonas de depósito dentro de
   `insumos/`. Usá `marco init` solo para crear el proyecto portable en sí.
@@ -193,8 +194,7 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
    con esa alianza, copiando `plantilla/logos-opcionales/logo_utp.png` a
    `redaccion/logos/`. `redaccion/` es la **fuente de
    verdad** dentro de una corrida, pero **no está versionada**: `.tex`/`.bib`/`.pdf`/`.docx`
-   y el resto del contenido de la corrida están en `.gitignore` (igual que
-   las corridas archivadas bajo `proposals/<run-id>/`) — GitHub solo aloja el
+   y el resto del contenido de la corrida están en `.gitignore` (regla 7) — GitHub solo aloja el
    esqueleto del framework (agentes, comandos, scripts, plantillas), nunca
    el contenido de una propuesta específica. La tipografía y la jerarquía de títulos
    están en «Invariantes de estilo del documento».

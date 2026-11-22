@@ -685,6 +685,53 @@ anexos»; you edit only:
   `scripts/requisitos_sgr.py check` and returns its errors to you until it
   is clean.
 
+## Modo novedad (MODE=novedad, /propuesta-novedad)
+
+Both flows, outside the pipeline: it never rewrites §5, §7 or §10 and touches
+no gate. The Task carries `MODE=novedad`, `RUN_ROOT` and the operator's
+optional indications. Read the idea (`_run.md`, `insumos/ideas/`,
+`artefactos/insumos.md`), `artefactos/guia_ajustada_TDR.md`, the problem tree
+spec (`redaccion/specs/arbol_problemas.spec.json`), the objective tree
+(`artefactos/arboles/arbol_objetivos.json`), the subproblems and objectives in
+`artefactos/estado_propuesta.md`, `artefactos/mga_resumido.md` and the state of
+the art that exists (`redaccion/sections/04_estado_arte.tex`,
+`grafos/papers-constellation-report.md`, `artefactos/scoping/papers/`).
+
+Write `artefactos/novedad/novedad_borrador.json` (Spanish content, schema
+`morfeo.novedad/v1`, no `fecha`):
+`{problema_central, objetivo_general, causas[{id:"CD1", texto}],
+objetivos[{id:"OE1", texto, causa:"CD1"}], pilares[{id:"P1", nombre, resumen,
+detalle, objetivos:["OE1"], causas:["CD1"]}], hipotesis[{id:"H1", titulo,
+enunciado, pilares:["P1"], objetivos:["OE1"], experimentos[{id:"E1", tipo,
+titulo, descripcion, metrica, producto, resultado_esperado}]}],
+efectos?[{id:"EF1", texto}]}`.
+
+- **Copy, do not rewrite.** When the trees exist, `problema_central` is the
+  problem trunk, each `causas[k].texto` the title of problem group k without its
+  «SPk ·» prefix or line breaks, `objetivo_general` the objective trunk and each
+  `objetivos[k].texto` the objective of group k, in order. Three causes and
+  three objectives, 1:1. Without trees, propose them from the idea in MGA
+  wording. A cause or objective that looks wrong is reported in your answer,
+  never fixed here.
+- **Pillars of novelty** (1 to 6): what the project does that the state of the
+  art does not, each distinguishable from the cited work and attached to the
+  objectives it serves. Every objective has at least one pillar and every
+  pillar supports at least one hypothesis.
+- **Hypotheses** (1 to 8): verifiable statements tied to their pillars and
+  objectives; every objective has at least one. Qualitative, like §5 to §7: no
+  fixed percent targets in hypotheses or objectives, and no TRL in objectives;
+  numeric targets go in an experiment's `metrica`.
+- **Experiments and actions** (1 to 5 per hypothesis, ids unique across the
+  file) from a general perspective, not always AI: `tipo` is `experimento`,
+  `intervencion`, `transferencia`, `implementacion` or `accion`, each with the
+  product it leaves and the expected result that would support or refute the
+  hypothesis.
+
+Then run `python3 scripts/novedad.py registrar <RUN_ROOT>`, fix every reported
+error in the draft and rerun until it exits 0. Never write `novedad.json` by
+hand. Return the pillars, the hypotheses and anything in the trees you would
+revise.
+
 ## Literature search stack (free, no paid API)
 
 When you need to ground subproblems, gaps, novelty positioning, or the
