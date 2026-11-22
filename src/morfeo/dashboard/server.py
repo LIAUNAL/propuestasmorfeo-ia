@@ -6,6 +6,7 @@ Uses Python's standard library (http.server) to guarantee zero external dependen
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import mimetypes
 import os
@@ -13,6 +14,7 @@ import re
 import subprocess
 import sys
 import threading
+import unicodedata
 import urllib.parse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -124,7 +126,75 @@ def flatten_idea(markdown: str) -> str:
 BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 # Page code moved out of index.html: it must stay as fresh as the page that
 # loads it, so a cached copy never runs against a newer index.html.
-PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js"})
+PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js", "estilo-pdf.js"})
+
+
+# --- Sentence text of the style findings --------------------------------------
+# A finding of scripts/estilo_es.py names its sentence by section and index and
+# quotes only a fragment of it, often a word or two. The style panel looks the
+# finding up in the PDF by its sentence, so `/api/estilo` attaches the sentence
+# text, rebuilt with the script's own splitter. It is attached only when the
+# fragment still sits in that sentence: a section edited after the audit leaves
+# the finding without `oracion_texto`, and the panel falls back to the fragment.
+_STYLE_SENTENCES_LOCK = threading.Lock()
+_STYLE_SENTENCES: dict[str, Any] = {"key": None, "texts": {}}
+_STYLE_MODULE: dict[str, Any] = {"key": None, "module": None}
+
+
+def _loose_text(value: Any) -> str:
+    folded = unicodedata.normalize("NFKD", str(value or "").lower())
+    return "".join(ch for ch in folded if ch.isalnum() and not unicodedata.combining(ch))
+
+
+def _style_module(script: Path) -> Any:
+    key = (str(script), script.stat().st_mtime_ns)
+    if _STYLE_MODULE["key"] != key:
+        name = "_morfeo_dashboard_estilo_es"
+        spec = importlib.util.spec_from_file_location(name, script)
+        module = importlib.util.module_from_spec(spec)
+        # Its dataclasses resolve their annotations through sys.modules.
+        sys.modules[name] = module
+        try:
+            spec.loader.exec_module(module)
+        except BaseException:
+            sys.modules.pop(name, None)
+            raise
+        _STYLE_MODULE.update(key=key, module=module)
+    return _STYLE_MODULE["module"]
+
+
+def style_sentence_texts(scripts_dir: Path, run_dir: Path) -> dict[tuple[str, int], str]:
+    """(section, sentence index) -> sentence text, numbered as scripts/estilo_es.py numbers them."""
+    script = scripts_dir / "estilo_es.py"
+    folder = run_dir / "redaccion" / "sections"
+    if not script.is_file() or not folder.is_dir():
+        return {}
+    files = []
+    for path in sorted(folder.glob("*.tex")):
+        info = path.stat()
+        files.append((path.name, info.st_mtime_ns, info.st_size))
+    key = (str(script), script.stat().st_mtime_ns, str(run_dir.resolve()), tuple(files))
+    with _STYLE_SENTENCES_LOCK:
+        if _STYLE_SENTENCES["key"] != key:
+            module = _style_module(script)
+            sections = module.run_sections(run_dir)
+            collapser = module.Collapser(module.build_terms(run_dir), module.check_run.detect_flujo(run_dir),
+                                         module.Exemptions())
+            texts = {(s.section, s.index): s.text for s in module.build_sentences(sections, collapser)}
+            _STYLE_SENTENCES.update(key=key, texts=texts)
+        return _STYLE_SENTENCES["texts"]
+
+
+def attach_sentence_texts(report: dict[str, Any], texts: dict[tuple[str, int], str]) -> dict[str, Any]:
+    """Adds `oracion_texto` to each finding whose fragment still sits in its sentence."""
+    for finding in report.get("hallazgos") or []:
+        if not isinstance(finding, dict):
+            continue
+        text = texts.get((finding.get("seccion"), finding.get("oracion")))
+        fragment = _loose_text(finding.get("fragmento"))
+        if text and fragment and fragment in _loose_text(text):
+            finding["oracion_texto"] = text
+    return report
 
 # Origins a loopback server answers from: the browser may name it either way.
 _LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -1089,7 +1159,16 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         if run_dir is None:
             self._send_json(200, {"ok": True, "disponible": False})
             return
-        self._send_json(200, {"ok": True, **load_style_report(run_dir)})
+        self._send_json(200, {"ok": True, **self._style_report_with_sentences(run_dir)})
+
+    def _style_report_with_sentences(self, run_dir: Path) -> dict[str, Any]:
+        report = load_style_report(run_dir)
+        if not report.get("disponible"):
+            return report
+        try:
+            return attach_sentence_texts(report, style_sentence_texts(self._resolve_scripts_dir(), run_dir))
+        except Exception:  # noqa: BLE001 - the sentence text is a search aid; the report stands without it
+            return report
 
     def handle_style_audit(self) -> None:
         run_dir = self._active_run_dir()
@@ -1108,7 +1187,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         if done.returncode != 0:
             self._send_json(500, {"ok": False, "error": done.stderr.strip()[-400:] or "Falló la auditoría de estilo"})
             return
-        self._send_json(200, {"ok": True, **load_style_report(run_dir)})
+        self._send_json(200, {"ok": True, **self._style_report_with_sentences(run_dir)})
 
     def serve_api_status(self) -> None:
         response_data = get_project_status(self.workspace_dir)

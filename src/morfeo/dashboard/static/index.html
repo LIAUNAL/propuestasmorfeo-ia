@@ -994,6 +994,32 @@
       cursor: pointer;
     }
 
+    /* Estilo y redundancia: hallazgos a la izquierda, PDF a la derecha. */
+    .estilo-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+    @media (max-width: 1100px) { .estilo-layout { grid-template-columns: minmax(0, 1fr); } }
+    .estilo-findings { min-width: 0; }
+    .estilo-more { display: flex; justify-content: center; padding: 0.5rem 0; }
+    .estilo-locate { padding: 0.2rem 0.55rem; font-size: 0.75rem; white-space: nowrap; }
+    #estiloHallazgos tr.is-located td { background: var(--accent-dim); }
+    .estilo-pdf { min-width: 0; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--surface-2); overflow: hidden; }
+    @media (min-width: 1101px) { .estilo-pdf { position: sticky; top: 1rem; } }
+    .estilo-pdf__bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.25rem 0.75rem; padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.85rem; }
+    .estilo-pdf__status { font-size: 0.78rem; color: var(--text-muted); padding: 0 0.8rem; min-height: 0; overflow-wrap: anywhere; }
+    .estilo-pdf__status:not(:empty) { padding: 0.4rem 0.8rem; border-bottom: 1px solid var(--border-subtle); }
+    .estilo-pdf__status[data-tone="ok"] { color: var(--ok); }
+    .estilo-pdf__status[data-tone="warn"] { color: var(--warn); }
+    .estilo-pdf__status[data-tone="bad"] { color: var(--bad); }
+    .estilo-pdf__viewport { position: relative; height: min(80vh, 900px); overflow: auto; padding: 8px; }
+    .estilo-pdf__pages { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .estilo-pdf-page { position: relative; flex: none; background: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
+    .estilo-pdf-page canvas { display: block; }
+    .estilo-pdf-hl-layer { position: absolute; inset: 0; pointer-events: none; }
+    .estilo-pdf-hl { position: absolute; background: var(--warn-dim); outline: 2px solid var(--warn); border-radius: 2px; animation: estilo-pdf-pulse 4s ease-out forwards; }
+    @keyframes estilo-pdf-pulse { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+    .estilo-pdf__empty { color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 1rem; text-align: center; }
+    .estilo-pdf__frame { display: block; width: 100%; height: 100%; border: 0; background: var(--surface); }
+    .estilo-pdf__frame[hidden], .estilo-pdf__pages[hidden], .estilo-pdf__empty[hidden] { display: none; }
+
     /* Estilos del Modal de Estructura Canónica de Secciones */
     .sec-structure-block {
       background: var(--surface-2);
@@ -3572,18 +3598,37 @@
             <button id="btnEstiloAuditar" class="btn" onclick="runStyleAudit()">Auditar el documento</button>
           </div>
         </div>
-        <div id="estiloResumen" style="padding: 0.75rem 1rem;"></div>
-        <div class="table-responsive">
-          <table class="table">
-            <thead><tr><th>Sección</th><th>Índice</th><th>Palabras</th></tr></thead>
-            <tbody id="estiloSecciones"></tbody>
-          </table>
-        </div>
-        <div class="table-responsive">
-          <table class="table">
-            <thead><tr><th>Sección</th><th>Categoría</th><th>Texto</th><th>Orientación</th></tr></thead>
-            <tbody id="estiloHallazgos"></tbody>
-          </table>
+        <div class="estilo-layout">
+          <div class="estilo-findings">
+            <div id="estiloResumen" style="padding: 0.75rem 1rem;"></div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead><tr><th>Sección</th><th>Índice</th><th>Palabras</th></tr></thead>
+                <tbody id="estiloSecciones"></tbody>
+              </table>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead><tr><th>Sección</th><th>Categoría</th><th>Texto</th><th>Orientación</th><th>PDF</th></tr></thead>
+                <tbody id="estiloHallazgos"></tbody>
+              </table>
+            </div>
+            <div class="estilo-more">
+              <button type="button" id="btnEstiloVerTodos" class="btn" hidden onclick="toggleStyleFindings()"></button>
+            </div>
+          </div>
+          <aside class="estilo-pdf" id="estiloPdfPanel" aria-label="Vista previa del PDF">
+            <div class="estilo-pdf__bar">
+              <strong>Vista previa del PDF</strong>
+              <span class="panel__meta" id="estiloPdfPageInfo">—</span>
+            </div>
+            <div class="estilo-pdf__status" id="estiloPdfStatus" role="status" aria-live="polite"></div>
+            <div class="estilo-pdf__viewport" id="estiloPdfViewport">
+              <p class="estilo-pdf__empty" id="estiloPdfEmpty" hidden>Todavía no hay un PDF compilado.</p>
+              <div class="estilo-pdf__pages" id="estiloPdfPages" hidden></div>
+              <iframe id="estiloPdfFrame" class="estilo-pdf__frame" title="PDF de la propuesta" src="about:blank" hidden></iframe>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
@@ -4104,6 +4149,7 @@
   </div>
 
   <script src="/static/cli-console.js"></script>
+  <script src="/static/estilo-pdf.js"></script>
   <script src="/static/board-refresh.js"></script>
   <script src="/static/convocatorias-map.js"></script>
   <script>
@@ -9092,7 +9138,12 @@
 
       if (tabId === 'sections') loadTdrChapters();
 
-      if (tabId === 'estilo') loadStyleReport();
+      if (tabId === 'estilo') {
+        loadStyleReport();
+        if (window.EstiloPdf) window.EstiloPdf.open();
+      } else if (window.EstiloPdf) {
+        window.EstiloPdf.hide();
+      }
 
       if (tabId === 'flow') ensureFlowLoaded();
 
@@ -10735,7 +10786,8 @@
         summary.textContent = 'Aún no hay reporte. Usa «Auditar el documento» para generarlo.';
         document.getElementById('estiloMeta').textContent = '—';
         sections.innerHTML = '';
-        findings.innerHTML = '';
+        styleFindings = [];
+        renderStyleFindings();
         return;
       }
       document.getElementById('estiloMeta').textContent = `${(report.exentos || []).length} términos exentos`;
@@ -10744,10 +10796,51 @@
       sections.innerHTML = (report.secciones || []).map(item =>
         `<tr><td>${escapeHtml(item.seccion || '')}</td><td>${escapeHtml(String(item.indice ?? ''))}</td>`
         + `<td>${escapeHtml(String(item.palabras ?? ''))}</td></tr>`).join('');
-      findings.innerHTML = (report.hallazgos || []).slice(0, 12).map(item =>
-        `<tr><td>${escapeHtml(item.seccion || '')}</td><td>${escapeHtml(item.categoria || '')}</td>`
-        + `<td>${escapeHtml(item.fragmento || '')}</td><td>${escapeHtml(item.orientacion || '')}</td></tr>`).join('');
+      styleFindings = Array.isArray(report.hallazgos) ? report.hallazgos : [];
+      renderStyleFindings();
     }
+
+    // Hallazgos del reporte: los primeros 12 a la vista, el resto tras «Ver los N
+    // hallazgos». Cada fila lleva «Ubicar», que busca su oración en el PDF.
+    const STYLE_FINDINGS_PREVIEW = 12;
+    let styleFindings = [];
+    let styleShowAllFindings = false;
+
+    function renderStyleFindings() {
+      const findings = document.getElementById('estiloHallazgos');
+      const more = document.getElementById('btnEstiloVerTodos');
+      if (!findings) return;
+      const visible = styleShowAllFindings ? styleFindings : styleFindings.slice(0, STYLE_FINDINGS_PREVIEW);
+      findings.innerHTML = visible.map((item, index) =>
+        `<tr data-finding="${index}"><td>${escapeHtml(item.seccion || '')}</td><td>${escapeHtml(item.categoria || '')}</td>`
+        + `<td>${escapeHtml(item.fragmento || '')}</td><td>${escapeHtml(item.orientacion || '')}</td>`
+        + `<td><button type="button" class="btn estilo-locate" data-locate="${index}" title="Ubicar el hallazgo en el PDF">Ubicar</button></td></tr>`).join('');
+      if (more) {
+        more.hidden = styleFindings.length <= STYLE_FINDINGS_PREVIEW;
+        more.textContent = styleShowAllFindings
+          ? `Ver solo los primeros ${STYLE_FINDINGS_PREVIEW}`
+          : `Ver los ${styleFindings.length} hallazgos`;
+      }
+    }
+
+    function toggleStyleFindings() {
+      styleShowAllFindings = !styleShowAllFindings;
+      renderStyleFindings();
+    }
+
+    async function locateStyleFinding(index) {
+      const finding = styleFindings[Number(index)];
+      if (!finding || !window.EstiloPdf) return null;
+      document.querySelectorAll('#estiloHallazgos tr.is-located').forEach(row => row.classList.remove('is-located'));
+      const row = document.querySelector(`#estiloHallazgos tr[data-finding="${Number(index)}"]`);
+      if (row) row.classList.add('is-located');
+      return window.EstiloPdf.locate(finding);
+    }
+
+    document.getElementById('estiloHallazgos')?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-locate]');
+      if (button) locateStyleFinding(button.dataset.locate);
+    });
 
     async function runStyleAudit() {
       const button = document.getElementById('btnEstiloAuditar');
