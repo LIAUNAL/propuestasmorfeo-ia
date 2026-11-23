@@ -17,7 +17,7 @@ S1. National coverage (L1, verbatim): «depura el buscador de convocarorias, ase
 
 | ID | Specs | Route | Status | Commit |
 |----|-------|-------|--------|--------|
-| T1 | S1 (catalog, rules, script checks, agent and command, dashboard level, tests) | delegated writer (context backstop), main tree | pending | |
+| T1 | S1 (catalog, rules, script checks, agent and command, dashboard level, tests) | delegated writer (context backstop), main tree | done | 0f47376, b7813b4, e2d52da, 2f5dc84 (34 py + 6 js RED→GREEN; py 2012 OK, js 458/458; on the old hermes data `check` now reports 7 unconsulted mandatory sources, 3 count mismatches, 2 unknown sources) |
 | T2 | S1 (proof) | parent: real search on the hermes project with the explorador agent, then `check` and the dashboard | pending | |
 
 ## Log
