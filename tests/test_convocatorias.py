@@ -23,6 +23,8 @@ SCRIPT = REPO / "scripts" / "convocatorias.py"
 RULES = REPO / "scripts" / "convocatorias" / "reglas_co.json"
 SOURCES = REPO / "scripts" / "convocatorias" / "fuentes.json"
 HOY = datetime.date(2026, 11, 20)
+MANDATORY_SOURCES = [s["id"] for s in json.loads(SOURCES.read_text(encoding="utf-8"))["fuentes"]
+                     if s.get("obligatoria") is True]
 
 
 def _load():
@@ -39,7 +41,7 @@ def _call(**overrides) -> dict:
         "financiador": "Financiador Neutro",
         "programa": None,
         "url": "https://example.org/c1",
-        "fuente": "prueba",
+        "fuente": "busqueda:example.org",
         "ambito": "internacional",
         "idioma": "en",
         "aplicantes": ["investigador"],
@@ -100,10 +102,13 @@ class Workspace:
         return self.write("perfil_banco.json", data)
 
     def calls(self, calls: list[dict], **overrides) -> Path:
+        # Every mandatory national source consulted, `n` counting the calls registered from it
+        # (odd/tasks/convocatorias-nacional.md, S1).
+        consulted = [{"fuente": source_id, "url": f"https://example.org/{source_id}", "fecha": "2026-11-20",
+                      "resultado": "ok", "n": sum(1 for c in calls if isinstance(c, dict) and c.get("fuente") == source_id)}
+                     for source_id in MANDATORY_SOURCES]
         data = {"schema": "morfeo.oportunidades/v1", "actualizado": "2026-11-20",
-                "fuentes_consultadas": [{"fuente": "minciencias", "url": "https://minciencias.gov.co",
-                                         "fecha": "2026-11-20", "resultado": "ok", "n": len(calls)}],
-                "oportunidades": calls}
+                "fuentes_consultadas": consulted, "oportunidades": calls}
         data.update(overrides)
         return self.write("oportunidades.json", data)
 
@@ -559,7 +564,8 @@ class CheckMapFieldsTest(Base):
     def test_accepts_the_new_fields(self):
         self.ws.profile(alcance="proyecto", experiencia=[_exp("vision-lia", ["visión"], ["Minciencias"])])
         self.ws.banco(experiencia=[_exp("salud-lia", ["salud"])])
-        self.ws.calls([self.full_call(), self.full_call(id="dos", relacionados_banco=["salud-lia"])])
+        self.ws.calls([self.full_call(), self.full_call(id="dos", relacionados_banco=["salud-lia"],
+                                                      url="https://example.org/c2")])
         findings = self.mod.check(self.ws.root)
         self.assertEqual(self.codes(findings, "error"), [])
         self.assertNotIn("experiencia-desconocida", self.codes(findings))

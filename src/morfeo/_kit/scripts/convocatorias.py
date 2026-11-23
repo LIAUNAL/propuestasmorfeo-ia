@@ -19,7 +19,12 @@ else `.marco/config.json`; a run folder inside it works too):
                        aplicantes, rol_colombia, estado, apertura, cierre, cierre_tipo,
                        monto, temas, resumen, elegibilidad, puntaje_agente, evidencia,
                        encontrada, titulo_corto, esfuerzo, requisitos, relacionados_banco}]}
-      Optional: titulo_corto (≤ 32 chars), esfuerzo ("bajo"|"medio"|"alto"),
+      `fuente` is a catalogue id (`fuentes`) or `busqueda:<host>` (open search,
+      host of the official page); `fuentes_consultadas[].n` counts the calls
+      registered from that source; `resultado` is ok, sin_resultados,
+      bloqueado, requiere_sesion (the source needs the operator's session) or error.
+      Optional: nivel ("nacional"|"regional"|"local"|"institucional"),
+      titulo_corto (≤ 32 chars), esfuerzo ("bajo"|"medio"|"alto"),
       requisitos [{tipo: consorcio|contrapartida|anfitrion|idioma|perfil|aval|entidad|otro,
       estado: cumple|por_verificar|no_cumple, texto ≤ 200 chars}], relacionados_banco
       [experiencia ids].
@@ -54,7 +59,13 @@ Commands:
       chosen profile (default proyecto; banco when only perfil_banco.json exists);
       text output is one line per call: puntaje, estado, días, rol, título.
   fuentes [--json]
-      The fixed source catalogue scripts/convocatorias/fuentes.json.
+      The fixed source catalogue scripts/convocatorias/fuentes.json: per source
+      {id, nombre, url, ambito, idioma, metodo (api, rss, html, pdf, navegador,
+      busqueda, sesion), aplicantes, notas}; Colombian sources add nivel,
+      obligatoria (the national search must consult it), crawl_delay (seconds
+      or null), and optionally feed, filtro, regiones and consultas (query
+      templates with {tema}, {año}, {ciudad}, {departamento}); top-level
+      consultas_colombia [{nivel, plantilla}] are the general Colombian queries.
   constelacion DIR [--alcance proyecto|banco] [--agrupar tema|ambito|rol] [--hoy YYYY-MM-DD]
       The dashboard's constellation as JSON (schema
       `morfeo.convocatorias-constelacion/v1`): an atlas for scripts/render_atlas.py
@@ -93,19 +104,33 @@ not met, a deadline shorter than the effort, «Cierre estimado», «Sin fecha de
 cierre publicada» and «Programa pausado» (the rule notice stays in `aviso`).
 Top level: `alcance`, `perfil.alcance`, `perfiles` {proyecto, banco} (which
 files exist) and `mapa` {temas: [{tema, n}], experiencia: [items with n]}.
+Per call `nivel` is the call's level, else the level of its catalogue source,
+else null; `resumen.por_nivel` counts them. `cobertura` is the national
+coverage: {requerida (a profile covers Colombia, or there is no profile),
+obligatorias [{id, nombre, url, nivel, consultada, resultado, n, registradas}],
+faltantes [{id, nombre, url, nivel}] (mandatory sources without a
+fuentes_consultadas entry, catalogue order), descuadres [{fuente, n,
+registradas}] (a reported n that differs from the calls registered from that
+source, n null when a catalogue source with calls was not reported; a
+`busqueda:<host>` entry is optional and checked only when present),
+desconocidas [call ids whose fuente is neither], completa}. The text output of
+`datos` ends with one line per kind of gap.
 Order: vigentes (estado abierta/proxima and cierre not past) first; then
 rol_colombia other than no_elegible; then match desc; then nearest cierre.
 
 Codes: esquema, json-invalido, valor-invalido, fecha-invalida, id-invalido,
 id-repetido, campo-faltante, texto-largo, puntaje-fuera-de-rango,
-cierre-antes-de-apertura (errors); sin-evidencia, rol-desconocido,
-abierta-sin-cierre, experiencia-desconocida (warnings); sin-perfil,
+cierre-antes-de-apertura, fuente-obligatoria-sin-consultar, conteo-fuente,
+fuente-desconocida (with the catalogue id it names or busqueda:<host> as the
+fix), url-repetida (same URL after `normalize_url`) (errors); sin-evidencia,
+rol-desconocido, abierta-sin-cierre, experiencia-desconocida, sin-nivel (a
+Colombian call without nivel) (warnings); sin-perfil,
 sin-oportunidades, regla-rol-distinto (info, the last one from `datos` only).
 
 Library (the dashboard): find_workspace(path), vista(dir, hoy=None, alcance=None),
 constelacion(dir, hoy=None, alcance=None, agrupar="tema", ids=None),
 atlas_de_vista(view, agrupar="tema", ids=None, idea=None), check(dir), init_profile(dir, alcance="proyecto"), record_progress(dir, ...), load_sources(),
-load_rules().
+load_rules(), normalize_url(url).
 
 Exit codes: 0 ok, 1 error findings (check), 2 bad input (no workspace, bad
 date, invalid alcance, unreadable catalogue). Standard library only; no network access.
@@ -146,7 +171,16 @@ SCOPES = ("colombia", "latam", "internacional")
 ROLES = ("lider", "socio", "coaplicante", "anfitrion_exterior", "no_elegible", "desconocido")
 STATES = ("abierta", "proxima", "cerrada", "pausada")
 DEADLINE_TYPES = ("fijo", "estimado", "continuo", "desconocido")
-SOURCE_RESULTS = ("ok", "sin_resultados", "bloqueado", "error")
+SOURCE_RESULTS = ("ok", "sin_resultados", "bloqueado", "requiere_sesion", "error")
+SOURCE_METHODS = ("api", "rss", "html", "pdf", "navegador", "busqueda", "sesion")
+LEVELS = ("nacional", "regional", "local", "institucional")
+NATIONAL_SCOPE = "colombia"
+SEARCH_PREFIX = "busqueda:"
+SEARCH_SOURCE_RE = re.compile(r"^busqueda:[a-z0-9-]+(\.[a-z0-9-]+)+$")
+# Query parameters that only track the visit; dropped when comparing URLs.
+TRACKING_PARAMS = frozenset({"fbclid", "gclid", "gclsrc", "dclid", "msclkid", "mc_cid", "mc_eid", "igshid",
+                             "_ga", "_gl", "_hsenc", "_hsmi", "yclid"})
+DEFAULT_PORTS = {"http": 80, "https": 443}
 CURRENT_STATES = ("abierta", "proxima")
 REQUIRED_CALL_FIELDS = ("titulo", "financiador", "url", "ambito")
 ALCANCES = ("proyecto", "banco")
@@ -250,6 +284,26 @@ def _write_atomic(path: Path, data: dict) -> None:
 
 def _finding(severity: str, code: str, message: str, call_id: str | None = None) -> dict:
     return {"severidad": severity, "codigo": code, "mensaje": message, "id": call_id}
+
+
+def normalize_url(url) -> str:
+    """The URL used to spot repeated calls: scheme and host lowercased, default port,
+    fragment and trailing slash dropped, tracking parameters (utm_*, fbclid, ...) removed
+    and the remaining query parameters sorted. '' for a blank or non-text value."""
+    text = url.strip() if isinstance(url, str) else ""
+    if not text:
+        return ""
+    parts = urllib.parse.urlsplit(text)
+    scheme = parts.scheme.lower()
+    host = (parts.hostname or "").lower()
+    try:
+        port = parts.port
+    except ValueError:
+        port = None
+    netloc = host if port is None or DEFAULT_PORTS.get(scheme) == port else f"{host}:{port}"
+    query = [(k, v) for k, v in urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+             if not k.lower().startswith("utm_") and k.lower() not in TRACKING_PARAMS]
+    return urllib.parse.urlunsplit((scheme, netloc, parts.path.rstrip("/"), urllib.parse.urlencode(sorted(query)), ""))
 
 
 # --- Workspace ----------------------------------------------------------------
@@ -616,7 +670,7 @@ def _check_call(findings: list[dict], call: dict, seen: set[str], known_ids: set
             findings.append(_finding("error", "campo-faltante", f"{label}: falta «{field}»", call_id))
     for field, allowed, required in (("ambito", SCOPES, False), ("idioma", LANGUAGES, True),
                                      ("rol_colombia", ROLES, False), ("estado", STATES, True),
-                                     ("cierre_tipo", DEADLINE_TYPES, False)):
+                                     ("cierre_tipo", DEADLINE_TYPES, False), ("nivel", LEVELS, False)):
         value = call.get(field)
         if value is None and not required:
             continue
@@ -664,6 +718,9 @@ def _check_call(findings: list[dict], call: dict, seen: set[str], known_ids: set
     if call.get("estado") == "abierta" and call.get("cierre") is None:
         findings.append(_finding("warning", "abierta-sin-cierre", f"{label}: está abierta y no tiene cierre",
                                  call_id))
+    if call.get("ambito") == NATIONAL_SCOPE and call.get("nivel") is None:
+        findings.append(_finding("warning", "sin-nivel",
+                                 f"{label}: es de Colombia y no registra «nivel» ({', '.join(LEVELS)})", call_id))
     _check_map_fields(findings, call, label, call_id, known_ids)
 
 
@@ -695,12 +752,158 @@ def _check_calls(data, known_ids: set[str] | None = None) -> list[dict]:
         findings.append(_finding("error", "campo-faltante", "falta la lista «oportunidades»"))
         return findings
     seen: set[str] = set()
+    urls: dict[str, str] = {}
     for call in calls:
         if not isinstance(call, dict):
             findings.append(_finding("error", "valor-invalido", "una oportunidad no es un objeto"))
             continue
         _check_call(findings, call, seen, known_ids)
+        key = normalize_url(call.get("url"))
+        label = call.get("id") if isinstance(call.get("id"), str) and call.get("id") else "(sin id)"
+        if key and key in urls:
+            findings.append(_finding("error", "url-repetida",
+                                     f"{label}: su URL es la misma de {urls[key]} al normalizarla ({key}); "
+                                     "registre la convocatoria una sola vez", call.get("id")))
+        elif key:
+            urls[key] = label
     return findings
+
+
+# --- National coverage --------------------------------------------------------
+# A call's `fuente` is the id of a catalogue source or `busqueda:<host>` (the
+# open search, host of the official page). `fuentes_consultadas[].n` is the
+# number of calls registered from that source: for a catalogue id it must
+# match the calls whose `fuente` is that id (several entries of one source add
+# up), and a call from a catalogue source needs an entry. A `busqueda:<host>`
+# entry is optional; when present, its `n` is checked the same way. The
+# mandatory Colombian sources (`obligatoria`) must all have an entry whenever a
+# profile covers Colombia (no profile, or a profile without `ambitos`, counts
+# as covering it); any `resultado` counts as consulted.
+
+def _source_kind(value, catalogue: dict[str, dict]) -> str | None:
+    """'catalogo', 'busqueda' or None (not a catalogue id nor busqueda:<host>)."""
+    if not isinstance(value, str):
+        return None
+    if value in catalogue:
+        return "catalogo"
+    return "busqueda" if SEARCH_SOURCE_RE.match(value) else None
+
+
+def _source_hint(value, url, catalogue: dict[str, dict]) -> str:
+    """How to fix an unknown `fuente`: the catalogue id it names, else busqueda:<host of url>."""
+    folded = _fold(value) if isinstance(value, str) else ""
+    named = [sid for sid in catalogue
+             if re.search(rf"(?<![a-z0-9-]){re.escape(sid)}(?![a-z0-9-])", folded)]
+    if named:
+        return f"use «{max(named, key=len)}», el id del catálogo que nombra"
+    host = (urllib.parse.urlsplit(url.strip()).hostname or "").lower() if isinstance(url, str) else ""
+    if host:
+        return f"use el id de la fuente del catálogo o «{SEARCH_PREFIX}{host}» si la encontró en la búsqueda abierta"
+    return f"use el id de la fuente del catálogo o «{SEARCH_PREFIX}<host>» de la página oficial"
+
+
+def _national_required(profiles: dict[str, dict | None]) -> bool:
+    """True when some profile covers Colombia (no profile, or no `ambitos` list, counts as all scopes)."""
+    present = [p for p in profiles.values() if isinstance(p, dict)]
+    if not present:
+        return True
+    return any(NATIONAL_SCOPE in (p["ambitos"] if isinstance(p.get("ambitos"), list) else SCOPES) for p in present)
+
+
+def _source_entry(source: dict) -> dict:
+    return {"id": source.get("id"), "nombre": source.get("nombre"), "url": source.get("url"),
+            "nivel": source.get("nivel")}
+
+
+def _coverage(data: dict | None, catalogue: dict[str, dict], required: bool) -> dict:
+    """The national coverage of oportunidades.json against the source catalogue."""
+    raw_calls = data.get("oportunidades") if isinstance(data, dict) else None
+    calls = [c for c in raw_calls if isinstance(c, dict)] if isinstance(raw_calls, list) else []
+    raw_sources = data.get("fuentes_consultadas") if isinstance(data, dict) else None
+    consulted = [s for s in raw_sources if isinstance(s, dict)] if isinstance(raw_sources, list) else []
+    registered: dict[str, int] = {}
+    unknown = []
+    for call in calls:
+        kind = _source_kind(call.get("fuente"), catalogue)
+        if kind is None:
+            unknown.append(call.get("id") if isinstance(call.get("id"), str) and call.get("id") else "(sin id)")
+        else:
+            registered[call["fuente"]] = registered.get(call["fuente"], 0) + 1
+    reported: dict[str, int | None] = {}
+    results: dict[str, str] = {}
+    for entry in consulted:
+        fuente = entry.get("fuente")
+        if _source_kind(fuente, catalogue) is None:
+            continue
+        results.setdefault(fuente, entry.get("resultado"))
+        n = entry.get("n")
+        valid = isinstance(n, int) and not isinstance(n, bool) and n >= 0
+        if fuente not in reported or reported[fuente] is None:
+            reported[fuente] = n if valid else None
+        elif valid:
+            reported[fuente] += n
+    mismatches = [{"fuente": f, "n": n, "registradas": registered.get(f, 0)}
+                  for f, n in reported.items() if n is not None and n != registered.get(f, 0)]
+    mismatches += [{"fuente": f, "n": None, "registradas": k} for f, k in registered.items()
+                   if f in catalogue and f not in reported]
+    mandatory = [s for s in catalogue.values() if s.get("ambito") == NATIONAL_SCOPE and s.get("obligatoria") is True]
+    listed = [dict(_source_entry(s), consultada=s["id"] in results, resultado=results.get(s["id"]),
+                   n=reported.get(s["id"]), registradas=registered.get(s["id"], 0)) for s in mandatory]
+    missing = [_source_entry(s) for s in mandatory if required and s["id"] not in results]
+    return {
+        "requerida": required,
+        "obligatorias": listed,
+        "faltantes": missing,
+        "descuadres": mismatches,
+        "desconocidas": unknown,
+        "completa": not missing and not mismatches and not unknown,
+    }
+
+
+def _check_coverage(data: dict, catalogue: dict[str, dict], coverage: dict) -> list[dict]:
+    """Findings for a mandatory source not consulted, a count that does not match and an unknown `fuente`."""
+    findings = []
+    for source in coverage["faltantes"]:
+        findings.append(_finding("error", "fuente-obligatoria-sin-consultar",
+                                 f"fuente obligatoria {source['id']} ({source['nombre']}) no está en "
+                                 f"«fuentes_consultadas»; consúltela en {source['url']} y regístrela aunque no "
+                                 "traiga convocatorias (sin_resultados, bloqueado, requiere_sesion o error)"))
+    for row in coverage["descuadres"]:
+        k = row["registradas"]
+        calls_text = f"{k} {'convocatoria registrada' if k == 1 else 'convocatorias registradas'}"
+        if row["n"] is None:
+            message = (f"fuente {row['fuente']}: hay {calls_text} con esa «fuente» y no está en "
+                       "«fuentes_consultadas»")
+        else:
+            message = (f"fuente {row['fuente']}: «n» es {row['n']} y hay {calls_text} con esa «fuente»; "
+                       "«n» cuenta las convocatorias registradas desde la fuente")
+        findings.append(_finding("error", "conteo-fuente", message))
+    raw_calls = data.get("oportunidades")
+    for call in raw_calls if isinstance(raw_calls, list) else []:
+        if not isinstance(call, dict) or _source_kind(call.get("fuente"), catalogue) is not None:
+            continue
+        call_id = call.get("id") if isinstance(call.get("id"), str) and call.get("id") else None
+        value = call.get("fuente")
+        hint = _source_hint(value, call.get("url"), catalogue)
+        head = f"{call_id or '(sin id)'}: " + ("falta «fuente»" if value is None else
+                                              f"«fuente» {value!r} no es un id del catálogo "
+                                              f"(convocatorias.py fuentes) ni «{SEARCH_PREFIX}<host>»")
+        findings.append(_finding("error", "fuente-desconocida", f"{head}; {hint}", call_id))
+    raw_sources = data.get("fuentes_consultadas")
+    for entry in raw_sources if isinstance(raw_sources, list) else []:
+        if not isinstance(entry, dict) or _source_kind(entry.get("fuente"), catalogue) is not None:
+            continue
+        hint = _source_hint(entry.get("fuente"), entry.get("url"), catalogue)
+        findings.append(_finding("error", "fuente-desconocida",
+                                 f"fuente consultada {entry.get('fuente')!r} no es un id del catálogo ni "
+                                 f"«{SEARCH_PREFIX}<host>»; {hint}"))
+    return findings
+
+
+def _catalogue_index() -> dict[str, dict]:
+    """The source catalogue by id."""
+    return {s["id"]: s for s in load_sources().get("fuentes") or []
+            if isinstance(s, dict) and isinstance(s.get("id"), str)}
 
 
 def _experience_items(profile: dict | None) -> list[dict]:
@@ -714,8 +917,9 @@ def _experience_items(profile: dict | None) -> list[dict]:
     return items
 
 
-def _check_workspace(workspace: Path) -> tuple[list[dict], dict[str, dict | None], dict | None]:
-    """(findings, {alcance: profile data}, calls data) of a workspace; data is None when missing or unreadable."""
+def _check_workspace(workspace: Path) -> tuple[list[dict], dict[str, dict | None], dict | None, dict]:
+    """(findings, {alcance: profile data}, calls data, national coverage) of a workspace; data is None when
+    missing or unreadable."""
     findings: list[dict] = []
     profiles: dict[str, dict | None] = {}
     for scope in ALCANCES:
@@ -745,7 +949,12 @@ def _check_workspace(workspace: Path) -> tuple[list[dict], dict[str, dict | None
                                  f"no existe {CALLS_FILE.as_posix()}; ejecute /propuesta-convocatorias"))
     else:
         findings.extend(_check_calls(calls, known_ids))
-    return findings, profiles, calls if isinstance(calls, dict) else None
+    data = calls if isinstance(calls, dict) else None
+    catalogue = _catalogue_index()
+    coverage = _coverage(data, catalogue, _national_required(profiles))
+    if data is not None:
+        findings.extend(_check_coverage(data, catalogue, coverage))
+    return findings, profiles, data, coverage
 
 
 def check(path) -> list[dict]:
@@ -861,8 +1070,16 @@ def _match_rule(rules: list[dict], call: dict) -> dict | None:
     return next((rule for rule in rules if rule["_re"].search(text)), None)
 
 
+def _call_level(call: dict, catalogue: dict[str, dict]) -> str | None:
+    """The call's `nivel`, else the level of its catalogue source, else None."""
+    if call.get("nivel") in LEVELS:
+        return call["nivel"]
+    source = catalogue.get(call.get("fuente")) if isinstance(call.get("fuente"), str) else None
+    return source.get("nivel") if isinstance(source, dict) and source.get("nivel") in LEVELS else None
+
+
 def _view_call(call: dict, rules: list[dict], profile: dict | None, profile_tokens: set[str],
-               hoy: datetime.date, findings: list[dict]) -> dict:
+               hoy: datetime.date, findings: list[dict], catalogue: dict[str, dict] | None = None) -> dict:
     out = dict(call)
     agent_role = call.get("rol_colombia") if call.get("rol_colombia") in ROLES else "desconocido"
     role, notice, rule_ref = agent_role, None, None
@@ -911,6 +1128,7 @@ def _view_call(call: dict, rules: list[dict], profile: dict | None, profile_toke
     if role == "no_elegible" or not vigente:
         match = min(match, MATCH_CAP)
     out.update({
+        "nivel": _call_level(call, catalogue or {}),
         "estado": state,
         "dias_restantes": days,
         "vigente": vigente,
@@ -955,7 +1173,8 @@ def vista(path, hoy: datetime.date | None = None, alcance: str | None = None) ->
     workspace = find_workspace(path)
     alcance = _default_alcance(workspace) if alcance is None else _check_alcance(alcance)
     hoy = hoy or datetime.date.today()
-    findings, profiles, data = _check_workspace(workspace)
+    findings, profiles, data, coverage = _check_workspace(workspace)
+    catalogue = _catalogue_index()
     profile = profiles[alcance]
     exists = {scope: (workspace / PROFILE_FILES[scope]).is_file() for scope in ALCANCES}
     if not exists[alcance] and any(exists.values()):
@@ -965,7 +1184,7 @@ def vista(path, hoy: datetime.date | None = None, alcance: str | None = None) ->
     rules = load_rules()
     profile_tokens, n_keywords = _profile_tokens(profile)
     raw_calls = data.get("oportunidades") if data is not None else None
-    calls = [_view_call(c, rules, profile, profile_tokens, hoy, findings)
+    calls = [_view_call(c, rules, profile, profile_tokens, hoy, findings, catalogue)
              for c in (raw_calls if isinstance(raw_calls, list) else []) if isinstance(c, dict)]
     calls.sort(key=_sort_key)
     topics = _strings((profile or {}).get("temas"))
@@ -995,7 +1214,9 @@ def vista(path, hoy: datetime.date | None = None, alcance: str | None = None) ->
             "por_ambito": count("ambito", SCOPES),
             "por_rol": count("rol_colombia", ROLES),
             "por_idioma": count("idioma", LANGUAGES),
+            "por_nivel": count("nivel", LEVELS),
         },
+        "cobertura": coverage,
         "fuentes_consultadas": [s for s in sources if isinstance(s, dict)] if isinstance(sources, list) else [],
         "oportunidades": calls,
         "mapa": {
@@ -1382,6 +1603,21 @@ def _call_line(call: dict) -> str:
     return f"{call['puntaje']:>3}  {call['estado']:<8} {days_text:>9}  {call['rol_colombia']:<18} {call.get('titulo')}"
 
 
+def _coverage_lines(coverage: dict) -> list[str]:
+    """The text summary of the national coverage gaps; [] when there are none."""
+    lines = []
+    missing = coverage.get("faltantes") or []
+    if missing:
+        noun = "falta 1 fuente obligatoria" if len(missing) == 1 else f"faltan {len(missing)} fuentes obligatorias"
+        lines.append(f"cobertura nacional: {noun}: {', '.join(s['id'] for s in missing)}")
+    mismatched = coverage.get("descuadres") or []
+    if mismatched:
+        noun = "1 fuente" if len(mismatched) == 1 else f"{len(mismatched)} fuentes"
+        lines.append(f"cobertura nacional: {noun} con «n» distinto de las convocatorias registradas: "
+                     f"{', '.join(row['fuente'] for row in mismatched)}")
+    return lines
+
+
 def _print_json(data) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
@@ -1451,6 +1687,9 @@ def main(argv: list[str] | None = None) -> int:
                     print(_call_line(call))
             else:
                 print("sin oportunidades registradas")
+            if not args.json:
+                for line in _coverage_lines(view.get("cobertura") or {}):
+                    print(line)
             return 0
         if args.command == "constelacion":
             _print_json(constelacion(args.dir, hoy=args.hoy, alcance=args.alcance, agrupar=args.agrupar))
