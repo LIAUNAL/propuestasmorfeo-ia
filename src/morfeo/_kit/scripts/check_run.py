@@ -18,7 +18,8 @@ filled cover and the total reference floor. Exit code 1 when any error is found.
 
 Writing language (lang): the run's, as scripts/language.py resolves it (the
 `| idioma | en |` row of `_run.md`, else the project's `lang`, always `es` in the
-SGR flow); --lang overrides it. A Spanish run gets exactly the output it got
+SGR flow); --lang overrides it, except that the SGR flow refuses --lang en
+(exit 2). A Spanish run gets exactly the output it got
 before the setting existed, and --json prints "lang" only for an English run.
 In English the language rules read English: the TRL message, the cover
 placeholder ([To be defined, besides [Por definir), the table name in the PDF
@@ -1782,7 +1783,13 @@ def main() -> int:
     parser.add_argument("--lang", choices=LANGS, help="override the writing language read from the run")
     args = parser.parse_args()
 
-    report = run_checks(resolve_run_root(args.run_root), args.final, args.flujo, args.lang)
+    run_root = resolve_run_root(args.run_root)
+    flujo = args.flujo if args.flujo in FLUJOS else detect_flujo(run_root)
+    if flujo == "sgr" and args.lang == "en":
+        # The SGR flow is Spanish only (DNP/MGA): say so instead of ignoring the flag.
+        print("check_run: el flujo SGR se redacta solo en español; --lang en no aplica.", file=sys.stderr)
+        return 2
+    report = run_checks(run_root, args.final, args.flujo, args.lang)
     if args.json:
         payload = {"flujo": report.flujo, "findings": report.findings}
         if report.lang != "es":

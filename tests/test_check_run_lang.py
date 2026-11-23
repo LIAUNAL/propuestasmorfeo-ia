@@ -12,12 +12,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-from tests.test_check_run import _cites, _clean_run, _codes, _keys, _run_json
+from tests.test_check_run import CHECK, _cites, _clean_run, _codes, _keys, _run_json
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -90,6 +91,18 @@ class LanguageDetectionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             _, data = _run_json(_clean_run(Path(tmp)), "--lang", "en")
             self.assertEqual(data["lang"], "en")
+
+    def test_english_is_refused_in_the_sgr_flow(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _clean_run(Path(tmp))
+            result = subprocess.run([sys.executable, str(CHECK), str(root), "--json", "--flujo", "sgr", "--lang", "en"],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("SGR", result.stderr)
+            code, data = _run_json(root, "--flujo", "sgr", "--lang", "es")
+            self.assertNotEqual(code, 2)
+            self.assertNotIn("lang", data)
 
 
 class EnglishMessagesTest(unittest.TestCase):
