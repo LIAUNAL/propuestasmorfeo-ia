@@ -62,6 +62,19 @@ fold = check_run._fold
 REPORT_DIR = Path("artefactos") / "estilo"
 AVISO = ("El índice mide legibilidad y fluidez de la prosa. No dice nada sobre la autoría del texto "
          "ni sobre su valor científico, y sus umbrales son provisionales: orienta la revisión, no la aprueba.")
+ESCALA = "puntaje_estilo y puntaje_flujo van de 0 a 1 (menor es mejor); indice va de 0 a 100 (mayor es mejor)."
+# Why an occurrence was exempted (the `motivo` of `exentos`). scripts/estilo_en.py
+# swaps these, the catalog and the word lists for its English counterparts.
+MOTIVOS = {
+    "sgr": "copia literal del árbol exigida por la guía SGR (§3, §6 y §7)",
+    "protegido": "término protegido de la corrida",
+    "resumen": "el resumen retoma el cuerpo del documento",
+    "dominio": "vocabulario del título o de los árboles de la corrida",
+}
+CONNECTOR_DENSITY_SPAN = "{opened} de {n} oraciones abren con un conector"
+CITE_LABEL = "(cita)"
+# Cover values that are still the template's placeholder, not a title.
+PLACEHOLDER_PREFIXES = ("[Por definir",)
 
 UMBRALES: dict = {
     "bandas": {"clara": 0.20, "irregular": 0.45},
@@ -652,10 +665,10 @@ def build_terms(run_root: Path | None) -> list[Term]:
         path = run_root / "redaccion" / relative
         text = path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
         title = _command_value(text, "TituloProyecto")
-        if title and not title.startswith("[Por definir"):
+        if title and not title.startswith(PLACEHOLDER_PREFIXES):
             add(check_run.normalize_tree_text(title), "titulo", minimum=2)
         affiliation = _command_value(text, "AfiliacionProyecto")
-        if affiliation and not affiliation.startswith("[Por definir"):
+        if affiliation and not affiliation.startswith(PLACEHOLDER_PREFIXES):
             add(check_run.normalize_tree_text(affiliation), "institucion", minimum=2)
     return list(found.values())
 
@@ -675,8 +688,8 @@ class Collapser:
 
     def reason(self, term: Term) -> str:
         if term.source.startswith("arbol_") and self.flujo == "sgr":
-            return "copia literal del árbol exigida por la guía SGR (§3, §6 y §7)"
-        return "término protegido de la corrida"
+            return MOTIVOS["sgr"]
+        return MOTIVOS["protegido"]
 
     def collapse(self, text: str) -> tuple[str, list[int]]:
         matches = list(TOKEN_RE.finditer(text))
@@ -709,7 +722,7 @@ class Collapser:
 
     def restore(self, text: str) -> str:
         text = PLACEHOLDER_RE.sub(lambda m: self.terms[int(m.group(1))].label, text)
-        return text.replace(CITE_TOKEN, "(cita)").replace(CITE_MARK, "")
+        return text.replace(CITE_TOKEN, CITE_LABEL).replace(CITE_MARK, "")
 
 
 def build_sentences(sections: list[Section], collapser: Collapser) -> list[Sentence]:
@@ -804,7 +817,7 @@ def flow_findings(sentences: list[Sentence], collapser: Collapser) -> list[dict]
         last_seen[connector] = position
     opened = sum(counts.values())
     if n >= 4 and opened / n > th["conector_proporcion"]:
-        findings.append(_finding("conector_densidad", prose[0], f"{opened} de {n} oraciones abren con un conector"))
+        findings.append(_finding("conector_densidad", prose[0], CONNECTOR_DENSITY_SPAN.format(opened=opened, n=n)))
     for connector, count in sorted(counts.items()):
         if count >= 3 and _per_1000(count, words) > th["conector_sobreuso_por_1000"]:
             first = next(s for s, c in openers if c == connector)
@@ -881,7 +894,7 @@ def redundancy_findings(sentences: list[Sentence], collapser: Collapser, log: Ex
             continue
         body = [h for h in hits if not _is_summary(sentences[h[0]].section)] or hits
         if not qualifies(body):
-            log.log(collapser.restore(" ".join(gram)), "resumen", "el resumen retoma el cuerpo del documento",
+            log.log(collapser.restore(" ".join(gram)), "resumen", MOTIVOS["resumen"],
                     {sentences[i].section for i, _ in hits}, len(hits))
             continue
         for i, start in hits:
@@ -924,7 +937,7 @@ def redundancy_findings(sentences: list[Sentence], collapser: Collapser, log: Ex
                 continue
             a, b = sentences[i], sentences[j]
             if _is_summary(a.section) != _is_summary(b.section):
-                log.log(a.text[:120], "resumen", "el resumen retoma el cuerpo del documento", [a.section, b.section])
+                log.log(a.text[:120], "resumen", MOTIVOS["resumen"], [a.section, b.section])
                 continue
             findings.append(_finding("casi_duplicado", b, b.text[:160], jaccard=round(score, 2),
                                      ubicaciones=[_location(a), _location(b)]))
@@ -961,7 +974,7 @@ def overuse_findings(sentences: list[Sentence], domain: set[str], log: Exemption
             continue
         by_section = Counter(s.section for s in sentences for w in s.words if w == word)
         if fold(word) in domain:
-            log.log(word, "dominio", "vocabulario del título o de los árboles de la corrida", by_section, count)
+            log.log(word, "dominio", MOTIVOS["dominio"], by_section, count)
             continue
         if len(findings) == th["sobreuso_maximo"]:
             break
@@ -1069,7 +1082,7 @@ def audit(sections: list[Section], terms: list[Term], flujo: str, source: str,
     report = {"version": 1, "fuente": source, "flujo": flujo,
               "alcance": ("seccion_contra_documento" if whole and only is not None else "documento" if whole
                           else "seccion" if only is not None else "secciones"),
-              "aviso": AVISO, "escala": "puntaje_estilo y puntaje_flujo van de 0 a 1 (menor es mejor); indice va de 0 a 100 (mayor es mejor)."}
+              "aviso": AVISO, "escala": ESCALA}
     report.update(score(selected, findings))
     report["secciones"] = []
     for name, group in groups.items():
