@@ -15,8 +15,10 @@ iNNpulsa, la Vicerrectoría de Investigación de la UNAL, MinEducación y la
 Agencia Atenea) y suma las regionales y locales de la sede del perfil, entre
 ellas los retos empresariales. Cada convocatoria registra su nivel
 (nacional, regional, local o institucional), y `check` falla si falta una
-fuente obligatoria, si un conteo no cuadra con lo registrado o si dos
-convocatorias comparten URL. Hermes se lee solo con la sesión que el
+fuente obligatoria, si un conteo no cuadra con lo registrado, si dos
+convocatorias comparten URL o si las búsquedas registradas no cubren cada
+categoría de las plantillas colombianas y la búsqueda local de cada sede
+del perfil. Hermes se lee solo con la sesión que el
 operador tenga abierta en Chrome.
 
 Entrada:
@@ -64,6 +66,10 @@ mostrá:
 - la cobertura nacional: las líneas «cobertura nacional: …» que `datos`
   imprime al final (fuentes obligatorias sin consultar, conteos que no
   cuadran) o, si no hay ninguna, que la cobertura está completa;
+- la cobertura de las búsquedas: cuántas búsquedas quedaron registradas
+  (`cobertura_busquedas.n` en `datos --json`), las líneas «búsquedas en Colombia: …» de `datos` (categorías de
+  `consultas_colombia` sin ejecutar, sedes sin búsqueda local) o, si no hay
+  ninguna, que se corrieron todas las categorías;
 - las fuentes `bloqueado`, `requiere_sesion` o `error`;
 - el siguiente paso: abrir la pestaña «Convocatorias» del tablero, o
   `/propuesta-convocatorias iniciar <id>` para empezar una propuesta con una
