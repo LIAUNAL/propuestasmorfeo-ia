@@ -366,6 +366,25 @@ class TestRealScriptCoverage(unittest.TestCase):
         self.assertEqual([o["id"] for o in data["vista"]["oportunidades"]], ["cyted-redes"])
         self.assertIsNone(data["vista"]["oportunidades"][0]["nivel"])
         self.assertFalse(data["vista"]["cobertura"]["completa"])
+        searches = data["vista"]["cobertura_busquedas"]
+        self.assertEqual(searches["n"], 0, "a file from before T3 has no busquedas")
+        self.assertIn("retos", [g["categoria"] for g in searches["faltantes"]])
+
+    def test_the_view_carries_the_search_coverage(self):
+        """T3: the recorded searches and the missing template categories reach the dashboard."""
+        folder = self.ws / "convocatorias"
+        folder.mkdir()
+        (folder / "oportunidades.json").write_text(json.dumps({
+            "schema": "morfeo.oportunidades/v1", "actualizado": "2026-11-20", "fuentes_consultadas": [],
+            "busquedas": [{"consulta": "site:unal.edu.co convocatoria investigación 2026", "plantilla": "co-unal",
+                           "categoria": "institucional", "fecha": "2026-11-20", "resultados": 2, "registradas": 0}],
+            "oportunidades": []}), encoding="utf-8")
+        data = load_opportunities(self.ws)
+        self.assertTrue(data["disponible"], data["error"])
+        searches = data["vista"]["cobertura_busquedas"]
+        self.assertEqual(searches["n"], 1)
+        self.assertEqual([g["categoria"] for g in searches["faltantes"]], ["nacional", "retos"])
+        self.assertIn("busqueda-categoria-faltante", [f["codigo"] for f in data["vista"]["hallazgos"]])
 
 
 if __name__ == "__main__":

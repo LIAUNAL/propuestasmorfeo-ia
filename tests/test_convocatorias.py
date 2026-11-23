@@ -25,6 +25,15 @@ SOURCES = REPO / "scripts" / "convocatorias" / "fuentes.json"
 HOY = datetime.date(2026, 11, 20)
 MANDATORY_SOURCES = [s["id"] for s in json.loads(SOURCES.read_text(encoding="utf-8"))["fuentes"]
                      if s.get("obligatoria") is True]
+# One recorded search per Colombian query template (odd/tasks/convocatorias-nacional.md, T3).
+SEARCH_TEMPLATES = json.loads(SOURCES.read_text(encoding="utf-8"))["consultas_colombia"]
+
+
+def _searches() -> list[dict]:
+    """A `busquedas` list that runs every Colombian template once, filled for Manizales (Caldas)."""
+    values = {"tema": "inteligencia artificial", "año": "2026", "ciudad": "Manizales", "departamento": "Caldas"}
+    return [{"consulta": q["plantilla"].format(**values), "plantilla": q["id"], "categoria": q["categoria"],
+             "fecha": "2026-11-20", "resultados": 0, "registradas": 0} for q in SEARCH_TEMPLATES]
 
 
 def _load():
@@ -108,8 +117,10 @@ class Workspace:
                       "resultado": "ok", "n": sum(1 for c in calls if isinstance(c, dict) and c.get("fuente") == source_id)}
                      for source_id in MANDATORY_SOURCES]
         data = {"schema": "morfeo.oportunidades/v1", "actualizado": "2026-11-20",
-                "fuentes_consultadas": consulted, "oportunidades": calls}
+                "fuentes_consultadas": consulted, "busquedas": _searches(), "oportunidades": calls}
         data.update(overrides)
+        if data["busquedas"] is None:  # busquedas=None writes a file from before T3, without the key
+            del data["busquedas"]
         return self.write("oportunidades.json", data)
 
 

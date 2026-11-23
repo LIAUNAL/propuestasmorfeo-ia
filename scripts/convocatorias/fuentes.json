@@ -1,37 +1,53 @@
 {
   "schema": "morfeo.fuentes-convocatorias/v1",
   "revisado": "2026-11-23",
-  "nota": "Fuentes de Colombia verificadas el 2026-11-23 (odd/tasks/convocatorias-nacional.md, L2). «obligatoria»: la búsqueda nacional la consulta siempre y check falla si falta en fuentes_consultadas. «nivel»: nacional, regional, local o institucional. «crawl_delay»: segundos mínimos entre peticiones al mismo sitio (null: una petición a la vez). «consultas» y «consultas_colombia»: plantillas de búsqueda con {tema}, {año}, {ciudad} y {departamento}.",
+  "nota": "Fuentes de Colombia verificadas el 2026-11-23 (odd/tasks/convocatorias-nacional.md, L2). «obligatoria»: la búsqueda nacional la consulta siempre y check falla si falta en fuentes_consultadas. «nivel»: nacional, regional, local o institucional. «crawl_delay»: segundos mínimos entre peticiones al mismo sitio (null: una petición a la vez). «consultas» y «consultas_colombia»: plantillas de búsqueda con {tema}, {año}, {ciudad} y {departamento}. Cada plantilla de «consultas_colombia» tiene un «id» y una «categoria» (nacional, regional, local, retos o institucional); check exige al menos una búsqueda registrada de cada categoría cuando el perfil cubre Colombia (regional y local, solo si el perfil declara «sedes»).",
   "consultas_colombia": [
     {
+      "id": "co-gov-cierre",
+      "categoria": "nacional",
       "nivel": "nacional",
       "plantilla": "site:gov.co convocatoria \"fecha de cierre\" {tema} {año} -tutela -demanda"
     },
     {
+      "id": "co-minciencias",
+      "categoria": "nacional",
       "nivel": "nacional",
       "plantilla": "site:minciencias.gov.co/convocatorias {tema} {año}"
     },
     {
+      "id": "co-nacional-cierre",
+      "categoria": "nacional",
       "nivel": "nacional",
       "plantilla": "convocatoria nacional {tema} {año} \"fecha de cierre\" Colombia"
     },
     {
+      "id": "co-departamento",
+      "categoria": "regional",
       "nivel": "regional",
       "plantilla": "site:gov.co {departamento} convocatoria ciencia tecnología innovación {año}"
     },
     {
+      "id": "co-ciudad",
+      "categoria": "local",
       "nivel": "local",
       "plantilla": "{ciudad} convocatoria innovación {tema} {año}"
     },
     {
+      "id": "co-retos-ciudad",
+      "categoria": "retos",
       "nivel": "local",
       "plantilla": "reto empresarial innovación abierta {ciudad} {año}"
     },
     {
+      "id": "co-retos-nacional",
+      "categoria": "retos",
       "nivel": "nacional",
       "plantilla": "reto de innovación abierta empresa Colombia {tema} {año}"
     },
     {
+      "id": "co-unal",
+      "categoria": "institucional",
       "nivel": "institucional",
       "plantilla": "site:unal.edu.co convocatoria investigación {año}"
     }

@@ -9,12 +9,15 @@ else `.marco/config.json`; a run folder inside it works too):
       {schema, alcance:"proyecto"|"banco", actualizado, titulo, idea, aplicantes:[...],
        temas:[str], palabras_clave:{es:[str], en:[str]}, financiadores_previos:[str],
        idiomas:[...], ambitos:[...], institucion:{nombre, pais:"CO", tipo},
+       sedes:[{ciudad, departamento}],
        experiencia:[{id (slug), nombre, detalle:str|null, temas:[str], financiadores:[str]}]}
       perfil.json is the project profile (alcance proyecto, from idea.md);
       perfil_banco.json is the banco LIA profile (alcance banco, from banco-lia only).
-      `alcance` and `experiencia` are optional.
+      `alcance`, `sedes` and `experiencia` are optional; a sede gives a city, a
+      department or both (text or null).
   oportunidades.json (schema `morfeo.oportunidades/v1`)
       {schema, actualizado, fuentes_consultadas:[{fuente, url, fecha, resultado, n}],
+       busquedas:[{consulta, plantilla, categoria, fecha, resultados, registradas}],
        oportunidades:[{id, titulo, financiador, programa, url, fuente, ambito, idioma,
                        aplicantes, rol_colombia, estado, apertura, cierre, cierre_tipo,
                        monto, temas, resumen, elegibilidad, puntaje_agente, evidencia,
@@ -23,6 +26,11 @@ else `.marco/config.json`; a run folder inside it works too):
       host of the official page); `fuentes_consultadas[].n` counts the calls
       registered from that source; `resultado` is ok, sin_resultados,
       bloqueado, requiere_sesion (the source needs the operator's session) or error.
+      `busquedas` (optional) lists the open-web searches actually run: plantilla
+      is a consultas_colombia id, a catalogue source id (its `consultas`) or
+      null; categoria is nacional, regional, local, retos, institucional or
+      internacional; resultados and registradas are integers ≥ 0 (relevant
+      results seen, calls registered from them).
       Optional: nivel ("nacional"|"regional"|"local"|"institucional"),
       titulo_corto (≤ 32 chars), esfuerzo ("bajo"|"medio"|"alto"),
       requisitos [{tipo: consorcio|contrapartida|anfitrion|idioma|perfil|aval|entidad|otro,
@@ -65,7 +73,8 @@ Commands:
       obligatoria (the national search must consult it), crawl_delay (seconds
       or null), and optionally feed, filtro, regiones and consultas (query
       templates with {tema}, {año}, {ciudad}, {departamento}); top-level
-      consultas_colombia [{nivel, plantilla}] are the general Colombian queries.
+      consultas_colombia [{id, categoria, nivel, plantilla}] are the general
+      Colombian queries (categoria nacional, regional, local, retos or institucional).
   constelacion DIR [--alcance proyecto|banco] [--agrupar tema|ambito|rol] [--hoy YYYY-MM-DD]
       The dashboard's constellation as JSON (schema
       `morfeo.convocatorias-constelacion/v1`): an atlas for scripts/render_atlas.py
@@ -113,8 +122,15 @@ fuentes_consultadas entry, catalogue order), descuadres [{fuente, n,
 registradas}] (a reported n that differs from the calls registered from that
 source, n null when a catalogue source with calls was not reported; a
 `busqueda:<host>` entry is optional and checked only when present),
-desconocidas [call ids whose fuente is neither], completa}. The text output of
-`datos` ends with one line per kind of gap.
+desconocidas [call ids whose fuente is neither], completa}.
+`cobertura_busquedas` is the search coverage: {requerida (as above), n (valid
+busquedas), categorias [{categoria, requerida, busquedas, plantillas: [ids]}]
+(consultas_colombia order; a category whose templates all need {ciudad} or
+{departamento} is required only when a profile declares sedes), faltantes
+[{categoria, plantillas: [{id, plantilla}]}], sedes [{ciudad, departamento,
+cubierta}] (a `local` search names the city or the department, accents and
+case ignored), sedes_faltantes [{ciudad, departamento}], completa}. The text
+output of `datos` ends with one line per kind of gap.
 Order: vigentes (estado abierta/proxima and cierre not past) first; then
 rol_colombia other than no_elegible; then match desc; then nearest cierre.
 
@@ -122,7 +138,9 @@ Codes: esquema, json-invalido, valor-invalido, fecha-invalida, id-invalido,
 id-repetido, campo-faltante, texto-largo, puntaje-fuera-de-rango,
 cierre-antes-de-apertura, fuente-obligatoria-sin-consultar, conteo-fuente,
 fuente-desconocida (with the catalogue id it names or busqueda:<host> as the
-fix), url-repetida (same URL after `normalize_url`) (errors); sin-evidencia,
+fix), url-repetida (same URL after `normalize_url`), busqueda-categoria-faltante
+(names the templates to run), busqueda-local-faltante (names the sede)
+(errors); sin-sedes (a profile covers Colombia without sedes), sin-evidencia,
 rol-desconocido, abierta-sin-cierre, experiencia-desconocida, sin-nivel (a
 Colombian call without nivel) (warnings); sin-perfil,
 sin-oportunidades, regla-rol-distinto (info, the last one from `datos` only).
@@ -174,6 +192,11 @@ DEADLINE_TYPES = ("fijo", "estimado", "continuo", "desconocido")
 SOURCE_RESULTS = ("ok", "sin_resultados", "bloqueado", "requiere_sesion", "error")
 SOURCE_METHODS = ("api", "rss", "html", "pdf", "navegador", "busqueda", "sesion")
 LEVELS = ("nacional", "regional", "local", "institucional")
+# Categories of the searches recorded in `busquedas`: the ones of the Colombian
+# query templates (`consultas_colombia[].categoria`) plus the general international search.
+SEARCH_CATEGORIES = ("nacional", "regional", "local", "retos", "institucional", "internacional")
+LOCAL_CATEGORY = "local"
+PLACE_PLACEHOLDERS = ("{ciudad}", "{departamento}")
 NATIONAL_SCOPE = "colombia"
 SEARCH_PREFIX = "busqueda:"
 SEARCH_SOURCE_RE = re.compile(r"^busqueda:[a-z0-9-]+(\.[a-z0-9-]+)+$")
@@ -574,6 +597,25 @@ def _check_experience(findings: list[dict], value) -> None:
                 findings.append(_finding("error", "valor-invalido", f"{label}: «{field}» debe ser una lista de textos"))
 
 
+def _check_sedes(findings: list[dict], value) -> None:
+    """Validate the optional profile field `sedes` [{ciudad, departamento}] (text or null, one of them given)."""
+    if value is None:
+        return
+    if not isinstance(value, list):
+        findings.append(_finding("error", "valor-invalido", "«sedes» debe ser una lista de {ciudad, departamento}"))
+        return
+    for index, sede in enumerate(value, start=1):
+        if not isinstance(sede, dict):
+            findings.append(_finding("error", "valor-invalido",
+                                     f"sede {index}: debe ser un objeto {{ciudad, departamento}}"))
+            continue
+        bad = [f for f in ("ciudad", "departamento") if sede.get(f) is not None and not isinstance(sede.get(f), str)]
+        for field in bad:
+            findings.append(_finding("error", "valor-invalido", f"sede {index}: «{field}» debe ser texto o null"))
+        if not bad and not any(isinstance(sede.get(f), str) and sede[f].strip() for f in ("ciudad", "departamento")):
+            findings.append(_finding("error", "campo-faltante", f"sede {index}: falta «ciudad» o «departamento»"))
+
+
 def _check_profile(data, name: str = PROFILE_FILE.as_posix()) -> list[dict]:
     findings: list[dict] = []
     if not isinstance(data, dict) or data.get("schema") != PROFILE_SCHEMA:
@@ -583,6 +625,7 @@ def _check_profile(data, name: str = PROFILE_FILE.as_posix()) -> list[dict]:
     if data.get("alcance") is not None and data.get("alcance") not in ALCANCES:
         findings.append(_finding("error", "valor-invalido", f"«alcance» no admite {data.get('alcance')!r}"))
     _check_experience(findings, data.get("experiencia"))
+    _check_sedes(findings, data.get("sedes"))
     _check_date(findings, data.get("actualizado"), "actualizado")
     _check_enum_list(findings, data.get("aplicantes"), APPLICANTS, "aplicantes")
     _check_enum_list(findings, data.get("idiomas"), LANGUAGES, "idiomas")
@@ -900,6 +943,156 @@ def _check_coverage(data: dict, catalogue: dict[str, dict], coverage: dict) -> l
     return findings
 
 
+# --- Search coverage ----------------------------------------------------------
+# `busquedas` [{consulta, plantilla, categoria, fecha, resultados, registradas}]
+# lists the open-web searches actually run: `plantilla` is the id of a
+# `consultas_colombia` template, the id of the catalogue source whose
+# `consultas` it used, or null (a free query). When a profile covers Colombia
+# (the condition of the mandatory sources), every category of
+# `consultas_colombia` needs one recorded search; a category whose templates
+# all need a place ({ciudad} or {departamento}) is required only when a
+# profile declares `sedes`, and then each sede needs a `local` search whose
+# text names its city or its department.
+
+def _templates(sources: dict) -> list[dict]:
+    """The Colombian query templates that carry a text id, a category and a template."""
+    raw = sources.get("consultas_colombia")
+    return [q for q in raw if isinstance(q, dict) and isinstance(q.get("id"), str)
+            and q.get("categoria") in SEARCH_CATEGORIES and isinstance(q.get("plantilla"), str)] \
+        if isinstance(raw, list) else []
+
+
+def _profile_sedes(profiles: dict[str, dict | None]) -> list[dict]:
+    """The sedes {ciudad, departamento} of every profile, first occurrence of each place."""
+    out, seen = [], set()
+    for profile in profiles.values():
+        raw = profile.get("sedes") if isinstance(profile, dict) else None
+        for sede in raw if isinstance(raw, list) else []:
+            if not isinstance(sede, dict):
+                continue
+            place = {f: sede[f].strip() if isinstance(sede.get(f), str) and sede[f].strip() else None
+                     for f in ("ciudad", "departamento")}
+            key = tuple(_fold(v or "") for v in place.values())
+            if any(place.values()) and key not in seen:
+                seen.add(key)
+                out.append(place)
+    return out
+
+
+def _sede_label(sede: dict) -> str:
+    city, dept = sede.get("ciudad"), sede.get("departamento")
+    return f"{city} ({dept})" if city and dept else (city or dept or "")
+
+
+def _names_place(text: str, sede: dict) -> bool:
+    folded = _fold(text)
+    return any(re.search(rf"(?<![a-z0-9]){re.escape(_fold(name))}(?![a-z0-9])", folded)
+               for name in (sede.get("ciudad"), sede.get("departamento")) if name)
+
+
+def _valid_searches(data: dict | None) -> list[dict]:
+    raw = data.get("busquedas") if isinstance(data, dict) else None
+    return [b for b in raw if isinstance(b, dict) and isinstance(b.get("consulta"), str) and b["consulta"].strip()
+            and b.get("categoria") in SEARCH_CATEGORIES] if isinstance(raw, list) else []
+
+
+def _search_coverage(data: dict | None, templates: list[dict], required: bool, sedes: list[dict]) -> dict:
+    """The coverage of the recorded searches against the Colombian query templates and the profile sedes."""
+    searches = _valid_searches(data)
+    categories: list[str] = []
+    for q in templates:
+        if q["categoria"] not in categories:
+            categories.append(q["categoria"])
+    rows, missing = [], []
+    for category in categories:
+        members = [q for q in templates if q["categoria"] == category]
+        needs_place = all(any(ph in q["plantilla"] for ph in PLACE_PLACEHOLDERS) for q in members)
+        cat_required = required and (bool(sedes) or not needs_place)
+        done = sum(1 for b in searches if b["categoria"] == category)
+        rows.append({"categoria": category, "requerida": cat_required, "busquedas": done,
+                     "plantillas": [q["id"] for q in members]})
+        if cat_required and not done:
+            missing.append({"categoria": category,
+                            "plantillas": [{"id": q["id"], "plantilla": q["plantilla"]} for q in members]})
+    local = [b["consulta"] for b in searches if b["categoria"] == LOCAL_CATEGORY]
+    listed = [dict(sede, cubierta=any(_names_place(text, sede) for text in local)) for sede in sedes]
+    uncovered = [{"ciudad": s["ciudad"], "departamento": s["departamento"]}
+                 for s in listed if required and not s["cubierta"]]
+    return {
+        "requerida": required,
+        "n": len(searches),
+        "categorias": rows,
+        "faltantes": missing,
+        "sedes": listed,
+        "sedes_faltantes": uncovered,
+        "completa": not missing and not uncovered,
+    }
+
+
+def _check_search_rows(data: dict, catalogue: dict[str, dict], templates: list[dict]) -> list[dict]:
+    """Findings for the shape of `busquedas`: types, categories, dates, counts and template ids."""
+    raw = data.get("busquedas")
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        return [_finding("error", "valor-invalido", "«busquedas» debe ser una lista")]
+    findings = []
+    by_id = {q["id"]: q for q in templates}
+    for index, row in enumerate(raw, start=1):
+        label = f"búsqueda {index}"
+        if not isinstance(row, dict):
+            findings.append(_finding("error", "valor-invalido", f"{label}: no es un objeto"))
+            continue
+        if not isinstance(row.get("consulta"), str) or not row["consulta"].strip():
+            findings.append(_finding("error", "campo-faltante", f"{label}: falta «consulta», el texto buscado"))
+        category = row.get("categoria")
+        if category not in SEARCH_CATEGORIES:
+            findings.append(_finding("error", "valor-invalido",
+                                     f"{label}: «categoria» no admite {category!r} "
+                                     f"(use {', '.join(SEARCH_CATEGORIES)})"))
+        _check_date(findings, row.get("fecha"), f"fecha de la {label}", nullable=False)
+        for field in ("resultados", "registradas"):
+            n = row.get(field)
+            if not isinstance(n, int) or isinstance(n, bool) or n < 0:
+                findings.append(_finding("error", "valor-invalido", f"{label}: «{field}» debe ser un entero ≥ 0"))
+        template = row.get("plantilla")
+        if template is None:
+            continue
+        if not isinstance(template, str) or (template not in by_id and template not in catalogue):
+            findings.append(_finding("error", "valor-invalido",
+                                     f"{label}: «plantilla» {template!r} no es el id de una plantilla de "
+                                     "consultas_colombia ni de una fuente del catálogo; use uno de ellos o null"))
+        elif template in by_id and category in SEARCH_CATEGORIES and by_id[template]["categoria"] != category:
+            findings.append(_finding("error", "valor-invalido",
+                                     f"{label}: «{template}» es de la categoría «{by_id[template]['categoria']}», "
+                                     f"no «{category}»"))
+    return findings
+
+
+def _check_search_coverage(coverage: dict, has_profile: bool) -> list[dict]:
+    """Findings for a template category without a recorded search, a sede without a local search, and a
+    profile that covers Colombia without sedes."""
+    findings = []
+    for gap in coverage["faltantes"]:
+        templates = "; ".join(f"{t['id']} («{t['plantilla']}»)" for t in gap["plantillas"])
+        findings.append(_finding("error", "busqueda-categoria-faltante",
+                                 f"no hay búsquedas de la categoría «{gap['categoria']}» en «busquedas»; ejecute "
+                                 f"las plantillas de consultas_colombia {templates} con {{tema}}, {{año}} y las "
+                                 "sedes del perfil, y registre cada una en «busquedas» {consulta, plantilla, "
+                                 "categoria, fecha, resultados, registradas}"))
+    for sede in coverage["sedes_faltantes"]:
+        names = " ni ".join(n for n in (sede["ciudad"], sede["departamento"]) if n)
+        findings.append(_finding("error", "busqueda-local-faltante",
+                                 f"ninguna búsqueda «{LOCAL_CATEGORY}» de «busquedas» nombra {names}; ejecute "
+                                 f"co-ciudad con la sede {_sede_label(sede)} y las «consultas» de las fuentes "
+                                 "locales de su región, y regístrelas con categoria «local»"))
+    if coverage["requerida"] and has_profile and not coverage["sedes"]:
+        findings.append(_finding("warning", "sin-sedes",
+                                 "el perfil no declara «sedes» [{ciudad, departamento}]; sin ellas check no exige "
+                                 "las búsquedas regionales ni locales"))
+    return findings
+
+
 def _catalogue_index() -> dict[str, dict]:
     """The source catalogue by id."""
     return {s["id"]: s for s in load_sources().get("fuentes") or []
@@ -917,9 +1110,9 @@ def _experience_items(profile: dict | None) -> list[dict]:
     return items
 
 
-def _check_workspace(workspace: Path) -> tuple[list[dict], dict[str, dict | None], dict | None, dict]:
-    """(findings, {alcance: profile data}, calls data, national coverage) of a workspace; data is None when
-    missing or unreadable."""
+def _check_workspace(workspace: Path) -> tuple[list[dict], dict[str, dict | None], dict | None, dict, dict]:
+    """(findings, {alcance: profile data}, calls data, national coverage, search coverage) of a workspace;
+    data is None when missing or unreadable."""
     findings: list[dict] = []
     profiles: dict[str, dict | None] = {}
     for scope in ALCANCES:
@@ -951,10 +1144,15 @@ def _check_workspace(workspace: Path) -> tuple[list[dict], dict[str, dict | None
         findings.extend(_check_calls(calls, known_ids))
     data = calls if isinstance(calls, dict) else None
     catalogue = _catalogue_index()
-    coverage = _coverage(data, catalogue, _national_required(profiles))
+    required = _national_required(profiles)
+    coverage = _coverage(data, catalogue, required)
+    templates = _templates(load_sources())
+    searches = _search_coverage(data, templates, required, _profile_sedes(profiles))
     if data is not None:
         findings.extend(_check_coverage(data, catalogue, coverage))
-    return findings, profiles, data, coverage
+        findings.extend(_check_search_rows(data, catalogue, templates))
+        findings.extend(_check_search_coverage(searches, any(isinstance(p, dict) for p in profiles.values())))
+    return findings, profiles, data, coverage, searches
 
 
 def check(path) -> list[dict]:
@@ -1173,7 +1371,7 @@ def vista(path, hoy: datetime.date | None = None, alcance: str | None = None) ->
     workspace = find_workspace(path)
     alcance = _default_alcance(workspace) if alcance is None else _check_alcance(alcance)
     hoy = hoy or datetime.date.today()
-    findings, profiles, data, coverage = _check_workspace(workspace)
+    findings, profiles, data, coverage, searches = _check_workspace(workspace)
     catalogue = _catalogue_index()
     profile = profiles[alcance]
     exists = {scope: (workspace / PROFILE_FILES[scope]).is_file() for scope in ALCANCES}
@@ -1217,6 +1415,7 @@ def vista(path, hoy: datetime.date | None = None, alcance: str | None = None) ->
             "por_nivel": count("nivel", LEVELS),
         },
         "cobertura": coverage,
+        "cobertura_busquedas": searches,
         "fuentes_consultadas": [s for s in sources if isinstance(s, dict)] if isinstance(sources, list) else [],
         "oportunidades": calls,
         "mapa": {
@@ -1618,6 +1817,21 @@ def _coverage_lines(coverage: dict) -> list[str]:
     return lines
 
 
+def _search_lines(searches: dict) -> list[str]:
+    """The text summary of the search coverage gaps; [] when there are none."""
+    lines = []
+    missing = searches.get("faltantes") or []
+    if missing:
+        noun = "falta 1 categoría" if len(missing) == 1 else f"faltan {len(missing)} categorías"
+        lines.append(f"búsquedas en Colombia: {noun}: {', '.join(g['categoria'] for g in missing)}")
+    sedes = searches.get("sedes_faltantes") or []
+    if sedes:
+        noun = "1 sede" if len(sedes) == 1 else f"{len(sedes)} sedes"
+        lines.append(f"búsquedas en Colombia: falta la búsqueda local de {noun}: "
+                     f"{', '.join(_sede_label(s) for s in sedes)}")
+    return lines
+
+
 def _print_json(data) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
@@ -1688,7 +1902,8 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print("sin oportunidades registradas")
             if not args.json:
-                for line in _coverage_lines(view.get("cobertura") or {}):
+                for line in _coverage_lines(view.get("cobertura") or {}) + _search_lines(
+                        view.get("cobertura_busquedas") or {}):
                     print(line)
             return 0
         if args.command == "constelacion":

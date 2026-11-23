@@ -6,8 +6,11 @@ templates; `check` catches coverage gaps (a mandatory source not consulted, a
 count that does not match the registered calls, a `fuente` outside the
 catalogue, two calls with the same normalized URL); the eligibility rules
 cover Colombian funders; `vista` exposes the level and the coverage, and old
-files without the new fields still load. Every test builds a throwaway
-workspace outside the repository and goes through the public functions or the CLI.
+files without the new fields still load. The searches actually run
+(`busquedas`, T3) must cover every category of the Colombian query templates
+and the local level of each profile `sedes` entry. Every test builds a
+throwaway workspace outside the repository and goes through the public
+functions or the CLI.
 """
 
 from __future__ import annotations
@@ -16,7 +19,7 @@ import json
 import re
 import urllib.parse
 
-from tests.test_convocatorias import HOY, RULES, SOURCES, Base, _call, _cli
+from tests.test_convocatorias import HOY, RULES, SOURCES, Base, _call, _cli, _searches
 
 LEVELS = {"nacional", "regional", "local", "institucional"}
 METHODS = {"api", "rss", "html", "pdf", "navegador", "busqueda", "sesion"}
@@ -293,19 +296,207 @@ class ViewTest(Base):
         self.ws.profile(temas=["energía"])
         self.ws.calls(old, fuentes_consultadas=[
             {"fuente": "minciencias", "url": "https://minciencias.gov.co/c", "fecha": "2026-11-22", "resultado": "ok", "n": 1},
-            {"fuente": "cyted", "url": "https://www.cyted.org", "fecha": "2026-11-22", "resultado": "ok", "n": 1}])
+            {"fuente": "cyted", "url": "https://www.cyted.org", "fecha": "2026-11-22", "resultado": "ok", "n": 1}],
+            busquedas=None)
         view = self.mod.vista(self.ws.root, hoy=HOY)
         self.assertEqual(sorted(c["id"] for c in view["oportunidades"]), ["cy", "eu"])
         self.assertEqual(self.item(view, "eu")["rol_colombia"], "socio")
         self.assertIsNone(self.item(view, "eu")["nivel"])
         self.assertEqual(view["resumen"]["por_ambito"], {"colombia": 0, "latam": 1, "internacional": 1})
         errors = set(self.codes(view["hallazgos"], "error"))
-        self.assertEqual(errors, {"fuente-obligatoria-sin-consultar", "conteo-fuente", "fuente-desconocida"})
+        self.assertEqual(errors, {"fuente-obligatoria-sin-consultar", "conteo-fuente", "fuente-desconocida",
+                                  "busqueda-categoria-faltante"})
         atlas = self.mod.constelacion(self.ws.root, hoy=HOY)
         self.assertEqual(atlas["total"], 2)
         result = _cli("datos", str(self.ws.root), "--json", "--hoy", "2026-11-20")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(_cli("check", str(self.ws.root)).returncode, 1)
+
+
+
+def _search(consulta, categoria, plantilla=None, **overrides) -> dict:
+    row = {"consulta": consulta, "plantilla": plantilla, "categoria": categoria, "fecha": "2026-11-20",
+           "resultados": 3, "registradas": 0}
+    row.update(overrides)
+    return row
+
+
+MANIZALES = {"ciudad": "Manizales", "departamento": "Caldas"}
+ARAUCA = {"ciudad": "Arauca", "departamento": "Arauca"}
+PLACE_FREE = ("nacional", "retos", "institucional")
+
+
+class SearchCoverageTest(Base):
+    """T3: the searches actually run are recorded in `busquedas` and `check` enforces the Colombian templates."""
+
+    def write(self, busquedas, **profile):
+        self.ws.profile(**profile)
+        self.ws.calls([_call()], busquedas=busquedas)
+
+    def found(self, code):
+        return [f for f in self.mod.check(self.ws.root) if f["codigo"] == code]
+
+    def errors(self):
+        return [f for f in self.mod.check(self.ws.root) if f["severidad"] == "error"]
+
+    def test_every_template_has_an_id_and_a_category(self):
+        general = _catalogue()["consultas_colombia"]
+        ids = [q["id"] for q in general]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual({q["categoria"] for q in general}, {"nacional", "regional", "local", "retos", "institucional"})
+        self.assertTrue(all("reto" in q["plantilla"] for q in general if q["categoria"] == "retos"))
+
+    def test_search_entries_are_validated(self):
+        self.write(_searches(), sedes=[MANIZALES])
+        self.assertEqual(self.errors(), [])
+        bad = [_search("", "nacional"), _search("x", "municipal"), _search("x", "nacional", fecha="ayer"),
+               _search("x", "nacional", resultados=-1), _search("x", "nacional", registradas="2"),
+               _search("x", "nacional", plantilla="co-nada"), _search("x", "nacional", plantilla="co-ciudad"),
+               "texto"]
+        self.write(_searches() + bad, sedes=[MANIZALES])
+        codes = [f["codigo"] for f in self.errors()]
+        self.assertEqual(codes.count("campo-faltante"), 1, codes)
+        self.assertEqual(codes.count("fecha-invalida"), 1, codes)
+        self.assertEqual(codes.count("valor-invalido"), 6, codes)
+        messages = " ".join(f["mensaje"] for f in self.errors())
+        self.assertIn("co-nada", messages)
+        self.assertIn("«co-ciudad» es de la categoría «local»", messages)
+        self.write(_searches() + [_search("Cámara de Comercio de Manizales por Caldas convocatoria innovación 2026",
+                                          "retos", plantilla="cc-manizales")], sedes=[MANIZALES])
+        self.assertEqual(self.errors(), [])
+        self.ws.profile()
+        self.ws.calls([_call()], busquedas={"consulta": "x"})
+        self.assertIn("«busquedas» debe ser una lista", [f["mensaje"] for f in self.errors()])
+
+    def test_a_missing_category_fails_and_names_its_templates(self):
+        self.write([q for q in _searches() if q["categoria"] != "retos"], sedes=[MANIZALES])
+        found = self.found("busqueda-categoria-faltante")
+        self.assertEqual(len(found), 1, found)
+        message = found[0]["mensaje"]
+        self.assertEqual(found[0]["severidad"], "error")
+        for text in ("«retos»", "co-retos-ciudad", "co-retos-nacional", "reto de innovación abierta empresa Colombia"):
+            self.assertIn(text, message)
+        result = _cli("check", str(self.ws.root))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("error busqueda-categoria-faltante", result.stdout)
+
+    def test_each_sede_needs_a_local_search_that_names_it(self):
+        self.write(_searches(), sedes=[MANIZALES, ARAUCA])
+        found = self.found("busqueda-local-faltante")
+        self.assertEqual(len(found), 1, found)
+        self.assertIn("Arauca", found[0]["mensaje"])
+        self.assertIn("co-ciudad", found[0]["mensaje"])
+        self.assertNotIn("Manizales", found[0]["mensaje"])
+        national = _search("convocatoria nacional Arauca 2026", "nacional")
+        self.write(_searches() + [national], sedes=[MANIZALES, ARAUCA])
+        self.assertEqual(len(self.found("busqueda-local-faltante")), 1, "only a local search counts")
+        local = _search("ARAUCA convocatoria innovación inteligencia artificial 2026", "local", plantilla="co-ciudad")
+        self.write(_searches() + [local], sedes=[MANIZALES, ARAUCA])
+        self.assertEqual(self.errors(), [])
+        caldas = [{"ciudad": None, "departamento": "Caldas"}]
+        self.write(_searches(), sedes=caldas)
+        self.assertEqual(len(self.found("busqueda-local-faltante")), 1, "Manizales does not name Caldas")
+        self.write(_searches() + [_search("Caldas convocatoria innovación 2026", "local")], sedes=caldas)
+        self.assertEqual(self.errors(), [], "a department alone is named by the local search")
+
+    def test_with_sedes_the_regional_and_local_categories_are_required(self):
+        self.write([q for q in _searches() if q["categoria"] in PLACE_FREE], sedes=[MANIZALES])
+        missing = sorted(f["mensaje"].split("«")[1].split("»")[0] for f in self.found("busqueda-categoria-faltante"))
+        self.assertEqual(missing, ["local", "regional"])
+        self.assertEqual(len(self.found("busqueda-local-faltante")), 1)
+
+    def test_without_a_city_in_the_profile_no_local_search_is_required(self):
+        self.write([q for q in _searches() if q["categoria"] in PLACE_FREE])
+        self.assertEqual(self.errors(), [])
+        warned = self.found("sin-sedes")
+        self.assertEqual(len(warned), 1)
+        self.assertEqual(warned[0]["severidad"], "warning")
+        self.assertIn("sedes", warned[0]["mensaje"])
+
+    def test_without_colombia_in_the_profile_no_search_is_required(self):
+        self.ws.profile(ambitos=["internacional"])
+        self.ws.calls([_call()], fuentes_consultadas=[], busquedas=None)
+        codes = self.codes(self.mod.check(self.ws.root))
+        for code in ("busqueda-categoria-faltante", "busqueda-local-faltante", "sin-sedes"):
+            self.assertNotIn(code, codes)
+
+    def test_a_file_without_busquedas_reports_every_required_category(self):
+        self.ws.profile()
+        self.ws.calls([_call()], busquedas=None)
+        found = self.found("busqueda-categoria-faltante")
+        self.assertEqual(sorted(f["mensaje"].split("«")[1].split("»")[0] for f in found), sorted(PLACE_FREE))
+        self.assertTrue(all("«busquedas»" in f["mensaje"] for f in found))
+
+    def test_profile_sedes_are_validated(self):
+        for sedes, code in (("Manizales", "valor-invalido"), ([{"ciudad": None, "departamento": None}], "campo-faltante"),
+                            ([{"ciudad": 3}], "valor-invalido"), (["Manizales"], "valor-invalido")):
+            with self.subTest(sedes=sedes):
+                self.write(_searches(), sedes=sedes)
+                self.assertIn(code, [f["codigo"] for f in self.errors()])
+
+    def test_the_view_exposes_the_search_coverage(self):
+        rows = [q for q in _searches() if q["categoria"] not in ("retos", "local")]
+        rows[0]["resultados"] = 7
+        self.write(rows, sedes=[MANIZALES, ARAUCA])
+        view = self.mod.vista(self.ws.root, hoy=HOY)
+        cov = view["cobertura_busquedas"]
+        self.assertTrue(cov["requerida"])
+        self.assertEqual(cov["n"], len(rows))
+        by_cat = {c["categoria"]: c for c in cov["categorias"]}
+        self.assertEqual(list(by_cat), ["nacional", "regional", "local", "retos", "institucional"])
+        self.assertEqual(by_cat["nacional"]["busquedas"], 3)
+        self.assertEqual(by_cat["local"]["busquedas"], 0)
+        self.assertEqual(by_cat["retos"]["plantillas"], ["co-retos-ciudad", "co-retos-nacional"])
+        self.assertEqual([f["categoria"] for f in cov["faltantes"]], ["local", "retos"])
+        self.assertEqual([t["id"] for t in cov["faltantes"][1]["plantillas"]], ["co-retos-ciudad", "co-retos-nacional"])
+        self.assertTrue(all(t["plantilla"] for t in cov["faltantes"][1]["plantillas"]))
+        self.assertEqual(cov["sedes"], [dict(MANIZALES, cubierta=False), dict(ARAUCA, cubierta=False)])
+        self.assertEqual(cov["sedes_faltantes"], [MANIZALES, ARAUCA])
+        self.assertFalse(cov["completa"])
+        self.assertIn("cobertura", view, "the source coverage stays next to it")
+        self.write(_searches(), sedes=[MANIZALES])
+        cov = self.mod.vista(self.ws.root, hoy=HOY)["cobertura_busquedas"]
+        self.assertEqual((cov["faltantes"], cov["sedes_faltantes"], cov["completa"]), ([], [], True))
+
+    def test_text_output_reports_the_missing_search_categories(self):
+        self.write([q for q in _searches() if q["categoria"] in ("nacional", "regional", "local")], sedes=[ARAUCA])
+        result = _cli("datos", str(self.ws.root), "--hoy", "2026-11-20")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("búsquedas en Colombia: faltan 2 categorías: retos, institucional", result.stdout)
+        self.assertIn("búsquedas en Colombia: falta la búsqueda local de 1 sede: Arauca (Arauca)", result.stdout)
+        self.write(_searches(), sedes=[MANIZALES])
+        result = _cli("datos", str(self.ws.root), "--hoy", "2026-11-20")
+        self.assertNotIn("búsquedas en Colombia", result.stdout)
+
+    def test_an_old_file_without_busquedas_still_loads(self):
+        self.ws.profile(sedes=[MANIZALES])
+        self.ws.calls([_call(), _call(id="dos", url="https://example.org/c2")], busquedas=None)
+        view = self.mod.vista(self.ws.root, hoy=HOY)
+        self.assertEqual(sorted(c["id"] for c in view["oportunidades"]), ["convocatoria-uno", "dos"])
+        cov = view["cobertura_busquedas"]
+        self.assertEqual((cov["n"], len(cov["faltantes"]), cov["completa"]), (0, 5, False))
+        self.assertEqual(self.mod.constelacion(self.ws.root, hoy=HOY)["total"], 2)
+        self.assertEqual(_cli("datos", str(self.ws.root), "--json", "--hoy", "2026-11-20").returncode, 0)
+
+    def test_recorded_searches_do_not_change_the_rest_of_a_valid_view(self):
+        """check, datos, vista and the constellation of a valid file behave as before the searches existed."""
+        calls = [_call(), _call(id="mc", fuente="minciencias", ambito="colombia", nivel="nacional",
+                                url="https://minciencias.gov.co/c/1", estado="cerrada", cierre="2026-11-01")]
+        self.ws.profile(ambitos=["internacional"])
+        self.ws.calls(calls, busquedas=None)
+        before = self.mod.vista(self.ws.root, hoy=HOY)
+        text_before = _cli("datos", str(self.ws.root), "--hoy", "2026-11-20").stdout
+        atlas_before = self.mod.constelacion(self.ws.root, hoy=HOY)
+        check_before = self.mod.check(self.ws.root)
+        self.ws.calls(calls)
+        after = self.mod.vista(self.ws.root, hoy=HOY)
+        for view in (before, after):
+            view.pop("cobertura_busquedas")
+        self.assertEqual(before, after)
+        self.assertEqual(_cli("datos", str(self.ws.root), "--hoy", "2026-11-20").stdout, text_before)
+        self.assertEqual(self.mod.constelacion(self.ws.root, hoy=HOY), atlas_before)
+        self.assertEqual(self.mod.check(self.ws.root), check_before)
+        self.assertEqual([c["id"] for c in after["oportunidades"]], ["convocatoria-uno", "mc"], "open calls lead")
 
 
 class ColombianRulesTest(Base):
