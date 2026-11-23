@@ -1,5 +1,5 @@
 ---
-description: Busca convocatorias de financiación afines a la idea del proyecto y al banco LIA (Colombia, América Latina e internacionales, en español e inglés) y las deja en la pestaña «Convocatorias» del tablero; con `iniciar <id>` baja el TdR de una convocatoria a la corrida activa.
+description: Busca convocatorias de financiación afines a la idea del proyecto y al banco LIA (Colombia, América Latina e internacionales, en español e inglés), con cobertura nacional obligatoria (Minciencias, SGR, ministerios, UNAL, retos empresariales) y las deja en la pestaña «Convocatorias» del tablero; con `iniciar <id>` baja el TdR de una convocatoria a la corrida activa.
 ---
 
 # /propuesta-convocatorias: convocatorias afines al proyecto
@@ -8,6 +8,16 @@ Encuentra convocatorias abiertas o próximas para investigadores, estudiantes,
 grupos, centros, universidades y empresas, con el rol que un solicitante
 colombiano puede tener en cada una. Sirve en los dos flujos (`base` y `sgr`)
 y no necesita una corrida activa para buscar.
+
+En Colombia la búsqueda consulta siempre las fuentes obligatorias del
+catálogo (Minciencias, la Asignación para la CTeI del SGR, OCAD Paz,
+iNNpulsa, la Vicerrectoría de Investigación de la UNAL, MinEducación y la
+Agencia Atenea) y suma las regionales y locales de la sede del perfil, entre
+ellas los retos empresariales. Cada convocatoria registra su nivel
+(nacional, regional, local o institucional), y `check` falla si falta una
+fuente obligatoria, si un conteo no cuadra con lo registrado o si dos
+convocatorias comparten URL. Hermes se lee solo con la sesión que el
+operador tenga abierta en Chrome.
 
 Entrada:
 
@@ -48,9 +58,13 @@ En `buscar`, con el agente de vuelta, corré
 mostrá:
 
 - vigentes frente al total, por ámbito (Colombia, América Latina,
-  internacional) y por rol de Colombia;
+  internacional), por nivel en Colombia (nacional, regional, local,
+  institucional) y por rol de Colombia;
 - las diez primeras: match, días para el cierre, rol y título;
-- las fuentes `bloqueado` o `error`;
+- la cobertura nacional: las líneas «cobertura nacional: …» que `datos`
+  imprime al final (fuentes obligatorias sin consultar, conteos que no
+  cuadran) o, si no hay ninguna, que la cobertura está completa;
+- las fuentes `bloqueado`, `requiere_sesion` o `error`;
 - el siguiente paso: abrir la pestaña «Convocatorias» del tablero, o
   `/propuesta-convocatorias iniciar <id>` para empezar una propuesta con una
   de ellas.
