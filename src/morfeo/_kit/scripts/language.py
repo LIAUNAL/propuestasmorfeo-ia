@@ -133,6 +133,38 @@ def localize_cover(text: str, lang: str) -> str:
     return text if lang != "en" else _replace_all(text, COVER_EN, "datos_proyecto.tex")
 
 
+_BABEL_RE = re.compile(r"\\usepackage\[([^\]]*)\]\{babel\}")
+_BABEL_FOR = {"es": r"\usepackage[spanish,es-noindentfirst]{babel}", "en": r"\usepackage[english]{babel}"}
+
+
+def switch_main_tex(text: str, source: str, target: str) -> str:
+    """A run's main.tex moved from `source` to `target` for a translation
+    (scripts/traducir.py build). Unlike localize_main_tex it starts from a
+    run's own main.tex, which may predate the template or have been edited:
+    each anchor of MAIN_TEX_EN is swapped where it appears and skipped where it
+    does not. Only the babel line is required; a babel line with other options
+    is replaced whole."""
+    if source == target:
+        return text
+    if (source, target) == ("es", "en"):
+        pairs = MAIN_TEX_EN
+    elif (source, target) == ("en", "es"):
+        pairs = tuple((new, old) for old, new in MAIN_TEX_EN)
+    else:
+        raise ValueError(f"unsupported language pair {source!r} -> {target!r}")
+    babel_from, babel_to = pairs[0]
+    if text.count(babel_from) != 1:
+        lines = [m for m in _BABEL_RE.finditer(text) if source == "es" and "spanish" in m.group(1)
+                 or source == "en" and "english" in m.group(1) and "spanish" not in m.group(1)]
+        if len(lines) != 1:
+            raise ValueError(f"expected one babel line declaring the source language {source!r}, "
+                             f"found {len(lines)}")
+        text = text[:lines[0].start()] + _BABEL_FOR[target] + text[lines[0].end():]
+    for old, new in pairs:
+        text = text.replace(old, new)
+    return text
+
+
 def localize_files(paths: list[Path], lang: str) -> None:
     for path in paths:
         localize = localize_cover if path.name == "datos_proyecto.tex" else localize_main_tex
