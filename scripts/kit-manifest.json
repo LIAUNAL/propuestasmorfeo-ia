@@ -120,6 +120,7 @@
     "scripts/render_atlas.py",
     "scripts/requisitos_sgr.py",
     "scripts/sgr/lexico_sgr.json",
+    "scripts/traducir.py",
     "tests/__init__.py",
     "tests/test_e2e_framework.py",
     "tests/test_pi_port.py",
