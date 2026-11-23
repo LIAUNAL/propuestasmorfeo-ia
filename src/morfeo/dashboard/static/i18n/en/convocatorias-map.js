@@ -133,5 +133,13 @@
   "panel.convocatoriasMap.coverageMissing": "Mandatory sources not checked ({n}):",
   "panel.convocatoriasMap.coverageMismatch": "Sources whose count does not match the registered calls ({n}):",
   "panel.convocatoriasMap.coverageMismatchItem": "{source}: reports {n}, registered {registered}",
+  "panel.convocatoriasMap.searchMissing": "Search categories not run ({n}):",
+  "panel.convocatoriasMap.searchSedesMissing": "Sites without a local search ({n}):",
+  "panel.convocatoriasMap.searchCategoryNational": "National",
+  "panel.convocatoriasMap.searchCategoryRegional": "Regional",
+  "panel.convocatoriasMap.searchCategoryLocal": "Local",
+  "panel.convocatoriasMap.searchCategoryChallenges": "Business challenges",
+  "panel.convocatoriasMap.searchCategoryInstitutional": "Institutional",
+  "panel.convocatoriasMap.searchCategoryInternational": "International",
   "panel.convocatoriasMap.resultNeedsSession": "Needs a session"
 });

@@ -9026,22 +9026,40 @@
 
     // National coverage gaps from the view's `cobertura`: the mandatory
     // Colombian sources the search did not consult and the counts that do not
-    // match the registered calls. Nothing when the coverage is complete, not
-    // required, or the view predates it.
-    function cvCoverageHtml(cobertura) {
+    // match the registered calls; and from `cobertura_busquedas`: the
+    // categories of the Colombian query templates without a recorded search
+    // and the profile sedes without a local search. Nothing when the coverage
+    // is complete, not required, or the view predates it.
+    const CV_SEARCH_CATEGORIES = { nacional: 'searchCategoryNational', regional: 'searchCategoryRegional', local: 'searchCategoryLocal',
+      retos: 'searchCategoryChallenges', institucional: 'searchCategoryInstitutional', internacional: 'searchCategoryInternational' };
+    function cvSearchGapsHtml(busquedas, P) {
+      const b = cpObj(busquedas);
+      if (b.requerida !== true) return { cats: [], sedes: [], html: '' };
+      const cats = vcList(b.faltantes).filter(g => g && typeof g === 'object' && g.categoria);
+      const sedes = vcList(b.sedes_faltantes).filter(x => x && typeof x === 'object' && (x.ciudad || x.departamento));
+      const catLabel = g => CV_SEARCH_CATEGORIES[g.categoria] ? t(P + CV_SEARCH_CATEGORIES[g.categoria]) : String(g.categoria);
+      const catHtml = g => `<span data-categoria="${escapeHtml(String(g.categoria))}" title="${escapeHtml(vcList(g.plantillas).map(x => cpObj(x).id).filter(Boolean).join(', '))}">${escapeHtml(catLabel(g))}</span>`;
+      const sedeText = x => (x.ciudad && x.departamento ? `${x.ciudad} (${x.departamento})` : String(x.ciudad || x.departamento));
+      const html = (cats.length ? `<span>${escapeHtml(t(P + 'searchMissing', { n: cats.length }))} ${cats.map(catHtml).join(', ')}</span>` : '')
+        + (sedes.length ? `<span>${escapeHtml(t(P + 'searchSedesMissing', { n: sedes.length }))} ${escapeHtml(sedes.map(sedeText).join(', '))}</span>` : '');
+      return { cats, sedes, html };
+    }
+    function cvCoverageHtml(cobertura, busquedas) {
       const c = cpObj(cobertura);
-      const faltantes = vcList(c.faltantes).filter(f => f && typeof f === 'object');
-      const descuadres = vcList(c.descuadres).filter(d => d && typeof d === 'object');
-      if (c.requerida !== true || (!faltantes.length && !descuadres.length)) return '';
       const P = 'panel.convocatoriasMap.';
+      const required = c.requerida === true;
+      const faltantes = required ? vcList(c.faltantes).filter(f => f && typeof f === 'object') : [];
+      const descuadres = required ? vcList(c.descuadres).filter(d => d && typeof d === 'object') : [];
+      const search = cvSearchGapsHtml(busquedas, P);
+      if (!faltantes.length && !descuadres.length && !search.cats.length && !search.sedes.length) return '';
       const missing = faltantes.length
         ? `<span>${escapeHtml(t(P + 'coverageMissing', { n: faltantes.length }))} ${faltantes.map(f => cvLink(f.url, f.nombre || f.id)).join(', ')}</span>` : '';
       const mismatched = descuadres.length
         ? `<span>${escapeHtml(t(P + 'coverageMismatch', { n: descuadres.length }))} ${descuadres.map(d => escapeHtml(t(P + 'coverageMismatchItem', {
           source: String(d.fuente || '—'), n: d.n === null || d.n === undefined ? '—' : String(d.n), registered: String(a2Int(d.registradas)),
         }))).join(', ')}</span>` : '';
-      return `<div class="a2-summary cv-cobertura" id="cvCobertura" data-faltantes="${faltantes.length}" data-descuadres="${descuadres.length}">
-          <span class="badge badge--warn">${escapeHtml(t(P + 'coverageIncomplete'))}</span>${missing}${mismatched}
+      return `<div class="a2-summary cv-cobertura" id="cvCobertura" data-faltantes="${faltantes.length}" data-descuadres="${descuadres.length}" data-categorias="${search.cats.length}" data-sedes="${search.sedes.length}">
+          <span class="badge badge--warn">${escapeHtml(t(P + 'coverageIncomplete'))}</span>${missing}${mismatched}${search.html}
         </div>`;
     }
 
@@ -9065,12 +9083,12 @@
       const all = vcList(v.oportunidades);
       if (!all.length) {
         if (window.cvMap) window.cvMap.closeSheet();
-        el.innerHTML = `${cvCoverageHtml(v.cobertura)}<div class="tree-empty"><p>${t('renderOpportunities.thereAreNoFundingCalls')}</p>${cvHowto()}</div>
+        el.innerHTML = `${cvCoverageHtml(v.cobertura, v.cobertura_busquedas)}<div class="tree-empty"><p>${t('renderOpportunities.thereAreNoFundingCalls')}</p>${cvHowto()}</div>
           ${cvSourcesHtml(v.fuentes_consultadas)}`;
         return;
       }
       el.innerHTML = `<div class="cvm-stats" id="cvStats"></div>
-        ${cvCoverageHtml(v.cobertura)}
+        ${cvCoverageHtml(v.cobertura, v.cobertura_busquedas)}
         ${cvFiltersHtml(all)}
         <nav class="cvm-tabs" id="cvVistas" aria-label="${t('renderOpportunities.fundingCallViews')}">
           ${CV_VIEWS.map(([key, label]) => `<button type="button" data-vista="${key}" onclick="setOpportunityView('${key}')">${escapeHtml(label)}</button>`).join('')}

@@ -133,5 +133,13 @@
   "panel.convocatoriasMap.coverageMissing": "Fuentes obligatorias sin consultar ({n}):",
   "panel.convocatoriasMap.coverageMismatch": "Fuentes cuyo conteo no cuadra con lo registrado ({n}):",
   "panel.convocatoriasMap.coverageMismatchItem": "{source}: informa {n}, registradas {registered}",
+  "panel.convocatoriasMap.searchMissing": "Categorías de búsqueda sin ejecutar ({n}):",
+  "panel.convocatoriasMap.searchSedesMissing": "Sedes sin búsqueda local ({n}):",
+  "panel.convocatoriasMap.searchCategoryNational": "Nacional",
+  "panel.convocatoriasMap.searchCategoryRegional": "Regional",
+  "panel.convocatoriasMap.searchCategoryLocal": "Local",
+  "panel.convocatoriasMap.searchCategoryChallenges": "Retos empresariales",
+  "panel.convocatoriasMap.searchCategoryInstitutional": "Institucional",
+  "panel.convocatoriasMap.searchCategoryInternational": "Internacional",
   "panel.convocatoriasMap.resultNeedsSession": "Requiere sesión"
 });

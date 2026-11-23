@@ -378,6 +378,54 @@ test('sin convocatorias el aviso de cobertura sigue visible', async (t) => {
   assert.match(viewer.document.getElementById('cvCobertura').textContent, /Agencia Atenea/);
 });
 
+// Search coverage (odd/tasks/convocatorias-nacional.md, T3): the summary names
+// the categories of the Colombian query templates the search did not run and
+// the sedes without a local search, even when every mandatory source was consulted.
+const DONE_SOURCES = { ...COVERAGE, faltantes: [], descuadres: [], completa: true };
+const SEARCHES = {
+  requerida: true, n: 4, completa: false,
+  categorias: [
+    { categoria: 'nacional', requerida: true, busquedas: 3, plantillas: ['co-gov-cierre'] },
+    { categoria: 'retos', requerida: true, busquedas: 0, plantillas: ['co-retos-ciudad', 'co-retos-nacional'] },
+    { categoria: 'institucional', requerida: true, busquedas: 0, plantillas: ['co-unal'] },
+  ],
+  faltantes: [
+    { categoria: 'retos', plantillas: [{ id: 'co-retos-ciudad', plantilla: 'reto empresarial innovación abierta {ciudad} {año}' },
+      { id: 'co-retos-nacional', plantilla: 'reto de innovación abierta empresa Colombia {tema} {año}' }] },
+    { categoria: 'institucional', plantillas: [{ id: 'co-unal', plantilla: 'site:unal.edu.co convocatoria investigación {año}' }] },
+  ],
+  sedes: [{ ciudad: 'Manizales', departamento: 'Caldas', cubierta: true }, { ciudad: 'Arauca', departamento: 'Arauca', cubierta: false }],
+  sedes_faltantes: [{ ciudad: 'Arauca', departamento: 'Arauca' }],
+};
+const searchView = (busquedas = SEARCHES) => levelView({ cobertura: DONE_SOURCES, cobertura_busquedas: busquedas });
+
+test('el resumen avisa las categorías de búsqueda sin ejecutar y las sedes sin búsqueda local', async (t) => {
+  const viewer = await loaded(t, { body: payload({ vista: searchView() }) });
+  const box = viewer.document.getElementById('cvCobertura');
+  assert.ok(box, 'aviso de cobertura aunque todas las fuentes se consultaron');
+  assert.equal(box.getAttribute('data-categorias'), '2');
+  assert.equal(box.getAttribute('data-sedes'), '1');
+  assert.match(box.textContent, /Categorías de búsqueda sin ejecutar \(2\): Retos empresariales, Institucional/);
+  assert.match(box.textContent, /Sedes sin búsqueda local \(1\): Arauca \(Arauca\)/);
+  assert.match(box.querySelector('[data-categoria="retos"]').getAttribute('title'), /co-retos-ciudad, co-retos-nacional/);
+  const done = { ...SEARCHES, faltantes: [], sedes_faltantes: [], completa: true };
+  const complete = await loaded(t, { body: payload({ vista: searchView(done) }) });
+  assert.equal(complete.document.getElementById('cvCobertura'), null);
+  const off = await loaded(t, { body: payload({ vista: searchView({ ...SEARCHES, requerida: false }) }) });
+  assert.equal(off.document.getElementById('cvCobertura'), null, 'sin Colombia en el perfil no hay aviso');
+});
+
+test('en inglés las categorías de búsqueda sin ejecutar cambian de idioma', async (t) => {
+  const viewer = await loaded(t, { body: payload({ vista: searchView() }) });
+  viewer.window.i18n.setLanguage('en');
+  await flush();
+  const box = viewer.document.getElementById('cvCobertura');
+  assert.match(box.textContent, /Search categories not run \(2\): Business challenges, Institutional/);
+  assert.match(box.textContent, /Sites without a local search \(1\): Arauca \(Arauca\)/);
+  viewer.window.i18n.setLanguage('es');
+  await flush();
+});
+
 test('las fuentes que piden sesión se listan como tales', async (t) => {
   const fuentes = [...FUENTES, { fuente: 'hermes', url: 'http://www.hermes.unal.edu.co/', fecha: '2026-11-20', resultado: 'requiere_sesion', n: 0 }];
   const viewer = await loaded(t, { body: payload({ vista: vista({ fuentes_consultadas: fuentes }) }) });
