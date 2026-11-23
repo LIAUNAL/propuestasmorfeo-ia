@@ -1,7 +1,7 @@
 {
   "schema": "morfeo.reglas-elegibilidad-co/v1",
-  "fuente": "Revisión de elegibilidad para solicitantes colombianos del 2026-11-20 (odd/tasks/convocatorias-explorador.md, L4). Los patrones se comparan sin tildes ni mayúsculas contra financiador + programa + título; gana la primera regla que coincide.",
-  "revisado": "2026-11-20",
+  "fuente": "Revisión de elegibilidad para solicitantes colombianos del 2026-11-20 (odd/tasks/convocatorias-explorador.md, L4). Las reglas de financiadores colombianos (Minciencias, SGR, UNAL, iNNpulsa y retos empresariales, Fondo Emprender) se agregaron el 2026-11-23 (odd/tasks/convocatorias-nacional.md) y van después de las extranjeras. Los patrones se comparan sin tildes ni mayúsculas contra financiador + programa + título; gana la primera regla que coincide.",
+  "revisado": "2026-11-23",
   "reglas": [
     {
       "id": "msca-global",
@@ -138,6 +138,46 @@
       "estado": null,
       "aviso": "Los NIH suspendieron los subawards a entidades extranjeras (NOT-OD-25-104); solo procede una adjudicación directa a la entidad colombiana cuando el anuncio la permite.",
       "fuente_url": "https://grants.nih.gov/grants/guide/notice-files/NOT-OD-25-104.html"
+    },
+    {
+      "id": "fondo-emprender",
+      "patron": "fondo emprender",
+      "rol": "no_elegible",
+      "estado": null,
+      "aviso": "Financia planes de negocio de aprendices, egresados y emprendedores; un grupo de investigación o una universidad no puede presentarse como proponente.",
+      "fuente_url": "https://www.fondoemprender.com/SitePages/FondoEmprenderConvocatoriasVigentes.aspx"
+    },
+    {
+      "id": "sgr-ctei",
+      "patron": "sistema general de regalias|\\bsgr\\b|\\bocad\\b|regalias|asignacion para la ctei",
+      "rol": "lider",
+      "estado": null,
+      "aviso": "Presenta una entidad del SNCTI o un ejecutor habilitado por los términos, en alianza con la entidad territorial que exija la convocatoria; el proyecto se formula en la MGA.",
+      "fuente_url": "https://minciencias.gov.co/plan-convocatorias-actei-2024-2025"
+    },
+    {
+      "id": "minciencias",
+      "patron": "minciencias|ministerio de ciencia|\\bcolciencias\\b",
+      "rol": "lider",
+      "estado": null,
+      "aviso": "Presenta un grupo o un investigador reconocido por Minciencias, con el aval institucional de la entidad que lo respalda; los términos fijan la categoría mínima.",
+      "fuente_url": "https://minciencias.gov.co/convocatorias/todas"
+    },
+    {
+      "id": "unal-interna",
+      "patron": "universidad nacional de colombia|\\bunal\\b",
+      "rol": "lider",
+      "estado": null,
+      "aviso": "Convocatoria interna de la UNAL: la lidera un docente de planta con el aval de su facultad o de la dirección de investigación de la sede.",
+      "fuente_url": "https://viceinvestigacion.unal.edu.co/wp-json/wp/v2/convocatoria"
+    },
+    {
+      "id": "innpulsa-retos-empresariales",
+      "patron": "innpulsa|colombia productiva|\\bruta n\\b|connect bogota|camara de comercio|econova|\\becopetrol\\b|\\bepm\\b|\\bretos? empresarial|innovacion abierta",
+      "rol": "socio",
+      "estado": null,
+      "aviso": "La proponente es una empresa o la entidad que lanza el reto; la universidad o el grupo entra como aliado o proveedor de conocimiento.",
+      "fuente_url": "https://convocatorias.innpulsacolombia.com/api/convocatorias"
     }
   ]
 }

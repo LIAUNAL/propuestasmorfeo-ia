@@ -423,7 +423,7 @@ class SourcesTest(Base):
     def test_sources_file_enums(self):
         data = json.loads(SOURCES.read_text(encoding="utf-8"))
         for source in data["fuentes"]:
-            self.assertIn(source["metodo"], {"api", "rss", "html", "pdf", "navegador", "busqueda"}, source["id"])
+            self.assertIn(source["metodo"], {"api", "rss", "html", "pdf", "navegador", "busqueda", "sesion"}, source["id"])
             self.assertIn(source["ambito"], {"colombia", "latam", "internacional"}, source["id"])
 
 
