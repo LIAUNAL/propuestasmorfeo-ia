@@ -1627,6 +1627,7 @@
   "removeAnnotationsByType.comments": "comments",
   "removeAnnotationsByType.humanizations": "humanizations",
   "removeAnnotationsByType.replacements": "replacements",
+  "page.annotations.statusActive": "ACTIVE",
   "page.morfeoIaAiResearchProposal": "Morfeo IA: AI research proposal orchestrator",
   "page.writingFlowProject": "Writing flow of the project",
   "page.switchTheme": "Switch theme",
