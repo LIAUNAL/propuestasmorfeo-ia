@@ -31,7 +31,7 @@ Acopla la metodología de estilo académico natural del marco con el catálogo d
 ### No aplica a:
 - Entradas BibTeX (`refs.bib`), tablas de LaTeX, tabla de presupuesto (§13), código del cronograma Gantt (§14) ni código TikZ de figuras.
 - Listados reglamentarios estructurados que la guía exige mantener como viñetas o listas numeradas (objetivos específicos, rubros presupuestales, productos esperados de la Tabla 4).
-- Textos o fragmentos en inglés.
+- Textos o fragmentos en inglés. Una corrida en inglés (`LANG=en`) sigue `estilo-natural-en` y su puntaje lo da `scripts/estilo_en.py`.
 
 ---
 

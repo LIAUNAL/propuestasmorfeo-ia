@@ -14,7 +14,7 @@ python3 scripts/gen-pi.py --root DIR # write DIR/.pi (used by `marco init`)
 |---|---|---|
 | `.pi/agents/*.md` (15 files) | `.claude/agents/*.md` + `scripts/agent-models.json` | Project subagents, dispatched with `subagent_run` |
 | `.pi/prompts/*.md` (14 files) | `.claude/commands/*.md` | Prompt templates exposed as `/propuesta`, `/propuesta-init`, `/propuesta-insumos`, `/propuesta-analizar`, `/propuesta-continuar`, `/propuesta-exportar`, `/propuesta-limpiar`, `/propuesta-juez`, `/propuesta-juez-avance`, `/propuesta-novedad`, `/propuesta-convocatorias`, `/compilar-pdf`, `/compilar-docx`, plus the frontmatter-less `_propuesta-steps.md` step table they reference |
-| `.pi/skills/**/SKILL.md` (4 files) | `.claude/skills/**/SKILL.md` | Project skills, advertised by name+description and loadable with `/skill:estilo-natural-es`, `/skill:depuracion-redundancias-es`, `/skill:constelacion-sota` or `/skill:estilo-sgr` |
+| `.pi/skills/**/SKILL.md` (6 files) | `.claude/skills/**/SKILL.md` | Project skills, advertised by name+description and loadable with `/skill:estilo-natural-es`, `/skill:depuracion-redundancias-es`, `/skill:estilo-natural-en`, `/skill:depuracion-redundancias-en`, `/skill:constelacion-sota` or `/skill:estilo-sgr` |
 | `.pi/subagents.json` | `scripts/agent-models.json` | Project-scope subagent profile store: the model and thinking level each of the 15 agents actually runs on |
 | `.pi/mcp.json` | `.mcp.json` (merged with any server only this file declares) | Project MCP servers. Pi reads them **only** from here, so this file is what makes `codegraph`, `openalex`, `semanticscholar`, `crossref`, `pubmed`, `arxiv` and `consensus` reachable inside Pi |
 

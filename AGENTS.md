@@ -260,7 +260,7 @@ verdad):
 | `explorador-convocatorias` | sonnet | Convocatorias afines y rol de Colombia (fuera del pipeline) |
 
 No existen agentes llamados `orquestador`, `observador` (a secas) ni
-`bibliotecario`; esos nombres no forman parte de este marco.
+`bibliotecario`.
 
 ## Skills del marco (`.claude/skills/`)
 
@@ -270,9 +270,10 @@ que un agente carga cuando la tarea lo pide), con la misma fuente de verdad
 
 | Skill | Para qué | La usa |
 |-------|----------|--------|
-| `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): corrige 35 patrones mecánicos, prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
+| `estilo-natural-es` | Pulir y humanizar la prosa en español (norma académica culta de Colombia): corrige 35 patrones mecánicos, varía la cadencia, aplica la regla 70/30 de vocabulario y prohíbe rayas (` — `) y dobles guiones (`--`), con fidelidad estricta de cifras, fechas, presupuestos y citas APA autor-año. Sin errores deliberados ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
 | `depuracion-redundancias-es` | Auditar y eliminar redundancias conceptuales, léxicas y estructurales dentro de una misma sección, asegurando que cada párrafo aporte avance argumentativo y articulando la aplicación integral de `estilo-natural-es` (humanización y ritmo). | `grant-flow-auditor`, `redactor`, `investigador` y el asistente primario en revisiones integrales de texto |
-| `constelacion-sota` | Construir la constelación SOTA de una corrida: un sistema por paper con planetas tipados (tema de aplicación y de IA, problema, aplicación, novedad, familia, resultados, conclusiones), cada uno con cita textual del abstract, validada por `scripts/check_atlas.py` y dibujada por `scripts/render_atlas.py` en `grafos/papers-graph.html`, con el estudio por familia en `grafos/papers-constellation-report.md`. Port de `plausibility` de papersmith-ai. | `bibliografo-propuesta` (MODE=atlas, Fases 1a y 1c), en ambos flujos |
+| `estilo-natural-en`, `depuracion-redundancias-en` | Contrapartes en inglés de las dos skills en español, para corridas con `LANG=en`: mismas garantías de fidelidad, patrones del inglés académico y puntaje con `scripts/estilo_en.py`. | los mismos agentes, en corridas en inglés |
+| `constelacion-sota` | Construir la constelación SOTA de una corrida: un sistema por paper con planetas tipados, cada uno con cita textual del abstract, validada por `scripts/check_atlas.py` y dibujada por `scripts/render_atlas.py` en `grafos/papers-graph.html`, con el estudio por familia en `grafos/papers-constellation-report.md`. Port de `plausibility` de papersmith-ai. | `bibliografo-propuesta` (MODE=atlas, Fases 1a y 1c), en ambos flujos |
 | `estilo-sgr` | Solo flujo SGR: voz en tercera persona, patrones por capítulo del Anexo 2, léxico `scripts/sgr/lexico_sgr.json` y redundancia R1–R14; ajusta las dos skills anteriores a la MGA (C1–C18). | `revisor-estilo-sgr` |
 
 La skill canónica vive en `.claude/skills/estilo-natural-es/SKILL.md` y de ahí
@@ -310,10 +311,8 @@ cifra, una fecha ni una clave de cita.
 - **Formato de citación:** el de la regla 6.
 - **Estructura fija:** Los párrafos requeridos por la guía (ej. los 6 de §2) y el mapeo 1:1 (3 subproblemas ↔ 3 objetivos específicos) son inalterables.
 
-**Por qué la regla vive aquí y no solo en el pipeline.** Mientras fue un paso del
-pipeline, cubría las secciones de la propuesta y dejaba fuera todo lo demás que
-se escribe en español. Un `LEEME` o un documento de tareas sin pasar por la skill
-tiene la misma textura mecánica que la skill existe para quitar.
+**Por qué vive aquí.** Como paso del pipeline solo cubría las secciones y dejaba
+fuera el resto de la prosa en español.
 
 ## Operación del pipeline (solo para quien despacha)
 
