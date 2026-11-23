@@ -313,3 +313,90 @@ test('el texto de la vista se escapa y los enlaces que no son http(s) no se pint
   assert.equal(c.querySelector('a[href^="javascript"]'), null);
   assert.equal(viewer.window.__pwned, undefined);
 });
+
+// National coverage (odd/tasks/convocatorias-nacional.md, S1): the level of a
+// Colombian call is a chip on its card and a filter of the panel; the summary
+// names the mandatory sources the search did not consult.
+const LEVEL_CALLS = [
+  call({ nivel: 'nacional' }),
+  call({ id: 'ruta-n-reto', titulo: 'Reto de innovación abierta', financiador: 'Ruta N', url: 'https://rutanmedellin.org/ofertas/reto', nivel: 'local' }),
+  CALLS[1],
+];
+const COVERAGE = {
+  requerida: true, completa: false, desconocidas: [],
+  obligatorias: [],
+  faltantes: [{ id: 'atenea', nombre: 'Agencia Atenea (Bogotá): convocatorias', url: 'https://agenciaatenea.gov.co/convocatorias', nivel: 'regional' }],
+  descuadres: [{ fuente: 'innpulsa', n: 4, registradas: 0 }],
+};
+const levelView = (overrides = {}) => vista({ oportunidades: LEVEL_CALLS, cobertura: COVERAGE, ...overrides });
+
+test('el nivel de una convocatoria de Colombia es una etiqueta de su tarjeta y un filtro', async (t) => {
+  const viewer = await loaded(t, { body: payload({ vista: levelView() }) });
+  const doc = viewer.document;
+  const chip = card(doc, 'minciencias-ia-2026').querySelector('.cv-nivel');
+  assert.equal(chip.textContent.trim(), 'Nacional');
+  assert.equal(chip.getAttribute('data-nivel'), 'nacional');
+  assert.equal(card(doc, 'ruta-n-reto').querySelector('.cv-nivel').textContent.trim(), 'Local');
+  assert.equal(card(doc, 'horizon-cl4-2026').querySelector('.cv-nivel'), null, 'sin nivel no hay etiqueta');
+  assert.match(doc.getElementById('cvFiltros').textContent, /Nivel/);
+  change(viewer, 'cvNivel', 'local');
+  await flush();
+  assert.deepEqual(cardIds(doc), ['ruta-n-reto']);
+  assert.equal(doc.getElementById('cvNivel').value, 'local', 'el filtro sobrevive al repintado');
+  change(viewer, 'cvNivel', '');
+  await flush();
+  assert.equal(cardIds(doc).length, 3);
+});
+
+test('sin niveles ni cobertura en la vista no aparecen etiqueta, filtro ni aviso nuevos', async (t) => {
+  const viewer = await loaded(t);
+  const doc = viewer.document;
+  assert.equal(doc.querySelector('.cv-nivel'), null);
+  assert.equal(doc.getElementById('cvNivel'), null);
+  assert.equal(doc.getElementById('cvCobertura'), null);
+});
+
+test('el resumen avisa las fuentes obligatorias sin consultar y los conteos que no cuadran', async (t) => {
+  const viewer = await loaded(t, { body: payload({ vista: levelView() }) });
+  const box = viewer.document.getElementById('cvCobertura');
+  assert.ok(box, 'aviso de cobertura');
+  assert.equal(box.getAttribute('data-faltantes'), '1');
+  assert.equal(box.getAttribute('data-descuadres'), '1');
+  assert.match(box.textContent, /Cobertura nacional incompleta/);
+  assert.match(box.textContent, /Fuentes obligatorias sin consultar \(1\)/);
+  assert.equal(box.querySelector('a').getAttribute('href'), 'https://agenciaatenea.gov.co/convocatorias');
+  assert.match(box.textContent, /Agencia Atenea/);
+  assert.match(box.textContent, /innpulsa/);
+  const done = { ...COVERAGE, faltantes: [], descuadres: [], completa: true };
+  const complete = await loaded(t, { body: payload({ vista: levelView({ cobertura: done }) }) });
+  assert.equal(complete.document.getElementById('cvCobertura'), null);
+});
+
+test('sin convocatorias el aviso de cobertura sigue visible', async (t) => {
+  const empty = levelView({ oportunidades: [], resumen: { total: 0, vigentes: 0, por_ambito: {}, por_rol: {}, por_idioma: {} } });
+  const viewer = await loaded(t, { body: payload({ vista: empty }) });
+  assert.match(viewer.document.getElementById('cvCobertura').textContent, /Agencia Atenea/);
+});
+
+test('las fuentes que piden sesión se listan como tales', async (t) => {
+  const fuentes = [...FUENTES, { fuente: 'hermes', url: 'http://www.hermes.unal.edu.co/', fecha: '2026-11-20', resultado: 'requiere_sesion', n: 0 }];
+  const viewer = await loaded(t, { body: payload({ vista: vista({ fuentes_consultadas: fuentes }) }) });
+  const item = viewer.document.querySelector('#cvFuentes li[data-resultado="requiere_sesion"]');
+  assert.match(item.textContent, /Requiere sesión/);
+});
+
+test('en inglés el nivel, su filtro y el aviso de cobertura cambian de idioma', async (t) => {
+  const viewer = await loaded(t, { body: payload({ vista: levelView() }) });
+  viewer.window.i18n.setLanguage('en');
+  await flush();
+  const doc = viewer.document;
+  assert.equal(card(doc, 'minciencias-ia-2026').querySelector('.cv-nivel').textContent.trim(), 'National');
+  assert.match(doc.getElementById('cvFiltros').textContent, /Level/);
+  assert.match(doc.getElementById('cvNivel').textContent, /All levels/);
+  const box = doc.getElementById('cvCobertura');
+  assert.match(box.textContent, /National coverage incomplete/);
+  assert.match(box.textContent, /Mandatory sources not checked \(1\)/);
+  viewer.window.i18n.setLanguage('es');
+  await flush();
+  assert.equal(card(doc, 'minciencias-ia-2026').querySelector('.cv-nivel').textContent.trim(), 'Nacional');
+});

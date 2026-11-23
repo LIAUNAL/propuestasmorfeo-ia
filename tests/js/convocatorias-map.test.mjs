@@ -460,3 +460,22 @@ test('a language switch draws the views again and asks the constellation in Engl
   await showView(viewer, 'arbol');
   assert.match(tree(), /Frutos · convocatorias ordenadas por match/);
 });
+
+test('the detail shows the level of a Colombian call in both languages and nothing without it', async (t) => {
+  const body = payload({ vista: vista({ oportunidades: CALLS.map(c => (c.id === 'sgr-salud' ? { ...c, nivel: 'nacional' } : c)) }) });
+  const viewer = await loaded(t, { body });
+  $(viewer, '#cvView .cvm-card[data-call="sgr-salud"]').click();
+  await flush();
+  const pill = () => $(viewer, '#cvDetail .cvm-tags [data-nivel]');
+  assert.equal(pill().getAttribute('data-nivel'), 'nacional');
+  assert.equal(pill().textContent.trim(), 'Nacional');
+  viewer.window.i18n.setLanguage('en');
+  await flush(6);
+  // The selection survives the language switch and the detail is drawn again.
+  assert.equal(pill().textContent.trim(), 'National');
+  viewer.window.i18n.setLanguage('es');
+  await flush(6);
+  $(viewer, '#cvView .cvm-card[data-call="horizon-cl1"]').click();
+  await flush();
+  assert.equal(pill(), null, 'a call without nivel has no level pill');
+});

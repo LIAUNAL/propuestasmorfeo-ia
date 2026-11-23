@@ -46,6 +46,11 @@
     desconocido: [later(P + 'roleUnknown'), 'dim'],
   });
   const AMBITOS = live({ colombia: later(P + 'scopeColombia'), latam: later(P + 'scopeLatam'), internacional: later(P + 'scopeInternational') });
+  // Level of a Colombian call (nacional, regional, local, institucional); a call without one shows no pill.
+  const NIVELES = live({
+    nacional: later(P + 'levelNational'), regional: later(P + 'levelRegional'), local: later(P + 'levelLocal'),
+    institucional: later(P + 'levelInstitutional'),
+  });
   const IDIOMAS = live({ es: later(P + 'langEs'), en: later(P + 'langEn'), pt: later(P + 'langPt'), fr: later(P + 'langFr') });
   const APLICANTES = live({
     investigador: later(P + 'applicantResearcher'), estudiante: later(P + 'applicantStudent'), grupo: later(P + 'applicantGroup'),
@@ -483,7 +488,7 @@
         <h2>${esc(c.titulo)}</h2>
         <div class="cvm-muted">${esc(o.financiador || '')}${o.programa ? ` · ${esc(o.programa)}` : ''}</div>
         <div class="cvm-tags">
-          <span class="cvm-pill">${esc(AMBITOS[o.ambito] || o.ambito || '—')}</span><span class="cvm-pill">${esc(IDIOMAS[o.idioma] || o.idioma || '—')}</span>
+          <span class="cvm-pill">${esc(AMBITOS[o.ambito] || o.ambito || '—')}</span>${NIVELES[o.nivel] ? `<span class="cvm-pill" data-nivel="${esc(o.nivel)}">${esc(NIVELES[o.nivel])}</span>` : ''}<span class="cvm-pill">${esc(IDIOMAS[o.idioma] || o.idioma || '—')}</span>
           <span class="cvm-pill cvm-pill--${role[1]}">${esc(role[0])}</span><span class="cvm-pill cvm-pill--${u.tone}">⏱ ${esc(u.label)}</span>
         </div>
         <div class="cvm-bigscore"><div class="cvm-ring" style="--m:${clamp(c.match, 0, 100)}"><span>${c.match}</span></div>

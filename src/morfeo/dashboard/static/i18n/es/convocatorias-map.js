@@ -122,5 +122,16 @@
   "panel.convocatoriasMap.openCall": "Abrir la convocatoria",
   "panel.convocatoriasMap.close": "Cerrar",
   "panel.convocatoriasMap.treeView": "🌳 Árbol de oportunidades",
-  "panel.convocatoriasMap.constellationView": "✦ Constelación de afinidad"
+  "panel.convocatoriasMap.constellationView": "✦ Constelación de afinidad",
+  "panel.convocatoriasMap.levelNational": "Nacional",
+  "panel.convocatoriasMap.levelRegional": "Regional",
+  "panel.convocatoriasMap.levelLocal": "Local",
+  "panel.convocatoriasMap.levelInstitutional": "Institucional",
+  "panel.convocatoriasMap.levelFilter": "Nivel {value}",
+  "panel.convocatoriasMap.allLevels": "Todos los niveles",
+  "panel.convocatoriasMap.coverageIncomplete": "Cobertura nacional incompleta",
+  "panel.convocatoriasMap.coverageMissing": "Fuentes obligatorias sin consultar ({n}):",
+  "panel.convocatoriasMap.coverageMismatch": "Fuentes cuyo conteo no cuadra con lo registrado ({n}):",
+  "panel.convocatoriasMap.coverageMismatchItem": "{source}: informa {n}, registradas {registered}",
+  "panel.convocatoriasMap.resultNeedsSession": "Requiere sesión"
 });
