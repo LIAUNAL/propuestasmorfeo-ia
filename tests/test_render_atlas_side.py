@@ -191,7 +191,7 @@ class SidePanelRenderTests(unittest.TestCase):
         self.assertIn('<aside id="side" aria-label="Paper summary" hidden>', en)
         self.assertIn('<button id="sideclose" type="button" aria-label="Close">✕</button>', en)
         for english in (">zoom in +<", ">reset view<", ">Group layout<", "'2D view'", "<em>Families:</em>",
-                        "<em>Relations:</em>", "click to open the paper's summary", "'Linked papers'",
+                        "<em>Relations:</em>", "click to open the summary of the paper", "'Linked papers'",
                         "['bibkey', 'BibTeX key']", "'Selected · '", "<h2>Constellation study</h2>",
                         "<h3>Relations by type</h3>", "<h4>Systems</h4>", "Family: "):
             self.assertTrue(english in en, english)
@@ -199,6 +199,20 @@ class SidePanelRenderTests(unittest.TestCase):
                         "<h2>Estudio de constelaciones</h2>", "Relaciones por tipo", "haz clic para abrir"):
             self.assertFalse(spanish in en, spanish)
         self.assertEqual(scene_of(en), scene_of(es), "the atlas, positions and paper metadata are the same")
+
+    @unittest.skipUnless(shutil.which("node"), "node checks the page's scripts")
+    def test_the_english_page_scripts_still_parse(self):
+        # English chrome lands inside JavaScript string literals (help texts,
+        # notes, slot names): an apostrophe there would break the whole page.
+        module, atlas, papers = self.module_pages()
+        for profile in ("sota", "convocatorias"):
+            page = module.render(atlas, papers=papers, profile=profile, lang="en", viewer="/* viewer */")
+            scripts = [chunk.split("</script>")[0] for chunk in page.split("<script>")[1:]]
+            source = self.tmp / f"{profile}.js"
+            source.write_text("\n;\n".join(scripts), encoding="utf-8")
+            proc = subprocess.run(["node", "--check", str(source)], capture_output=True, text=True)
+            with self.subTest(profile=profile):
+                self.assertEqual(proc.returncode, 0, proc.stderr[-400:])
 
     def test_every_english_chrome_entry_applies_to_the_template_or_a_profile(self):
         module = load(RENDERER, "render_atlas_chrome_under_test")

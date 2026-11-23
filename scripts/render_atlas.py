@@ -1583,13 +1583,13 @@ _EN_CHROME = (
      "Drag to orbit, right-drag to pan and use the wheel to zoom. "),
     ("Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para abrir el resumen del paper "
      "y doble clic para volar hasta él.",
-     "Hover over a planet to see its links across systems; click to open the paper's summary and double-click to "
+     "Hover over a planet to see its links across systems; click to open the summary of the paper and double-click to "
      "fly to it."),
     ("Vista 2D: arrastra para desplazar y usa la rueda para acercar; girar e inclinar cambian el ángulo. ",
      "2D view: drag to pan and use the wheel to zoom; turn and tilt change the angle. "),
     ("Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para abrir el resumen del paper "
      "y doble clic para centrarlo.",
-     "Hover over a planet to see its links across systems; click to open the paper's summary and double-click to "
+     "Hover over a planet to see its links across systems; click to open the summary of the paper and double-click to "
      "center it."),
     ("Familias:", "Families:"),
     ("<em>Relaciones:</em>", "<em>Relations:</em>"),
