@@ -524,6 +524,13 @@ class ColombianRulesTest(Base):
         self.assertEqual((role, rule), ("lider", "unal-interna"))
         self.assertIn("planta", notice)
 
+    def test_joint_unal_dfg_calls_make_the_colombian_group_a_coapplicant(self):
+        role, rule, notice = self.role(financiador="Universidad Nacional de Colombia y Deutsche Forschungsgemeinschaft (DFG)",
+                                       programa="Vicerrectoría de Investigación",
+                                       titulo="UNAL–DFG Sachbeihilfe: procedimiento abierto permanente")
+        self.assertEqual((role, rule), ("coaplicante", "dfg-cooperacion"))
+        self.assertIn("Alemania", notice)
+
     def test_innpulsa_and_business_challenges_need_a_company_proponent(self):
         for fields in ({"financiador": "iNNpulsa Colombia", "titulo": "Convocatoria Escalamiento 2026"},
                        {"financiador": "Ruta N", "titulo": "Reto de innovación abierta 2026"},
@@ -544,7 +551,8 @@ class ColombianRulesTest(Base):
         ids = [rule["id"] for rule in data["reglas"]]
         self.assertEqual(ids[:len(FOREIGN_RULES)], FOREIGN_RULES)
         self.assertEqual(set(ids[len(FOREIGN_RULES):]),
-                         {"fondo-emprender", "sgr-ctei", "minciencias", "unal-interna", "innpulsa-retos-empresariales"})
+                         {"fondo-emprender", "sgr-ctei", "minciencias", "dfg-cooperacion", "unal-interna",
+                          "innpulsa-retos-empresariales"})
 
     def test_foreign_calls_still_match_their_rules(self):
         for fields, expected in (({"programa": "Horizon Europe"}, "horizon-europe"),

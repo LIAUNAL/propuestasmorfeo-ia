@@ -164,6 +164,14 @@
       "fuente_url": "https://minciencias.gov.co/convocatorias/todas"
     },
     {
+      "id": "dfg-cooperacion",
+      "patron": "\\bdfg\\b|deutsche forschungsgemeinschaft|sachbeihilfe",
+      "rol": "coaplicante",
+      "estado": null,
+      "aviso": "Cooperación con la DFG: el proyecto lo presenta un investigador vinculado en Alemania y el grupo colombiano participa como coaplicante; la UNAL financia su parte con el aval de la sede.",
+      "fuente_url": "https://viceinvestigacion.unal.edu.co/wp-json/wp/v2/convocatoria"
+    },
+    {
       "id": "unal-interna",
       "patron": "universidad nacional de colombia|\\bunal\\b",
       "rol": "lider",
