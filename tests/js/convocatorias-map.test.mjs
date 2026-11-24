@@ -460,3 +460,42 @@ test('a language switch draws the views again and asks the constellation in Engl
   await showView(viewer, 'arbol');
   assert.match(tree(), /Frutos · convocatorias ordenadas por match/);
 });
+
+test('the detail shows the level of a Colombian call in both languages and nothing without it', async (t) => {
+  const body = payload({ vista: vista({ oportunidades: CALLS.map(c => (c.id === 'sgr-salud' ? { ...c, nivel: 'nacional' } : c)) }) });
+  const viewer = await loaded(t, { body });
+  $(viewer, '#cvView .cvm-card[data-call="sgr-salud"]').click();
+  await flush();
+  const pill = () => $(viewer, '#cvDetail .cvm-tags [data-nivel]');
+  assert.equal(pill().getAttribute('data-nivel'), 'nacional');
+  assert.equal(pill().textContent.trim(), 'Nacional');
+  viewer.window.i18n.setLanguage('en');
+  await flush(6);
+  // The selection survives the language switch and the detail is drawn again.
+  assert.equal(pill().textContent.trim(), 'National');
+  viewer.window.i18n.setLanguage('es');
+  await flush(6);
+  $(viewer, '#cvView .cvm-card[data-call="horizon-cl1"]').click();
+  await flush();
+  assert.equal(pill(), null, 'a call without nivel has no level pill');
+});
+
+// Open calls lead (odd/tasks/convocatorias-nacional.md, T3): a closed call
+// kept for reference never comes before an open one, in the tree groups nor
+// in the timeline, even with a higher match or an earlier date.
+test('closed calls come after the open ones in the tree and the timeline', async (t) => {
+  const closed = call({
+    id: 'minciencias-cerrada', titulo: 'Convocatoria 55 cerrada', titulo_corto: 'Conv. 55 cerrada', estado: 'cerrada',
+    vigente: false, dias_restantes: -7, cierre: '2026-11-13', match: 95, preparar_desde: null, alertas: [], requisitos: [],
+  });
+  const viewer = await loaded(t, { body: payload({ vista: vista({ oportunidades: [closed, ...CALLS] }) }) });
+  const group = $$(viewer, '#cvView .cvm-group').map(g => g.getAttribute('data-ids').split(' '))
+    .find(ids => ids.includes('minciencias-cerrada'));
+  assert.ok(group.includes('sgr-salud'), 'both calls share the group');
+  assert.equal(group[group.length - 1], 'minciencias-cerrada', 'the closed call closes its group despite its match');
+  await showView(viewer, 'tiempo');
+  const rows = $$(viewer, '#cvView svg.cvm-timeline g.tl-row').map(r => r.getAttribute('data-call'));
+  assert.equal(rows.length, CALLS.length + 1);
+  assert.equal(rows[rows.length - 1], 'minciencias-cerrada');
+  assert.equal(rows[0], 'sgr-salud', 'open calls keep their nearest-deadline order');
+});

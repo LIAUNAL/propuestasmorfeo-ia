@@ -46,6 +46,11 @@
     desconocido: [later(P + 'roleUnknown'), 'dim'],
   });
   const AMBITOS = live({ colombia: later(P + 'scopeColombia'), latam: later(P + 'scopeLatam'), internacional: later(P + 'scopeInternational') });
+  // Level of a Colombian call (nacional, regional, local, institucional); a call without one shows no pill.
+  const NIVELES = live({
+    nacional: later(P + 'levelNational'), regional: later(P + 'levelRegional'), local: later(P + 'levelLocal'),
+    institucional: later(P + 'levelInstitutional'),
+  });
   const IDIOMAS = live({ es: later(P + 'langEs'), en: later(P + 'langEn'), pt: later(P + 'langPt'), fr: later(P + 'langFr') });
   const APLICANTES = live({
     investigador: later(P + 'applicantResearcher'), estudiante: later(P + 'applicantStudent'), grupo: later(P + 'applicantGroup'),
@@ -199,6 +204,8 @@
     const t = X.temas.find(x => x.key === k);
     return cap(t ? t.tema : k);
   }
+  // Open calls lead every ordering; a closed call kept for reference goes after them.
+  const openFirst = (a, b) => (b.vigente ? 1 : 0) - (a.vigente ? 1 : 0);
   function groups(X) {
     const map = new Map();
     X.items.forEach(c => {
@@ -208,7 +215,7 @@
     });
     return [...map.entries()].map(([k, items]) => ({
       k, label: groupLabel(k, X),
-      list: items.slice().sort((a, b) => b.match - a.match),
+      list: items.slice().sort((a, b) => openFirst(a, b) || b.match - a.match),
       avg: Math.round(items.reduce((a, c) => a + c.match, 0) / items.length),
     })).sort((a, b) => b.avg - a.avg);
   }
@@ -379,7 +386,7 @@
   // ------------------------------------------------------------- timeline
   function renderTimeline(el, X) {
     if (!X.items.length) { el.innerHTML = empty(); return; }
-    const rows = X.items.slice().sort((a, b) => (a.dias === null ? 9999 : a.dias) - (b.dias === null ? 9999 : b.dias));
+    const rows = X.items.slice().sort((a, b) => openFirst(a, b) || (a.dias === null ? 9999 : a.dias) - (b.dias === null ? 9999 : b.dias));
     const hoy = toDate(X.hoy);
     const W = 1000;
     const L = 330;
@@ -483,7 +490,7 @@
         <h2>${esc(c.titulo)}</h2>
         <div class="cvm-muted">${esc(o.financiador || '')}${o.programa ? ` · ${esc(o.programa)}` : ''}</div>
         <div class="cvm-tags">
-          <span class="cvm-pill">${esc(AMBITOS[o.ambito] || o.ambito || '—')}</span><span class="cvm-pill">${esc(IDIOMAS[o.idioma] || o.idioma || '—')}</span>
+          <span class="cvm-pill">${esc(AMBITOS[o.ambito] || o.ambito || '—')}</span>${NIVELES[o.nivel] ? `<span class="cvm-pill" data-nivel="${esc(o.nivel)}">${esc(NIVELES[o.nivel])}</span>` : ''}<span class="cvm-pill">${esc(IDIOMAS[o.idioma] || o.idioma || '—')}</span>
           <span class="cvm-pill cvm-pill--${role[1]}">${esc(role[0])}</span><span class="cvm-pill cvm-pill--${u.tone}">⏱ ${esc(u.label)}</span>
         </div>
         <div class="cvm-bigscore"><div class="cvm-ring" style="--m:${clamp(c.match, 0, 100)}"><span>${c.match}</span></div>

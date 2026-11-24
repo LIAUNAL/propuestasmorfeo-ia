@@ -319,5 +319,73 @@ class TestOpportunitiesHttpApi(StubScripts):
         self.assertFalse(data["ok"])
 
 
+class TestRealScriptCoverage(unittest.TestCase):
+    """The repository's convocatorias.py: the view carries the level and the national coverage
+    (odd/tasks/convocatorias-nacional.md, S1), and an old file without them still loads."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        repo_scripts = Path(__file__).resolve().parent.parent / "scripts"
+        patcher = mock.patch.object(value_chain, "_script_candidates", lambda name: [repo_scripts / name])
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.ws = Path(self._tmp.name) / "ws"
+        (self.ws / ".morfeo").mkdir(parents=True)
+        (self.ws / ".morfeo" / "config.json").write_text(json.dumps({"titulo": "Demo"}), encoding="utf-8")
+
+    def _calls(self, calls, consulted):
+        folder = self.ws / "convocatorias"
+        folder.mkdir(exist_ok=True)
+        (folder / "oportunidades.json").write_text(json.dumps({
+            "schema": "morfeo.oportunidades/v1", "actualizado": "2026-11-20",
+            "fuentes_consultadas": consulted, "oportunidades": calls}), encoding="utf-8")
+
+    def test_the_view_carries_level_and_coverage(self):
+        self._calls([{"id": "mc-ia", "titulo": "Convocatoria IA", "financiador": "Minciencias",
+                      "url": "https://minciencias.gov.co/c/1", "fuente": "minciencias", "ambito": "colombia",
+                      "idioma": "es", "estado": "abierta", "cierre": "2099-12-01"}],
+                    [{"fuente": "minciencias", "url": "https://minciencias.gov.co/convocatorias/todas",
+                      "fecha": "2026-11-20", "resultado": "ok", "n": 1}])
+        data = load_opportunities(self.ws)
+        self.assertTrue(data["disponible"], data["error"])
+        view = data["vista"]
+        self.assertEqual(view["oportunidades"][0]["nivel"], "nacional")
+        self.assertEqual(view["resumen"]["por_nivel"]["nacional"], 1)
+        self.assertTrue(view["cobertura"]["requerida"])
+        self.assertIn("unal-vri", [f["id"] for f in view["cobertura"]["faltantes"]])
+        self.assertNotIn("minciencias", [f["id"] for f in view["cobertura"]["faltantes"]])
+
+    def test_an_old_file_without_the_new_fields_still_loads(self):
+        self._calls([{"id": "cyted-redes", "titulo": "Redes temáticas", "financiador": "CYTED",
+                      "url": "https://www.cyted.org/g.pdf", "fuente": "cyted (guía)", "ambito": "latam",
+                      "idioma": "es", "estado": "abierta", "cierre": "2099-03-01"}],
+                    [{"fuente": "cyted", "url": "https://www.cyted.org", "fecha": "2026-11-22", "resultado": "ok", "n": 1}])
+        data = load_opportunities(self.ws)
+        self.assertTrue(data["disponible"], data["error"])
+        self.assertEqual([o["id"] for o in data["vista"]["oportunidades"]], ["cyted-redes"])
+        self.assertIsNone(data["vista"]["oportunidades"][0]["nivel"])
+        self.assertFalse(data["vista"]["cobertura"]["completa"])
+        searches = data["vista"]["cobertura_busquedas"]
+        self.assertEqual(searches["n"], 0, "a file from before T3 has no busquedas")
+        self.assertIn("retos", [g["categoria"] for g in searches["faltantes"]])
+
+    def test_the_view_carries_the_search_coverage(self):
+        """T3: the recorded searches and the missing template categories reach the dashboard."""
+        folder = self.ws / "convocatorias"
+        folder.mkdir()
+        (folder / "oportunidades.json").write_text(json.dumps({
+            "schema": "morfeo.oportunidades/v1", "actualizado": "2026-11-20", "fuentes_consultadas": [],
+            "busquedas": [{"consulta": "site:unal.edu.co convocatoria investigación 2026", "plantilla": "co-unal",
+                           "categoria": "institucional", "fecha": "2026-11-20", "resultados": 2, "registradas": 0}],
+            "oportunidades": []}), encoding="utf-8")
+        data = load_opportunities(self.ws)
+        self.assertTrue(data["disponible"], data["error"])
+        searches = data["vista"]["cobertura_busquedas"]
+        self.assertEqual(searches["n"], 1)
+        self.assertEqual([g["categoria"] for g in searches["faltantes"]], ["nacional", "retos"])
+        self.assertIn("busqueda-categoria-faltante", [f["codigo"] for f in data["vista"]["hallazgos"]])
+
+
 if __name__ == "__main__":
     unittest.main()

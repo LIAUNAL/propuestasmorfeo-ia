@@ -1,45 +1,417 @@
 {
   "schema": "morfeo.fuentes-convocatorias/v1",
-  "revisado": "2026-11-20",
+  "revisado": "2026-11-23",
+  "nota": "Fuentes de Colombia verificadas el 2026-11-23 (odd/tasks/convocatorias-nacional.md, L2). «obligatoria»: la búsqueda nacional la consulta siempre y check falla si falta en fuentes_consultadas. «nivel»: nacional, regional, local o institucional. «crawl_delay»: segundos mínimos entre peticiones al mismo sitio (null: una petición a la vez). «consultas» y «consultas_colombia»: plantillas de búsqueda con {tema}, {año}, {ciudad} y {departamento}. Cada plantilla de «consultas_colombia» tiene un «id» y una «categoria» (nacional, regional, local, retos o institucional); check exige al menos una búsqueda registrada de cada categoría cuando el perfil cubre Colombia (regional y local, solo si el perfil declara «sedes»).",
+  "consultas_colombia": [
+    {
+      "id": "co-gov-cierre",
+      "categoria": "nacional",
+      "nivel": "nacional",
+      "plantilla": "site:gov.co convocatoria \"fecha de cierre\" {tema} {año} -tutela -demanda"
+    },
+    {
+      "id": "co-minciencias",
+      "categoria": "nacional",
+      "nivel": "nacional",
+      "plantilla": "site:minciencias.gov.co/convocatorias {tema} {año}"
+    },
+    {
+      "id": "co-nacional-cierre",
+      "categoria": "nacional",
+      "nivel": "nacional",
+      "plantilla": "convocatoria nacional {tema} {año} \"fecha de cierre\" Colombia"
+    },
+    {
+      "id": "co-departamento",
+      "categoria": "regional",
+      "nivel": "regional",
+      "plantilla": "site:gov.co {departamento} convocatoria ciencia tecnología innovación {año}"
+    },
+    {
+      "id": "co-ciudad",
+      "categoria": "local",
+      "nivel": "local",
+      "plantilla": "{ciudad} convocatoria innovación {tema} {año}"
+    },
+    {
+      "id": "co-retos-ciudad",
+      "categoria": "retos",
+      "nivel": "local",
+      "plantilla": "reto empresarial innovación abierta {ciudad} {año}"
+    },
+    {
+      "id": "co-retos-nacional",
+      "categoria": "retos",
+      "nivel": "nacional",
+      "plantilla": "reto de innovación abierta empresa Colombia {tema} {año}"
+    },
+    {
+      "id": "co-unal",
+      "categoria": "institucional",
+      "nivel": "institucional",
+      "plantilla": "site:unal.edu.co convocatoria investigación {año}"
+    }
+  ],
   "fuentes": [
     {
       "id": "minciencias",
       "nombre": "Minciencias: convocatorias",
-      "url": "https://minciencias.gov.co/convocatorias",
+      "url": "https://minciencias.gov.co/convocatorias/todas",
       "ambito": "colombia",
       "idioma": "es",
       "metodo": "html",
       "aplicantes": ["investigador", "estudiante", "empresa", "centro", "universidad", "grupo"],
-      "notas": "Sin API. robots.txt fija Crawl-delay: 10, así que va una petición cada 10 s como mínimo. Los términos de uso (/node/722) prohíben reproducir los contenidos: se guardan solo metadatos, enlace y un resumen propio."
+      "nivel": "nacional",
+      "obligatoria": true,
+      "crawl_delay": 10,
+      "feed": "https://minciencias.gov.co/rss.xml",
+      "filtro": "Listado Drupal paginado con ?page=N y ordenado por apertura con ?order=field_fecha_de_apertura&sort=desc; en el RSS se conservan solo los ítems que dicen «convocatoria».",
+      "consultas": [
+        "site:minciencias.gov.co/convocatorias {tema} {año}"
+      ],
+      "notas": "Sin API. robots.txt fija Crawl-delay: 10, así que va una petición cada 10 s como mínimo. Los términos de uso (/node/722) prohíben reproducir los contenidos: se guardan solo metadatos, enlace y un resumen propio. Primero se lee el RSS; el cierre se toma de la página de detalle («Cierre …») o del TdR."
     },
     {
       "id": "sgr-plan-bienal",
-      "nombre": "Plan bienal de convocatorias del SGR (Asignación para la CTeI)",
-      "url": "https://www.sgr.gov.co/",
+      "nombre": "Plan de convocatorias de la Asignación para la CTeI del SGR (Minciencias)",
+      "url": "https://minciencias.gov.co/plan-convocatorias-actei-2024-2025",
       "ambito": "colombia",
       "idioma": "es",
-      "metodo": "pdf",
+      "metodo": "html",
       "aplicantes": ["centro", "universidad", "grupo", "empresa"],
-      "notas": "El plan bienal se publica en PDF; se lee con WebFetch y se guardan solo las fechas, los montos y el enlace."
+      "nivel": "nacional",
+      "obligatoria": true,
+      "crawl_delay": 10,
+      "consultas": [
+        "site:minciencias.gov.co convocatoria Asignación para la CTeI Sistema General de Regalías {año}"
+      ],
+      "notas": "Plan del bienio 2025-2026 con las convocatorias 44 a 56. Mismo sitio de Minciencias: petición cada 10 s y solo metadatos, montos, fechas y enlace; el TdR de cada convocatoria trae el cierre."
+    },
+    {
+      "id": "sgr-ocad-paz",
+      "nombre": "OCAD Paz: convocatoria 2025-2026 (Sistema General de Regalías)",
+      "url": "https://2025.sgr.gov.co/Inversi%C3%B3n/OCADPAZ/Convocatoria20252026.aspx",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "html",
+      "aplicantes": ["centro", "universidad", "empresa"],
+      "nivel": "nacional",
+      "obligatoria": true,
+      "crawl_delay": null,
+      "notas": "Convocatoria de la Asignación para la Paz del SGR. Presentan entidades territoriales o ejecutores habilitados; una universidad entra como ejecutora o aliada según los términos."
     },
     {
       "id": "innpulsa",
-      "nombre": "iNNpulsa Colombia",
-      "url": "https://www.innpulsacolombia.com/",
+      "nombre": "iNNpulsa Colombia: convocatorias (API)",
+      "url": "https://convocatorias.innpulsacolombia.com/api/convocatorias",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "api",
+      "aplicantes": ["empresa", "centro"],
+      "nivel": "nacional",
+      "obligatoria": true,
+      "crawl_delay": null,
+      "filtro": "Se conservan las convocatorias con end_date >= hoy; el campo status no es confiable.",
+      "notas": "API JSON pública del portal de convocatorias. Colombia Productiva se fusionó con iNNpulsa, así que sus convocatorias también salen aquí."
+    },
+    {
+      "id": "unal-vri",
+      "nombre": "UNAL, Vicerrectoría de Investigación: convocatorias internas (API)",
+      "url": "https://viceinvestigacion.unal.edu.co/wp-json/wp/v2/convocatoria",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "api",
+      "aplicantes": ["investigador", "estudiante", "grupo"],
+      "nivel": "institucional",
+      "obligatoria": true,
+      "crawl_delay": null,
+      "feed": "https://viceinvestigacion.unal.edu.co/category/convocatorias/feed/",
+      "notas": "API REST de WordPress de la Vicerrectoría de Investigación de la UNAL. Reemplaza a Hermes cuando no hay una sesión abierta del operador."
+    },
+    {
+      "id": "unal-vri-externas",
+      "nombre": "UNAL, Vicerrectoría de Investigación: convocatorias externas (API)",
+      "url": "https://viceinvestigacion.unal.edu.co/wp-json/wp/v2/convo_out",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "api",
+      "aplicantes": ["investigador", "estudiante", "grupo", "universidad"],
+      "nivel": "institucional",
+      "obligatoria": true,
+      "crawl_delay": null,
+      "feed": "https://viceinvestigacion.unal.edu.co/category/convocatoria-externa/feed/",
+      "notas": "Convocatorias de otras entidades que la Vicerrectoría difunde. Cada una se verifica en la página del financiador antes de registrarla."
+    },
+    {
+      "id": "mineducacion",
+      "nombre": "Ministerio de Educación Nacional: convocatorias y concursos",
+      "url": "https://www.mineducacion.gov.co/portal/anos/2026;secciones/Convocatorias-y-concursos/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "html",
+      "aplicantes": ["universidad", "centro", "grupo", "estudiante"],
+      "nivel": "nacional",
+      "obligatoria": true,
+      "crawl_delay": null,
+      "filtro": "Se descartan los avisos de contratación (códigos CM-MEN y similares): no son convocatorias de financiación.",
+      "notas": "La URL lleva el año: en otro año se cambia 2026 por el año en curso."
+    },
+    {
+      "id": "atenea",
+      "nombre": "Agencia Atenea (Bogotá): convocatorias",
+      "url": "https://agenciaatenea.gov.co/convocatorias",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "html",
+      "aplicantes": ["estudiante", "universidad", "centro", "investigador"],
+      "nivel": "regional",
+      "obligatoria": true,
+      "crawl_delay": null,
+      "regiones": ["Bogotá D.C."],
+      "notas": "Agencia Distrital para la Educación Superior, la Ciencia y la Tecnología de Bogotá."
+    },
+    {
+      "id": "fondo-emprender",
+      "nombre": "Fondo Emprender (SENA): convocatorias vigentes",
+      "url": "https://www.fondoemprender.com/SitePages/FondoEmprenderConvocatoriasVigentes.aspx",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "html",
+      "aplicantes": ["estudiante", "empresa"],
+      "nivel": "nacional",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "notas": "Relevancia baja para grupos de investigación: financia emprendimientos de aprendices y egresados, no proyectos de un grupo."
+    },
+    {
+      "id": "mintic",
+      "nombre": "Ministerio TIC: convocatorias",
+      "url": "https://www.mintic.gov.co/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "busqueda",
+      "aplicantes": ["empresa", "universidad", "centro"],
+      "nivel": "nacional",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "consultas": [
+        "site:mintic.gov.co convocatoria {tema} {año}"
+      ],
+      "notas": "El listado del sitio está desactualizado; se busca con las consultas y se abre la página oficial de cada convocatoria."
+    },
+    {
+      "id": "mincultura",
+      "nombre": "Ministerio de las Culturas: sistema de convocatorias",
+      "url": "https://sistemaconvocatorias.mincultura.gov.co/dashboard?estado=1",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "busqueda",
+      "aplicantes": ["investigador", "grupo", "centro"],
+      "nivel": "nacional",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "consultas": [
+        "site:mincultura.gov.co convocatoria {tema} {año}"
+      ],
+      "notas": "El tablero del sistema de convocatorias no se pudo verificar sin navegador; se busca con las consultas."
+    },
+    {
+      "id": "minagricultura",
+      "nombre": "Ministerio de Agricultura: convocatorias",
+      "url": "https://www.minagricultura.gov.co/convocatorias",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "html",
+      "aplicantes": ["empresa", "centro", "universidad"],
+      "nivel": "nacional",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "notas": "Pocas convocatorias de I+D; se revisa cuando el perfil toca el agro."
+    },
+    {
+      "id": "hermes",
+      "nombre": "Hermes (UNAL): buscador de convocatorias",
+      "url": "http://www.hermes.unal.edu.co/pages/Consultas/BuscadorConvocatorias.xhtml",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "sesion",
+      "aplicantes": ["investigador", "estudiante", "grupo"],
+      "nivel": "institucional",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "notas": "Formulario JSF que responde solo por POST. Se consulta únicamente con una sesión abierta del operador en Chrome (chrome-control), sin escribir credenciales ni enviar otros formularios; sin sesión queda con resultado requiere_sesion y la cubren unal-vri y unal-vri-externas."
+    },
+    {
+      "id": "unal-extension",
+      "nombre": "UNAL, Dirección de Extensión: convocatorias",
+      "url": "https://extension.unal.edu.co/extensi%C3%B3n/convocatorias",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "html",
+      "aplicantes": ["investigador", "grupo", "universidad"],
+      "nivel": "institucional",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "notas": "Convocatorias de extensión y proyectos con aliados externos de la UNAL."
+    },
+    {
+      "id": "unal-dima-manizales",
+      "nombre": "UNAL Manizales, Dirección de Investigación (DIMA): convocatorias",
+      "url": "https://investigacion.manizales.unal.edu.co/convocatorias/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "html",
+      "aplicantes": ["investigador", "estudiante", "grupo"],
+      "nivel": "institucional",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "regiones": ["Caldas", "Manizales"],
+      "notas": "El listado se actualiza poco; se revisa cuando la sede del perfil es Manizales."
+    },
+    {
+      "id": "ruta-n",
+      "nombre": "Ruta N (Medellín): ofertas",
+      "url": "https://rutanmedellin.org/ofertas",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "html",
+      "aplicantes": ["empresa", "centro", "universidad"],
+      "nivel": "local",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "regiones": ["Antioquia", "Medellín"],
+      "consultas": [
+        "Ruta N convocatoria reto innovación {tema} {año}"
+      ],
+      "notas": "Retos de innovación y ofertas para empresas de Medellín; la página carga con JavaScript, así que puede requerir navegador."
+    },
+    {
+      "id": "connect-bogota",
+      "nombre": "Connect Bogotá Región",
+      "url": "https://connectbogota.org/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "busqueda",
+      "aplicantes": ["universidad", "empresa", "centro"],
+      "nivel": "local",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "regiones": ["Bogotá D.C."],
+      "consultas": [
+        "Connect Bogotá Región convocatoria reto innovación {año}"
+      ],
+      "notas": "Sitio estático sin listado fechado; se busca con las consultas."
+    },
+    {
+      "id": "ccb",
+      "nombre": "Cámara de Comercio de Bogotá",
+      "url": "https://www.ccb.org.co/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "busqueda",
+      "aplicantes": ["empresa"],
+      "nivel": "local",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "regiones": ["Bogotá D.C."],
+      "consultas": [
+        "Cámara de Comercio de Bogotá convocatoria innovación {tema} {año}"
+      ],
+      "notas": "Bloquea los lectores automáticos (403); se busca con las consultas y nunca se evade la protección."
+    },
+    {
+      "id": "cc-manizales",
+      "nombre": "Cámara de Comercio de Manizales por Caldas",
+      "url": "https://ccmpc.org.co/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "busqueda",
+      "aplicantes": ["empresa"],
+      "nivel": "local",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "regiones": ["Caldas", "Manizales"],
+      "consultas": [
+        "Cámara de Comercio de Manizales por Caldas convocatoria innovación {año}"
+      ],
+      "notas": "Bloquea los lectores automáticos (403); se busca con las consultas y nunca se evade la protección."
+    },
+    {
+      "id": "gobernacion-caldas",
+      "nombre": "Gobernación de Caldas",
+      "url": "https://caldas.gov.co/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "busqueda",
+      "aplicantes": ["universidad", "centro", "empresa", "grupo"],
+      "nivel": "regional",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "regiones": ["Caldas"],
+      "consultas": [
+        "site:caldas.gov.co convocatoria {tema} {año}"
+      ],
+      "notas": "Sin listado propio de convocatorias; se busca con las consultas."
+    },
+    {
+      "id": "alcaldia-manizales",
+      "nombre": "Alcaldía de Manizales (RSS)",
+      "url": "https://manizales.gov.co/feed/",
       "ambito": "colombia",
       "idioma": "es",
       "metodo": "rss",
-      "aplicantes": ["empresa", "centro"],
-      "notas": "Canal RSS del sitio; si no responde, se consulta la página de convocatorias."
+      "aplicantes": ["universidad", "empresa", "estudiante"],
+      "nivel": "local",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "filtro": "Ítems con «convocatoria» en el título.",
+      "regiones": ["Caldas", "Manizales"],
+      "notas": "Canal RSS de noticias; se conservan solo los ítems que anuncian una convocatoria."
+    },
+    {
+      "id": "ecopetrol-econova",
+      "nombre": "Ecopetrol: Econova e innovación abierta",
+      "url": "https://www.ecopetrol.com.co/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "busqueda",
+      "aplicantes": ["empresa", "universidad", "centro"],
+      "nivel": "nacional",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "consultas": [
+        "Ecopetrol Econova reto innovación abierta {año}"
+      ],
+      "notas": "Los retos se publican sin fecha en el sitio; se busca con las consultas y el cierre se toma del reto."
+    },
+    {
+      "id": "epm",
+      "nombre": "EPM: innovación abierta",
+      "url": "https://www.epm.com.co/",
+      "ambito": "colombia",
+      "idioma": "es",
+      "metodo": "busqueda",
+      "aplicantes": ["empresa", "universidad", "centro"],
+      "nivel": "regional",
+      "obligatoria": false,
+      "crawl_delay": null,
+      "regiones": ["Antioquia", "Medellín"],
+      "consultas": [
+        "EPM reto innovación abierta convocatoria {año}"
+      ],
+      "notas": "Retos de innovación del grupo EPM; se busca con las consultas."
     },
     {
       "id": "fulbright-colombia",
-      "nombre": "Fulbright Colombia",
-      "url": "https://www.fulbright.edu.co/",
+      "nombre": "Fulbright Colombia (RSS)",
+      "url": "https://fulbright.edu.co/feed/",
       "ambito": "colombia",
       "idioma": "es",
       "metodo": "rss",
       "aplicantes": ["investigador", "estudiante"],
+      "nivel": "nacional",
+      "obligatoria": false,
+      "crawl_delay": null,
       "notas": "Canal RSS de becas; las condiciones de cada beca se verifican en su página."
     },
     {

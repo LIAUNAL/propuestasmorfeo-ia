@@ -29,8 +29,9 @@ muestra en la pestaña «Convocatorias». No redactás la propuesta ni tocás
    beca exige una institución anfitriona fuera de Colombia) o `no_elegible`.
    Ante la duda va `desconocido`. El script aplica además las reglas de
    `scripts/convocatorias/reglas_co.json` (Horizonte Europa, MSCA, Erasmus+,
-   Wellcome, TWAS/OWSD, IDRC, NSF, UKRI, Humboldt, NIH); leélas antes de
-   buscar para no proponer lo que ya se sabe excluido.
+   Wellcome, TWAS/OWSD, IDRC, NSF, UKRI, Humboldt, NIH y, en Colombia,
+   Minciencias, SGR, UNAL, iNNpulsa y retos empresariales, Fondo Emprender);
+   leélas antes de buscar para no proponer lo que ya se sabe excluido.
 4. **Derechos de autor.** Guardás metadatos, el enlace y resúmenes con tus
    propias palabras. Las citas de `evidencia` tienen como máximo 200
    caracteres. Nunca copiás páginas ni PDF completos al espacio de trabajo,
@@ -38,7 +39,8 @@ muestra en la pestaña «Convocatorias». No redactás la propuesta ni tocás
    reproducción total o parcial sin permiso.
 5. **Cortesía con los sitios.** Una petición a la vez por sitio; al menos 10 s
    entre peticiones a `minciencias.gov.co` (su robots.txt fija
-   `Crawl-delay: 10`). Llevás en `registro_fuentes.json` la última hora de
+   `Crawl-delay: 10`) y, en general, los segundos que fije `crawl_delay` en el
+   catálogo. Llevás en `registro_fuentes.json` la última hora de
    consulta por sitio (`{"<host>": "<ISO-8601>"}`) y no repetís una página ya
    consultada en la misma búsqueda. Un sitio que responde 403 o pide CAPTCHA
    queda en `fuentes_consultadas` con `resultado: "bloqueado"`; nunca lo
@@ -58,8 +60,16 @@ muestra en la pestaña «Convocatorias». No redactás la propuesta ni tocás
   `browser_navigate` y leé con `browser_snapshot`; si la página carga una
   API JSON o un RSS, anotalo y usá `WebFetch` sobre eso. Sin navegador, la
   fuente queda `error` con la nota «requiere navegador».
-- `python3 scripts/convocatorias.py fuentes` lista las fuentes fijas con su
-  método (api, rss, html, pdf, navegador, busqueda) y sus notas.
+- **Hermes (UNAL)**: solo con la sesión que el operador ya tiene abierta en
+  Chrome, a través del MCP `chrome-control` (`list_tabs`, `switch_to_tab`,
+  `get_page_content`). Nunca escribís credenciales ni enviás otro formulario
+  que el del buscador de convocatorias.
+- `python3 scripts/convocatorias.py fuentes --json` da el catálogo completo:
+  método (api, rss, html, pdf, navegador, busqueda, sesion), notas y, en las
+  fuentes de Colombia, `nivel`, `obligatoria`, `crawl_delay`, `feed`,
+  `filtro`, `regiones` y `consultas`; `consultas_colombia` trae las
+  plantillas generales de la búsqueda nacional, cada una con su `id` y su
+  `categoria` (`nacional`, `regional`, `local`, `retos` o `institucional`).
 
 ## Proceso del modo `buscar`
 
@@ -88,34 +98,116 @@ para afinar las estimaciones siguientes.
    centro, universidad, grupo), `temas`, `palabras_clave.es` y
    `palabras_clave.en` (de 8 a 20 cada una, términos que usaría una
    convocatoria, no frases), `financiadores_previos` (de
-   `lab_capabilities`), `institucion` y `experiencia`: de 3 a 10 ítems
+   `lab_capabilities`), `institucion`, `sedes` y `experiencia`. `sedes` es la
+   lista `[{ciudad, departamento}]` de los lugares donde se ejecuta el
+   proyecto, tomada de `idea.md` y de `institucion`: una propuesta de las
+   sedes Manizales y Orinoquía de la UNAL lleva
+   `[{"ciudad": "Manizales", "departamento": "Caldas"}, {"ciudad": "Arauca",
+   "departamento": "Arauca"}]`. Sin un lugar claro dejá la lista vacía; un
+   dato que no conocés queda en `null`. `experiencia` lleva de 3 a 10 ítems
    `{id, nombre, detalle, temas, financiadores}` del banco LIA (`id` en slug,
    por ejemplo `lia-eeg`; `temas` con las mismas palabras que `temas` del
    perfil para que el mapa los conecte; `financiadores` como los nombra
    `lab_capabilities`). Sin `idea.md`, el perfil de proyecto sale solo del
    banco LIA y lo decís en el resumen.
-2. **Fuentes fijas.** Recorré las fuentes de `fuentes` según su método:
-   - `api`: la búsqueda de la UE (SEDIA) y Grants.gov `search2` con las
-     palabras clave en inglés; en Grants.gov descartá lo que excluye
-     instituciones extranjeras.
-   - `rss`: iNNpulsa, Fulbright Colombia, UKRI, fundsforNGOs, Opportunity
-     Desk, Scholars4Dev, ProFellow; quedate con lo que cruza las palabras
-     clave.
-   - `html` y `pdf`: el listado de Minciencias (solo convocatorias nuevas o
-     sin cierre conocido; el cierre está en la página de detalle o en el TdR),
-     el plan bienal del SGR, Humboldt, IDRC, EURAXESS, programas de Google.
-3. **Búsqueda abierta.** Con `WebSearch`, combiná las palabras clave con
-   «convocatoria», «call for proposals», «grant», «fellowship» y los
-   aplicantes del perfil, en español y en inglés, para Colombia, América
-   Latina y el mundo. Abrí siempre la página oficial antes de registrar una
-   convocatoria; un agregador sirve para descubrir, no como fuente final.
+2. **Fuentes fijas.** Recorré el catálogo (`fuentes --json`) en este orden.
+   Cada fuente que consultes queda en `fuentes_consultadas`, también cuando no
+   trae nada (`sin_resultados`), responde 403 o pide CAPTCHA (`bloqueado`),
+   exige sesión (`requiere_sesion`) o falla (`error`).
+   - **Colombia, obligatorias primero.** Toda fuente con `ambito: colombia` y
+     `obligatoria: true` se consulta en cada búsqueda: el listado de
+     Minciencias, el plan de convocatorias de la Asignación para la CTeI del
+     SGR, OCAD Paz, la API de iNNpulsa, las dos API de la Vicerrectoría de
+     Investigación de la UNAL (internas y externas), MinEducación y la
+     Agencia Atenea. `check` falla si falta alguna. Dentro de cada fuente van
+     primero la API y el `feed` (RSS) y después la página HTML; aplicá su
+     `filtro` (iNNpulsa: solo `end_date` desde hoy, porque `status` no es
+     confiable; MinEducación: fuera los avisos de contratación `CM-MEN`) y su
+     `crawl_delay`. En Minciencias guardás solo metadatos y el enlace, y el
+     cierre lo tomás de la página de detalle («Cierre …») o del TdR.
+   - **Colombia, el resto según el perfil.** Las fuentes no obligatorias con
+     `regiones` entran cuando la ciudad o el departamento de alguna de las
+     `sedes` del perfil está en esa lista; un perfil de la UNAL
+     Manizales suma DIMA Manizales, la Alcaldía de Manizales y, por
+     búsqueda, la Gobernación de Caldas y la Cámara de Comercio de Manizales
+     por Caldas. Las demás nacionales e institucionales (Extensión UNAL,
+     MinTIC, Fondo Emprender, Fulbright Colombia, Ecopetrol) entran cuando sus
+     `aplicantes` cruzan los del perfil.
+   - **Hermes (UNAL).** Solo si el operador tiene abierta una sesión de Hermes
+     que alcanzás con `chrome-control`; leés el buscador de convocatorias y
+     nada más. Sin esa sesión, registrá `hermes` con `resultado:
+     "requiere_sesion"` y `n: 0`: lo cubren `unal-vri` y `unal-vri-externas`.
+   - **América Latina e internacionales**, según el método:
+     - `api`: la búsqueda de la UE (SEDIA) y Grants.gov `search2` con las
+       palabras clave en inglés; en Grants.gov descartá lo que excluye
+       instituciones extranjeras.
+     - `rss`: UKRI, fundsforNGOs, Opportunity Desk, Scholars4Dev, ProFellow;
+       quedate con lo que cruza las palabras clave.
+     - `html` y `navegador`: Humboldt, IDRC, EURAXESS, programas de Google,
+       CYTED y BID Lab.
+3. **Búsqueda abierta.** Va en tres pasos y en este orden; las búsquedas
+   generales no reemplazan a las de Colombia.
+   - **Plantillas de Colombia.** Corré con `WebSearch` cada plantilla de
+     `consultas_colombia`, llenada desde el perfil: `{tema}` con los dos o
+     tres temas de más peso de la idea o de sus palabras clave, `{año}` con
+     el año en curso (y el siguiente desde octubre), `{ciudad}` y
+     `{departamento}` con cada una de las `sedes` (Manizales y Caldas;
+     Arauca y Arauca cuando la sede Orinoquía está en el perfil). Una
+     plantilla con lugar se corre una vez por sede; si el perfil no tiene
+     `sedes`, las plantillas con lugar no se corren y `check` lo avisa con
+     `sin-sedes`.
+   - **Consultas de las fuentes.** Corré las `consultas` de cada fuente de
+     Colombia con método `busqueda` que aplica al perfil: siempre las de
+     retos empresariales nacionales (Ecopetrol/Econova, MinTIC, MinCultura
+     cuando el tema lo toca) y las locales de las regiones de las `sedes`
+     (en Caldas, la Gobernación de Caldas y la Cámara de Comercio de
+     Manizales por Caldas; en Antioquia, Ruta N y EPM; en Bogotá, Connect
+     Bogotá y la Cámara de Comercio de Bogotá).
+   - **Búsqueda general.** Solo después, combiná las palabras clave con
+     «convocatoria», «call for proposals», «grant», «fellowship» y los
+     aplicantes del perfil, en español y en inglés, para América Latina y el
+     mundo.
+
+   Cada búsqueda que corras queda en `busquedas` de `oportunidades.json`:
+   `{consulta, plantilla, categoria, fecha, resultados, registradas}`.
+   `consulta` es el texto exacto que buscaste; `plantilla` es el `id` de la
+   plantilla de `consultas_colombia`, el `id` de la fuente cuyas `consultas`
+   usaste o `null` para una búsqueda libre; `categoria` es la de la plantilla
+   (`nacional`, `regional`, `local`, `retos`, `institucional`) y, para las
+   consultas de una fuente, la que mejor la describe (`retos` para un reto
+   empresarial, `local` para una cámara de comercio o una alcaldía);
+   `internacional` queda para la búsqueda general fuera de Colombia;
+   `resultados` es cuántos resultados parecían pertinentes y `registradas`,
+   cuántas convocatorias registraste desde esa búsqueda. Una búsqueda sin
+   nada útil también se registra, con `0` y `0`. Abrí siempre la página
+   oficial antes de registrar una convocatoria; un agregador sirve para
+   descubrir, no como fuente final.
 4. **Registro.** Escribí `convocatorias/oportunidades.json` con el esquema
    `morfeo.oportunidades/v1` (ver `odd/tasks/convocatorias-explorador.md` o
-   la ayuda del script). Conservá las convocatorias de búsquedas anteriores
-   que sigan vigentes y actualizá las que cambiaron; `id` es un slug estable
-   (`financiador-programa-año`). `puntaje_agente` (0 a 100) mide afinidad
-   con el perfil y factibilidad para el laboratorio, no el monto. Para el mapa
-   del tablero escribí además, por convocatoria:
+   la ayuda del script). Cada búsqueda parte de cero: una convocatoria de una
+   búsqueda anterior se conserva solo si la volviste a verificar en esta, en
+   su página oficial. Si una fuente falla (por ejemplo, la API de la UE
+   responde 500), queda en `fuentes_consultadas` con `resultado: "error"` y
+   sus convocatorias anteriores no se copian sin verificar. `id` es un slug
+   estable (`financiador-programa-año`). Una convocatoria cerrada entra solo
+   si sirve de referencia (el ciclo anterior de una que se repite, o el TdR
+   de una que se espera), con `estado: "cerrada"` y su `cierre`; el tablero
+   pone siempre primero las abiertas. `puntaje_agente` (0 a 100) mide afinidad
+   con el perfil y factibilidad para el laboratorio, no el monto. La
+   cobertura nacional pide además:
+   - `fuente`: el `id` del catálogo de donde salió la convocatoria, o
+     `busqueda:<host>` (host de la página oficial, en minúsculas) si la trajo
+     la búsqueda abierta; nunca texto libre;
+   - `nivel` en las convocatorias de Colombia: `nacional`, `regional`
+     (departamento o Bogotá D.C.), `local` (municipio o actores de una
+     ciudad) o `institucional` (convocatorias internas de una universidad);
+   - `cierre` solo cuando lo viste en la página de detalle o en el TdR;
+   - en `fuentes_consultadas`, `n` es el número de convocatorias que
+     registraste desde esa fuente, no las que viste;
+   - una convocatoria aparece una sola vez: dos URL iguales, salvo
+     mayúsculas del dominio, barra final o parámetros `utm_*`, son la misma.
+
+   Para el mapa del tablero escribí además, por convocatoria:
    - `titulo_corto` (máximo 32 caracteres): el nombre del programa, sin
      repetir el financiador si ya va en `financiador` («Horizon CL1 Salud
      mental», «Google PhD LatAm»);
@@ -132,7 +224,18 @@ para afinar las estimaciones siguientes.
      postulación.
 5. **Verificación.** Corré `python3 scripts/convocatorias.py check
    <WORKSPACE>` hasta que salga con 0 y revisá
-   `python3 scripts/convocatorias.py datos <WORKSPACE>`.
+   `python3 scripts/convocatorias.py datos <WORKSPACE>`. Los hallazgos de
+   cobertura se corrigen así: `fuente-obligatoria-sin-consultar`, consultá la
+   fuente y registrala; `conteo-fuente`, ajustá `n` a las convocatorias
+   registradas desde ella; `fuente-desconocida`, usá el id o el
+   `busqueda:<host>` que propone el mensaje; `url-repetida`, dejá una sola.
+   Los de las búsquedas, así: `busqueda-categoria-faltante`, corré las
+   plantillas que nombra el mensaje y registralas en `busquedas`;
+   `busqueda-local-faltante`, corré `co-ciudad` (y las consultas locales de
+   su región) con la sede que nombra el mensaje y registrala con `categoria:
+   "local"`; `sin-sedes` es un aviso: completá `sedes` en el perfil si el
+   proyecto tiene un lugar y corré las búsquedas regionales y locales que
+   entonces pide `check`.
 
 ## Modo `iniciar <id>`
 
@@ -162,6 +265,8 @@ para afinar las estimaciones siguientes.
 
 ## Respuesta al despachador
 
-Devolvé: número de convocatorias por ámbito y por rol, las cinco de mayor
-puntaje con su cierre, las fuentes con resultado `bloqueado` o `error`, y la
-salida final de `check`.
+Devolvé: número de convocatorias por ámbito, por nivel (en Colombia) y por
+rol, las cinco de mayor puntaje con su cierre, las fuentes obligatorias de
+Colombia consultadas, las búsquedas registradas por categoría y las sedes
+cubiertas, las fuentes con resultado `bloqueado`, `requiere_sesion` o
+`error`, y la salida final de `check`.

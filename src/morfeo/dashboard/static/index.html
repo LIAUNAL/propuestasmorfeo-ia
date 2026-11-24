@@ -8752,7 +8752,7 @@
     // static/convocatorias-map.js (window.cvMap).
     const CV_STATE = {
       data: null, sig: null, timer: null, alcance: null, vista: 'arbol', agrupar: 'tema',
-      filters: { ambito: '', idioma: '', aplicante: '', soloVigentes: false, soloElegibles: false, q: '' },
+      filters: { ambito: '', nivel: '', idioma: '', aplicante: '', soloVigentes: false, soloElegibles: false, q: '' },
     };
     const CV_ALCANCES = [['proyecto', tl('cvAlcances.projectBeingDrafted'), tl('cvAlcances.searchProject')], ['banco', tl('cvAlcances.liaBank'), tl('cvAlcances.searchLiaBank')]];
     i18n.live(CV_ALCANCES);
@@ -8763,6 +8763,11 @@
     i18n.live(CV_AGRUPAR);
     const CV_AMBITOS = [['colombia', tl('cvAmbitos.colombia')], ['latam', tl('cvAmbitos.latinAmerica')], ['internacional', tl('cvAmbitos.international')]];
     i18n.live(CV_AMBITOS);
+    // Level of a Colombian call (odd/tasks/convocatorias-nacional.md); calls
+    // without one show no chip, and the filter appears only when some call has one.
+    const CV_NIVELES = [['nacional', tl('panel.convocatoriasMap.levelNational')], ['regional', tl('panel.convocatoriasMap.levelRegional')],
+      ['local', tl('panel.convocatoriasMap.levelLocal')], ['institucional', tl('panel.convocatoriasMap.levelInstitutional')]];
+    i18n.live(CV_NIVELES);
     const CV_IDIOMAS = [['es', tl('cvIdiomas.spanish')], ['en', tl('cvIdiomas.english')], ['pt', tl('cvIdiomas.portuguese')], ['fr', tl('cvIdiomas.french')]];
     i18n.live(CV_IDIOMAS);
     const CV_APLICANTES = [['investigador', tl('cvAplicantes.researcher')], ['estudiante', tl('cvAplicantes.student')], ['grupo', tl('cvAplicantes.researchGroup')],
@@ -8780,7 +8785,8 @@
     const CV_ESTADOS = { proxima: [tl('cvEstados.upcoming'), 'info'], pausada: [tl('cvEstados.paused'), 'warn'] };
     i18n.live(CV_ESTADOS);
     const CV_RESULTADOS = {
-      ok: [tl('cvResultados.checked'), 'ok'], sin_resultados: [tl('cvResultados.noResults'), 'info'], bloqueado: [tl('cvResultados.blocked'), 'warn'], error: [tl('renderTreeFindings.error'), 'bad'],
+      ok: [tl('cvResultados.checked'), 'ok'], sin_resultados: [tl('cvResultados.noResults'), 'info'], bloqueado: [tl('cvResultados.blocked'), 'warn'],
+      requiere_sesion: [tl('panel.convocatoriasMap.resultNeedsSession'), 'warn'], error: [tl('renderTreeFindings.error'), 'bad'],
     };
     i18n.live(CV_RESULTADOS);
 
@@ -8896,14 +8902,16 @@
         </select>`;
     }
 
-    function cvFiltersHtml() {
+    function cvFiltersHtml(items) {
       const f = CV_STATE.filters;
+      const levels = vcList(items).some(o => CV_NIVELES.some(([k]) => k === o.nivel));
       return `<div class="cv-toolbar" id="cvFiltros">
           <span class="cvm-label">${t('cvFiltersHtml.groupBy')}</span>
           <div class="cvm-seg" id="cvAgrupar" role="group" aria-label="${t('cvFiltersHtml.groupBy')}">
             ${CV_AGRUPAR.map(([key, label]) => `<button type="button" data-agrupar="${key}" onclick="setOpportunityGroup('${key}')">${escapeHtml(label)}</button>`).join('')}
           </div>
           <label>${t('cvFiltersHtml.scope', { value: cvSelect('cvAmbito', 'ambito', CV_AMBITOS, t('cvFiltersHtml.allScopes')) })}</label>
+          ${levels ? `<label>${t('panel.convocatoriasMap.levelFilter', { value: cvSelect('cvNivel', 'nivel', CV_NIVELES, t('panel.convocatoriasMap.allLevels')) })}</label>` : ''}
           <label>${t('cvFiltersHtml.language', { value: cvSelect('cvIdioma', 'idioma', CV_IDIOMAS, t('cvFiltersHtml.allLanguages')) })}</label>
           <label>${t('cvFiltersHtml.applicant', { value: cvSelect('cvAplicante', 'aplicante', CV_APLICANTES, t('cvFiltersHtml.allApplicants')) })}</label>
           <label class="a2-filter"><input type="checkbox" id="cvSoloVigentes"${f.soloVigentes ? ' checked' : ''} onchange="setOpportunityFilter('soloVigentes', this.checked)"> ${t('cvFiltersHtml.openOnly')}</label>
@@ -8918,6 +8926,7 @@
       const f = CV_STATE.filters;
       const q = cvFold(f.q).trim();
       return list.filter(o => (!f.ambito || o.ambito === f.ambito)
+        && (!f.nivel || o.nivel === f.nivel)
         && (!f.idioma || o.idioma === f.idioma)
         && (!f.aplicante || (Array.isArray(o.aplicantes) && o.aplicantes.includes(f.aplicante)))
         && (!f.soloVigentes || o.vigente === true)
@@ -8987,6 +8996,7 @@
           <div class="cv-card__meta">${vcText(o.financiador)}${o.programa ? ` · ${escapeHtml(String(o.programa))}` : ''}</div>
           <div class="a2-meta">
             <span class="badge badge--info cv-ambito">${escapeHtml(cvLabel(CV_AMBITOS, o.ambito))}</span>
+            ${CV_NIVELES.some(([k]) => k === o.nivel) ? `<span class="badge badge--info cv-nivel" data-nivel="${o.nivel}">${escapeHtml(cvLabel(CV_NIVELES, o.nivel))}</span>` : ''}
             <span class="badge cv-idioma">${escapeHtml(cvLabel(CV_IDIOMAS, o.idioma))}</span>
             <span class="badge badge--${rolTone} cv-rol" data-rol="${rolKey}"${agente}>${escapeHtml(rolLabel)}</span>
             ${estado}
@@ -9014,6 +9024,45 @@
 
     function cvHowto() { return t('cvHowto.pressSearchProjectSearchLia'); }
 
+    // National coverage gaps from the view's `cobertura`: the mandatory
+    // Colombian sources the search did not consult and the counts that do not
+    // match the registered calls; and from `cobertura_busquedas`: the
+    // categories of the Colombian query templates without a recorded search
+    // and the profile sedes without a local search. Nothing when the coverage
+    // is complete, not required, or the view predates it.
+    const CV_SEARCH_CATEGORIES = { nacional: 'searchCategoryNational', regional: 'searchCategoryRegional', local: 'searchCategoryLocal',
+      retos: 'searchCategoryChallenges', institucional: 'searchCategoryInstitutional', internacional: 'searchCategoryInternational' };
+    function cvSearchGapsHtml(busquedas, P) {
+      const b = cpObj(busquedas);
+      if (b.requerida !== true) return { cats: [], sedes: [], html: '' };
+      const cats = vcList(b.faltantes).filter(g => g && typeof g === 'object' && g.categoria);
+      const sedes = vcList(b.sedes_faltantes).filter(x => x && typeof x === 'object' && (x.ciudad || x.departamento));
+      const catLabel = g => CV_SEARCH_CATEGORIES[g.categoria] ? t(P + CV_SEARCH_CATEGORIES[g.categoria]) : String(g.categoria);
+      const catHtml = g => `<span data-categoria="${escapeHtml(String(g.categoria))}" title="${escapeHtml(vcList(g.plantillas).map(x => cpObj(x).id).filter(Boolean).join(', '))}">${escapeHtml(catLabel(g))}</span>`;
+      const sedeText = x => (x.ciudad && x.departamento ? `${x.ciudad} (${x.departamento})` : String(x.ciudad || x.departamento));
+      const html = (cats.length ? `<span>${escapeHtml(t(P + 'searchMissing', { n: cats.length }))} ${cats.map(catHtml).join(', ')}</span>` : '')
+        + (sedes.length ? `<span>${escapeHtml(t(P + 'searchSedesMissing', { n: sedes.length }))} ${escapeHtml(sedes.map(sedeText).join(', '))}</span>` : '');
+      return { cats, sedes, html };
+    }
+    function cvCoverageHtml(cobertura, busquedas) {
+      const c = cpObj(cobertura);
+      const P = 'panel.convocatoriasMap.';
+      const required = c.requerida === true;
+      const faltantes = required ? vcList(c.faltantes).filter(f => f && typeof f === 'object') : [];
+      const descuadres = required ? vcList(c.descuadres).filter(d => d && typeof d === 'object') : [];
+      const search = cvSearchGapsHtml(busquedas, P);
+      if (!faltantes.length && !descuadres.length && !search.cats.length && !search.sedes.length) return '';
+      const missing = faltantes.length
+        ? `<span>${escapeHtml(t(P + 'coverageMissing', { n: faltantes.length }))} ${faltantes.map(f => cvLink(f.url, f.nombre || f.id)).join(', ')}</span>` : '';
+      const mismatched = descuadres.length
+        ? `<span>${escapeHtml(t(P + 'coverageMismatch', { n: descuadres.length }))} ${descuadres.map(d => escapeHtml(t(P + 'coverageMismatchItem', {
+          source: String(d.fuente || '—'), n: d.n === null || d.n === undefined ? '—' : String(d.n), registered: String(a2Int(d.registradas)),
+        }))).join(', ')}</span>` : '';
+      return `<div class="a2-summary cv-cobertura" id="cvCobertura" data-faltantes="${faltantes.length}" data-descuadres="${descuadres.length}" data-categorias="${search.cats.length}" data-sedes="${search.sedes.length}">
+          <span class="badge badge--warn">${escapeHtml(t(P + 'coverageIncomplete'))}</span>${missing}${mismatched}${search.html}
+        </div>`;
+    }
+
     function renderOpportunities() {
       const d = CV_STATE.data;
       const el = document.getElementById('cvContent');
@@ -9034,12 +9083,13 @@
       const all = vcList(v.oportunidades);
       if (!all.length) {
         if (window.cvMap) window.cvMap.closeSheet();
-        el.innerHTML = `<div class="tree-empty"><p>${t('renderOpportunities.thereAreNoFundingCalls')}</p>${cvHowto()}</div>
+        el.innerHTML = `${cvCoverageHtml(v.cobertura, v.cobertura_busquedas)}<div class="tree-empty"><p>${t('renderOpportunities.thereAreNoFundingCalls')}</p>${cvHowto()}</div>
           ${cvSourcesHtml(v.fuentes_consultadas)}`;
         return;
       }
       el.innerHTML = `<div class="cvm-stats" id="cvStats"></div>
-        ${cvFiltersHtml()}
+        ${cvCoverageHtml(v.cobertura, v.cobertura_busquedas)}
+        ${cvFiltersHtml(all)}
         <nav class="cvm-tabs" id="cvVistas" aria-label="${t('renderOpportunities.fundingCallViews')}">
           ${CV_VIEWS.map(([key, label]) => `<button type="button" data-vista="${key}" onclick="setOpportunityView('${key}')">${escapeHtml(label)}</button>`).join('')}
         </nav>
