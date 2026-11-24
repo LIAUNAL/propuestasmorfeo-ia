@@ -9,6 +9,7 @@ from pathlib import Path
 from . import __version__
 from .core.audit import audit_project
 from .core.compile import compile_proposal
+from .core.config import config_project
 from .core.export import export_project
 from .core.import_project import import_project
 from .core.init import init_project
@@ -39,7 +40,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Herramientas a habilitar (separadas por coma: claude,opencode,pi,antigravity)",
     )
     p_init.add_argument("--preset", default="claude", choices=["claude", "gpt", "opencode-go"], help="Preset de modelos")
-    p_init.add_argument("--lang", default="es", choices=["es", "en"], help="Idioma del scaffolding")
+    p_init.add_argument(
+        "--lang", default="es", choices=["es", "en"],
+        help="Idioma de redacción de artefactos, fases y manuscrito (default: es; el flujo SGR solo admite es). "
+        "Se cambia después con `morfeo config lang`",
+    )
     p_init.add_argument("--title", default=None, help="Título inicial de la propuesta")
     p_init.add_argument("--force", action="store_true", help="Inicializar aunque el directorio no esté vacío")
     p_init.add_argument(
@@ -47,6 +52,19 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="El proyecto sigue el flujo del Sistema General de Regalías (MGA)",
     )
+
+    # --- config ---
+    p_config = sub.add_parser(
+        "config",
+        help="Lee o cambia un ajuste del proyecto (hoy: lang, el idioma de redacción).",
+        description="Sin VALOR imprime el ajuste actual; con VALOR lo escribe en .morfeo/config.json (y en "
+        ".marco/config.json si existe). lang es el idioma de redacción (es o en) de artefactos, fases y "
+        "manuscrito: las corridas nuevas lo toman al crearse y las existentes conservan el suyo. El flujo SGR "
+        "solo admite es (metodología MGA del DNP).",
+    )
+    p_config.add_argument("key", choices=["lang"], help="Ajuste: lang (idioma de redacción)")
+    p_config.add_argument("value", nargs="?", default=None, metavar="VALOR", help="Nuevo valor: es o en")
+    p_config.add_argument("--dir", type=Path, default=Path("."), help="Directorio del proyecto (default: actual)")
 
     # --- upgrade ---
     p_upgrade = sub.add_parser("upgrade", help="Actualiza los componentes del kit preservando el contenido del usuario.")
@@ -141,6 +159,8 @@ def main(argv: list[str] | None = None) -> int:
                 force=args.force,
                 flujo="sgr" if args.sgr else "base",
             )
+        elif args.command == "config":
+            return config_project(target_dir=args.dir, key=args.key, value=args.value)
         elif args.command == "upgrade":
             return upgrade_project(target_dir=args.dir, force=args.force)
         elif args.command == "audit":

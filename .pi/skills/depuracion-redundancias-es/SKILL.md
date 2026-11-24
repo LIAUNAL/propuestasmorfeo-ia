@@ -73,4 +73,4 @@ Sobre el texto podado y conciso, aplica de inmediato las directrices de `estilo-
 
 ## Fuera de esta skill
 
-La redundancia entre secciones se mide con `python3 scripts/estilo_es.py auditar <RUN_ROOT> --todo`. El agente `revisor-redundancia` la juzga y `grant-flow-auditor` hace la edición. Las copias literales que exige la guía SGR y lo que el resumen retoma del cuerpo aparecen en `exentos`: no se depuran.
+La redundancia entre secciones se mide con `python3 scripts/estilo_es.py auditar <RUN_ROOT> --todo`. El agente `revisor-redundancia` la juzga y `grant-flow-auditor` hace la edición. Las copias literales que exige la guía SGR y lo que el resumen retoma del cuerpo aparecen en `exentos`: no se depuran. En una corrida en inglés (`LANG=en`) rige `depuracion-redundancias-en`, con `scripts/estilo_en.py`.

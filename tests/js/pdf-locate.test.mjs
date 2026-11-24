@@ -15,7 +15,7 @@ import path from 'node:path';
 
 import { JSDOM } from 'jsdom';
 
-import { DASHBOARD_STATIC } from './harness.mjs';
+import { DASHBOARD_STATIC, loadI18n } from './harness.mjs';
 
 const SCRIPT = readFileSync(path.join(DASHBOARD_STATIC, 'pdf-locate.js'), 'utf8');
 
@@ -32,6 +32,7 @@ const plain = (value) => JSON.parse(JSON.stringify(value));
 
 function bare() {
   const dom = new JSDOM('<!doctype html><body><div id="page"></div></body>', { runScripts: 'outside-only' });
+  loadI18n(dom.window);
   dom.window.eval(SCRIPT);
   return { api: dom.window.PdfLocate, window: dom.window };
 }
@@ -145,6 +146,17 @@ test('the native viewer, a missing PDF, a finding without text and a reload each
     const text = api.message({ found: false, reason });
     assert.doesNotMatch(text, /—|--/, reason);
   }
+});
+
+test('the status lines follow the dashboard language', () => {
+  const { api, window } = bare();
+  assert.equal(api.MESSAGES.searching, 'Buscando el hallazgo en el PDF…');
+  window.i18n.setLanguage('en');
+  assert.equal(api.MESSAGES.searching, 'Looking for the finding in the PDF…');
+  assert.equal(api.message({ found: true, page: 3 }), 'Finding located on page 3.');
+  assert.match(api.message({ found: false, reason: 'native' }), /^The browser's native viewer cannot search the PDF/);
+  window.i18n.setLanguage('es');
+  assert.equal(api.message({ found: true, page: 3 }), 'Hallazgo ubicado en la página 3.');
 });
 
 test('highlight paints fading marks over one page and clears the previous ones', async () => {

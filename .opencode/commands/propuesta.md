@@ -55,6 +55,22 @@ Cuando una llamada MCP de `codebase-memory` pide un `repo_path` absoluto,
 nombres de índice se derivan del mismo run-id: `<run-id>-papers` y
 `<run-id>-vault`.
 
+**Idioma de redacción (`LANG`).** Con `RUN_ROOT` resuelto, leé el idioma de la
+corrida con `python3 scripts/language.py run <RUN_ROOT>`: `es` o `en`, el que
+`scripts/init-run.sh` registró en `_run.md` al crearla desde el `"lang"` de
+`.morfeo/config.json` (`morfeo config lang`); el flujo SGR es siempre `es`.
+Cada despacho con `task` lleva en su prompt la línea `LANG=<es|en>`, y con
+`LANG=en` los artefactos, las fases y el manuscrito se redactan en inglés:
+donde esta receta nombra `estilo-natural-es` y `depuracion-redundancias-es`
+van `estilo-natural-en` y `depuracion-redundancias-en` (pasá esas rutas de
+`SKILL.md`), y donde nombra `scripts/estilo_es.py auditar`/`verificar` va
+`scripts/estilo_en.py audit`/`verify` con los mismos argumentos.
+`scripts/check_run.py` detecta el idioma por sí solo. La guía
+`guiaProyectosIA_Agente.md` sigue en español: los agentes la leen y escriben en
+el idioma de la corrida. No se traducen los tokens de compuerta de
+`estado_propuesta.md` (`PASS`, `FAIL`, `APROBADA`), los encabezados que un
+script lee ni las claves de los JSON. Con `LANG=es` nada cambia.
+
 ## Roster de subagentes (`.opencode/agents/`)
 
 `insumos-observador`, `investigador`, `redactor`, `bibliografo-propuesta`,
@@ -63,9 +79,10 @@ nombres de índice se derivan del mismo run-id: `<run-id>-papers` y
 (solo flujo SGR), `revisor-estilo-sgr` (solo flujo SGR),
 `explorador-convocatorias` (fuera del pipeline: lo despacha
 `/propuesta-convocatorias`), `juez-avance` (fuera del
-pipeline: lo despacha `/propuesta-juez-avance`). (No existen
-`orquestador`, `observador` ni `bibliotecario`: usa siempre
-estos 15 nombres reales. `coordinador-propuesta`
+pipeline: lo despacha `/propuesta-juez-avance`), `traductor` y
+`revisor-traduccion` (fuera del pipeline: los despacha `/propuesta-traducir`).
+(No existen `orquestador`, `observador` ni `bibliotecario`: usa siempre
+estos 17 nombres reales. `coordinador-propuesta`
 existe como documento de referencia del pipeline, no como subagente despachable.)
 
 **Regla del flujo SGR para la auditoría de estilo.** Con `"flujo": "sgr"` en
@@ -228,7 +245,8 @@ Cada vez que una fase de abajo dice "aplica el procedimiento de Refresh del
    `<duration_ms>` — o `no medible directamente` (ver "Telemetría de uso por
    fase" abajo para el detalle de cómo se calculan estos valores).
    **NO avances sin aprobación.**
-4. Recuerda: toda la salida del documento es en español; los archivos van en
+4. Recuerda: toda la salida del documento va en el idioma de la corrida (`LANG`,
+   español por defecto); los archivos van en
    `redaccion/sections/*.tex` y `redaccion/refs.bib`; ensambla `redaccion/main.tex`
    al final (Fase 7). También existen `artefactos/vault/secciones/*.md` y
    `artefactos/vault/insumos/*.md`: un mirror visual en Markdown (Obsidian) mantenido por
@@ -2268,8 +2286,8 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
   despachá `grant-flow-auditor` sobre esas secciones ANTES del `revisor`:
   audita micro-estilo (cadencia, voz activa, transiciones, fricción para el
   evaluador), no cumplimiento. Esa auditoría incluye, como paso propio, el
-  pulido de prosa en español que define la skill `estilo-natural-es`
-  (desmecanizar enumeraciones y
+  pulido de prosa que define la skill `estilo-natural-es` (con `LANG=en`,
+  `estilo-natural-en`) (desmecanizar enumeraciones y
   aperturas formulaicas, variar longitud de frase y conectores, regla 70/30
   de vocabulario, con fidelidad byte a byte de cifras, fechas y citas). Pasale
   al subagente la ruta exacta de esa skill en el prompt de despacho, y exigile
@@ -2285,8 +2303,9 @@ entrada obsoleta debe borrarse para que el render vuelva a medir.
 - **Puntaje de estilo y fidelidad alrededor del auditor.** Antes de despachar
   `grant-flow-auditor` (en el flujo SGR, `revisor-estilo-sgr`), copiá las secciones de la unidad a
   `artefactos/estilo/antes/` y corré
-  `python3 scripts/estilo_es.py auditar <RUN_ROOT> --seccion <N>`; pasale al
-  auditor los hallazgos del reporte. Al terminar, corré
+  `python3 scripts/estilo_es.py auditar <RUN_ROOT> --seccion <N>` (con
+  `LANG=en`, `scripts/estilo_en.py`); pasale al auditor los hallazgos del
+  reporte. Al terminar, corré
   `python3 scripts/estilo_es.py verificar artefactos/estilo/antes redaccion/sections`
   desde `RUN_ROOT`: si cambió una cifra, cita, etiqueta o la cantidad de
   párrafos, devolvé la unidad al auditor. El índice mide legibilidad y nunca

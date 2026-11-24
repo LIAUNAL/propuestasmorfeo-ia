@@ -69,9 +69,17 @@
       "model": "nan/glm5.3-flash",
       "effort": "medium"
     },
+    "revisor-traduccion": {
+      "model": "nan/glm5.3-flash",
+      "effort": "medium"
+    },
     "tikz-optimizer": {
       "model": "nan/glm5.3-flash",
       "effort": "low"
+    },
+    "traductor": {
+      "model": "nan/deepseek-v4-flash",
+      "effort": "high"
     }
   }
 }

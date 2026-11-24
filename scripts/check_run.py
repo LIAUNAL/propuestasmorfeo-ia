@@ -8,13 +8,25 @@ reference run did). Standard library only: every runtime (Claude Code, Pi,
 OpenCode, Antigravity) runs it the same way.
 
 Usage:
-  python3 scripts/check_run.py [RUN_ROOT] [--final] [--json] [--flujo {base,sgr}]
+  python3 scripts/check_run.py [RUN_ROOT] [--final] [--json] [--flujo {base,sgr}] [--lang {es,en}]
 
 RUN_ROOT defaults to the run named in proposals/.current-run. Without --final,
 only files that already exist are checked (a mid-pipeline gate); --final also
 requires every canonical section (in SGR with TDR chapters, the chapter files), a
 filled cover and the total reference floor. Exit code 1 when any error is found. --json prints an object
 {"flujo": ..., "findings": [...]}.
+
+Writing language (lang): the run's, as scripts/language.py resolves it (the
+`| idioma | en |` row of `_run.md`, else the project's `lang`, always `es` in the
+SGR flow); --lang overrides it, except that the SGR flow refuses --lang en
+(exit 2). A Spanish run gets exactly the output it got
+before the setting existed, and --json prints "lang" only for an English run.
+In English the language rules read English: the TRL message, the cover
+placeholder ([To be defined, besides [Por definir), the table name in the PDF
+(cuadro-en-pdf flags «Tabla N», «Cuadro N» or «Figura N») and the tree rules
+(absence wording, objectives that open with a verb or «To», means, ends,
+negative qualifiers and the shared variable), with English messages for those
+rules; every other message stays in Spanish.
 
 Flow (flujo): read from the first `.morfeo/config.json` or `.marco/config.json`
 found from RUN_ROOT upwards ("base" when missing or invalid); --flujo overrides
@@ -165,6 +177,7 @@ SGR_SECTIONS = (
     "38_licencias_permisos", "39_anexos",
 )
 FLUJOS = ("base", "sgr")
+LANGS = ("es", "en")
 PROBLEM_SPEC = Path("redaccion") / "specs" / "arbol_problemas.spec.json"
 OBJECTIVES_FILE = Path("artefactos") / "arboles" / "arbol_objetivos.json"
 REVIEW_FILE = Path("artefactos") / "arboles" / "revision.json"
@@ -196,6 +209,7 @@ class Report:
         self.run_root = run_root
         self.findings: list[dict] = []
         self.flujo = "base"
+        self.lang = "es"
 
     def add(self, severity: str, code: str, message: str, path: Path | None = None, line: int | None = None,
             node: str | None = None) -> None:
@@ -305,12 +319,14 @@ def check_floors(report: Report, sections: dict[str, Path], keys_by_section: dic
                        f"El documento cita {len(total)} referencias distintas (mínimo {floor}).{note}")
 
 
-def _trl_requirement(flujo: str, convocatoria: dict) -> tuple[re.Pattern, str]:
+def _trl_requirement(flujo: str, convocatoria: dict, lang: str = "es") -> tuple[re.Pattern, str]:
     """What §2 and §11 must show and the message when they do not. In SGR the
     level is the call's trl.salida, also when written as the end of a range."""
     salida = (convocatoria.get("trl") or {}).get("salida")
     if flujo != "sgr":
-        return re.compile(r"\bTRL\b"), "TRL 6 o 7 debe ser explícito en esta sección."
+        message = ("TRL 6 or 7 must be explicit in this section." if lang == "en"
+                   else "TRL 6 o 7 debe ser explícito en esta sección.")
+        return re.compile(r"\bTRL\b"), message
     if salida is None:
         return re.compile(r"\bTRL\b"), ("El nivel TRL de salida debe ser explícito en esta sección; la convocatoria "
                                          "lo fija en trl.salida de artefactos/convocatoria.json.")
@@ -335,7 +351,7 @@ def check_trl(report: Report, sections: dict[str, Path], texts: dict[str, str], 
                     report.add("error", "trl-en-objetivos",
                                "TRL nombrado en un objetivo: expresar el nivel de forma funcional.",
                                sections[name], number)
-    required, message = _trl_requirement(flujo, convocatoria)
+    required, message = _trl_requirement(flujo, convocatoria, report.lang)
     for name in ("02_justificacion", "11_resultados_esperados"):
         if name in texts and not any(required.search(l) for _, l in prose_lines(texts[name])):
             report.add("error", "trl-ausente", message, sections[name])
@@ -395,6 +411,10 @@ def check_main(report: Report, red: Path, final: bool) -> None:
                            f"{diag.name} no tiene {diag.stem}_caption.tex (caption concreto y \\label).", diag)
 
 
+# The Spanish template's placeholder and the English one (scripts/language.py).
+COVER_PLACEHOLDERS = ("[Por definir", "[To be defined")
+
+
 def check_cover(report: Report, red: Path, final: bool) -> None:
     datos = red / "datos_proyecto.tex"
     if not datos.is_file():
@@ -402,9 +422,10 @@ def check_cover(report: Report, red: Path, final: bool) -> None:
     # Only the \newcommand values count: the seeded file explains the
     # placeholder in a comment, which must not keep the cover "incomplete".
     values = "\n".join(strip_comment(l) for l in datos.read_text(encoding="utf-8", errors="replace").splitlines())
-    if "[Por definir" in values:
-        report.add("error" if final else "warning", "portada-sin-completar",
-                   "datos_proyecto.tex conserva campos [Por definir: ...].", datos)
+    if any(placeholder in values for placeholder in COVER_PLACEHOLDERS):
+        message = ("datos_proyecto.tex still has [To be defined: ...] fields." if report.lang == "en"
+                   else "datos_proyecto.tex conserva campos [Por definir: ...].")
+        report.add("error" if final else "warning", "portada-sin-completar", message, datos)
 
 
 def check_bibliography(report: Report, sections: dict[str, Path], texts: dict[str, str]) -> None:
@@ -419,14 +440,29 @@ def check_bibliography(report: Report, sections: dict[str, Path], texts: dict[st
         report.add("warning", "clearpage-ausente", "La bibliografía debe abrir con \\clearpage.", sections[name])
 
 
+# Float names that betray the wrong babel setup: Spanish babel calls tables
+# «Cuadro» unless main.tex renames them; an English run must say neither
+# «Tabla» nor «Cuadro» nor «Figura».
+PDF_FLOAT_NAME_RE = {"es": re.compile(r"\bCuadro \d+"), "en": re.compile(r"\b(?:Cuadro|Tabla|Figura) \d+")}
+
+
+def pdf_table_name_problem(text: str, lang: str = "es") -> str | None:
+    """The first float name the PDF text should not contain, or None."""
+    match = PDF_FLOAT_NAME_RE.get(lang, PDF_FLOAT_NAME_RE["es"]).search(text)
+    return match.group(0) if match else None
+
+
 def check_pdf(report: Report, red: Path) -> None:
     pdf = red / "main.pdf"
     if not pdf.is_file() or shutil.which("pdftotext") is None:
         return
     result = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True)
-    for match in re.finditer(r"\bCuadro \d+", result.stdout):
-        report.add("error", "cuadro-en-pdf", f"El PDF dice «{match.group(0)}»: las tablas se llaman «Tabla».", pdf)
-        break
+    found = pdf_table_name_problem(result.stdout, report.lang)
+    if found:
+        message = (f"The PDF says «{found}»: an English run names its floats «Table» and «Figure» "
+                   "(babel english in main.tex)." if report.lang == "en"
+                   else f"El PDF dice «{found}»: las tablas se llaman «Tabla».")
+        report.add("error", "cuadro-en-pdf", message, pdf)
 
 
 # --- Flow and tree rules of the SGR guide (MGA, DNP) -------------------------
@@ -451,6 +487,19 @@ def detect_flujo(run_root: Path) -> str:
             value = data.get("flujo") if isinstance(data, dict) else None
             return value if value in FLUJOS else "base"
     return "base"
+
+
+def detect_lang(run_root: Path) -> str:
+    """Writing language of the run, as scripts/language.py resolves it; "es"
+    when that helper is missing."""
+    module = _sibling_module("language")
+    if module is None:
+        return "es"
+    try:
+        value = module.run_lang(Path(run_root))
+    except OSError:
+        return "es"
+    return value if value in LANGS else "es"
 
 
 MGA_PROBLEM_RULE = ("«Un problema no es la ausencia de su solución, sino un estado existente negativo» "
@@ -486,6 +535,44 @@ STOPWORDS = frozenset({
 })
 
 
+# English counterparts of the Spanish tree vocabulary above (S3, runs in English).
+MGA_PROBLEM_RULE_EN = ("«A problem is not the absence of its solution but an existing negative state» "
+                       "(MGA Instructivo 2023, p. 122)")
+ABSENCE_RE_EN = re.compile(
+    r"\b(?:lack|absence|non-?existence)\s+of\b|\bthere\s+(?:is|are)\s+no\b"
+    r"|\b(?:is|are)\s+(?:required|needed)\b|\bneed\s+(?:for|to)\b", re.I)
+# Verbs an objective opens with (bare infinitive); "To <verb>" always counts. A
+# listed word followed by a preposition is a noun ("Increase in cases").
+EN_OBJECTIVE_VERBS = frozenset("""
+    accelerate achieve adapt adopt analyse analyze apply articulate assess automate broaden build certify
+    characterise characterize classify collect connect consolidate conserve construct contribute create decrease
+    deepen define deploy design detect determine develop diagnose digitize disseminate diversify empower enable
+    encourage enhance ensure establish estimate evaluate expand extend facilitate formulate foster generate
+    guarantee identify implement improve incorporate increase install integrate manage maximise maximize measure
+    minimise minimize mitigate modernize offer optimise optimize predict prevent prioritize produce promote
+    propose protect provide quantify raise recover reduce restore secure select standardize strengthen
+    systematize train transfer update validate widen
+""".split())
+EN_NOUN_FOLLOWERS = frozenset("in of on for and with from at by rate rates level levels".split())
+NEGATIVE_QUALIFIERS_EN = frozenset("""
+    low high limited poor insufficient deficient inefficient inadequate inappropriate scarce weak slow unstable
+    excessive fragmented unequal inequitable irregular growing increasing rising reduced few little precarious
+    elevated ineffective persistent declining decreasing deteriorated deteriorating lower higher
+""".split())
+MEANS_RE_EN = re.compile(r"\b(?:by\s+means\s+of|through|via|by\s+(?:using|implementing|developing|applying|deploying)"
+                         r"|using)\b", re.I)
+ENDS_RE_EN = re.compile(r"\bin\s+order\s+to\b|\bso\s+as\s+to\b|\bso\s+that\b"
+                        r"|\bwith\s+the\s+(?:aim|purpose|goal|objective)\s+of\b|\bfor\s+the\s+purpose\s+of\b"
+                        r"|\bto\s+(?:improve|enhance|raise|contribute|benefit|guarantee|ensure|promote|increase|reduce|"
+                        r"strengthen)\b", re.I)
+STOPWORDS_EN = frozenset("""
+    about above after against among around before below between beyond during except inside outside since
+    through throughout toward towards under within without which where while whose these those their there
+    other others another every level levels index degree general specific means being having rates higher
+    lower greater fewer limited insufficient deficient scarce reduced increased improved adequate better worse
+""".split())
+
+
 def normalize_tree_text(text) -> str:
     """Plain text of a tree node: simple LaTeX removed, `\\n` and line breaks as spaces."""
     if not isinstance(text, str):
@@ -507,7 +594,19 @@ def _first_word(text: str) -> str:
     return match.group(0).lower() if match else ""
 
 
-def starts_with_infinitive(text) -> bool:
+def _words_en(text) -> list[str]:
+    return [w.lower() for w in re.findall(r"[^\W\d_]+(?:-[^\W\d_]+)*", _node_body(text))]
+
+
+def starts_with_infinitive(text, lang: str = "es") -> bool:
+    """Spanish: an infinitive first word. English: «To <word>», or a listed
+    objective verb that is not followed by a preposition."""
+    if lang == "en":
+        words = _words_en(text)
+        if len(words) >= 2 and words[0] == "to":
+            return True
+        return bool(words) and words[0] in EN_OBJECTIVE_VERBS and (len(words) == 1
+                                                                   or words[1] not in EN_NOUN_FOLLOWERS)
     word = _first_word(_node_body(text))
     return bool(INFINITIVE_RE.match(word)) and word not in NOT_INFINITIVES
 
@@ -516,19 +615,23 @@ def _fold(word: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", word) if unicodedata.category(c) != "Mn")
 
 
-def _content_words(text) -> set[str]:
+def _content_words(text, lang: str = "es") -> set[str]:
+    if lang == "en":
+        words = _words_en(text)
+        words = words[1:] if words[:1] == ["to"] else words
+        return {w for w in words[1:] if len(w) >= 5 and w not in STOPWORDS_EN}
     words = [_fold(w.lower()) for w in re.findall(r"[^\W\d_]+", _node_body(text))]
     return {w for w in words[1:] if len(w) >= 5 and w not in STOPWORDS}
 
 
-def shared_variable(ref: str, other: str) -> float:
+def shared_variable(ref: str, other: str, lang: str = "es") -> float:
     """Share of the content words of `ref` (the problem text) that `other` keeps.
-    The first word (the qualifier or the verb) does not count. 1.0 when `ref`
-    has no content words, since there is nothing to lose."""
-    ref_words = _content_words(ref)
+    The first word (the qualifier or the verb, after an English «To») does not
+    count. 1.0 when `ref` has no content words, since there is nothing to lose."""
+    ref_words = _content_words(ref, lang)
     if not ref_words:
         return 1.0
-    return len(ref_words & _content_words(other)) / len(ref_words)
+    return len(ref_words & _content_words(other, lang)) / len(ref_words)
 
 
 # Negative qualifiers a central problem may open with: they describe an existing
@@ -552,8 +655,36 @@ NEGATIVE_QUALIFIERS = frozenset(
 )
 
 
-def opens_with_negative_qualifier(text) -> bool:
+def opens_with_negative_qualifier(text, lang: str = "es") -> bool:
+    if lang == "en":
+        words = _words_en(text)
+        return bool(words) and words[0] in NEGATIVE_QUALIFIERS_EN
     return _fold(_first_word(_node_body(text))) in NEGATIVE_QUALIFIERS
+
+
+# English wording of the tree rules whose text quotes the language (S3).
+TREE_MESSAGES_EN = {
+    "arbol-ausencia-de-solucion": f"{MGA_PROBLEM_RULE_EN}: describe the negative situation that exists today.",
+    "arbol-solucion-en-problema": "The problem tree describes the negative situation; the solution goes in the "
+                                  "objective tree.",
+    "arbol-problema-sin-calificativo-negativo": "The central problem opens with a negative qualifier that does not "
+                                                "denote a lack (low, limited, insufficient, poor, high…).",
+    "arbol-objetivos-no-infinitivo": "The objective tree is written in positive terms and each node opens with a "
+                                     "verb («To strengthen…» or «Strengthen…»).",
+    "objetivo-general-con-medio": "The general objective does not include the means («by means of…, through…, "
+                                  "using…»): the means go in the roots of the tree.",
+    "objetivo-general-con-fin": "The general objective does not include the ends («…in order to improve quality of "
+                                "life»): the ends go in the branches of the tree.",
+    "objetivo-general-con-meta": "The general objective does not include targets: quantification goes in the "
+                                 "indicators.",
+    "arbol-variable-cambiada": "The general objective changes the variable of the central problem: the positive "
+                               "mirror keeps the variable and the population.",
+    "arbol-variable-cambiada-grupo": "The specific objective does not keep the variable of its direct cause.",
+}
+
+
+def _tree_message(lang: str, code: str, spanish: str) -> str:
+    return TREE_MESSAGES_EN.get(code, spanish) if lang == "en" else spanish
 
 
 def _finding(severity: str, code: str, node: str, message: str) -> dict:
@@ -572,27 +703,30 @@ def _problem_nodes(spec: dict):
         yield str(branch.get("id") or ""), branch.get("text")
 
 
-def problem_tree_findings(spec: dict) -> list[dict]:
+def problem_tree_findings(spec: dict, lang: str = "es") -> list[dict]:
     """SGR guide rules for the problem tree; empty texts are not findings."""
     if not isinstance(spec, dict):
         return []
     findings = []
+    absence = ABSENCE_RE_EN if lang == "en" else ABSENCE_RE
     for node, raw in _problem_nodes(spec):
         text = _node_body(raw)
         if not text:
             continue
-        if ABSENCE_RE.search(text):
-            findings.append(_finding("error", "arbol-ausencia-de-solucion", node,
-                                     f"{MGA_PROBLEM_RULE}: describe la situación negativa que existe hoy."))
-        if starts_with_infinitive(text):
-            findings.append(_finding("error", "arbol-solucion-en-problema", node,
-                                     "El árbol de problemas describe la situación negativa; la solución va en el "
-                                     "árbol de objetivos."))
+        if absence.search(text):
+            findings.append(_finding("error", "arbol-ausencia-de-solucion", node, _tree_message(
+                lang, "arbol-ausencia-de-solucion",
+                f"{MGA_PROBLEM_RULE}: describe la situación negativa que existe hoy.")))
+        if starts_with_infinitive(text, lang):
+            findings.append(_finding("error", "arbol-solucion-en-problema", node, _tree_message(
+                lang, "arbol-solucion-en-problema",
+                "El árbol de problemas describe la situación negativa; la solución va en el árbol de objetivos.")))
     trunk_text = _node_body((spec.get("trunk") or {}).get("text"))
-    if trunk_text and not opens_with_negative_qualifier(trunk_text):
-        findings.append(_finding("error", "arbol-problema-sin-calificativo-negativo", "trunk",
-                                 "El problema central empieza con un calificativo negativo que no indique carencia "
-                                 "(poco, escaso, limitado, insuficiente, deficiente, bajo, alto…)."))
+    if trunk_text and not opens_with_negative_qualifier(trunk_text, lang):
+        findings.append(_finding("error", "arbol-problema-sin-calificativo-negativo", "trunk", _tree_message(
+            lang, "arbol-problema-sin-calificativo-negativo",
+            "El problema central empieza con un calificativo negativo que no indique carencia "
+            "(poco, escaso, limitado, insuficiente, deficiente, bajo, alto…).")))
     magnitude = (spec.get("trunk") or {}).get("magnitude")
     if not (isinstance(magnitude, dict) and str(magnitude.get("indicador") or "").strip()
             and str(magnitude.get("fuente") or "").strip()):
@@ -617,7 +751,7 @@ def problem_tree_findings(spec: dict) -> list[dict]:
 OE_LABEL_RE = re.compile(r"^OE\s*\d+$", re.IGNORECASE)
 
 
-def objective_tree_findings(objectives: dict, problem_spec: dict) -> list[dict]:
+def objective_tree_findings(objectives: dict, problem_spec: dict, lang: str = "es") -> list[dict]:
     """SGR guide rules for the objective tree, the positive mirror of `problem_spec`."""
     if not isinstance(objectives, dict):
         return []
@@ -633,24 +767,29 @@ def objective_tree_findings(objectives: dict, problem_spec: dict) -> list[dict]:
         positive += [(str(m.get("id") or ""), m.get("text")) for m in group.get("means") or []]
     positive += [(str(b.get("id") or ""), b.get("text")) for b in branches]
     for node, raw in positive:
-        if _node_body(raw) and not starts_with_infinitive(raw):
-            findings.append(_finding("error", "arbol-objetivos-no-infinitivo", node,
-                                     "El árbol de objetivos se escribe en positivo y empieza con un verbo en "
-                                     "infinitivo."))
+        if _node_body(raw) and not starts_with_infinitive(raw, lang):
+            findings.append(_finding("error", "arbol-objetivos-no-infinitivo", node, _tree_message(
+                lang, "arbol-objetivos-no-infinitivo",
+                "El árbol de objetivos se escribe en positivo y empieza con un verbo en infinitivo.")))
 
     if trunk:
-        if MEANS_RE.search(trunk):
-            findings.append(_finding("error", "objetivo-general-con-medio", "trunk",
-                                     "El objetivo general no incluye el medio («mediante…, por intermedio de…, a "
-                                     "través de…»): los medios van en las raíces del árbol."))
-        if ENDS_RE.search(trunk):
-            findings.append(_finding("error", "objetivo-general-con-fin", "trunk",
-                                     "El objetivo general no incluye los fines («…para mejorar la calidad de "
-                                     "vida»): los fines van en las ramas del árbol."))
+        means, ends = (MEANS_RE_EN, ENDS_RE_EN) if lang == "en" else (MEANS_RE, ENDS_RE)
+        # In English the objective's own «To <verb>» is not an end: search after it.
+        tail = re.sub(r"^\s*(?:to\s+)?[^\W\d_]+\s*", "", trunk, flags=re.I) if lang == "en" else trunk
+        if means.search(trunk):
+            findings.append(_finding("error", "objetivo-general-con-medio", "trunk", _tree_message(
+                lang, "objetivo-general-con-medio",
+                "El objetivo general no incluye el medio («mediante…, por intermedio de…, a través de…»): los "
+                "medios van en las raíces del árbol.")))
+        if ends.search(tail):
+            findings.append(_finding("error", "objetivo-general-con-fin", "trunk", _tree_message(
+                lang, "objetivo-general-con-fin",
+                "El objetivo general no incluye los fines («…para mejorar la calidad de vida»): los fines van en "
+                "las ramas del árbol.")))
         if TARGET_RE.search(trunk):
-            findings.append(_finding("error", "objetivo-general-con-meta", "trunk",
-                                     "El objetivo general no incluye metas: la cuantificación va en los "
-                                     "indicadores."))
+            findings.append(_finding("error", "objetivo-general-con-meta", "trunk", _tree_message(
+                lang, "objetivo-general-con-meta",
+                "El objetivo general no incluye metas: la cuantificación va en los indicadores.")))
 
     pgroups = problem_spec.get("groups") or []
     pbranches = problem_spec.get("branches") or []
@@ -700,15 +839,17 @@ def objective_tree_findings(objectives: dict, problem_spec: dict) -> list[dict]:
                                      "§7 muestran el objetivo limpio, sin preámbulo."))
 
     ptrunk = normalize_tree_text((problem_spec.get("trunk") or {}).get("text"))
-    if ptrunk and trunk and shared_variable(ptrunk, trunk) < 0.5:
-        findings.append(_finding("error", "arbol-variable-cambiada", "trunk",
-                                 "El objetivo general cambia la variable del problema central: el espejo positivo "
-                                 "conserva la variable y la población."))
+    if ptrunk and trunk and shared_variable(ptrunk, trunk, lang) < 0.5:
+        findings.append(_finding("error", "arbol-variable-cambiada", "trunk", _tree_message(
+            lang, "arbol-variable-cambiada",
+            "El objetivo general cambia la variable del problema central: el espejo positivo conserva la variable "
+            "y la población.")))
     for node, pgroup, group in pairs:
         title, objective = _node_body(pgroup.get("title")), _node_body(group.get("objective"))
-        if title and objective and shared_variable(title, objective) < 0.5:
-            findings.append(_finding("warning", "arbol-variable-cambiada", node,
-                                     "El objetivo específico no conserva la variable de su causa directa."))
+        if title and objective and shared_variable(title, objective, lang) < 0.5:
+            findings.append(_finding("warning", "arbol-variable-cambiada", node, _tree_message(
+                lang, "arbol-variable-cambiada-grupo",
+                "El objetivo específico no conserva la variable de su causa directa.")))
     return findings
 
 
@@ -889,7 +1030,7 @@ def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections:
     problem = _read_json_file(problem_path)
     objectives = _read_json_file(objectives_path)
     if problem is not None:
-        for f in problem_tree_findings(problem):
+        for f in problem_tree_findings(problem, report.lang):
             report.add(f["severity"], f["code"], f["message"], problem_path, node=f["node"])
         if flujo == "sgr":
             for f in sgr_magnitude_findings(problem):
@@ -897,7 +1038,7 @@ def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections:
     if objectives is None:
         return
     if problem is not None:
-        for f in objective_tree_findings(objectives, problem):
+        for f in objective_tree_findings(objectives, problem, report.lang):
             report.add(f["severity"], f["code"], f["message"], objectives_path, node=f["node"])
 
     tree_general = normalize_tree_text((objectives.get("trunk") or {}).get("text"))
@@ -918,7 +1059,7 @@ def check_trees(report: Report, run_root: Path, texts: dict[str, str], sections:
                            "En el flujo SGR §7 enumera, en orden, los objetivos específicos del árbol de objetivos.",
                            sections["07_objetivos_especificos"])
     elif "06_objetivo_general" in texts and tree_general:
-        if shared_variable(tree_general, general_objective_text(texts["06_objetivo_general"])) < 0.34:
+        if shared_variable(tree_general, general_objective_text(texts["06_objetivo_general"]), report.lang) < 0.34:
             report.add("warning", "objetivo-general-sin-variable-del-arbol",
                        "§6 no conserva la variable del objetivo general del árbol de objetivos.",
                        sections["06_objetivo_general"])
@@ -1563,9 +1704,11 @@ def check_sgr_sections(report: Report, sec_dir: Path, flujo: str, final: bool, b
             report.add("error", "sgr-anexo-faltante", f"Falta sections/{name}.tex (anexo MGA del flujo SGR).")
 
 
-def run_checks(run_root: Path, final: bool, flujo: str | None = None) -> Report:
+def run_checks(run_root: Path, final: bool, flujo: str | None = None, lang: str | None = None) -> Report:
     report = Report(run_root)
     report.flujo = flujo if flujo in FLUJOS else detect_flujo(run_root)
+    # The SGR flow is Spanish only (DNP/MGA).
+    report.lang = "es" if report.flujo == "sgr" else lang if lang in LANGS else detect_lang(run_root)
     red = run_root / "redaccion"
     sec_dir = red / "sections"
     if not sec_dir.is_dir():
@@ -1637,11 +1780,21 @@ def main() -> int:
     parser.add_argument("--final", action="store_true", help="also require every section, the cover and total floor")
     parser.add_argument("--json", action="store_true", help="print {flujo, findings} as JSON")
     parser.add_argument("--flujo", choices=FLUJOS, help="override the flow read from the project config")
+    parser.add_argument("--lang", choices=LANGS, help="override the writing language read from the run")
     args = parser.parse_args()
 
-    report = run_checks(resolve_run_root(args.run_root), args.final, args.flujo)
+    run_root = resolve_run_root(args.run_root)
+    flujo = args.flujo if args.flujo in FLUJOS else detect_flujo(run_root)
+    if flujo == "sgr" and args.lang == "en":
+        # The SGR flow is Spanish only (DNP/MGA): say so instead of ignoring the flag.
+        print("check_run: el flujo SGR se redacta solo en español; --lang en no aplica.", file=sys.stderr)
+        return 2
+    report = run_checks(run_root, args.final, args.flujo, args.lang)
     if args.json:
-        print(json.dumps({"flujo": report.flujo, "findings": report.findings}, ensure_ascii=False, indent=2))
+        payload = {"flujo": report.flujo, "findings": report.findings}
+        if report.lang != "es":
+            payload = {"flujo": report.flujo, "lang": report.lang, "findings": report.findings}
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
         for f in report.findings:
             where = f["file"] + (f":{f['line']}" if f["line"] else "") + (f" [{f['node']}]" if f.get("node") else "")

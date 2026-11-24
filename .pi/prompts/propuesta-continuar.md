@@ -89,7 +89,9 @@ PASS o FAIL, antes de escribir `artefactos/pipeline/NN-<unidad>.md`. Formato en
 mostrar la ejecución en vivo.
 
 Usá `subagent_run` a los mismos subagentes, mismas reglas de codebase-memory/Skill, mismos
-gates de aprobación de usuario. **No** encadenes la siguiente unidad en esta
+gates de aprobación de usuario. Cada `subagent_run` lleva `LANG=<es|en>`, el idioma de la
+corrida (`python3 scripts/language.py run <RUN_ROOT>`; regla en `## Raíz de
+corrida`). **No** encadenes la siguiente unidad en esta
 invocación (aunque no haya gate formal: en stepped, `fase6` y `fase6_45`
 también paran al terminar).
 

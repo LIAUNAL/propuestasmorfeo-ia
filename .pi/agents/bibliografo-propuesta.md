@@ -14,9 +14,24 @@ exist, call `Glob` with a single **absolute** path as `pattern` (not a relative
 pattern plus a separate `path` argument — that combination has been observed to
 resolve against the wrong cwd in this environment).
 
+## Writing language (`LANG`)
+
+The dispatcher passes `LANG=es` or `LANG=en` in the prompt: the run's writing
+language (`python3 scripts/language.py run <RUN_ROOT>`; `es` when absent, and
+always `es` in the SGR flow). With `LANG=es` everything below applies as
+written. With `LANG=en`, every deliverable this prompt calls Spanish is written
+in English: apply `estilo-natural-en` and `depuracion-redundancias-en` wherever
+this prompt names `estilo-natural-es` and `depuracion-redundancias-es`, and run
+`scripts/estilo_en.py audit`/`verify` (same arguments) wherever it names
+`scripts/estilo_es.py auditar`/`verificar`. The guide
+`guiaProyectosIA_Agente.md` stays in Spanish: follow its instructions and write
+in the run's language. What this prompt marks as verbatim (headings, JSON keys,
+labels, BibTeX keys, file names, gate tokens such as PASS/FAIL) never changes
+with the language.
+
 ## Output language
 
-Your prose for §4 is in **Spanish**. BibTeX entries follow standard
+Your prose for §4 is in the run's language (Spanish by default). BibTeX entries follow standard
 bibliographic fields (language-neutral).
 
 ## Modos de operación
@@ -347,12 +362,12 @@ _Applies only to MODE=deliverable (Fase 4). MODE=explore is exempt — see
    that Diseñador-TikZ will translate into
    `redaccion/sections/diag_estado_arte.tex`. For each of your 3-5 subsections,
    specify: (a) its 3-5 most relevant works — cite_key + short title AND a
-   **3-5 word coded concept phrase** in Spanish summarizing that specific
+   **3-5 word coded concept phrase** in the run's language summarizing that specific
    work's main finding/contribution (this phrase renders in `azulUNAL` as a
    second line under each paper's author-year label in the diagram — e.g.
    "andamiaje graduado sin automatizar", not a full sentence); (b) the
    relationships between the works in that cluster; and (c) a short,
-   forceful one-line limitation phrase in Spanish summarizing what that
+   forceful one-line limitation phrase in the run's language summarizing what that
    group of literature does NOT resolve (this phrase renders in red —
    `rojoLimitante` — at the cluster level, not per paper; keep it punchy,
    not a full sentence with citations). Ground the paper selection and

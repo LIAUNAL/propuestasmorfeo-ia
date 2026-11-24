@@ -12,9 +12,16 @@
  * - Finished while watched: 100 %, the list reloads, then the bar hides.
  * - Stale: hidden, and the panel keeps the message it already shows.
  * Polling runs only while the tab is open (start/stop from index.html).
+ *
+ * Texts come from static/i18n/<lang>/convocatorias-progress.js; on a language
+ * switch the bar is drawn again and, while it polls, the server's phase label
+ * is read again in the new language.
  */
 (function () {
   'use strict';
+
+  // The text of `key` in the dashboard's language (static/i18n.js).
+  const tr = (key, vars) => (window.i18n ? window.i18n.t(key, vars) : key);
 
   const FAST_MS = 3000;
   const IDLE_MS = 15000;
@@ -24,7 +31,7 @@
 
   const state = {
     active: false, timer: null, hideTimer: null, fetched: false, last: null,
-    pending: false, baseline: null, waitPolls: 0, done: false,
+    pending: false, baseline: null, waitPolls: 0, done: false, shown: null,
   };
 
   function els() {
@@ -37,14 +44,18 @@
 
   function remainingText(seconds) {
     const s = Number(seconds) || 0;
-    if (s < 60) return 'falta menos de 1 min';
+    if (s < 60) return tr('panel.convocatoriasProgress.lessThanAMinute');
     const minutes = Math.ceil(s / 60);
-    return minutes === 1 ? 'falta ~1 min' : `faltan ~${minutes} min`;
+    return minutes === 1 ? tr('panel.convocatoriasProgress.aboutOneMinute')
+      : tr('panel.convocatoriasProgress.aboutMinutes', { minutes });
   }
 
-  function show(estado, percent, text) {
+  // `textOf()` builds the label, so a language switch can build it again.
+  function show(estado, percent, textOf) {
     const { box, fill, label } = els();
     if (!box) return;
+    state.shown = { estado, percent, textOf };
+    const text = textOf();
     const pct = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
     box.hidden = false;
     box.setAttribute('data-estado', estado);
@@ -74,18 +85,20 @@
         hide();
         return;
       }
-      show('esperando', 0, 'Esperando que el agente empiece la búsqueda…');
+      show('esperando', 0, () => tr('panel.convocatoriasProgress.waiting'));
       return;
     }
     if (p && p.estado === 'en_curso' && !p.stale) {
       state.done = false;
-      show('en_curso', p.percent, `${p.phase_label} · ~${p.percent} % · ${remainingText(p.remaining_seconds)}`);
+      show('en_curso', p.percent, () => tr('panel.convocatoriasProgress.running', {
+        phase: p.phase_label, percent: p.percent, remaining: remainingText(p.remaining_seconds),
+      }));
       return;
     }
     if (p && p.estado === 'terminada' && state.pending) {
       state.pending = false;
       state.done = true;
-      show('terminada', 100, 'Búsqueda terminada · 100 %');
+      show('terminada', 100, () => tr('panel.convocatoriasProgress.finished'));
       if (typeof window.loadOpportunities === 'function') window.loadOpportunities();
       if (state.hideTimer) clearTimeout(state.hideTimer);
       state.hideTimer = setTimeout(() => {
@@ -170,6 +183,14 @@
     render();
     schedule();
   }
+
+  // A language switch draws the bar again at once and, while the tab polls,
+  // asks the server for the phase label in the new language.
+  document.addEventListener('languagechange', () => {
+    const { box } = els();
+    if (box && !box.hidden && state.shown) show(state.shown.estado, state.shown.percent, state.shown.textOf);
+    if (state.active && !state.pending) refresh();
+  });
 
   window.cvSearchProgress = { start, stop, refresh, expectSearch, cancelSearch };
 }());

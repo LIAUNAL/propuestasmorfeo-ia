@@ -28,7 +28,9 @@
       "revisor-figuras.md",
       "revisor-redundancia.md",
       "revisor.md",
-      "tikz-optimizer.md"
+      "tikz-optimizer.md",
+      "traductor.md",
+      "revisor-traduccion.md"
     ],
     "command_files": [
       "propuesta.md",
@@ -42,13 +44,16 @@
       "propuesta-juez-avance.md",
       "propuesta-novedad.md",
       "propuesta-convocatorias.md",
+      "propuesta-traducir.md",
       "compilar-pdf.md",
       "compilar-docx.md",
       "_propuesta-steps.md"
     ],
     "skill_files": [
       "constelacion-sota/SKILL.md",
+      "depuracion-redundancias-en/SKILL.md",
       "depuracion-redundancias-es/SKILL.md",
+      "estilo-natural-en/SKILL.md",
       "estilo-natural-es/SKILL.md",
       "estilo-sgr/SKILL.md"
     ],
@@ -166,6 +171,7 @@
         "propuesta-juez-avance.md",
         "propuesta-novedad.md",
         "propuesta-convocatorias.md",
+        "propuesta-traducir.md",
         "_propuesta-steps.md"
       ],
       "find": "`Task`",

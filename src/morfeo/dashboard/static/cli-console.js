@@ -9,7 +9,16 @@
  * openMorfeoTerminal, terminalActivity, ...) call these functions, and these
  * functions call inline helpers (escapeHtml, showToast, ...) at call time.
  * The code keeps the indentation it had inside index.html.
+ *
+ * Texts come from static/i18n/<lang>/cli-console.js through cliText(); on a
+ * language switch the banner, the notices, the selectors and the status are
+ * labelled again (what the terminal already printed stays as it was).
  */
+
+    // The text of `key` in the dashboard's language (static/i18n.js).
+    function cliText(key, vars) {
+      return window.i18n ? window.i18n.t(key, vars) : key;
+    }
 
     // Cuánto se espera a que la terminal conecte y a que el agente arranque.
     let TERMINAL_READY_TIMEOUT_MS = 10000;
@@ -123,7 +132,7 @@
       konsole: 'Konsole',
       'x-terminal-emulator': 'Terminal'
     };
-    const TERMINAL_EMULATOR_HINT = 'instala un emulador de terminal (GNOME Terminal, Konsole, Ghostty o WezTerm)';
+    const terminalEmulatorHint = () => cliText('panel.cliConsole.emulatorHint');
 
     function terminalEmulatorLabel(id) {
       return TERMINAL_EMULATOR_LABELS[id] || (id ? String(id) : 'Terminal');
@@ -169,7 +178,7 @@
     // (lo decide el servidor). La sesión sigue abierta para la fase siguiente.
     async function interruptTerminalSession(id) {
       const sid = id || terminalSessionId;
-      if (!sid) return { ok: false, error: 'No hay una sesión del agente abierta.' };
+      if (!sid) return { ok: false, error: cliText('panel.cliConsole.noSession') };
       try {
         const res = await fetch(`/api/terminal/sessions/${encodeURIComponent(sid)}/interrupt`, { method: 'POST' });
         const data = await res.json().catch(() => ({}));
@@ -228,8 +237,8 @@
       }
       if (live) {
         const question = agent === current
-          ? `Esto cierra la sesión actual de ${terminalAgentLabel(current)} y abre una nueva; se pierde su conversación. ¿Continuar?`
-          : `Esto cierra la sesión de ${terminalAgentLabel(current)} y abre ${terminalAgentLabel(agent)}; se pierde su conversación. ¿Continuar?`;
+          ? cliText('panel.cliConsole.confirmRestart', { agent: terminalAgentLabel(current) })
+          : cliText('panel.cliConsole.confirmSwitch', { current: terminalAgentLabel(current), agent: terminalAgentLabel(agent) });
         if (!window.confirm(question)) {
           const select = document.getElementById('terminalAgentSelect');
           if (select) select.value = current;
@@ -243,7 +252,7 @@
       closeTerminalSession();
       if (terminalInstance) {
         terminalInstance.reset();
-        terminalInstance.write(`\r\n\x1b[36m⚡ Conectando terminal con ${terminalAgentLabel(agent)}...\x1b[0m\r\n`);
+        terminalInstance.write(`\r\n\x1b[36m${cliText('panel.cliConsole.connectingTerminal', { agent: terminalAgentLabel(agent) })}\x1b[0m\r\n`);
       }
       if (terminalInstance && (isTerminalOpen || opts.connect)) connectTerminalWs(agent, { fresh: true });
       return true;
@@ -311,11 +320,11 @@
     function missingToolsText(tools) {
       const names = ((tools && tools.missing) || []).map(item => {
         if (item === 'herdr') return 'Herdr';
-        if (item === 'terminal') return 'Ghostty o WezTerm';
-        if (item === 'terminal emulator') return 'un emulador de terminal (GNOME Terminal, Konsole, Ghostty o WezTerm)';
+        if (item === 'terminal') return cliText('panel.cliConsole.missingTerminal');
+        if (item === 'terminal emulator') return cliText('panel.cliConsole.missingEmulator');
         return String(item);
       });
-      return names.length ? names.join(' y ') : 'herramientas del terminal externo';
+      return names.length ? names.join(` ${cliText('panel.cliConsole.and')} `) : cliText('panel.cliConsole.missingTools');
     }
 
     // Cómo instalar lo que falta: Homebrew en macOS, una pista genérica en Linux.
@@ -324,7 +333,7 @@
       const hints = [];
       if (missing.includes('herdr')) hints.push('brew install herdr');
       if (missing.includes('terminal')) hints.push('brew install --cask ghostty');
-      if (missing.includes('terminal emulator')) hints.push(TERMINAL_EMULATOR_HINT);
+      if (missing.includes('terminal emulator')) hints.push(terminalEmulatorHint());
       return hints;
     }
 
@@ -338,8 +347,8 @@
       btn.textContent = `🖥️ ${name}`;
       btn.disabled = !cachedTerminalTools.ready;
       btn.title = cachedTerminalTools.ready
-        ? (pref ? `Traer al frente o abrir en ${name} con Herdr` : 'Abrir en terminal nativo')
-        : `No disponible: falta ${missingToolsText(cachedTerminalTools)}`;
+        ? (pref ? cliText('panel.cliConsole.launchWithHerdr', { name }) : cliText('panel.cliConsole.launchNative'))
+        : cliText('panel.cliConsole.launchUnavailable', { missing: missingToolsText(cachedTerminalTools) });
     }
 
     // Aviso descartable, dentro de la ventana del CLI, de lo que falta para el
@@ -357,7 +366,7 @@
         + 'border-bottom:1px solid var(--warn, #f59e0b);color:var(--text, #f9fafb);font-size:0.75rem;line-height:1.35;';
       const text = document.createElement('span');
       text.style.cssText = 'flex:1 1 14rem;min-width:0;overflow-wrap:anywhere;';
-      text.textContent = `El CLI embebido funciona; el terminal externo no está disponible porque falta ${missingToolsText(tools)}.`;
+      text.textContent = cliText('panel.cliConsole.toolsNotice', { missing: missingToolsText(tools) });
       const hints = missingToolsHints(tools);
       if (hints.length) {
         const hint = document.createElement('code');
@@ -368,8 +377,8 @@
       const close = document.createElement('button');
       close.type = 'button';
       close.textContent = '×';
-      close.title = 'Cerrar aviso';
-      close.setAttribute('aria-label', 'Cerrar aviso');
+      close.title = cliText('panel.cliConsole.closeNotice');
+      close.setAttribute('aria-label', cliText('panel.cliConsole.closeNotice'));
       close.style.cssText = 'background:none;border:0;color:inherit;font-size:1.1rem;line-height:1;cursor:pointer;padding:0 0.2rem;';
       close.addEventListener('click', () => {
         terminalToolsNoticeDismissed = true;
@@ -390,7 +399,7 @@
         const opt = document.createElement('option');
         opt.value = a.id;
         const usable = isAvailable(a);
-        opt.textContent = `${a.name || terminalAgentLabel(a.id)}${usable ? '' : ' (no instalado)'}`;
+        opt.textContent = `${a.name || terminalAgentLabel(a.id)}${usable ? '' : ` ${cliText('panel.cliConsole.notInstalled')}`}`;
         opt.disabled = !usable;
         if (a.desc) opt.title = a.desc;
         selectEl.appendChild(opt);
@@ -418,8 +427,8 @@
         select = document.createElement('select');
         select.id = 'terminalQuickSelect';
         select.className = 'btn-term-shortcut';
-        select.setAttribute('aria-label', 'Comandos rápidos');
-        select.title = 'Comandos rápidos del workspace';
+        select.setAttribute('aria-label', cliText('panel.cliConsole.quickCommands'));
+        select.title = cliText('panel.cliConsole.quickCommandsTitle');
         // Width limits live in index.html (#terminalQuickSelect) so phones can shrink it.
         select.style.cssText = 'min-width:0;cursor:pointer;';
         select.addEventListener('change', () => {
@@ -432,7 +441,7 @@
       select.innerHTML = '';
       const placeholder = document.createElement('option');
       placeholder.value = '';
-      placeholder.textContent = 'Comandos…';
+      placeholder.textContent = cliText('panel.cliConsole.quickPlaceholder');
       select.appendChild(placeholder);
       quick.forEach(item => {
         const name = item && typeof item === 'object' ? item.name : item;
@@ -489,19 +498,20 @@
       const text = document.createElement('span');
       text.id = 'cliActivationText';
       text.style.cssText = 'font-weight:600;flex:1 1 12rem;min-width:0;';
-      text.textContent = 'El CLI del tablero no está activado';
+      text.textContent = cliText('panel.cliConsole.notActivated');
       const activate = document.createElement('button');
       activate.type = 'button';
       activate.id = 'cliActivateBtn';
-      activate.textContent = 'Activar CLI';
+      activate.textContent = cliText('panel.cliConsole.activate');
       activate.style.cssText = 'background:#fff;color:#7f1d1d;border:0;border-radius:6px;padding:0.3rem 0.7rem;'
         + 'font-weight:700;cursor:pointer;white-space:nowrap;';
       activate.addEventListener('click', () => { ensureAuthorized().catch(() => {}); });
       const close = document.createElement('button');
       close.type = 'button';
       close.textContent = '×';
-      close.title = 'Ocultar aviso';
-      close.setAttribute('aria-label', 'Ocultar aviso');
+      close.id = 'cliActivationClose';
+      close.title = cliText('panel.cliConsole.hideNotice');
+      close.setAttribute('aria-label', cliText('panel.cliConsole.hideNotice'));
       close.style.cssText = 'background:none;border:0;color:#fff;font-size:1.15rem;line-height:1;cursor:pointer;padding:0 0.2rem;';
       close.addEventListener('click', () => banner.remove());
       const note = document.createElement('span');
@@ -518,10 +528,15 @@
       if (banner) banner.remove();
     }
 
-    function setActivationNote(message, link) {
+    // The banner's note: `key` and `vars` name its text, kept so a language
+    // switch can write it again; `link` is an address shown after it.
+    let cliActivationNote = null;
+    function setActivationNote(key, vars, link) {
       const banner = showActivationBanner();
       const note = banner.querySelector('#cliActivationNote');
       if (!note) return;
+      cliActivationNote = { key, vars, link };
+      const message = key ? cliText(key, vars) : '';
       note.textContent = message;
       if (link) {
         const a = document.createElement('a');
@@ -566,7 +581,7 @@
           if (info) applyTerminalInfo(info);
           if (!info || info.authorized !== false || info.enabled === false) return info;
         }
-        setActivationNote('Abriendo el enlace de activación en el navegador…');
+        setActivationNote('panel.cliConsole.opening');
         let result = {};
         try {
           const res = await fetch('/api/terminal/activate', {
@@ -577,23 +592,23 @@
           result = await res.json().catch(() => ({}));
           // 429: el enlace ya se abrió hace un momento; basta con esperar.
           if (!res.ok && res.status !== 429) {
-            setActivationNote(`No se pudo activar: ${result.error || `HTTP ${res.status}`}. Abre el enlace que imprimió morfeo ui.`);
+            setActivationNote('panel.cliConsole.activationFailed', { reason: result.error || `HTTP ${res.status}` });
             return cachedTerminalInfo;
           }
         } catch (err) {
-          setActivationNote('No se pudo contactar al servidor. Abre el enlace que imprimió morfeo ui.');
+          setActivationNote('panel.cliConsole.serverUnreachable');
           return cachedTerminalInfo;
         }
         // La cookie pertenece a la dirección del servidor: una pestaña abierta
         // con otro nombre (localhost por 127.0.0.1) nunca la recibe.
         const here = window.location.origin;
         if (result.origin && /^https?:\/\/[^\s"'<>]+$/.test(result.origin) && result.origin !== here) {
-          setActivationNote('El CLI se activa en otra dirección; abre el tablero en', `${result.origin}/`);
+          setActivationNote('panel.cliConsole.otherOrigin', null, `${result.origin}/`);
           return cachedTerminalInfo;
         }
         const info = await pollTerminalAuthorization();
         if (!info) {
-          setActivationNote('No llegó la activación. Abre el enlace que imprimió morfeo ui o vuelve a intentarlo.');
+          setActivationNote('panel.cliConsole.noActivation');
           return cachedTerminalInfo;
         }
         applyTerminalInfo(info);
@@ -657,17 +672,17 @@
       const hasTerminal = !!(tools && tools.preferred_terminal) || ((hasGhostty || hasWezterm) && !linuxEmulator);
 
       let html = `
-        <p style="margin-bottom:0.75rem;">Para visualizar la pantalla de terminal como un espejo interactivo de <strong>Herdr</strong> y operar en el entorno nativo del proyecto, se requiere contar con las herramientas correspondientes:</p>
+        <p style="margin-bottom:0.75rem;">${cliText('panel.cliConsole.toolsIntroHtml')}</p>
       `;
 
       if (!hasHerdr) {
         html += `
           <div class="tools-pkg-card is-missing">
             <div class="tools-pkg-title">
-              <span>✕ Herdr (Workspace Manager de IA)</span>
-              <span style="color:#ef4444;font-size:0.75rem;font-weight:700;">No instalado</span>
+              <span>${escapeTerminalText(cliText('panel.cliConsole.herdrMissing'))}</span>
+              <span style="color:#ef4444;font-size:0.75rem;font-weight:700;">${escapeTerminalText(cliText('panel.cliConsole.notInstalledBadge'))}</span>
             </div>
-            <div style="font-size:0.8rem;color:#94a3b8;">Gestor de sesiones persistentes y workspaces de agentes. Para instalarlo:</div>
+            <div style="font-size:0.8rem;color:#94a3b8;">${escapeTerminalText(cliText('panel.cliConsole.herdrDesc'))}</div>
             <div class="tools-cmd-box">brew install herdr</div>
           </div>
         `;
@@ -676,7 +691,7 @@
           <div class="tools-pkg-card is-ok">
             <div class="tools-pkg-title">
               <span>✓ Herdr</span>
-              <span style="color:#10b981;font-size:0.75rem;font-weight:700;">Instalado</span>
+              <span style="color:#10b981;font-size:0.75rem;font-weight:700;">${escapeTerminalText(cliText('panel.cliConsole.installed'))}</span>
             </div>
           </div>
         `;
@@ -686,33 +701,33 @@
         html += `
           <div class="tools-pkg-card is-missing">
             <div class="tools-pkg-title">
-              <span>✕ Emulador de Terminal</span>
-              <span style="color:#ef4444;font-size:0.75rem;font-weight:700;">No instalado</span>
+              <span>${escapeTerminalText(cliText('panel.cliConsole.emulatorMissing'))}</span>
+              <span style="color:#ef4444;font-size:0.75rem;font-weight:700;">${escapeTerminalText(cliText('panel.cliConsole.notInstalledBadge'))}</span>
             </div>
-            <div style="font-size:0.8rem;color:#94a3b8;">Para abrir la consola nativa, ${TERMINAL_EMULATOR_HINT}.</div>
+            <div style="font-size:0.8rem;color:#94a3b8;">${escapeTerminalText(cliText('panel.cliConsole.emulatorNativeHint', { hint: terminalEmulatorHint() }))}</div>
           </div>
         `;
       } else if (!hasTerminal) {
         html += `
           <div class="tools-pkg-card is-missing">
             <div class="tools-pkg-title">
-              <span>✕ Emulador de Terminal (Ghostty o WezTerm)</span>
-              <span style="color:#ef4444;font-size:0.75rem;font-weight:700;">No instalado</span>
+              <span>${escapeTerminalText(cliText('panel.cliConsole.emulatorMissingMac'))}</span>
+              <span style="color:#ef4444;font-size:0.75rem;font-weight:700;">${escapeTerminalText(cliText('panel.cliConsole.notInstalledBadge'))}</span>
             </div>
-            <div style="font-size:0.8rem;color:#94a3b8;">Se requiere Ghostty (prioritario) o WezTerm para ejecutar la consola nativa:</div>
+            <div style="font-size:0.8rem;color:#94a3b8;">${escapeTerminalText(cliText('panel.cliConsole.emulatorNeeded'))}</div>
             <div class="tools-cmd-box">brew install --cask ghostty</div>
-            <div style="margin-top:0.35rem;font-size:0.75rem;color:#64748b;">Alternativa: <code>brew install --cask wezterm</code></div>
+            <div style="margin-top:0.35rem;font-size:0.75rem;color:#64748b;">${cliText('panel.cliConsole.alternativeHtml')}</div>
           </div>
         `;
       } else {
         const termName = tools && tools.preferred_terminal
           ? terminalEmulatorLabel(tools.preferred_terminal)
-          : (hasGhostty ? 'Ghostty (prioritario)' : 'WezTerm');
+          : (hasGhostty ? cliText('panel.cliConsole.ghosttyPreferred') : 'WezTerm');
         html += `
           <div class="tools-pkg-card is-ok">
             <div class="tools-pkg-title">
-              <span>✓ Emulador de Terminal: ${escapeTerminalText(termName)}</span>
-              <span style="color:#10b981;font-size:0.75rem;font-weight:700;">Instalado</span>
+              <span>${escapeTerminalText(cliText('panel.cliConsole.emulatorOk', { name: termName }))}</span>
+              <span style="color:#10b981;font-size:0.75rem;font-weight:700;">${escapeTerminalText(cliText('panel.cliConsole.installed'))}</span>
             </div>
           </div>
         `;
@@ -720,7 +735,7 @@
 
       html += `
         <p style="margin-top:0.85rem;font-size:0.8rem;color:#94a3b8;">
-          Ruta del proyecto monitoreado: <code style="color:#38bdf8;">${escapeTerminalText(monitoredProjectPath || 'Directorio del workspace')}</code>
+          ${escapeTerminalText(cliText('panel.cliConsole.monitoredPath'))} <code style="color:#38bdf8;">${escapeTerminalText(monitoredProjectPath || cliText('panel.cliConsole.workspaceDir'))}</code>
         </p>
       `;
 
@@ -755,10 +770,10 @@
           const act = data.action === 'activated' ? 'enfocado' : 'iniciado';
           console.log(`[Morfeo] Terminal ${name} ${act} en: ${data.cwd}`);
         } else {
-          alert('No fue posible abrir el terminal nativo: ' + (data.error || 'Desconocido'));
+          alert(cliText('panel.cliConsole.externalFailed', { reason: data.error || cliText('panel.cliConsole.unknown') }));
         }
       } catch (err) {
-        alert('Error de conexión al abrir terminal nativo: ' + err.message);
+        alert(cliText('panel.cliConsole.externalConnError', { reason: err.message }));
       }
     }
 
@@ -820,7 +835,8 @@
       win.classList.toggle('is-maximized', isTerminalMaximized);
       if (btn) {
         btn.textContent = isTerminalMaximized ? '🗗' : '⛶';
-        btn.title = isTerminalMaximized ? 'Restaurar tamaño' : 'Maximizar';
+        btn.title = cliText(isTerminalMaximized ? 'panel.cliConsole.restoreSize' : 'panel.cliConsole.maximize');
+        btn.dataset.cliTitled = '1';
       }
       setTimeout(() => {
         if (fitAddonInstance) fitAddonInstance.fit();
@@ -835,7 +851,7 @@
 
       terminalInstance = new Terminal({
         cursorBlink: true,
-        fontSize: 13,
+        fontSize: terminalFontSize(),
         lineHeight: 1.25,
         fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
         theme: {
@@ -924,7 +940,7 @@
         updateTerminalStatus('disconnected', agent);
         showActivationBanner();
         if (terminalInstance && isTerminalOpen) {
-          terminalInstance.write('\r\n\x1b[33m[Morfeo] El CLI del tablero no está activado: usa «Activar CLI».\x1b[0m\r\n');
+          terminalInstance.write(`\r\n\x1b[33m${cliText('panel.cliConsole.notActivatedTerminal')}\x1b[0m\r\n`);
         }
         return;
       }
@@ -995,13 +1011,13 @@
             // Se cerró en el servidor (otra pestaña, el tope de sesiones): no se reconecta a ella.
             terminalProcessExited = true;
             forgetTerminalSession(terminalSessionId);
-            terminalInstance.write('\r\n\x1b[33m[Morfeo] La sesión se cerró. Vuelve a abrir el asistente o reinícialo para empezar otra.\x1b[0m\r\n');
+            terminalInstance.write(`\r\n\x1b[33m${cliText('panel.cliConsole.sessionClosed')}\x1b[0m\r\n`);
             return;
           }
           if (msg && msg.type === 'detached') {
             // Otra pestaña tomó la sesión; reconectarse aquí se la quitaría.
             terminalSessionTaken = true;
-            terminalInstance.write('\r\n\x1b[33m[Morfeo] La sesión se abrió en otra pestaña. Escribe aquí o vuelve a abrir el asistente para retomarla.\x1b[0m\r\n');
+            terminalInstance.write(`\r\n\x1b[33m${cliText('panel.cliConsole.sessionTaken')}\x1b[0m\r\n`);
             return;
           }
         }
@@ -1058,6 +1074,20 @@
       };
     }
 
+    // The terminal draws in px, so it follows the text-size control itself
+    // (text-size.js): 13 px at ×1, scaled and rounded, refitted on a change.
+    const TERMINAL_BASE_FONT_PX = 13;
+    function terminalFontSize() {
+      const scale = Number(document.documentElement.dataset.textScale) || 1;
+      return Math.round(TERMINAL_BASE_FONT_PX * scale);
+    }
+    document.addEventListener('textscalechange', () => {
+      if (!terminalInstance || !terminalInstance.options) return;
+      terminalInstance.options.fontSize = terminalFontSize();
+      if (fitAddonInstance) fitAddonInstance.fit();
+      sendTerminalResize(true);
+    });
+
     function sendTerminalResize(forceRedraw = false) {
       if (terminalInstance && terminalSocket && terminalSocket.readyState === WebSocket.OPEN) {
         const resizePayload = JSON.stringify({
@@ -1070,7 +1100,9 @@
       }
     }
 
+    let lastTerminalStatus = null;
     function updateTerminalStatus(state, agent) {
+      lastTerminalStatus = { state, agent };
       const dot = document.getElementById('terminalStatusDot');
       const badge = document.getElementById('morfeoFabBadge');
       const footerAgent = document.getElementById('terminalFooterAgent');
@@ -1100,12 +1132,12 @@
         dot.className = 'terminal-status-dot';
         if (state === 'connected') {
           dot.classList.add('is-connected');
-          dot.title = `Conectado a ${agentLabel}`;
+          dot.title = cliText('panel.cliConsole.connectedTo', { agent: agentLabel });
         } else if (state === 'connecting') {
           dot.classList.add('is-connecting');
-          dot.title = `Conectando con ${agentLabel}...`;
+          dot.title = cliText('panel.cliConsole.connectingTo', { agent: agentLabel });
         } else {
-          dot.title = `Desconectado (${agentLabel})`;
+          dot.title = cliText('panel.cliConsole.disconnected', { agent: agentLabel });
         }
       }
 
@@ -1123,16 +1155,54 @@
     }
 
     function restartTerminalSession() {
-      if (terminalSessionLive() && !window.confirm(`Esto cierra la sesión de ${terminalAgentLabel(terminalSessionAgent || selectedAgent)} y abre una nueva; se pierde su conversación. ¿Continuar?`)) return;
+      if (terminalSessionLive() && !window.confirm(cliText('panel.cliConsole.confirmNewSession', { agent: terminalAgentLabel(terminalSessionAgent || selectedAgent) }))) return;
       closeTerminalSession();
       if (terminalInstance) {
         terminalInstance.reset();
         terminalInstance.clear();
-        terminalInstance.write('\r\n\x1b[36m⚡ Reiniciando sesión de terminal...\x1b[0m\r\n');
+        terminalInstance.write(`\r\n\x1b[36m${cliText('panel.cliConsole.restartingTerminal')}\x1b[0m\r\n`);
       }
       connectTerminalWs(selectedAgent, { fresh: true });
       if (terminalInstance) terminalInstance.focus();
     }
+
+    // A language switch labels again what this controller drew: the
+    // activation banner and its note, the tools notice, the launch button, the
+    // agent and quick-command selectors, the maximize button and the status dot.
+    document.addEventListener('languagechange', () => {
+      const banner = document.getElementById('cliActivationBanner');
+      if (banner) {
+        const text = banner.querySelector('#cliActivationText');
+        const activate = banner.querySelector('#cliActivateBtn');
+        const close = banner.querySelector('#cliActivationClose');
+        if (text) text.textContent = cliText('panel.cliConsole.notActivated');
+        if (activate) activate.textContent = cliText('panel.cliConsole.activate');
+        if (close) {
+          close.title = cliText('panel.cliConsole.hideNotice');
+          close.setAttribute('aria-label', cliText('panel.cliConsole.hideNotice'));
+        }
+        const note = banner.querySelector('#cliActivationNote');
+        if (note && !note.hidden && cliActivationNote) {
+          setActivationNote(cliActivationNote.key, cliActivationNote.vars, cliActivationNote.link);
+        }
+      }
+      const notice = document.getElementById('cliToolsNotice');
+      if (notice && cachedTerminalTools) {
+        notice.remove();
+        showToolsNotice(cachedTerminalTools);
+      }
+      updateExternalLaunchButton();
+      if (cachedTerminalAgents) setTerminalAgentOptions(cachedTerminalAgents);
+      const quick = document.getElementById('terminalQuickSelect');
+      if (quick) {
+        quick.setAttribute('aria-label', cliText('panel.cliConsole.quickCommands'));
+        quick.title = cliText('panel.cliConsole.quickCommandsTitle');
+        if (quick.options[0] && quick.options[0].value === '') quick.options[0].textContent = cliText('panel.cliConsole.quickPlaceholder');
+      }
+      const maximize = document.getElementById('terminalMaximizeBtn');
+      if (maximize && maximize.dataset.cliTitled) maximize.title = cliText(isTerminalMaximized ? 'panel.cliConsole.restoreSize' : 'panel.cliConsole.maximize');
+      if (lastTerminalStatus) updateTerminalStatus(lastTerminalStatus.state, lastTerminalStatus.agent);
+    });
 
     function sendTerminalQuickCommand(cmd) {
       if (!terminalSocket || terminalSocket.readyState !== WebSocket.OPEN) {

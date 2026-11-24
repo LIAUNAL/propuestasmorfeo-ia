@@ -1218,21 +1218,38 @@ def _slot_color(key: str, slots: tuple = STUDY_SLOTS, slot_colors: dict | None =
     return (SLOT_COLORS if slot_colors is None else slot_colors)[kinds[0]]
 
 
+#: The study panel's own words per page language (``render(lang=)``); the
+#: Markdown report stays Spanish. The paper titles and planets are never touched.
+STUDY_WORDS = {
+    "es": {"study": "Estudio de constelaciones", "systems": "sistemas", "planets": "planetas",
+           "relations": "relaciones", "families": "familias", "systems_title": "Sistemas",
+           "by_type": "Relaciones por tipo", "evidence": "Evidencias", "retrieved": "consultado",
+           "quotes": "citas", "no_family": "(sin familia)"},
+    "en": {"study": "Constellation study", "systems": "systems", "planets": "planets",
+           "relations": "relations", "families": "families", "systems_title": "Systems",
+           "by_type": "Relations by type", "evidence": "Evidence", "retrieved": "retrieved",
+           "quotes": "quotes", "no_family": "(no family)"},
+}
+
+
 def study_html(data: dict, slots: tuple = STUDY_SLOTS, slot_colors: dict | None = None,
-               rel_colors: dict | None = None, group_word: str = "Familia", evidence: bool = True) -> str:
+               rel_colors: dict | None = None, group_word: str = "Familia", evidence: bool = True,
+               lang: str = "es") -> str:
     """The side panel, escaped static HTML. The keywords default to the SOTA
     vocabulary; a scene profile passes its own (and may leave out the
-    evidence list)."""
+    evidence list). ``lang`` picks the panel's words (:data:`STUDY_WORDS`)."""
     esc = html.escape
+    words = STUDY_WORDS.get(lang, STUDY_WORDS["es"])
     rel_colors = REL_COLORS if rel_colors is None else rel_colors
     totals = data["totals"]
-    out = ['<aside id="study" aria-label="Estudio de constelaciones">',
-           "<h2>Estudio de constelaciones</h2>",
-           f'<p class="counts">{totals["systems"]} sistemas · {totals["planets"]} planetas · '
-           f'{totals["links"]} relaciones · {totals["families"]} familias</p>']
+    out = [f'<aside id="study" aria-label="{words["study"]}">',
+           f"<h2>{words['study']}</h2>",
+           f'<p class="counts">{totals["systems"]} {words["systems"]} · {totals["planets"]} {words["planets"]} · '
+           f'{totals["links"]} {words["relations"]} · {totals["families"]} {words["families"]}</p>']
     for fam in data["families"]:
-        out.append(f"<h3>{esc(group_word)}: {esc(fam['family'])}</h3>")
-        out.append("<h4>Sistemas</h4><ul>")
+        family = words["no_family"] if fam["family"] == STUDY_WORDS["es"]["no_family"] else fam["family"]
+        out.append(f"<h3>{esc(_chrome(group_word, lang))}: {esc(family)}</h3>")
+        out.append(f"<h4>{words['systems_title']}</h4><ul>")
         for system in fam["systems"]:
             sun = f' data-sun="{esc(system["sun"])}"' if system["sun"] else ""
             out.append(f'<li><span class="sys"{sun}>{esc(system["title"])}</span> '
@@ -1241,11 +1258,11 @@ def study_html(data: dict, slots: tuple = STUDY_SLOTS, slot_colors: dict | None 
         for key, _, name in slots:
             color = _slot_color(key, slots, slot_colors)
             out.append(f'<h4><span class="dot" style="border-color:{color};margin-left:0">'
-                       f"</span>{name}</h4><ul>")
+                       f"</span>{_chrome(name, lang)}</h4><ul>")
             for item in fam[key]:
                 out.append(f'<li>{esc(item["label"])} <span class="pid">{esc(item["system"])}</span></li>')
             out.append("</ul>")
-    out.append("<h3>Relaciones por tipo</h3><ul>")
+    out.append(f"<h3>{words['by_type']}</h3><ul>")
     for rel, count in data["relations"].items():
         color = rel_colors.get(rel, "#4a5a80")
         out.append(f'<li><span class="dot" style="border-color:{color};margin-left:0"></span>'
@@ -1253,11 +1270,11 @@ def study_html(data: dict, slots: tuple = STUDY_SLOTS, slot_colors: dict | None 
     if not evidence:
         out.append("</ul></aside>")
         return "\n".join(out)
-    out.append("</ul><h3>Evidencias</h3><ul>")
+    out.append(f"</ul><h3>{words['evidence']}</h3><ul>")
     for item in data["evidence"]:
         out.append(f'<li><span class="pid">{esc(", ".join(item["systems"]))}</span> '
-                   f'{esc(item["origin"])} · consultado {esc(", ".join(item["retrieved"]))} · '
-                   f'{item["quotes"]} citas</li>')
+                   f'{esc(item["origin"])} · {words["retrieved"]} {esc(", ".join(item["retrieved"]))} · '
+                   f'{item["quotes"]} {words["quotes"]}</li>')
     out.append("</ul></aside>")
     return "\n".join(out)
 
@@ -1511,16 +1528,164 @@ PROFILES = {
 
 _PLACEHOLDER = re.compile(r"@@[A-Z0-9_]+@@")
 
+# --- Page language -----------------------------------------------------------
+# The page is Spanish; ``render(lang="en")`` writes its chrome (controls,
+# legends, side panel headings, help and messages) in English for the
+# dashboard's English view. Only the template and the profile fragments go
+# through this table, never the atlas data, the paper metadata or the viewer.
+
+#: Whole labels: profile titles, the study's group words and slot names.
+_EN_LABELS = {
+    DEFAULT_TITLE: "SOTA constellation",
+    DEFAULT_HEADING: "SOTA constellation: one sky",
+    "Constelación de convocatorias": "Constellation of calls",
+    "Familia": "Family", "Grupo": "Group",
+    "Temas": "Topics", "Problemas": "Problems", "Novedades": "Novelties", "Resultados": "Results",
+    "Financiadores": "Funders", "Cierres": "Deadlines", "Rol de Colombia": "Colombia's role",
+}
+
+#: Substrings of the template and the fragments, in the order they are replaced.
+_EN_CHROME = (
+    ('<html lang="es">', '<html lang="en">'),
+    ('>acercar +<', '>zoom in +<'),
+    ('>alejar −<', '>zoom out −<'),
+    ('title="Girar a la izquierda">⟲ girar<', 'title="Turn left">⟲ turn<'),
+    ('title="Girar a la derecha">girar ⟳<', 'title="Turn right">turn ⟳<'),
+    ('title="Inclinar hacia arriba">▲ inclinar<', 'title="Tilt up">▲ tilt<'),
+    ('title="Inclinar hacia abajo">▼ inclinar<', 'title="Tilt down">▼ tilt<'),
+    ('title="Rotación automática">⏸ rotación<', 'title="Automatic rotation">⏸ rotation<'),
+    ('title="Muestra u oculta los nombres de los sistemas; solo se dibujan los que no se solapan y al acercar '
+     'aparecen más">nombres<',
+     'title="Shows or hides the system names; only those that do not overlap are drawn, and zooming in shows '
+     'more">names<'),
+    ('>restablecer vista<', '>reset view<'),
+    ('>Disposición de grupos<', '>Group layout<'),
+    ('title="Alterna entre el cielo 3D y la constelación 2D, más liviana">Vista 2D<',
+     'title="Switches between the 3D sky and the lighter 2D constellation">2D view<'),
+    ('title="Muestra u oculta el estudio de constelaciones">Estudio de constelaciones<',
+     'title="Shows or hides the constellation study">Constellation study<'),
+    ('<button id="sideclose" type="button" aria-label="Cerrar">', '<button id="sideclose" type="button" aria-label="Close">'),
+    ("const PROVENANCE_NAMES = {stated: 'declarado', grouped: 'agrupado'};",
+     "const PROVENANCE_NAMES = {stated: 'stated', grouped: 'grouped'};"),
+    ("line('strong', 'Seleccionado · '", "line('strong', 'Selected · '"),
+    ("'⚠ Este equipo no tiene una GPU adecuada para el cielo 3D (render por software): se muestra la constelación 2D.'",
+     "'⚠ This machine has no suitable GPU for the 3D sky (software rendering): the 2D constellation is shown.'"),
+    ("'⚠ WebGL no está disponible aquí: se muestra la constelación 2D.'",
+     "'⚠ WebGL is not available here: the 2D constellation is shown.'"),
+    ("'⚠ Este equipo informa poca memoria o pocos núcleos: se muestra la constelación 2D, más liviana.'",
+     "'⚠ This machine reports little memory or few cores: the lighter 2D constellation is shown.'"),
+    ("'⚠ El cielo 3D se dibujaba demasiado lento aquí: se cambió a la constelación 2D, más liviana.'",
+     "'⚠ The 3D sky was drawing too slowly here: it switched to the lighter 2D constellation.'"),
+    ("mode === '2d' ? 'Vista 3D' : 'Vista 2D'", "mode === '2d' ? '3D view' : '2D view'"),
+    ("on ? '⏸ rotación' : '▶ rotación'", "on ? '⏸ rotation' : '▶ rotation'"),
+    # SOTA profile.
+    ("Arrastra para orbitar, arrastra con el botón derecho para desplazar y usa la rueda para acercar. ",
+     "Drag to orbit, right-drag to pan and use the wheel to zoom. "),
+    ("Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para abrir el resumen del paper "
+     "y doble clic para volar hasta él.",
+     "Hover over a planet to see its links across systems; click to open the summary of the paper and double-click to "
+     "fly to it."),
+    ("Vista 2D: arrastra para desplazar y usa la rueda para acercar; girar e inclinar cambian el ángulo. ",
+     "2D view: drag to pan and use the wheel to zoom; turn and tilt change the angle. "),
+    ("Pasa el cursor sobre un planeta para ver sus enlaces entre sistemas; haz clic para abrir el resumen del paper "
+     "y doble clic para centrarlo.",
+     "Hover over a planet to see its links across systems; click to open the summary of the paper and double-click to "
+     "center it."),
+    ("Familias:", "Families:"),
+    ("<em>Relaciones:</em>", "<em>Relations:</em>"),
+    ('</span>extiende ', '</span>extends '),
+    ('</span>respalda ', '</span>supports '),
+    ('</span>contradice ', '</span>contradicts '),
+    ('</span>aborda ', '</span>addresses '),
+    ('</span>familia compartida ', '</span>shared family '),
+    ('</span>produce ', '</span>yields '),
+    ('</span>trata de', '</span>is about'),
+    ("Resumen del paper", "Paper summary"),
+    ("sun: 'sol', branch: 'rama', topic_app: 'tema de aplicación', topic_ai: 'tema de IA',\n"
+     "  problem: 'problema', application: 'aplicación', family: 'familia', novelty: 'novedad',\n"
+     "  contribution: 'contribución', result: 'resultado', conclusion: 'conclusión'",
+     "sun: 'sun', branch: 'branch', topic_app: 'application topic', topic_ai: 'AI topic',\n"
+     "  problem: 'problem', application: 'application', family: 'family', novelty: 'novelty',\n"
+     "  contribution: 'contribution', result: 'result', conclusion: 'conclusion'"),
+    ("[['topic_app', 'Tema de aplicación'], ['topic_ai', 'Tema de IA'], ['problem', 'Problema'],\n"
+     "  ['application', 'Aplicación'], ['novelty', 'Novedad principal'], ['contribution', 'Contribuciones'],\n"
+     "  ['result', 'Resultados'], ['conclusion', 'Conclusiones'], ['family', 'Familia'], ['branch', 'Ramas']]",
+     "[['topic_app', 'Application topic'], ['topic_ai', 'AI topic'], ['problem', 'Problem'],\n"
+     "  ['application', 'Application'], ['novelty', 'Main novelty'], ['contribution', 'Contributions'],\n"
+     "  ['result', 'Results'], ['conclusion', 'Conclusions'], ['family', 'Family'], ['branch', 'Branches']]"),
+    ("[['authors', 'Autores'], ['year', 'Año'], ['venue', 'Publicación'],\n"
+     "  ['quartile', 'Cuartil'], ['link', 'DOI/URL'], ['bibkey', 'Clave BibTeX']]",
+     "[['authors', 'Authors'], ['year', 'Year'], ['venue', 'Venue'],\n"
+     "  ['quartile', 'Quartile'], ['link', 'DOI/URL'], ['bibkey', 'BibTeX key']]"),
+    ("line('small', 'órbita ' + p.orbit + (prov ? ' · ' + prov : '') + (pev.retrieved ? ' · consultado ' + pev.retrieved : ''))",
+     "line('small', 'orbit ' + p.orbit + (prov ? ' · ' + prov : '') + (pev.retrieved ? ' · retrieved ' + pev.retrieved : ''))"),
+    ("Papers enlazados", "Linked papers"),
+    # Funding calls profile.
+    ("Cada sistema es una convocatoria, el perfil de búsqueda o una línea del banco LIA. "
+     "Haz clic en un planeta para abrir su ficha y doble clic para volar hasta él.",
+     "Each system is a call, the search profile or a line of the LIA bank. "
+     "Click a planet to open its card and double-click to fly to it."),
+    ("Haz clic en un planeta para abrir su ficha y doble clic para centrarlo.",
+     "Click a planet to open its card and double-click to center it."),
+    ("Grupos:", "Groups:"),
+    ('</span>tema compartido con el perfil ', '</span>topic shared with the profile '),
+    ('</span>experiencia del banco LIA ', '</span>LIA bank experience '),
+    ('</span>mismo grupo', '</span>same group'),
+    ("Ficha del nodo", "Node card"),
+    ("sun: 'sol', funder: 'financiador', region: 'ámbito', amount: 'monto',\n"
+     "  deadline: 'cierre', role: 'rol de Colombia', eligibility: 'elegibilidad', idea: 'idea', summary: 'detalle',\n"
+     "  topic: 'tema', family: 'grupo', evidence: 'evidencia', link: 'enlace'",
+     "sun: 'sun', funder: 'funder', region: 'scope', amount: 'amount',\n"
+     "  deadline: 'deadline', role: \"Colombia's role\", eligibility: 'eligibility', idea: 'idea', summary: 'detail',\n"
+     "  topic: 'topic', family: 'group', evidence: 'evidence', link: 'link'"),
+    ("[['funder', 'Financiador'], ['region', 'Ámbito'], ['amount', 'Monto'], ['deadline', 'Cierre'],\n"
+     "  ['role', 'Rol de Colombia'], ['eligibility', 'Elegibilidad'], ['idea', 'Idea'], ['summary', 'Detalle'],\n"
+     "  ['topic', 'Temas'], ['family', 'Grupo']]",
+     "[['funder', 'Funder'], ['region', 'Scope'], ['amount', 'Amount'], ['deadline', 'Deadline'],\n"
+     "  ['role', \"Colombia's role\"], ['eligibility', 'Eligibility'], ['idea', 'Idea'], ['summary', 'Detail'],\n"
+     "  ['topic', 'Topics'], ['family', 'Group']]"),
+    ("[['programa', 'Programa'], ['alcance', 'Alcance'], ['idioma', 'Idioma'], ['idiomas', 'Idiomas'],\n"
+     "  ['ambitos', 'Ámbitos'], ['aplicantes', 'Aplicantes'], ['apertura', 'Apertura'], ['match', 'Match'],\n"
+     "  ['esfuerzo', 'Esfuerzo estimado'], ['palabras', 'Palabras clave'], ['conectadas', 'Convocatorias conectadas'],\n"
+     "  ['link', 'Enlace']]",
+     "[['programa', 'Program'], ['alcance', 'Scope'], ['idioma', 'Language'], ['idiomas', 'Languages'],\n"
+     "  ['ambitos', 'Scopes'], ['aplicantes', 'Applicants'], ['apertura', 'Opening'], ['match', 'Match'],\n"
+     "  ['esfuerzo', 'Estimated effort'], ['palabras', 'Keywords'], ['conectadas', 'Connected calls'],\n"
+     "  ['link', 'Link']]"),
+    ("line('small', 'consultado ' + pev.retrieved)", "line('small', 'retrieved ' + pev.retrieved)"),
+    ("Nodos enlazados", "Linked nodes"),
+    ("[['evidence', 'Evidencia citada'], ['link', 'Enlace']]", "[['evidence', 'Cited evidence'], ['link', 'Link']]"),
+    ("line('button', '🚀 Iniciar propuesta con esta', 'side-start')", "line('button', '🚀 Start a proposal with this one', 'side-start')"),
+)
+
+#: Languages a page can be written in.
+PAGE_LANGUAGES = ("es", "en")
+
+
+def _chrome(text: str, lang: str) -> str:
+    """``text`` (the template, a fragment or a label) in ``lang``; Spanish as is."""
+    if lang != "en":
+        return text
+    if text in _EN_LABELS:
+        return _EN_LABELS[text]
+    for spanish, english in _EN_CHROME:
+        text = text.replace(spanish, english)
+    return text
+
 
 def render(atlas: dict, viewer: str | None = None, *,
            title: str | None = None, heading: str | None = None,
-           papers: dict | None = None, profile: str = "sota") -> str:
+           papers: dict | None = None, profile: str = "sota", lang: str = "es") -> str:
     """The whole page. ``title`` names the tab and, unless ``heading`` says
     otherwise, the heading too, so the page cannot contradict its own tab.
     ``papers`` is the per-system metadata (:func:`papers_meta` for SOTA).
     ``profile`` picks the vocabulary (:data:`PROFILES`); ValueError when it is
-    unknown. Every placeholder is filled in one pass over the template, so no
-    inserted text (a title, the study, the data) is ever read as one."""
+    unknown. ``lang`` ("es", the default, or "en") is the language of the
+    page's own chrome; the atlas data is drawn as it is. Every placeholder is
+    filled in one pass over the template, so no inserted text (a title, the
+    study, the data) is ever read as one."""
+    if lang not in PAGE_LANGUAGES:
+        raise ValueError(f"unknown page language {lang!r}")
     if profile not in PROFILES:
         raise ValueError(f"unknown scene profile {profile!r}")
     prof = PROFILES[profile]
@@ -1528,21 +1693,22 @@ def render(atlas: dict, viewer: str | None = None, *,
     if "</script" in bundle.lower():
         raise ValueError("the viewer bundle contains </script and cannot be inlined")
     if title is None:
-        title, heading = prof["title"], heading or prof["heading"]
+        title, heading = _chrome(prof["title"], lang), heading or _chrome(prof["heading"], lang)
     elif heading is None:
         heading = title
     scene = _scene(atlas, prof["slot_colors"], prof["rel_colors"])
     scene["papers"] = papers or {}
-    values = dict(prof["fragments"])
+    values = {key: _chrome(value, lang) for key, value in prof["fragments"].items()}
     values.update({
         "@@TITLE@@": html.escape(title),
         "@@HEADING@@": html.escape(heading),
         "@@STUDY@@": study_html(study(atlas, prof["study_slots"], prof["rel_order"]), prof["study_slots"],
-                                prof["slot_colors"], prof["rel_colors"], prof["group_word"], prof["evidence"]),
+                                prof["slot_colors"], prof["rel_colors"], prof["group_word"], prof["evidence"],
+                                lang=lang),
         "@@DATA@@": json.dumps(scene).replace("<", "\\u003c"),
         "@@VIEWER@@": bundle,
     })
-    return _PLACEHOLDER.sub(lambda match: values[match.group(0)], PAGE)
+    return _PLACEHOLDER.sub(lambda match: values[match.group(0)], _chrome(PAGE, lang))
 
 
 USAGE = ("usage: render_atlas.py <atlas.json> --out <html> [--report <md>] [--title <text>] "

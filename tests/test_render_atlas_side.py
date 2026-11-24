@@ -167,6 +167,59 @@ class SidePanelRenderTests(unittest.TestCase):
         second = self.page()
         self.assertEqual(first, second)
 
+    # --- render(lang="en"): the dashboard's English view of the papers sky
+
+    def module_pages(self):
+        module = load(RENDERER, "render_atlas_lang_under_test")
+        atlas = json.loads(FIXTURE_ATLAS.read_text(encoding="utf-8"))
+        papers = module.papers_meta(atlas, FIXTURE_PAPERS)
+        return module, atlas, papers
+
+    def test_spanish_is_the_default_page_language(self):
+        module, atlas, papers = self.module_pages()
+        self.assertEqual(module.render(atlas, papers=papers), module.render(atlas, papers=papers, lang="es"))
+        self.assertEqual(module.render(atlas, papers=papers), self.page(), "the CLI writes the same page")
+        with self.assertRaises(ValueError):
+            module.render(atlas, papers=papers, lang="fr")
+
+    def test_english_page_writes_its_chrome_in_english_and_keeps_the_data(self):
+        module, atlas, papers = self.module_pages()
+        es = module.render(atlas, papers=papers)
+        en = module.render(atlas, papers=papers, lang="en")
+        self.assertIn('<html lang="en">', en)
+        self.assertIn("<title>SOTA constellation</title>", en)
+        self.assertIn('<aside id="side" aria-label="Paper summary" hidden>', en)
+        self.assertIn('<button id="sideclose" type="button" aria-label="Close">✕</button>', en)
+        for english in (">zoom in +<", ">reset view<", ">Group layout<", "'2D view'", "<em>Families:</em>",
+                        "<em>Relations:</em>", "click to open the summary of the paper", "'Linked papers'",
+                        "['bibkey', 'BibTeX key']", "'Selected · '", "<h2>Constellation study</h2>",
+                        "<h3>Relations by type</h3>", "<h4>Systems</h4>", "Family: "):
+            self.assertTrue(english in en, english)
+        for spanish in (">acercar +<", "Resumen del paper", "Papers enlazados", "'Seleccionado · '",
+                        "<h2>Estudio de constelaciones</h2>", "Relaciones por tipo", "haz clic para abrir"):
+            self.assertFalse(spanish in en, spanish)
+        self.assertEqual(scene_of(en), scene_of(es), "the atlas, positions and paper metadata are the same")
+
+    @unittest.skipUnless(shutil.which("node"), "node checks the page's scripts")
+    def test_the_english_page_scripts_still_parse(self):
+        # English chrome lands inside JavaScript string literals (help texts,
+        # notes, slot names): an apostrophe there would break the whole page.
+        module, atlas, papers = self.module_pages()
+        for profile in ("sota", "convocatorias"):
+            page = module.render(atlas, papers=papers, profile=profile, lang="en", viewer="/* viewer */")
+            scripts = [chunk.split("</script>")[0] for chunk in page.split("<script>")[1:]]
+            source = self.tmp / f"{profile}.js"
+            source.write_text("\n;\n".join(scripts), encoding="utf-8")
+            proc = subprocess.run(["node", "--check", str(source)], capture_output=True, text=True)
+            with self.subTest(profile=profile):
+                self.assertEqual(proc.returncode, 0, proc.stderr[-400:])
+
+    def test_every_english_chrome_entry_applies_to_the_template_or_a_profile(self):
+        module = load(RENDERER, "render_atlas_chrome_under_test")
+        texts = [module.PAGE] + [value for prof in module.PROFILES.values() for value in prof["fragments"].values()]
+        unused = [spanish for spanish, _ in module._EN_CHROME if not any(spanish in text for text in texts)]
+        self.assertEqual(unused, [])
+
     def test_read_paper_meta_keeps_only_the_metadata_block(self):
         module = load(RENDERER, "render_atlas_side_meta")
         text = ("# Title\n\n- Autores: A\n- Año: 2024\n\n## Verificación\n"

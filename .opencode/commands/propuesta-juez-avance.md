@@ -38,8 +38,8 @@ $ARGUMENTS
 
 ## 2. Evaluar
 
-Despachá con `task` al agente `juez-avance`, con `RUN_ROOT` absoluto y la etapa
-en el prompt. El agente lee los archivos de la etapa, escribe
+Despachá con `task` al agente `juez-avance`, con `RUN_ROOT` absoluto, la etapa y
+`LANG=<es|en>` (`python3 scripts/language.py run <RUN_ROOT>`) en el prompt. El agente lee los archivos de la etapa, escribe
 `artefactos/juez/avance_<etapa>_borrador.json` y corre
 `python3 scripts/juez_avance.py registrar <RUN_ROOT> --etapa <etapa>` hasta que
 sale con 0. Si el agente devuelve errores del script después de sus

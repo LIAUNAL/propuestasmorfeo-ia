@@ -14,7 +14,7 @@ import path from 'node:path';
 
 import { JSDOM } from 'jsdom';
 
-import { DASHBOARD_INDEX, DASHBOARD_STATIC } from './harness.mjs';
+import { DASHBOARD_INDEX, DASHBOARD_STATIC, loadI18n } from './harness.mjs';
 
 const SCRIPT = readFileSync(path.join(DASHBOARD_STATIC, 'section-folds.js'), 'utf8');
 
@@ -132,5 +132,39 @@ test('the dashboard loads section-folds.js after board-refresh.js and styles the
   assert.ok(board > 0 && folds > board, 'the script tag follows board-refresh.js');
   for (const rule of ['.exp-fold__summary', '.exp-fold[open] > .exp-fold__summary', '.exp-fold__body']) {
     assert.ok(html.includes(rule), `CSS rule ${rule}`);
+  }
+});
+
+test('a fold with data-fold-title-key takes its title from the catalogue and follows the language', async () => {
+  const dom = new JSDOM(`<!doctype html><html><body><div id="host">
+    <section data-fold="m" data-fold-title="Matriz del proyecto" data-fold-title-key="panel.sectionFolds.projectMatrix"><p>x</p></section>
+    <section data-fold="n" data-fold-title="Sin clave"><p>y</p></section></div></body></html>`,
+  { runScripts: 'outside-only', url: 'http://localhost:8000/' });
+  const { window } = dom;
+  const ready = window.document.readyState === 'loading'
+    ? new Promise((resolve) => window.document.addEventListener('DOMContentLoaded', resolve))
+    : Promise.resolve();
+  loadI18n(window, { lang: 'en' });
+  window.eval(SCRIPT);
+  await ready;
+  const title = (name) => window.document.querySelector(`[data-fold-name="${name}"] .exp-fold__title`).textContent;
+  assert.equal(title('m'), 'Project matrix', 'an English page wraps with the English title');
+  assert.equal(title('n'), 'Sin clave', 'a fold without a key keeps its data-fold-title');
+  window.i18n.setLanguage('es');
+  assert.equal(title('m'), 'Matriz del proyecto');
+  window.i18n.setLanguage('en');
+  assert.equal(title('m'), 'Project matrix');
+});
+
+test('every fold of the dashboard names a catalogue key whose Spanish is its data-fold-title', () => {
+  const html = readFileSync(DASHBOARD_INDEX, 'utf8');
+  const es = readFileSync(path.join(DASHBOARD_STATIC, 'i18n', 'es', 'section-folds.js'), 'utf8');
+  const blocks = [...html.matchAll(/<section\b[^>]*\bdata-fold="[^"]+"[^>]*>/g)].map((m) => m[0]);
+  assert.ok(blocks.length >= 6);
+  for (const tag of blocks) {
+    const titleAttr = tag.match(/data-fold-title="([^"]+)"/)[1];
+    const key = (tag.match(/data-fold-title-key="([^"]+)"/) || [])[1];
+    assert.ok(key, `${titleAttr} names a data-fold-title-key`);
+    assert.ok(es.includes(`"${key}": "${titleAttr}"`), `${key} is «${titleAttr}» in Spanish`);
   }
 });

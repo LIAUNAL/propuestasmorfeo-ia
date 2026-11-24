@@ -20,6 +20,21 @@ To prevent architectural overlap with other agents in the proposal system:
 
 ---
 
+## Writing language (`LANG`)
+
+The dispatcher passes `LANG=es` or `LANG=en` in the prompt: the run's writing
+language (`python3 scripts/language.py run <RUN_ROOT>`; `es` when absent, and
+always `es` in the SGR flow). With `LANG=es` everything below applies as
+written. With `LANG=en`, every deliverable this prompt calls Spanish is written
+in English: apply `estilo-natural-en` and `depuracion-redundancias-en` wherever
+this prompt names `estilo-natural-es` and `depuracion-redundancias-es`, and run
+`scripts/estilo_en.py audit`/`verify` (same arguments) wherever it names
+`scripts/estilo_es.py auditar`/`verificar`. The guide
+`guiaProyectosIA_Agente.md` stays in Spanish: follow its instructions and write
+in the run's language. What this prompt marks as verbatim (headings, JSON keys,
+labels, BibTeX keys, file names, gate tokens such as PASS/FAIL) never changes
+with the language.
+
 ## Input: the Deterministic Findings
 
 You are the only agent that edits prose for style and redundancy. You do not measure it: `scripts/estilo_es.py` does.
@@ -62,7 +77,7 @@ Después: *El proyecto ofrece acompañamiento y asesoría de personal especializ
 
 ## Audit Framework
 
-When invoked, execute the following five sequential audit passes on the input text (full section, subsection, or modified section draft). Pass 5 applies only to Spanish narrative prose, which is the language of every proposal section, so in practice it always runs:
+When invoked, execute the following five sequential audit passes on the input text (full section, subsection, or modified section draft). Pass 5 applies to the narrative prose in the run's writing language, so in practice it always runs. With `LANG=es` it is the Spanish pass below; with `LANG=en`, read `estilo-natural-en` and `depuracion-redundancias-en` instead and apply their English catalog with the same invariants (no `--`, no em dash, figures, keys and paragraph counts byte-identical), scored and checked with `scripts/estilo_en.py`:
 
 > **Before Pass 5, read the `estilo-natural-es` and `depuracion-redundancias-es` skills in full**: the dispatcher
 > passes their exact `SKILL.md` paths in the delegation prompt.
@@ -89,7 +104,7 @@ When invoked, execute the following five sequential audit passes on the input te
 * **Locality of Context:** Ensure acronyms and domain concepts are defined on first use within that specific section or subsection.
 * **Referential Clarity:** Flag ambiguous pronouns ("this", "these", "it") that lack explicit noun targets.
 
-### Pass 5: Natural Spanish Prose (Norma Académica Colombia)
+### Pass 5: Natural Prose of the Run's Language (Spanish: Norma Académica Colombia)
 Apply the `estilo-natural-es` skill to the Spanish narrative in a single holistic pass. This is an editorial *style* pass: scientific content and data are frozen.
 * **Los 35 patrones mecánicos:** Remove formulaic openers ("Es importante destacar que", "Cabe mencionar que"), gerundios de cierre ("destacando...", "garantizando..."), grandiloquence/inflated importance ("se erige como", "juega un papel fundamental"), false ranges ("desde X hasta Y"), rule of three, copula avoidance ("cuenta con" instead of "es/tiene"), negative parallelism, and the rest of the skill's catalog.
 * **Prohibición estricta de rayas anglosajonas (` — `) y doble guion (`--`):** Replace any `--` or spaced em-dash in Spanish prose with standard Spanish punctuation: parenthetical commas, semicolons, colons, or parentheses. Never emit `--` in narrative text.

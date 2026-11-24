@@ -33,26 +33,37 @@
  *   renderTree(novedad), renderMatrix(matriz, state) -> HTML (pure)
  *   filterRows(matriz, { query, tipo }) -> rows (pure)
  *   drawArrows(tree)  lays out the arrows of one [data-novelty-tree]
- *   TIPOS             [[id, label], ...] experiment and action types
+ *   TIPOS             [[id, label], ...] experiment and action types (the
+ *                     label reads the active language)
+ *
+ * Texts come from static/i18n/<lang>/novedad-panel.js; a language switch draws
+ * the panel again and reads the artifact once more. What the researcher wrote
+ * is shown as written.
  */
 (function () {
   'use strict';
 
-  const TIPOS = [
-    ['experimento', 'Experimento'],
-    ['intervencion', 'Intervención'],
-    ['transferencia', 'Transferencia'],
-    ['implementacion', 'Implementación'],
-    ['accion', 'Acción'],
-  ];
-  const TIPO_LABEL = Object.fromEntries(TIPOS);
-  const TIPO_PLURAL = {
-    experimento: ['experimento', 'experimentos'],
-    intervencion: ['intervención', 'intervenciones'],
-    transferencia: ['transferencia', 'transferencias'],
-    implementacion: ['implementación', 'implementaciones'],
-    accion: ['acción', 'acciones'],
+  // The text of `key` in the dashboard's language (static/i18n.js).
+  const tr = (key, vars) => (window.i18n ? window.i18n.t(key, vars) : key);
+  const later = (key) => (window.i18n ? window.i18n.tl(key) : key);
+  const live = (data) => (window.i18n ? window.i18n.live(data) : data);
+  const P = 'panel.novedadPanel.';
+
+  const TIPOS = live([
+    ['experimento', later('panel.novedadPanel.typeExperiment')],
+    ['intervencion', later('panel.novedadPanel.typeIntervention')],
+    ['transferencia', later('panel.novedadPanel.typeTransfer')],
+    ['implementacion', later('panel.novedadPanel.typeImplementation')],
+    ['accion', later('panel.novedadPanel.typeAction')],
+  ]);
+  const TIPO_IDS = TIPOS.map(([id]) => id);
+  const tipoLabel = (id) => (TIPOS.find(([tipo]) => tipo === id) || [id, ''])[1];
+  // Count of one type: `{n} experimento` / `{n} experimentos`.
+  const TIPO_COUNT = {
+    experimento: 'Experiment', intervencion: 'Intervention', transferencia: 'Transfer',
+    implementacion: 'Implementation', accion: 'Action',
   };
+  const tipoCount = (id, n) => tr(`panel.novedadPanel.count${TIPO_COUNT[id]}${Number(n) === 1 ? 'One' : 'Many'}`, { n });
   const TONES = ['#38bdf8', '#a78bfa', '#34d399', '#f59e0b', '#f472b6', '#fb7185'];
   const FOLD_TREE = 'novedad-pilares';
   const STYLE_ID = 'novedad-panel-styles';
@@ -103,8 +114,8 @@
   }
 
   function chip(e) {
-    const tipo = TIPO_LABEL[e.tipo] ? e.tipo : 'accion';
-    return `<span class="nov-chip nov-chip--${tipo}" title="${esc(e.descripcion || '')}"><b>${esc(TIPO_LABEL[tipo])}</b> ${esc(e.id)} · ${esc(e.titulo)}</span>`;
+    const tipo = TIPO_IDS.includes(e.tipo) ? e.tipo : 'accion';
+    return `<span class="nov-chip nov-chip--${tipo}" title="${esc(e.descripcion || '')}"><b>${esc(tipoLabel(tipo))}</b> ${esc(e.id)} · ${esc(e.titulo)}</span>`;
   }
 
   function renderTree(nov) {
@@ -114,30 +125,30 @@
     const chains = g.objectives.map((o) => {
       const c = causes.get(o.causa) || {};
       return `<div class="nov-chain">
-          <div class="nov-node nov-node--cause" data-tree-node="${esc(o.causa || '')}">${kind('Causa directa', o.causa || '?')}<p>${esc(c.texto)}</p></div>
+          <div class="nov-node nov-node--cause" data-tree-node="${esc(o.causa || '')}">${kind(tr(P + 'directCause'), o.causa || '?')}<p>${esc(c.texto)}</p></div>
           <span class="nov-chain__arrow" aria-hidden="true">↓</span>
-          <div class="nov-node nov-node--objective" data-tree-node="${esc(o.id)}">${kind('Objetivo específico', o.id)}<p>${esc(o.texto)}</p></div>
+          <div class="nov-node nov-node--objective" data-tree-node="${esc(o.id)}">${kind(tr(P + 'specificObjective'), o.id)}<p>${esc(o.texto)}</p></div>
         </div>`;
     }).join('');
     const pillarNodes = g.pillars.map((p) => {
       const supports = g.links.filter((l) => l.kind === 'pilar' && l.from === p.id).map((l) => l.to);
       return `<div class="nov-node nov-node--pillar" data-tree-node="${esc(p.id)}" style="--tone: ${g.tone(p.id)};">
-          ${kind('Pilar', p.id)}
+          ${kind(tr(P + 'pillar'), p.id)}
           <p class="nov-name">${esc(p.nombre)}</p>
           <p class="nov-text">${esc(p.resumen)}</p>
-          ${line('Objetivos', ids(p.objetivos))}
-          ${line('Sostiene', supports)}
+          ${line(tr(P + 'objectives'), ids(p.objetivos))}
+          ${line(tr(P + 'supports'), supports)}
         </div>`;
     }).join('');
     const hypNodes = g.hyps.map((h) => {
       const from = ids(h.pilares).filter((pid) => g.pids.includes(pid));
       const exps = dicts(h.experimentos);
       return `<div class="nov-node nov-node--hypothesis" data-tree-node="${esc(h.id)}">
-          ${kind('Hipótesis', h.id)}
+          ${kind(tr(P + 'hypothesis'), h.id)}
           <p class="nov-name">${esc(h.titulo)}</p>
           <p class="nov-text">${esc(h.enunciado)}</p>
-          ${line('Objetivos', ids(h.objetivos))}
-          ${line('Apoyado por', from)}
+          ${line(tr(P + 'objectives'), ids(h.objetivos))}
+          ${line(tr(P + 'supportedBy'), from)}
           ${exps.length ? `<div class="nov-chips">${exps.map(chip).join('')}</div>` : ''}
         </div>`;
     }).join('');
@@ -149,14 +160,14 @@
       return `<path class="nov-arrow nov-arrow--${l.kind}" data-from="${esc(l.from)}" data-to="${esc(l.to)}" style="stroke: ${tone};" marker-end="url(#${markerId(tone)})"></path>`;
     }).join('');
     return `<div class="nov-tree" data-novelty-tree>
-        <p class="nov-legend">Cada causa directa del árbol de problemas da un objetivo específico; los pilares de novedad atienden esos objetivos y sostienen las hipótesis, y cada hipótesis se pone a prueba con experimentos, acciones, implementaciones, intervenciones o transferencias. Señala una caja para resaltar sus relaciones.</p>
+        <p class="nov-legend">${esc(tr(P + 'treeLegend'))}</p>
         <div class="nov-level nov-level--chain">
-          <h5>Problema y objetivos</h5>
-          <div class="nov-node nov-node--central" data-tree-node="problema">${kind('Problema central', 'tronco')}<p>${esc(data.problema_central)}</p></div>
+          <h5>${esc(tr(P + 'problemAndObjectives'))}</h5>
+          <div class="nov-node nov-node--central" data-tree-node="problema">${kind(tr(P + 'centralProblem'), tr(P + 'trunk'))}<p>${esc(data.problema_central)}</p></div>
           <div class="nov-grid nov-grid--chains">${chains}</div>
         </div>
-        <div class="nov-level"><h5>Pilares de novedad</h5><div class="nov-grid">${pillarNodes}</div></div>
-        <div class="nov-level"><h5>Hipótesis con sus experimentos y acciones</h5><div class="nov-grid">${hypNodes}</div></div>
+        <div class="nov-level"><h5>${esc(tr(P + 'noveltyPillars'))}</h5><div class="nov-grid">${pillarNodes}</div></div>
+        <div class="nov-level"><h5>${esc(tr(P + 'hypothesesWithExperiments'))}</h5><div class="nov-grid">${hypNodes}</div></div>
         <svg class="nov-arrows" aria-hidden="true"><defs>${markers}</defs>${arrows}</svg>
       </div>`;
   }
@@ -227,7 +238,7 @@
       row.causa && row.causa.texto];
     dicts(row.pilares).forEach((p) => parts.push(p.id, p.nombre, p.resumen));
     dicts(row.hipotesis).forEach((h) => parts.push(h.id, h.titulo, h.enunciado));
-    dicts(row.experimentos).forEach((e) => parts.push(e.id, TIPO_LABEL[e.tipo], e.titulo, e.descripcion, e.metrica,
+    dicts(row.experimentos).forEach((e) => parts.push(e.id, TIPO_IDS.includes(e.tipo) ? tipoLabel(e.tipo) : '', e.titulo, e.descripcion, e.metrica,
       e.producto, e.resultado_esperado));
     parts.push(...list(row.productos), ...list(row.indicadores), ...list(row.resultados));
     return plain(parts.filter(Boolean).join(' '));
@@ -250,22 +261,22 @@
     const exps = dicts(row.experimentos);
     const effectIds = ids(row.efectos);
     const cells = `
-        <td data-col="causa" data-label="Causa directa"><span class="nov-id">${esc(row.causa && row.causa.id)}</span> ${esc(row.causa && row.causa.texto)}</td>
-        <td data-col="objetivo" data-label="Objetivo específico"><span class="nov-id">${esc(oe)}</span> ${esc(row.objetivo && row.objetivo.texto)}</td>
-        <td data-col="pilares" data-label="Pilares">${idChips(dicts(row.pilares), (p) => p.nombre || '')}</td>
-        <td data-col="hipotesis" data-label="Hipótesis">${idChips(dicts(row.hipotesis), (h) => h.titulo || '')}</td>
-        <td data-col="experimentos" data-label="Experimentos y acciones"><div class="nov-chips">${exps.map(chip).join('')}</div></td>
-        <td data-col="productos" data-label="Productos">${list(row.productos).map(esc).join('<br>')}</td>
-        <td data-col="resultado" data-label="Resultado esperado e indicador">${exps.map((e) => `<span class="nov-id">${esc(e.id)}</span> ${esc(e.resultado_esperado)} <small class="nov-indicator">Indicador: ${esc(e.metrica)}</small>`).join('<br>')}</td>
-        <td data-col="efecto" data-label="Efecto o impacto">${effectIds.map((id) => `<span class="nov-id" title="${esc((effects.get(id) || {}).texto || '')}">${esc(id)}</span>`).join(' ')}</td>
-        <td data-col="detalle" data-label=""><button class="btn btn--sm nov-expand" type="button" aria-expanded="${expanded ? 'true' : 'false'}">${expanded ? 'Ocultar ▴' : 'Detalle ▾'}</button></td>`;
+        <td data-col="causa" data-label="${esc(tr(P + 'directCause'))}"><span class="nov-id">${esc(row.causa && row.causa.id)}</span> ${esc(row.causa && row.causa.texto)}</td>
+        <td data-col="objetivo" data-label="${esc(tr(P + 'specificObjective'))}"><span class="nov-id">${esc(oe)}</span> ${esc(row.objetivo && row.objetivo.texto)}</td>
+        <td data-col="pilares" data-label="${esc(tr(P + 'pillars'))}">${idChips(dicts(row.pilares), (p) => p.nombre || '')}</td>
+        <td data-col="hipotesis" data-label="${esc(tr(P + 'hypothesis'))}">${idChips(dicts(row.hipotesis), (h) => h.titulo || '')}</td>
+        <td data-col="experimentos" data-label="${esc(tr(P + 'experimentsAndActions'))}"><div class="nov-chips">${exps.map(chip).join('')}</div></td>
+        <td data-col="productos" data-label="${esc(tr(P + 'products'))}">${list(row.productos).map(esc).join('<br>')}</td>
+        <td data-col="resultado" data-label="${esc(tr(P + 'expectedResultAndIndicator'))}">${exps.map((e) => `<span class="nov-id">${esc(e.id)}</span> ${esc(e.resultado_esperado)} <small class="nov-indicator">${esc(tr(P + 'indicator', { value: e.metrica == null ? '' : e.metrica }))}</small>`).join('<br>')}</td>
+        <td data-col="efecto" data-label="${esc(tr(P + 'effectOrImpact'))}">${effectIds.map((id) => `<span class="nov-id" title="${esc((effects.get(id) || {}).texto || '')}">${esc(id)}</span>`).join(' ')}</td>
+        <td data-col="detalle" data-label=""><button class="btn btn--sm nov-expand" type="button" aria-expanded="${expanded ? 'true' : 'false'}">${esc(tr(P + (expanded ? 'hide' : 'detail')))}</button></td>`;
     const detail = `
         <div class="nov-detail">
-          <p><strong>Causa directa ${esc(row.causa && row.causa.id)}:</strong> ${esc(row.causa && row.causa.texto)}</p>
-          ${dicts(row.pilares).map((p) => `<p><strong>Pilar ${esc(p.id)}, ${esc(p.nombre)}:</strong> ${esc(p.resumen)}</p>`).join('')}
-          ${dicts(row.hipotesis).map((h) => `<p><strong>Hipótesis ${esc(h.id)}, ${esc(h.titulo)}:</strong> ${esc(h.enunciado)}</p>`).join('')}
-          ${exps.length ? `<ul class="nov-detail__exps">${exps.map((e) => `<li>${chip(e)} <span class="nov-muted">(${esc(e.hipotesis)})</span><br>${esc(e.descripcion)}<br><small>Indicador: ${esc(e.metrica)} · Producto: ${esc(e.producto)} · Resultado esperado: ${esc(e.resultado_esperado)}</small></li>`).join('')}</ul>` : ''}
-          ${effectIds.length ? `<p><strong>Efectos:</strong></p><ul>${effectIds.map((id) => `<li><span class="nov-id">${esc(id)}</span> ${esc((effects.get(id) || {}).texto || '')}</li>`).join('')}</ul>` : ''}
+          <p><strong>${esc(tr(P + 'detailCause', { id: (row.causa && row.causa.id) || '' }))}</strong> ${esc(row.causa && row.causa.texto)}</p>
+          ${dicts(row.pilares).map((p) => `<p><strong>${esc(tr(P + 'detailPillar', { id: p.id == null ? '' : p.id, name: p.nombre == null ? '' : p.nombre }))}</strong> ${esc(p.resumen)}</p>`).join('')}
+          ${dicts(row.hipotesis).map((h) => `<p><strong>${esc(tr(P + 'detailHypothesis', { id: h.id == null ? '' : h.id, title: h.titulo == null ? '' : h.titulo }))}</strong> ${esc(h.enunciado)}</p>`).join('')}
+          ${exps.length ? `<ul class="nov-detail__exps">${exps.map((e) => `<li>${chip(e)} <span class="nov-muted">(${esc(e.hipotesis)})</span><br>${esc(e.descripcion)}<br><small>${esc(tr(P + 'detailExperiment', { metric: e.metrica == null ? '' : e.metrica, product: e.producto == null ? '' : e.producto, result: e.resultado_esperado == null ? '' : e.resultado_esperado }))}</small></li>`).join('')}</ul>` : ''}
+          ${effectIds.length ? `<p><strong>${esc(tr(P + 'effects'))}</strong></p><ul>${effectIds.map((id) => `<li><span class="nov-id">${esc(id)}</span> ${esc((effects.get(id) || {}).texto || '')}</li>`).join('')}</ul>` : ''}
         </div>`;
     return `<tr class="nov-row" data-oe="${esc(oe)}">${cells}</tr>
       <tr class="nov-row-detail" data-oe="${esc(oe)}"${expanded ? '' : ' hidden'}><td colspan="9">${detail}</td></tr>`;
@@ -274,13 +285,13 @@
   function tbodyHtml(matriz, state) {
     const effects = new Map(dicts(matriz && matriz.efectos).map((e) => [e.id, e]));
     const rows = filterRows(matriz, state);
-    if (!rows.length) return '<tr><td colspan="9" class="nov-muted">Ningún objetivo específico coincide con la búsqueda o el filtro.</td></tr>';
+    if (!rows.length) return `<tr><td colspan="9" class="nov-muted">${esc(tr(P + 'noRows'))}</td></tr>`;
     return rows.map((row) => rowHtml(row, effects, state.expanded.has(row.objetivo && row.objetivo.id))).join('');
   }
 
   function countText(matriz, state) {
     const total = dicts(matriz && matriz.filas).length;
-    return `${filterRows(matriz, state).length} de ${total} objetivos específicos`;
+    return tr(P + 'count', { shown: filterRows(matriz, state).length, total });
   }
 
   function stat(key, value, label, extra) {
@@ -294,35 +305,36 @@
     const t = m.totales || {};
     const porTipo = t.por_tipo || {};
     const breakdown = TIPOS.filter(([id]) => Number(porTipo[id]) > 0)
-      .map(([id]) => `${porTipo[id]} ${TIPO_PLURAL[id][Number(porTipo[id]) === 1 ? 0 : 1]}`).join(' · ');
-    const head = [['Problema central', m.problema_central], ['Objetivo general', m.objetivo_general],
-      ['Efecto final', m.efecto_final]].filter(([, v]) => v)
+      .map(([id]) => tipoCount(id, porTipo[id])).join(' · ');
+    const head = [[tr(P + 'centralProblem'), m.problema_central], [tr(P + 'generalObjective'), m.objetivo_general],
+      [tr(P + 'finalEffect'), m.efecto_final]].filter(([, v]) => v)
       .map(([k, v]) => `<div><span class="nov-k">${esc(k)}</span><p>${esc(v)}</p></div>`).join('');
     const options = TIPOS.map(([id, label]) => `<option value="${id}"${st.tipo === id ? ' selected' : ''}>${esc(label)}</option>`).join('');
-    const fuente = m.fuente_efectos === 'arbol' ? 'Los efectos vienen del árbol de problemas.'
-      : m.fuente_efectos === 'novedad' ? 'Los efectos vienen del artefacto de novedad: el árbol de problemas aún no los tiene.'
-        : 'Todavía no hay efectos: aparecen cuando el árbol de problemas los tenga.';
+    const fuente = m.fuente_efectos === 'arbol' ? tr(P + 'effectsFromTree')
+      : m.fuente_efectos === 'novedad' ? tr(P + 'effectsFromNovelty')
+        : tr(P + 'noEffects');
     return `<div class="nov-matrix">
-        <p class="nov-legend">La matriz resume el proyecto hasta este punto con la lógica de la cadena de valor: cada causa directa da un objetivo específico, que se desagrega en pilares de novedad, hipótesis y experimentos o acciones con su producto, su resultado esperado y su indicador, y apunta a los efectos del árbol de problemas.</p>
+        <p class="nov-legend">${esc(tr(P + 'matrixLegend'))}</p>
         <div class="nov-matrix__head">${head}</div>
         <div class="matrix-stats-grid nov-stats">
-          ${stat('objetivos', t.objetivos || 0, 'Objetivos específicos')}
-          ${stat('pilares', t.pilares || 0, 'Pilares de novedad')}
-          ${stat('hipotesis', t.hipotesis || 0, 'Hipótesis')}
-          ${stat('experimentos', t.experimentos || 0, 'Experimentos y acciones', breakdown ? `<small class="nov-muted">${esc(breakdown)}</small>` : '')}
+          ${stat('objetivos', t.objetivos || 0, tr(P + 'specificObjectives'))}
+          ${stat('pilares', t.pilares || 0, tr(P + 'noveltyPillars'))}
+          ${stat('hipotesis', t.hipotesis || 0, tr(P + 'hypothesis'))}
+          ${stat('experimentos', t.experimentos || 0, tr(P + 'experimentsAndActions'), breakdown ? `<small class="nov-muted">${esc(breakdown)}</small>` : '')}
         </div>
         <div class="matrix-toolbar nov-toolbar">
           <label class="matrix-search-box nov-search"><span class="matrix-search-icon" aria-hidden="true">🔍</span>
-            <input type="search" class="matrix-search-input nov-search__input" value="${esc(st.query)}" placeholder="Buscar en causas, objetivos, pilares, hipótesis o productos" aria-label="Buscar en la matriz"></label>
+            <input type="search" class="matrix-search-input nov-search__input" value="${esc(st.query)}" placeholder="${esc(tr(P + 'searchPlaceholder'))}" aria-label="${esc(tr(P + 'searchMatrix'))}"></label>
           <div class="matrix-filters">
-            <select class="matrix-select nov-type" aria-label="Filtrar por tipo"><option value="">Todos los tipos</option>${options}</select>
-            <button class="btn btn--sm nov-clear" type="button">↺ Limpiar</button>
+            <select class="matrix-select nov-type" aria-label="${esc(tr(P + 'filterByType'))}"><option value="">${esc(tr(P + 'allTypes'))}</option>${options}</select>
+            <button class="btn btn--sm nov-clear" type="button">${esc(tr(P + 'clear'))}</button>
           </div>
         </div>
         <p class="nov-count nov-muted">${esc(countText(m, st))}</p>
         <div class="nov-table-wrap">
           <table class="table nov-table">
-            <thead><tr><th>Causa directa</th><th>Objetivo específico</th><th>Pilares</th><th>Hipótesis</th><th>Experimentos y acciones</th><th>Productos</th><th>Resultado esperado e indicador</th><th>Efecto o impacto</th><th><span class="sr-only">Detalle</span></th></tr></thead>
+            <thead><tr>${['directCause', 'specificObjective', 'pillars', 'hypothesis', 'experimentsAndActions', 'products',
+              'expectedResultAndIndicator', 'effectOrImpact'].map((key) => `<th>${esc(tr(P + key))}</th>`).join('')}<th><span class="sr-only">${esc(tr(P + 'detailLabel'))}</span></th></tr></thead>
             <tbody>${tbodyHtml(m, st)}</tbody>
           </table>
         </div>
@@ -451,10 +463,10 @@
 
     if (slots.head) {
       slots.head.innerHTML = `
-        <p class="nov-intro">El investigador propone los pilares de novedad y las hipótesis a partir de la idea, los insumos, la guía ajustada al TDR, los dos árboles, el Proyecto Resumido y el estado del arte. Cada hipótesis trae los experimentos, acciones, implementaciones, intervenciones o transferencias que producirían su evidencia, y no siempre pasan por la IA. Es una vista asesora: no reescribe secciones ni aprueba compuertas.</p>
+        <p class="nov-intro">${esc(tr(P + 'intro'))}</p>
         <div class="nov-toolbar-row">
-          <button class="btn btn--sm btn--primary nov-run" type="button">Generar / actualizar</button>
-          <button class="btn btn--sm nov-retry" type="button" hidden>Reintentar envío</button>
+          <button class="btn btn--sm btn--primary nov-run" type="button">${esc(tr(P + 'generate'))}</button>
+          <button class="btn btn--sm nov-retry" type="button" hidden>${esc(tr(P + 'retrySend'))}</button>
           <span class="nov-message" role="status" aria-live="polite"></span>
         </div>
         <div class="nov-status"></div>`;
@@ -464,7 +476,7 @@
     const message = root.querySelector('.nov-message');
     const status = root.querySelector('.nov-status');
 
-    const state = { data: null, sig: null, pending: null, prompt: null, timer: null, observer: null,
+    const state = { data: null, sig: null, pending: null, prompt: null, timer: null, observer: null, said: null,
       matrix: { query: '', tipo: '', expanded: new Set() } };
 
     let judge = null;
@@ -472,9 +484,11 @@
       judge = win.JudgeAvance.mount(slots.judge, { etapa: 'novedad', interval, fetch: doFetch, send });
     }
 
-    function say(text, kind) {
+    // `key` and `vars` name the message, kept so a language switch can say it again.
+    function say(key, vars, kind) {
+      state.said = key ? { key, vars, kind } : null;
       if (!message) return;
-      message.textContent = text || '';
+      message.textContent = key ? tr(key, vars) : '';
       message.className = `nov-message${kind ? ` is-${kind}` : ''}`;
     }
 
@@ -525,14 +539,14 @@
       if (runBtn) runBtn.disabled = !!state.pending;
       if (status) {
         const errors = [...list(data.errores), ...list(data.validacion && data.validacion.errores)];
-        status.innerHTML = `${state.pending ? '<div class="nov-pending">El investigador está proponiendo los pilares y las hipótesis. Esta vista se actualiza sola cuando el script registre el artefacto.</div>' : ''}
-          ${errors.length ? `<div class="nov-errors"><strong>El artefacto tiene ${errors.length} ${errors.length === 1 ? 'observación' : 'observaciones'} de validación:</strong><ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}`;
+        status.innerHTML = `${state.pending ? `<div class="nov-pending">${esc(tr(P + 'pending'))}</div>` : ''}
+          ${errors.length ? `<div class="nov-errors"><strong>${esc(tr(P + (errors.length === 1 ? 'validationOne' : 'validationMany'), { n: errors.length }))}</strong><ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}`;
       }
       const loading = state.data === null;
       if (slots.tree) {
         slots.tree.innerHTML = nov
           ? renderTree(nov)
-          : loading ? '<p class="nov-empty">Cargando…</p>' : '<p class="nov-empty">Todavía no hay pilares ni hipótesis. Pulsa «Generar / actualizar» para que el investigador los proponga desde los árboles, el Proyecto Resumido y el estado del arte.</p>';
+          : `<p class="nov-empty">${esc(tr(P + (loading ? 'loading' : 'emptyTree')))}</p>`;
         const tree = slots.tree.querySelector('[data-novelty-tree]');
         if (tree) {
           wireFocus(tree, graph(nov).near);
@@ -547,7 +561,7 @@
       if (slots.matrix) {
         slots.matrix.innerHTML = nov && data.matriz
           ? renderMatrix(data.matriz, state.matrix)
-          : loading ? '<p class="nov-empty">Cargando…</p>' : '<p class="nov-empty">La matriz aparece cuando exista el artefacto de novedad.</p>';
+          : `<p class="nov-empty">${esc(tr(P + (loading ? 'loading' : 'emptyMatrix')))}</p>`;
         wireMatrix();
       }
     }
@@ -559,14 +573,14 @@
         data = await res.json();
         if (!res.ok || !data || data.ok === false) throw new Error((data && data.error) || `HTTP ${res.status}`);
       } catch (err) {
-        state.data = { errores: [`No se pudo consultar la novedad: ${err && err.message ? err.message : err}`] };
+        state.data = { errores: [tr(P + 'queryFailed', { reason: err && err.message ? err.message : err })] };
         paint();
         return state.data;
       }
       state.data = data;
       if (state.pending && data.disponible && data.actualizado && data.actualizado !== state.pending.from) {
         state.pending = null;
-        say('Llegaron los pilares y las hipótesis del investigador.', 'ok');
+        say(P + 'arrived', null, 'ok');
       }
       paint();
       return data;
@@ -574,17 +588,17 @@
 
     async function deliver(prompt) {
       state.prompt = prompt;
-      say('Enviando el pedido al agente…');
+      say(P + 'sending');
       let delivered = false;
       try { delivered = await send(prompt); } catch (_) { delivered = false; }
       if (delivered === false) {
         if (retryBtn) retryBtn.hidden = false;
-        say('El pedido no llegó al agente: la terminal no conectó. Abre el asistente y pulsa «Reintentar envío».', 'error');
+        say(P + 'notDelivered', null, 'error');
         return false;
       }
       if (retryBtn) retryBtn.hidden = true;
       state.pending = { from: (state.data && state.data.actualizado) || null };
-      say(`Se envió ${prompt} al agente.`, 'ok');
+      say(P + 'sent', { prompt }, 'ok');
       paint();
       return true;
     }
@@ -597,11 +611,13 @@
         });
         result = await res.json();
       } catch (err) {
-        say(`No se pudo pedir la generación: ${err && err.message ? err.message : err}`, 'error');
+        say(P + 'requestFailedReason', { reason: err && err.message ? err.message : err }, 'error');
         return false;
       }
       if (!result || !result.ok || !result.prompt) {
-        say((result && result.error) || 'No se pudo pedir la generación.', 'error');
+        // The server's own message (localize.py translates it), shown as it comes.
+        if (result && result.error) say(P + 'serverMessage', { message: result.error }, 'error');
+        else say(P + 'requestFailed', null, 'error');
         return false;
       }
       return deliver(result.prompt);
@@ -626,6 +642,24 @@
       state.timer = null;
       if (judge) judge.stop();
     }
+
+    // A language switch: the panel's own texts at once, then the artifact
+    // again (the server translates its messages too). The judge relabels itself.
+    function relabel() {
+      if (!root.isConnected) {
+        doc.removeEventListener('languagechange', relabel);
+        return;
+      }
+      const intro = root.querySelector('.nov-intro');
+      if (intro) intro.textContent = tr(P + 'intro');
+      if (runBtn) runBtn.textContent = tr(P + 'generate');
+      if (retryBtn) retryBtn.textContent = tr(P + 'retrySend');
+      if (state.said) say(state.said.key, state.said.vars, state.said.kind);
+      state.sig = null;
+      paint();
+      if (state.data) refresh();
+    }
+    doc.addEventListener('languagechange', relabel);
 
     if (runBtn) runBtn.addEventListener('click', () => { run(); });
     if (retryBtn) retryBtn.addEventListener('click', () => { retry(); });

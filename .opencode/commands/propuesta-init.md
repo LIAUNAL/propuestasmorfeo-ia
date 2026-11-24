@@ -114,7 +114,9 @@ $ARGUMENTS
    ningún cambio versionado. Nunca uses `git add -f` sobre nada bajo
    `proposals/`.
 
-6. **Cerrá informando**: run-id, `RUN_ROOT`, las cuatro subcarpetas, los dos
+6. **Cerrá informando**: run-id, `RUN_ROOT`, el idioma de redacción (la línea
+   `idioma: en` que imprime el script en una corrida en inglés; sin ella, `es`;
+   se cambia para las corridas nuevas con `morfeo config lang`), las cuatro subcarpetas, los dos
    nombres de índice de `codebase-memory` que usará la corrida
    (`<run-id>-papers` sobre `artefactos/scoping/papers`, `<run-id>-vault`
    sobre `artefactos/vault`), la tabla de modelos confirmada en el paso 0 (o su

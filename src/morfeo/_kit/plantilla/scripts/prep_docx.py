@@ -159,18 +159,34 @@ def swap_figure_graphics(text: str, png_name: str) -> str:
     return text[:fig_m.start()] + new_block + text[fig_m.end():]
 
 
-_CREF_NOUNS = {"fig": "Figura", "sec": "Sección", "tab": "Tabla"}
+# Nouns by writing language: main.tex loads babel spanish, or english in a run
+# created in English (scripts/language.py localize), and the docx says the same.
+_CREF_NOUNS_BY_LANG = {
+    "es": {"fig": "Figura", "sec": "Sección", "tab": "Tabla"},
+    "en": {"fig": "Figure", "sec": "Section", "tab": "Table"},
+}
+_CREF_NOUNS = _CREF_NOUNS_BY_LANG["es"]
 _CREF_RE = re.compile(r'\\([Cc])ref\{((fig|sec|tab):[^}]+)\}')
+_BABEL_RE = re.compile(r'^[^%\n]*\\usepackage\[([^\]]*)\]\{babel\}', re.MULTILINE)
 
 
-def resolve_cref(text: str) -> str:
+def document_language(main_tex: str) -> str:
+    """"en" when main.tex loads babel with english, otherwise "es"."""
+    match = _BABEL_RE.search(main_tex)
+    options = [o.strip() for o in match.group(1).split(",")] if match else []
+    return "en" if "english" in options else "es"
+
+
+def resolve_cref(text: str, lang: str = "es") -> str:
     """Rewrite cleveref `\\Cref{}`/`\\cref{}` into `<Noun>~\\ref{}` before
     pandoc runs — pandoc's LaTeX reader resolves plain `\\ref{}` to a bare
     number but does not know cleveref, so `\\Cref{fig:x}` would otherwise
     survive as a raw, unresolved label or a bare number with no noun."""
+    nouns = _CREF_NOUNS_BY_LANG.get(lang, _CREF_NOUNS)
+
     def repl(m):
         cap, label, prefix = m.groups()
-        noun = _CREF_NOUNS[prefix]
+        noun = nouns[prefix]
         if cap == "c":
             noun = noun.lower()
         return f"{noun}~\\ref{{{label}}}"
@@ -240,8 +256,9 @@ def build_stage(stage: pathlib.Path) -> pathlib.Path:
             else:
                 shutil.copy2(f, stage / "sections" / f.name)
 
+    lang = document_language((stage / "main.tex").read_text(encoding="utf-8"))
     for staged_tex in [stage / "main.tex", *sorted((stage / "sections").glob("*.tex"))]:
-        staged_tex.write_text(resolve_cref(staged_tex.read_text(encoding="utf-8")), encoding="utf-8")
+        staged_tex.write_text(resolve_cref(staged_tex.read_text(encoding="utf-8"), lang), encoding="utf-8")
 
     return stage / "main.tex"
 

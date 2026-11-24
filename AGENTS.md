@@ -22,6 +22,7 @@ cada fase al subagente correspondiente definido en `.claude/agents/`.
 | `/propuesta-juez-avance` | Juez de avance por etapa (`arbol`, `novedad` o `final`, asesor) |
 | `/propuesta-novedad` | Pilares de novedad e hipótesis para el tablero (asesor) |
 | `/propuesta-convocatorias` | Convocatorias afines (CO, LatAm, intl.; es/en) al tablero |
+| `/propuesta-traducir` | Versión traducida del manuscrito (`en` o `es`; derivada, asesor) |
 | `/compilar-pdf` | Compila la corrida activa a PDF (`build.sh` en `redaccion/`) |
 | `/compilar-docx` | Exporta la corrida activa a Word (`build.sh --docx` en `redaccion/`) |
 
@@ -91,8 +92,11 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
 
 ## Reglas globales
 
-1. **Idioma:** Los *system prompts* de los agentes están en inglés, pero toda
-   la **salida del documento (propuesta) debe redactarse en español**.
+1. **Idioma:** Los *system prompts* de los agentes están en inglés; la
+   **salida del documento (propuesta) se redacta en el idioma de la corrida**,
+   `LANG`: `es` por defecto o `en` (`morfeo config lang`; el SGR, solo `es`). El
+   dispatcher pasa `LANG` a cada agente; en inglés rigen las skills `-en` y
+   `scripts/estilo_en.py`.
 2. **Insumos:** La propuesta se construye desde un prompt/idea del usuario más
    PDFs, papers, enlaces o información relevante que este aporte. Los archivos
    fuente (PDFs, papers, propuestas previas, documentos de referencia) se
@@ -124,16 +128,14 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
    - Metodología (§10) ↔ objetivos específicos (§7), marco conceptual (§8) y
      equipo de trabajo (§9), cadena de valor. El punto 2 de Metodología nombra
      el enfoque/algoritmo por subproblema con razonamiento causa-efecto
-     explícito referenciando el marco conceptual (§8) — función que antes
-     cubría el desaparecido §5.3 Enfoques teóricos.
+     explícito referenciando el marco conceptual (§8).
    - Equipo de trabajo (§9) deriva sus roles de los objetivos específicos
      (§7); nunca de la Metodología (§10).
    - Cronograma de actividades (§14) ↔ fases de la Metodología (§10).
    - Resultados esperados (§11) ↔ productos entregados en hitos del
      cronograma (§14).
-   - Presupuesto (§13) ↔ Metodología (§10) y Cronograma (§14) —referencia
-     hacia adelante válida, ya que Presupuesto se redacta antes que Cronograma
-     en el pipeline pero ambos referencian las mismas fases de Metodología.
+   - Presupuesto (§13) ↔ Metodología (§10) y Cronograma (§14): la referencia
+     hacia adelante vale, porque ambos citan las mismas fases de Metodología.
    - TRL 6 o 7 debe ser explícito en pertinencia (§2) y resultados esperados
      (§11), y la metodología (§10) muestra la trayectoria; **nunca** se nombra
      en objetivo general (§6) ni en objetivos específicos (§7).
@@ -174,9 +176,7 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
    **dentro de `RUN_ROOT`**, nunca en la raíz del repo; las únicas rutas
    relativas a la raíz son las del framework (`.claude/`, `.opencode/`,
    `.pi/`, `scripts/`, `guiaProyectosIA_Agente.md`, `AGENTS.md`,
-   `plantilla/`, `proposals/`). Ninguno de los cuatro nombres de subcarpeta
-   colisiona con un directorio del repo, así que una ruta de corrida nunca es
-   ambigua. Archivar una corrida es solo un cambio de estado en su `_run.md` y en el
+   `plantilla/`, `proposals/`). Archivar una corrida es solo un cambio de estado en su `_run.md` y en el
    registro local `proposals/registry.md`: la carpeta ya **es** el archivo, no
    se copia ni se borra contenido. **Nada bajo `proposals/` se versiona**
    —corridas, registro y puntero incluidos—, así que ni crear ni cerrar una
@@ -194,9 +194,8 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
    con esa alianza, copiando `plantilla/logos-opcionales/logo_utp.png` a
    `redaccion/logos/`. `redaccion/` es la **fuente de
    verdad** dentro de una corrida, pero **no está versionada**: `.tex`/`.bib`/`.pdf`/`.docx`
-   y el resto del contenido de la corrida están en `.gitignore` (regla 7) — GitHub solo aloja el
-   esqueleto del framework (agentes, comandos, scripts, plantillas), nunca
-   el contenido de una propuesta específica. La tipografía y la jerarquía de títulos
+   y el resto del contenido de la corrida están en `.gitignore` (regla 7): GitHub solo aloja el
+   esqueleto del framework, nunca el contenido de una propuesta. La tipografía y la jerarquía de títulos
    están en «Invariantes de estilo del documento».
 9. **Espejo `artefactos/vault/`:** `artefactos/vault/secciones/` y
    `artefactos/vault/insumos/` son un espejo Markdown compatible con Obsidian,
@@ -237,7 +236,7 @@ reemplaza a `grant-flow-auditor` antes de cada `revisor`.
 
 ## Roster de agentes (`.claude/agents/`) y modelos por defecto
 
-El marco tiene **16 agentes**, todos definidos en `.claude/agents/` (fuente de
+El marco tiene **18 agentes**, todos definidos en `.claude/agents/` (fuente de
 verdad):
 
 | Agente | Modelo por defecto | Rol |
@@ -258,9 +257,11 @@ verdad):
 | `juez-avance` | opus | Juez de avance por etapa (asesor) |
 | `revisor-estilo-sgr` | sonnet | Solo SGR: estilo, voz, léxico y redundancia (skill `estilo-sgr`), en lugar de `grant-flow-auditor` |
 | `explorador-convocatorias` | sonnet | Convocatorias afines y rol de Colombia (fuera del pipeline) |
+| `traductor` | opus | Traduce el manuscrito al otro idioma, bloque por bloque (`scripts/traducir.py`) |
+| `revisor-traduccion` | sonnet | Estilo de la traducción sobre su `auditoria.json` (solo lectura) |
 
 No existen agentes llamados `orquestador`, `observador` (a secas) ni
-`bibliotecario`; esos nombres no forman parte de este marco.
+`bibliotecario`.
 
 ## Skills del marco (`.claude/skills/`)
 
@@ -270,9 +271,10 @@ que un agente carga cuando la tarea lo pide), con la misma fuente de verdad
 
 | Skill | Para qué | La usa |
 |-------|----------|--------|
-| `estilo-natural-es` | Pulir y humanizar la prosa narrativa y científica en español (norma académica culta de Colombia): corrige 35 patrones mecánicos, prohíbe rayas anglosajonas (` — `) o dobles guiones (`--`), varía la cadencia oracional y aplica la regla 70/30 de vocabulario, con fidelidad estricta de cifras, fechas, presupuestos y citas BibTeX APA autor-año. No introduce errores tipográficos, imprecisión deliberada ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
+| `estilo-natural-es` | Pulir y humanizar la prosa en español (norma académica culta de Colombia): corrige 35 patrones mecánicos, varía la cadencia, aplica la regla 70/30 de vocabulario y prohíbe rayas (` — `) y dobles guiones (`--`), con fidelidad estricta de cifras, fechas, presupuestos y citas APA autor-año. Sin errores deliberados ni registro coloquial. | `grant-flow-auditor` (antes de cada `revisor`), `redactor`, `investigador` **y el asistente primario en toda prosa en español que redacte** |
 | `depuracion-redundancias-es` | Auditar y eliminar redundancias conceptuales, léxicas y estructurales dentro de una misma sección, asegurando que cada párrafo aporte avance argumentativo y articulando la aplicación integral de `estilo-natural-es` (humanización y ritmo). | `grant-flow-auditor`, `redactor`, `investigador` y el asistente primario en revisiones integrales de texto |
-| `constelacion-sota` | Construir la constelación SOTA de una corrida: un sistema por paper con planetas tipados (tema de aplicación y de IA, problema, aplicación, novedad, familia, resultados, conclusiones), cada uno con cita textual del abstract, validada por `scripts/check_atlas.py` y dibujada por `scripts/render_atlas.py` en `grafos/papers-graph.html`, con el estudio por familia en `grafos/papers-constellation-report.md`. Port de `plausibility` de papersmith-ai. | `bibliografo-propuesta` (MODE=atlas, Fases 1a y 1c), en ambos flujos |
+| `estilo-natural-en`, `depuracion-redundancias-en` | Contrapartes en inglés de las dos skills en español, para corridas con `LANG=en`: mismas garantías de fidelidad, patrones del inglés académico y puntaje con `scripts/estilo_en.py`. | los mismos agentes, en corridas en inglés |
+| `constelacion-sota` | Construir la constelación SOTA de una corrida: un sistema por paper con planetas tipados, cada uno con cita textual del abstract, validada por `scripts/check_atlas.py` y dibujada por `scripts/render_atlas.py` en `grafos/papers-graph.html`, con el estudio por familia en `grafos/papers-constellation-report.md`. Port de `plausibility` de papersmith-ai. | `bibliografo-propuesta` (MODE=atlas, Fases 1a y 1c), en ambos flujos |
 | `estilo-sgr` | Solo flujo SGR: voz en tercera persona, patrones por capítulo del Anexo 2, léxico `scripts/sgr/lexico_sgr.json` y redundancia R1–R14; ajusta las dos skills anteriores a la MGA (C1–C18). | `revisor-estilo-sgr` |
 
 La skill canónica vive en `.claude/skills/estilo-natural-es/SKILL.md` y de ahí
@@ -288,7 +290,8 @@ y a los generadores, y se regeneran los ports con su `--check`.
 **Alcance.** Pasa por ella cualquier prosa en español que el marco produzca. Eso
 incluye las secciones de la propuesta (§1–§18 y el front-matter) y también los
 artefactos que el asistente primario redacta por su cuenta: `LEEME`, documentos
-de `odd/tasks/`, guías, reportes y notas de corrida.
+de `odd/tasks/`, guías, reportes y notas de corrida. En una corrida en inglés
+(`LANG=en`) la misma regla rige con `estilo-natural-en`.
 
 **Mecánica, según quién escriba.**
 
@@ -309,11 +312,6 @@ cifra, una fecha ni una clave de cita.
 - **Prohibición de rayas anglosajonas y dobles guiones:** Queda terminantemente prohibido el uso de `--` o ` — ` en la prosa narrativa. Los incisos se resuelven con comas, punto y coma o paréntesis.
 - **Formato de citación:** el de la regla 6.
 - **Estructura fija:** Los párrafos requeridos por la guía (ej. los 6 de §2) y el mapeo 1:1 (3 subproblemas ↔ 3 objetivos específicos) son inalterables.
-
-**Por qué la regla vive aquí y no solo en el pipeline.** Mientras fue un paso del
-pipeline, cubría las secciones de la propuesta y dejaba fuera todo lo demás que
-se escribe en español. Un `LEEME` o un documento de tareas sin pasar por la skill
-tiene la misma textura mecánica que la skill existe para quitar.
 
 ## Operación del pipeline (solo para quien despacha)
 

@@ -71,7 +71,9 @@ export function extractInlineScript(html) {
 // document: they run in the same order as in the browser, before the main
 // inline script, and share their globals with it.
 export const DASHBOARD_STATIC = path.dirname(DASHBOARD_INDEX);
-const LOCAL_SCRIPT_TAG = /<script\s+src="\/static\/(cli-console\.js|convocatorias-map\.js)"\s*><\/script>/g;
+// text-size.js and the i18n runtime with its catalogues run in <head>, before
+// the body, exactly as in the browser.
+const LOCAL_SCRIPT_TAG = /<script\s+src="\/static\/(cli-console\.js|convocatorias-map\.js|text-size\.js|i18n\.js|i18n\/[a-z]{2}\/[a-z0-9-]+\.js)"\s*><\/script>/g;
 
 /** The dashboard HTML with its local scripts (`/static/*.js`) inlined. */
 export function inlineLocalScripts(html, staticDir = DASHBOARD_STATIC) {
@@ -84,6 +86,20 @@ export function inlineLocalScripts(html, staticDir = DASHBOARD_STATIC) {
 /** Reads `index.html` as the browser runs it, with its local scripts inlined. */
 export function readDashboardHtml() {
   return inlineLocalScripts(readFileSync(DASHBOARD_INDEX, 'utf8'));
+}
+
+// The language runtime (static/i18n.js) with every catalogue, in the order
+// index.html loads them in <head>: the scripts a panel finds already there.
+const I18N_TAG = /<script\s+src="\/static\/(i18n\.js|i18n\/[a-z]{2}\/[a-z0-9-]+\.js)"\s*><\/script>/g;
+
+/** Runs the language runtime and its catalogues in `window` (a panel page). */
+export function loadI18n(window, { lang = null } = {}) {
+  const head = readFileSync(DASHBOARD_INDEX, 'utf8').split('</head>')[0];
+  if (lang) window.localStorage.setItem('morfeo.lang', lang);
+  for (const match of head.matchAll(I18N_TAG)) {
+    window.eval(readFileSync(path.join(DASHBOARD_STATIC, match[1]), 'utf8'));
+  }
+  return window.i18n;
 }
 
 /** Promesa que solo se asienta cuando alguien lo pide. */

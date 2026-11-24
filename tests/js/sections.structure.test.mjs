@@ -9,13 +9,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
-import { readDashboardHtml } from './harness.mjs';
+import { createViewerHarness, flush, readDashboardHtml } from './harness.mjs';
 
 const REPO = fileURLToPath(new URL('../../', import.meta.url)).replace(/\/$/, '');
 
 test('la tabla de secciones incluye la columna Estructura en el encabezado y el modal de estructura en el DOM', () => {
   const indexHtml = fs.readFileSync(path.resolve(REPO, 'src/morfeo/dashboard/static/index.html'), 'utf8');
-  assert.ok(indexHtml.includes('<th>Estructura</th>'), 'La tabla de secciones debe incluir la columna Estructura');
+  assert.ok(indexHtml.includes('<th data-i18n="page.structureColumn">Estructura</th>'), 'La tabla de secciones debe incluir la columna Estructura, traducible');
   assert.ok(indexHtml.includes('id="sectionStructureModal"'), 'Debe existir el modal sectionStructureModal en index.html');
   assert.ok(indexHtml.includes('id="secModalTitle"'), 'Debe existir el elemento secModalTitle para el título de la sección');
   assert.ok(indexHtml.includes('id="secModalBody"'), 'Debe existir el elemento secModalBody para el contenido detallado');
@@ -107,4 +107,18 @@ test('openSectionStructure renderiza principio, mini-grafo de conexiones, párra
   assert.equal(modal.style.display, 'none');
 
   dom.window.close();
+});
+
+test('the Estructura column header follows the dashboard language', async (t) => {
+  const viewer = await createViewerHarness({ numPages: 1 });
+  t.after(() => viewer.dispose());
+  viewer.window.fetch = async () => ({ ok: false, status: 503, json: async () => ({}), text: async () => '' });
+  const header = viewer.document.querySelector('th[data-i18n="page.structureColumn"]');
+  assert.equal(header.textContent, 'Estructura');
+  viewer.window.i18n.setLanguage('en');
+  await flush(10);
+  assert.equal(header.textContent, 'Structure');
+  viewer.window.i18n.setLanguage('es');
+  await flush(10);
+  assert.equal(header.textContent, 'Estructura');
 });

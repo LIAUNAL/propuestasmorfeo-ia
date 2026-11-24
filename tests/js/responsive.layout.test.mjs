@@ -159,3 +159,17 @@ test('a deep link to #novedad opens and reveals the novelty tab on load', async 
   assert.ok(viewer.document.getElementById('pane-novedad').classList.contains('active'));
   assert.ok(calls.some(c => c.el === tabButton(viewer, 'novedad')));
 });
+
+test('large text sizes wrap the phase badges, tree toolbar and button groups instead of widening the page', () => {
+  // jsdom has no layout: the overflow itself was measured in Chrome at 360 px and ×1 to ×2.
+  const html = readDashboardHtml();
+  for (const rule of [
+    'html:not([data-text-scale="1"]) .phase-card__head .badge { white-space: normal; }',
+    '.tree-switch, .btn-group, .tree-toolbar { flex-wrap: wrap; }',
+    '.tree-legend { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }',
+    '.panel__meta { overflow-wrap: anywhere; min-width: 0; }',
+    '.topbar__actions { flex-wrap: wrap; min-width: 0; max-width: 100%; }',
+  ]) {
+    assert.ok(html.includes(rule), rule);
+  }
+});

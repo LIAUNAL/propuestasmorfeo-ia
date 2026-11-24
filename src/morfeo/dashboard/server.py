@@ -6,6 +6,7 @@ Uses Python's standard library (http.server) to guarantee zero external dependen
 
 from __future__ import annotations
 
+import html
 import importlib.util
 import json
 import mimetypes
@@ -32,6 +33,7 @@ from ..core.judge_avance import ETAPAS as JUDGE_AVANCE_ETAPAS, ETAPAS_TEXTO as J
 from ..core.novedad import build_run_command as build_novedad_command, load_novedad
 from ..core.trees import _workspace_path, approve_tree, load_trees, record_feedback
 from ..core.style_sgr import load_style
+from ..core import translation as manuscript_translation
 from ..core.value_chain import approve as approve_value_chain, build_adjust_prompt, load_value_chain
 from ..core.alliance import approve as approve_alliance, build_adjust_prompt as build_alliance_prompt, load_alliance
 from ..core.budget import approve as approve_budget, build_adjust_prompt as build_budget_prompt, load_budget
@@ -54,6 +56,7 @@ from ..core.requirements import (
     update_item as update_requirement,
 )
 from . import terminal_routes
+from .localize import localize_response, requested_language
 
 
 def parse_estado_propuesta(estado_file: Path) -> dict[str, Any]:
@@ -136,7 +139,7 @@ BRAND_ASSETS = frozenset({"favicon.ico", "favicon.png", "morfeo-logo.png"})
 # Page code moved out of index.html: it must stay as fresh as the page that
 # loads it, so a cached copy never runs against a newer index.html.
 PAGE_SCRIPTS = frozenset({"cli-console.js", "board-refresh.js", "convocatorias-map.js", "convocatorias-progress.js",
-                          "pdf-locate.js", "novedad-panel.js"})
+                          "pdf-locate.js", "novedad-panel.js", "text-size.js", "i18n.js"})
 
 
 # --- Sentence text of the style findings --------------------------------------
@@ -212,6 +215,8 @@ _LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 # build.sh escribe en la misma carpeta: dos compilaciones a la vez se pisan.
 _COMPILE_LOCK = threading.Lock()
+# La traducción compila en redaccion/traducciones/<lang>/, aparte del original.
+_TRANSLATION_COMPILE_LOCK = threading.Lock()
 
 
 class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
@@ -291,6 +296,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.serve_opportunities_atlas()
         elif path == "/api/board/summary":
             self.serve_board_summary()
+        elif path == "/api/traducciones":
+            self.serve_translations()
         else:
             self.send_error(404, "Not Found")
 
@@ -304,6 +311,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.handle_pdf_execute()
         elif path == "/api/pdf/compile":
             self.handle_pdf_compile()
+        elif path == "/api/traduccion/compilar":
+            self.handle_translation_compile()
         elif path == "/api/graph/build":
             self.handle_graph_build()
         elif path == "/api/trees/feedback":
@@ -393,7 +402,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         # The brand images share paths with other local dashboards; revalidate
         # them so a port reused by another tool never shows its cached icon.
-        if target.name in BRAND_ASSETS or target.name in PAGE_SCRIPTS:
+        # The language catalogues (static/i18n/<lang>/*.js) change with the page too.
+        if target.name in BRAND_ASSETS or target.name in PAGE_SCRIPTS or (static_dir / "i18n") in target.parents:
             self.send_header("Cache-Control", "no-cache")
         else:
             self.send_header("Cache-Control", "public, max-age=3600")
@@ -722,6 +732,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
     # --- Árboles de problemas y objetivos -----------------------------------
 
     def _send_json(self, status_code: int, payload: dict[str, Any]) -> None:
+        # ?lang=en translates the display fields (localize.py); Spanish passes through.
+        payload = localize_response(self.path, payload)
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -1167,18 +1179,19 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
     # SOTA para el iframe de la vista «Constelación de afinidad». Se arma en cada
     # petición, sin caché. `?alcance=`, `?agrupar=tema|ambito|rol` e `?ids=`
     # (slugs separados por comas: los filtros del panel) son opcionales.
+    # `?lang=en` escribe en inglés el marco de la página (no los datos).
     def serve_opportunities_atlas(self) -> None:
         query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query, keep_blank_values=True)
         try:
             params = {}
-            for key in ("alcance", "agrupar", "ids"):
+            for key in ("alcance", "agrupar", "ids", "lang"):
                 values = query.get(key)
                 if values is not None and len(values) != 1:
                     raise ValueError(f"El parámetro «{key}» va una sola vez.")
                 params[key] = values[0] if values else None
             status, page = 200, render_opportunities_atlas(self.workspace_dir, **params)
         except ValueError as err:
-            status, page = 400, message_page("Petición inválida", str(err))
+            status, page = 400, message_page("Petición inválida", str(err), requested_language(self.path))
         body = page.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -1293,7 +1306,7 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self._send_json(200, {"ok": True, **self._style_report_with_sentences(run_dir)})
 
     def serve_api_status(self) -> None:
-        response_data = get_project_status(self.workspace_dir)
+        response_data = localize_response(self.path, get_project_status(self.workspace_dir))
         # Compacto: el tablero lo pide cada 2 a 5 s, y la sangría solo engordaba el cuerpo.
         body = json.dumps(response_data, separators=(",", ":")).encode("utf-8")
         self.send_response(200)
@@ -1307,7 +1320,8 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         if run_dir is None:
             self.send_error(404, "No active run")
             return
-        body = build_presentation(run_dir).encode("utf-8")
+        # `?lang=en`: the deck's own words in English (the dashboard opens it in its language).
+        body = build_presentation(run_dir, requested_language(self.path)).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -1335,13 +1349,64 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _translation_target(self) -> str | None:
+        """`traduccion=<lang>` of the query: the translated PDF instead of the
+        original. `lang` is the interface language and never selects a PDF."""
+        values = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("traduccion")
+        return values[0].strip() if values and values[0].strip() else None
+
     def serve_pdf_version(self) -> None:
         run_dir = self._active_run_dir()
         if run_dir is None:
             self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
             return
-        version = pdf_version(run_dir / "redaccion" / "main.pdf")
+        target = self._translation_target()
+        if target is None:
+            pdf_path = run_dir / "redaccion" / "main.pdf"
+        else:
+            pdf_path = manuscript_translation.translated_pdf(run_dir, target)
+            if pdf_path is None:
+                self._send_json(400, {"ok": False, "error": f"Idioma de traducción desconocido {target!r}: usa es o en."})
+                return
+        version = pdf_version(pdf_path)
         self._send_json(200, {"ok": True, "exists": version is not None, "version": version})
+
+    # --- «Versión del documento»: traducción del manuscrito --------------------
+
+    def serve_translations(self) -> None:
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        try:
+            payload = manuscript_translation.load_translation(run_dir, self._resolve_scripts_dir(),
+                                                              self._translation_target())
+        except ValueError as exc:
+            self._send_json(500, {"ok": False, "error": str(exc)})
+            return
+        self._send_json(200 if payload.get("ok") else 400, payload)
+
+    def handle_translation_compile(self) -> None:
+        """Compila la traducción construida; una compilación de traducción a la vez."""
+        run_dir = self._active_run_dir()
+        if run_dir is None:
+            self._send_json(404, {"ok": False, "error": "No hay una corrida activa seleccionada"})
+            return
+        if not _TRANSLATION_COMPILE_LOCK.acquire(blocking=False):
+            self._send_json(409, {"ok": False, "error": "Ya hay una compilación de la traducción en curso"})
+            return
+        try:
+            result = manuscript_translation.compile_translation(run_dir, self._resolve_scripts_dir(),
+                                                                self._translation_target())
+        except ValueError as exc:
+            result = {"ok": False, "error": str(exc)}
+        finally:
+            _TRANSLATION_COMPILE_LOCK.release()
+        if result.get("ok"):
+            self._send_json(200, result)
+        else:
+            unknown = result.get("code") in ("TRANSLATION_LANGUAGE_UNSUPPORTED", "TRANSLATION_SAME_LANGUAGE")
+            self._send_json(400 if unknown else 409 if result.get("code") == "TRANSLATION_NOT_BUILT" else 500, result)
 
     def handle_pdf_compile(self) -> None:
         """Recompila main.pdf con build.sh; una compilación a la vez por servidor."""
@@ -1369,11 +1434,23 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(404, "No active run")
             return
 
-        pdf_path = self.workspace_dir / "proposals" / active_run / "redaccion" / "main.pdf"
-        if not pdf_path.is_file():
-            self.send_error(404, "main.pdf not found")
-            return
+        target = self._translation_target()
+        if target is None:
+            pdf_path = self.workspace_dir / "proposals" / active_run / "redaccion" / "main.pdf"
+            if not pdf_path.is_file():
+                self.send_error(404, "main.pdf not found")
+                return
+        else:
+            pdf_path = manuscript_translation.translated_pdf(self.workspace_dir / "proposals" / active_run, target)
+            if pdf_path is None:
+                self.send_error(400, "Unknown translation language")
+                return
+            if not pdf_path.is_file():
+                self.send_error(404, "translated main.pdf not found")
+                return
+        self._send_pdf_file(pdf_path)
 
+    def _send_pdf_file(self, pdf_path: Path) -> None:
         file_size = pdf_path.stat().st_size
         etag = f'"{pdf_version(pdf_path)}"'
 
@@ -1438,6 +1515,27 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             except Exception:
                 pass
 
+        english = requested_language(self.path) == "en"
+        if not graph_path.is_file() and english:
+            fallback = f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Graph unavailable</title></head>
+<body style="background:#0f172a;color:#94a3b8;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;">
+  <div style="background:#1e293b;padding:2.5rem;border-radius:12px;border:1px solid #334155;max-width:520px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+    <div style="font-size:2.5rem;margin-bottom:0.75rem;">🌌</div>
+    <h3 style="color:#38bdf8;margin:0 0 0.5rem 0;font-size:1.25rem;">Graph unavailable for this run</h3>
+    <p style="font-size:0.9rem;line-height:1.5;margin:0 0 1rem 0;">The report <code>{html.escape(filename)}</code> has not been generated yet in the <code>grafos/</code> folder of the active run.</p>
+    <p style="font-size:0.8rem;color:#64748b;margin:0;">Press <strong>⚡ Rebuild graph</strong> at the top right to build it.</p>
+  </div>
+</body>
+</html>""".encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+            self.send_header("Content-Length", str(len(fallback)))
+            self.end_headers()
+            self.wfile.write(fallback)
+            return
         if not graph_path.is_file():
             fallback = f"""<!DOCTYPE html>
 <html lang="es">
@@ -1459,13 +1557,38 @@ class MorfeoDashboardHandler(SimpleHTTPRequestHandler):
             self.wfile.write(fallback)
             return
 
-        content = graph_path.read_bytes()
+        content = (self._english_sota_page(run_dir) if english and filename == "papers-graph.html" else None) \
+            or graph_path.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
+
+    # The papers graph is the SOTA constellation that render_atlas.py wrote in
+    # Spanish. In English it is drawn again from the run's atlas with the
+    # English chrome (render_atlas.render(lang="en")); the atlas, the quotes and
+    # the paper metadata are the same. None (the file on disk is served) when
+    # the run has no readable atlas or the kit's renderer predates the languages.
+    def _english_sota_page(self, run_dir: Path) -> bytes | None:
+        import inspect
+
+        from ..core.value_chain import load_kit_script
+
+        atlas_path = run_dir / "artefactos" / "scoping" / "atlas.json"
+        module = load_kit_script("render_atlas.py", ("render",))
+        render = getattr(module, "render", None) if module is not None else None
+        if not atlas_path.is_file() or not callable(render) or "lang" not in inspect.signature(render).parameters:
+            return None
+        try:
+            atlas = json.loads(atlas_path.read_text(encoding="utf-8"))
+            if module._readable_shape(atlas) is not None:
+                return None
+            papers = module.papers_meta(atlas, atlas_path.parent / "papers")
+            return render(atlas, papers=papers, lang="en").encode("utf-8")
+        except Exception:  # the Spanish page on disk is still there
+            return None
 
 
 def bind_dashboard(workspace_dir: Path, port: int, host: str = "127.0.0.1",

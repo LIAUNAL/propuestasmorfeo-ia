@@ -96,18 +96,26 @@ def _detect_flujo(run_dir: Path) -> str:
         return "base"
 
 
-def _problem_findings(spec: dict[str, Any]) -> list[dict[str, Any]]:
+def _detect_lang(run_dir: Path) -> str:
     rules = _rules()
     try:
-        return rules.problem_tree_findings(spec) if rules else []
+        return rules.detect_lang(run_dir) if rules and hasattr(rules, "detect_lang") else "es"
+    except Exception:
+        return "es"
+
+
+def _problem_findings(spec: dict[str, Any], lang: str = "es") -> list[dict[str, Any]]:
+    rules = _rules()
+    try:
+        return rules.problem_tree_findings(spec, lang) if rules else []
     except Exception:
         return []
 
 
-def _objective_findings(tree: dict[str, Any], spec: dict[str, Any]) -> list[dict[str, Any]]:
+def _objective_findings(tree: dict[str, Any], spec: dict[str, Any], lang: str = "es") -> list[dict[str, Any]]:
     rules = _rules()
     try:
-        return rules.objective_tree_findings(tree, spec) if rules else []
+        return rules.objective_tree_findings(tree, spec, lang) if rules else []
     except Exception:
         return []
 
@@ -299,7 +307,7 @@ def load_trees(run_dir: Path) -> dict[str, Any]:
         "hint": None,
         "tree": ptree,
         "hash": phash,
-        "findings": _problem_findings(spec),
+        "findings": _problem_findings(spec, _detect_lang(run_dir)),
         "review": _review_status(review["problemas"], phash),
     }
 
@@ -317,7 +325,7 @@ def load_trees(run_dir: Path) -> dict[str, Any]:
         "tree": otree,
         "hash": ohash,
         "missing": _missing_objective_texts(otree),
-        "findings": _objective_findings(otree, spec),
+        "findings": _objective_findings(otree, spec, _detect_lang(run_dir)),
         "review": _review_status(review["objetivos"], ohash),
     }
 

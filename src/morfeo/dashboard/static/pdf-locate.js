@@ -22,7 +22,7 @@
  *
  * Public surface (window.PdfLocate):
  *   locate(finding, adapter) -> { found, page, needle, boxes } | { found: false, reason }
- *   message(result)          -> Spanish status line for that result
+ *   message(result)          -> status line for that result, in the active language
  *   highlight(container, boxes, { ms }) paints fading marks over a page
  *   normalize, needlesFor, indexPage, search, refineRange, highlightBoxes (pure)
  *   MESSAGES, HIGHLIGHT_MS, NEEDLE_WORDS
@@ -36,15 +36,20 @@
   const CITE = /\(cita\)/gi;
   const CITE_GAP = /\(cita\)|\s{2,}/i;
 
+  // Status lines in the dashboard's language (static/i18n/<lang>/pdf-locate.js):
+  // each one is read in the language active when it is shown.
+  const tr = (key, vars) => (window.i18n ? window.i18n.t(key, vars) : key);
+  const later = (key) => (window.i18n ? window.i18n.tl(key) : key);
   const MESSAGES = {
-    searching: 'Buscando el hallazgo en el PDF…',
-    found: (page) => `Hallazgo ubicado en la página ${page}.`,
-    notFound: 'No encontrado en el PDF: el texto pudo cambiar desde la última compilación.',
-    noText: 'El hallazgo no trae texto suficiente para buscarlo en el PDF.',
-    noPdf: 'No hay PDF en el cual buscar. Compílalo con «⟳ Recompilar» y vuelve a intentarlo.',
-    native: 'El visor nativo del navegador no permite buscar en el PDF. Vuelve al visor integrado con «Visor PDF.js» y pulsa «Ubicar» otra vez.',
-    reloaded: 'El PDF cambió durante la búsqueda. Pulsa «Ubicar» otra vez.',
+    searching: later('panel.pdfLocate.searching'),
+    found: (page) => tr('panel.pdfLocate.found', { page }),
+    notFound: later('panel.pdfLocate.notFound'),
+    noText: later('panel.pdfLocate.noText'),
+    noPdf: later('panel.pdfLocate.noPdf'),
+    native: later('panel.pdfLocate.native'),
+    reloaded: later('panel.pdfLocate.reloaded'),
   };
+  if (window.i18n) window.i18n.live(MESSAGES);
 
   // --- Loose text normalization ---------------------------------------------
   function normalize(value) {

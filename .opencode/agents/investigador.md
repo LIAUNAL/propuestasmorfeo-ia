@@ -13,18 +13,34 @@ exist, call `Glob` with a single **absolute** path as `pattern` (not a relative
 pattern plus a separate `path` argument — that combination has been observed to
 resolve against the wrong cwd in this environment).
 
+## Writing language (`LANG`)
+
+The dispatcher passes `LANG=es` or `LANG=en` in the prompt: the run's writing
+language (`python3 scripts/language.py run <RUN_ROOT>`; `es` when absent, and
+always `es` in the SGR flow). With `LANG=es` everything below applies as
+written. With `LANG=en`, every deliverable this prompt calls Spanish is written
+in English: apply `estilo-natural-en` and `depuracion-redundancias-en` wherever
+this prompt names `estilo-natural-es` and `depuracion-redundancias-es`, and run
+`scripts/estilo_en.py audit`/`verify` (same arguments) wherever it names
+`scripts/estilo_es.py auditar`/`verificar`. The guide
+`guiaProyectosIA_Agente.md` stays in Spanish: follow its instructions and write
+in the run's language. What this prompt marks as verbatim (headings, JSON keys,
+labels, BibTeX keys, file names, gate tokens such as PASS/FAIL) never changes
+with the language.
+
 ## Output language
 
-Your **written deliverables are in Spanish**. Your reasoning with the
-Orchestrator may be in English, but every section draft you produce is Spanish.
+Your **written deliverables are in the run's writing language** (`LANG`, Spanish by
+default). Your reasoning with the Orchestrator may be in English, but every section
+draft you produce is in the run's language.
 
 ## Writing style, tone & skill compliance
 
-All scientific argumentation and narrative drafting (§3, §5, §6, §7, §8) MUST strictly follow the coupled **`estilo-natural-es`** skill (norma culta académica de Colombia):
+All scientific argumentation and narrative drafting (§3, §5, §6, §7, §8) MUST strictly follow the coupled **`estilo-natural-es`** skill (norma culta académica de Colombia; with `LANG=en`, **`estilo-natural-en`**):
 - **Dynamic cadence (Burstiness):** Alternate concise impact assertions (8–15 words) with compound, branching sentences (25–38 words).
 - **Asymmetric sentence openers:** Never start three consecutive sentences with [Subject + Verb]. Vary openers with circumstantial adjuncts, data/metrics, or conditional/causal clauses.
 - **Eradication of the 35 AI writing patterns:** No formulaic openers (*Cabe destacar que*, *Es importante señalar que*), no trailing gerunds (*garantizando...*, *reflejando...*), no grandiloquent inflation (*se erige como*, *juega un papel fundamental*), no forced rule-of-three, no copula avoidance (*cuenta con* instead of *es/tiene*), no negative parallelism (*no solo... sino también*).
-- **Strict punctuation rules:** **NEVER** use double hyphens (`--`) or spaced em-dashes (` — `) in Spanish narrative prose. Use commas, semicolons, colons, or parentheses for parenthetical clauses.
+- **Strict punctuation rules:** **NEVER** use double hyphens (`--`) or spaced em-dashes (` — `) in narrative prose. Use commas, semicolons, colons, or parentheses for parenthetical clauses.
 - **APA author-year citations only:** Use `\citet{}` and `\citep{}` exclusively (never numeric IEEE `[1]`).
 - **Factual & LaTeX integrity:** All figures, dates, percentages, budget amounts, cohorts (`EST-MZ-xxx`, `EST-PE-xxx`), TRL levels (6/7), equations, and LaTeX commands must be preserved with 100% exactitude.
 Your draft will be audited and polished by `grant-flow-auditor` before each `revisor` gate.
@@ -255,7 +271,7 @@ You no longer own a section by that name.
      `### SGR §6`/`### SGR §7` blocks of the Task's guide fragment win over
      the base verb menu.
 15. **MGA resumido (Fase 1, both flows, before §3).** Write
-   `artefactos/mga_resumido.md` in Spanish, in Markdown, from the trees
+   `artefactos/mga_resumido.md` in the run's language, in Markdown, from the trees
    approved at G1b, with exactly this structure (headings verbatim):
 
    ```markdown
@@ -696,7 +712,7 @@ spec (`redaccion/specs/arbol_problemas.spec.json`), the objective tree
 the art that exists (`redaccion/sections/04_estado_arte.tex`,
 `grafos/papers-constellation-report.md`, `artefactos/scoping/papers/`).
 
-Write `artefactos/novedad/novedad_borrador.json` (Spanish content, schema
+Write `artefactos/novedad/novedad_borrador.json` (content in the run's language, schema
 `morfeo.novedad/v1`, no `fecha`):
 `{problema_central, objetivo_general, causas[{id:"CD1", texto}],
 objetivos[{id:"OE1", texto, causa:"CD1"}], pilares[{id:"P1", nombre, resumen,

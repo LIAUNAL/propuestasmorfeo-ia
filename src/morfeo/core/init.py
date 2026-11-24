@@ -11,6 +11,7 @@ from pathlib import Path
 
 from ..errors import UserError
 from ..kit import get_kit_root, load_kit_manifest
+from .language import VALID_LANGS
 from .manifest import (
     MODEL_PRESETS,
     VALID_PRESETS,
@@ -43,6 +44,12 @@ def init_project(
 ) -> int:
     if flujo not in FLUJO_LABELS:
         raise UserError(f"Flujo desconocido: {flujo} (válidos: {', '.join(FLUJO_LABELS)})")
+    if lang not in VALID_LANGS:
+        raise UserError(f"Idioma desconocido: {lang} (válidos: {', '.join(VALID_LANGS)})")
+    if flujo == "sgr" and lang != "es":
+        raise UserError(
+            "El flujo SGR se redacta solo en español (metodología MGA del DNP): usa --lang es o quita --sgr."
+        )
     target_dir = target_dir.resolve()
     if not force and ((target_dir / ".morfeo").is_dir() or (target_dir / ".marco").is_dir()):
         raise UserError(
@@ -149,6 +156,7 @@ def init_project(
         print("\n[OK] Espacio de trabajo Morfeo creado exitosamente.")
         print(f"     Directorio: {target_dir}")
         print(f"     Flujo: {FLUJO_LABELS[flujo]}")
+        print(f"     Idioma de redacción: {lang}")
         print("     Para comenzar:")
         print(f"       cd {target_dir}")
         print("       morfeo status .")

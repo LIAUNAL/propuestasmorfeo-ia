@@ -53,7 +53,8 @@ para mostrar el intake en vivo.
 Calculá `guide_fingerprint` como en `propuesta.md`. Despachá `subagent_run` →
 `insumos-observador` sobre `insumos/` (**recursivo**, drop zones
 `tdr|draft|background|doc-secciones|ideas` — ver agente). Inyectá
-`guide_fingerprint` en el prompt.
+`guide_fingerprint` y `LANG=<es|en>` (`python3 scripts/language.py run
+<RUN_ROOT>`) en el prompt: el digest va en el idioma de la corrida.
 
 ### 3. Resolución de idea de investigación (antes / junto al checklist)
 
