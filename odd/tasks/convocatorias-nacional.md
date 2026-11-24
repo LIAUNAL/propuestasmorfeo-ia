@@ -19,7 +19,7 @@ S1. National coverage (L1, verbatim): «depura el buscador de convocarorias, ase
 |----|-------|-------|--------|--------|
 | T1 | S1 (catalog, rules, script checks, agent and command, dashboard level, tests) | delegated writer (context backstop), main tree | done | 0f47376, b7813b4, e2d52da, 2f5dc84 (34 py + 6 js RED→GREEN; py 2012 OK, js 458/458; on the old hermes data `check` now reports 7 unconsulted mandatory sources, 3 count mismatches, 2 unknown sources) |
 | T2 | S1 (proof) | parent: real search on the hermes project with the explorador agent, then `check` and the dashboard | partial | first run: 8/8 mandatory sources consulted, 3 Colombian calls (UNAL–DFG open; Minciencias 54/55 closed), `check` 0; Colombian query templates (national, local, business challenges) not run and not detected |
-| T3 | S1 (search templates enforced) | delegated writer (context backstop), main tree | pending | |
+| T3 | S1 (search templates enforced) | delegated writer (context backstop), main tree | done | fc31041, 1076578, c0c4d9e (15 py + 2 js RED→GREEN; py 2026 OK, js 461/461; on the first-run data `check` now reports missing nacional, retos and institucional searches; native review b7813b4..fc31041 approved) |
 
 ## Log
 
